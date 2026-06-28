@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import mammoth from "mammoth";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+const geminiModel = process.env.GEMINI_MODEL || "gemini-3.5-flash";
 
 const extractQuestionsPrompt = `Trích xuất tất cả câu hỏi trắc nghiệm từ nội dung sau.
 Trả về JSON theo format sau, KHÔNG có markdown, chỉ JSON thuần:
@@ -30,7 +31,7 @@ export async function POST(request: NextRequest) {
     const file = formData.get("file") as File;
     const prompt = formData.get("prompt") as string;
 
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: geminiModel });
 
     let text: string;
 
