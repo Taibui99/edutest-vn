@@ -10,6 +10,17 @@ interface Question {
   answer: string;
 }
 
+function parseGeminiJson(text: string) {
+  const cleaned = text
+    .trim()
+    .replace(/^```json\s*/i, "")
+    .replace(/^```\s*/i, "")
+    .replace(/```$/i, "")
+    .trim();
+
+  return JSON.parse(cleaned);
+}
+
 export default function TaoDeThiPage() {
   const [title, setTitle] = useState("");
   const [subject, setSubject] = useState("");
@@ -55,11 +66,17 @@ export default function TaoDeThiPage() {
         body: formData,
       });
       const data = await res.json();
-      const parsed = JSON.parse(data.result);
+
+      if (!res.ok) {
+        throw new Error(data.error || "Lỗi đọc file");
+      }
+
+      const parsed = parseGeminiJson(data.result);
       if (parsed.title) setTitle(parsed.title);
       if (parsed.questions) setQuestions(parsed.questions);
     } catch (err) {
-      alert("Lỗi đọc file, thử lại nhé!");
+      const message = err instanceof Error ? err.message : "Lỗi đọc file";
+      alert(`${message}, thử lại nhé!`);
     } finally {
       setUploading(false);
     }
