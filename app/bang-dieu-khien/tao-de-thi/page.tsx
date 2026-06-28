@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Logo } from "@/app/components/logo";
 
 interface Question {
@@ -22,11 +23,13 @@ function parseGeminiJson(text: string) {
 }
 
 export default function TaoDeThiPage() {
+  const router = useRouter();
   const [title, setTitle] = useState("");
   const [subject, setSubject] = useState("");
   const [duration, setDuration] = useState("45");
   const [questions, setQuestions] = useState<Question[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [publishing, setPublishing] = useState(false);
   const [activeTab, setActiveTab] = useState<"manual" | "import">("manual");
 
   const addQuestion = () => {
@@ -79,6 +82,37 @@ export default function TaoDeThiPage() {
       alert(`${message}, thử lại nhé!`);
     } finally {
       setUploading(false);
+    }
+  };
+
+  const publishExam = async () => {
+    setPublishing(true);
+
+    try {
+      const res = await fetch("/api/exams", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          title,
+          subject,
+          durationMinutes: Number(duration),
+          questions,
+        }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Không thể xuất bản đề thi");
+      }
+
+      router.push(`/bang-dieu-khien?created=${data.exam.joinCode}`);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Không thể xuất bản đề thi";
+      alert(`${message}, kiểm tra lại đề nhé!`);
+    } finally {
+      setPublishing(false);
     }
   };
 
@@ -233,8 +267,12 @@ export default function TaoDeThiPage() {
             + Thêm câu hỏi
           </button>
           {questions.length > 0 && (
-            <button className="bg-blue-600 text-white px-8 py-3 rounded-xl text-sm font-semibold hover:bg-blue-700 transition-colors">
-              🚀 Xuất bản đề thi
+            <button
+              onClick={publishExam}
+              disabled={publishing}
+              className="bg-blue-600 text-white px-8 py-3 rounded-xl text-sm font-semibold hover:bg-blue-700 transition-colors disabled:cursor-not-allowed disabled:bg-blue-300"
+            >
+              {publishing ? "Đang xuất bản..." : "🚀 Xuất bản đề thi"}
             </button>
           )}
         </div>

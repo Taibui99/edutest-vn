@@ -9,11 +9,61 @@ datasource db {
 }
 
 model User {
+  id          String       @id @default(cuid())
+  email       String       @unique
+  password    String
+  name        String
+  role        String
+  exams       Exam[]
+  submissions Submission[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model Exam {
+  id              String       @id @default(cuid())
+  title           String
+  subject         String
+  durationMinutes Int
+  joinCode        String       @unique
+  status          String       @default("published")
+  teacherId       String
+  teacher         User         @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  questions       Question[]
+  submissions     Submission[]
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@index([teacherId])
+  @@index([joinCode])
+}
+
+model Question {
   id        String   @id @default(cuid())
-  email     String   @unique
-  password  String
-  name      String
-  role      String
+  examId    String
+  exam      Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
+  text      String
+  options   String[]
+  answer    String
+  order     Int
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+
+  @@index([examId])
+}
+
+model Submission {
+  id              String   @id @default(cuid())
+  examId          String
+  exam            Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
+  studentId       String
+  student         User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  answers         Json
+  score           Float
+  correctCount    Int
+  totalQuestions  Int
+  durationSeconds Int
+  submittedAt     DateTime @default(now())
+
+  @@unique([examId, studentId])
+  @@index([studentId])
 }
