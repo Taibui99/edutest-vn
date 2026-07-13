@@ -184,7 +184,11 @@ export default async function DashboardPage({
                 {teacherExams.length > 0 ? (
                   <div className="divide-y divide-slate-100">
                     {teacherExams.map((exam) => (
-                      <div key={exam.id} className="grid gap-3 p-4 sm:grid-cols-[1fr_auto] sm:items-center">
+                      <Link
+                        key={exam.id}
+                        href={`/bang-dieu-khien/de-thi/${exam.id}`}
+                        className="grid gap-3 p-4 transition-colors hover:bg-blue-50 sm:grid-cols-[1fr_auto] sm:items-center"
+                      >
                         <div>
                           <h4 className="font-semibold text-slate-900">{exam.title}</h4>
                           <p className="mt-1 text-sm text-slate-500">
@@ -196,7 +200,7 @@ export default async function DashboardPage({
                           <p className="text-xs text-blue-500">Mã tham gia</p>
                           <p className="font-bold tracking-[0.2em] text-blue-700">{exam.joinCode}</p>
                         </div>
-                      </div>
+                      </Link>
                     ))}
                   </div>
                 ) : (

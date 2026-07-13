@@ -17,7 +17,27 @@ export default async function ThiPage({
   }
 
   if (session.user.role !== "student") {
-    redirect("/bang-dieu-khien");
+    return (
+      <div className="min-h-screen bg-slate-50">
+        <Header />
+        <main className="mx-auto max-w-xl px-4 py-14 text-center sm:px-6">
+          <div className="rounded-2xl border border-amber-100 bg-white p-8 shadow-sm">
+            <p className="text-sm font-semibold text-amber-600">Không đúng vai trò</p>
+            <h1 className="mt-2 text-2xl font-bold text-slate-900">Tài khoản này không phải học sinh</h1>
+            <p className="mt-2 text-sm text-slate-600">
+              Vai trò hiện tại của bạn là &quot;{session.user.role}&quot;. Nếu bạn nghĩ đây là nhầm lẫn (ví dụ
+              vừa đổi vai trò tài khoản), hãy đăng xuất rồi đăng nhập lại để làm mới phiên đăng nhập.
+            </p>
+            <Link
+              href="/bang-dieu-khien"
+              className="mt-6 inline-flex h-11 items-center justify-center rounded-xl bg-green-600 px-6 text-sm font-semibold text-white hover:bg-green-700"
+            >
+              Về dashboard
+            </Link>
+          </div>
+        </main>
+      </div>
+    );
   }
 
   const { code } = await params;
