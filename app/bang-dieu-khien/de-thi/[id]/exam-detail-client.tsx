@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Spinner } from "@/app/components/spinner";
 
 export function ExamDetailClient({
   examId,
@@ -67,15 +68,17 @@ export function ExamDetailClient({
       <button
         onClick={toggleStatus}
         disabled={loading}
-        className="h-9 rounded-lg border border-blue-200 bg-white px-4 text-sm font-semibold text-blue-700 transition-colors hover:bg-blue-50 disabled:opacity-50"
+        className="inline-flex h-9 items-center gap-2 rounded-lg border border-blue-200 bg-white px-4 text-sm font-semibold text-blue-700 transition-colors hover:bg-blue-50 disabled:opacity-50"
       >
+        {loading && <Spinner className="h-3.5 w-3.5" />}
         {isPublished ? "Ẩn đề thi" : "Mở lại đề thi"}
       </button>
       <button
         onClick={deleteExam}
         disabled={loading}
-        className="h-9 rounded-lg border border-red-200 bg-white px-4 text-sm font-semibold text-red-600 transition-colors hover:bg-red-50 disabled:opacity-50"
+        className="inline-flex h-9 items-center gap-2 rounded-lg border border-red-200 bg-white px-4 text-sm font-semibold text-red-600 transition-colors hover:bg-red-50 disabled:opacity-50"
       >
+        {loading && <Spinner className="h-3.5 w-3.5" />}
         Xoá đề thi
       </button>
       {error && <span className="text-sm text-red-600">{error}</span>}

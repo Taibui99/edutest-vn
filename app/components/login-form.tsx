@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useActionState } from "react";
 import { loginAction, type AuthFormState } from "@/app/actions/auth";
+import { Spinner } from "@/app/components/spinner";
 
 const initialState: AuthFormState = {};
 
@@ -79,7 +80,14 @@ export function LoginForm() {
         disabled={isPending}
         className="flex h-11 w-full items-center justify-center rounded-lg bg-blue-600 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-70"
       >
-        {isPending ? "Đang đăng nhập..." : "Đăng nhập"}
+        {isPending ? (
+          <span className="flex items-center gap-2">
+            <Spinner className="h-4 w-4" />
+            Đang đăng nhập...
+          </span>
+        ) : (
+          "Đăng nhập"
+        )}
       </button>
     </form>
   );

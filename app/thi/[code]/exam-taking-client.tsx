@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Spinner } from "@/app/components/spinner";
 
 type Question = {
   id: string;
@@ -155,8 +156,9 @@ export function ExamTakingClient({ exam }: { exam: Exam }) {
         <button
           onClick={() => submitExam(false)}
           disabled={submitting}
-          className="mt-4 h-11 w-full rounded-xl bg-green-600 text-sm font-semibold text-white transition-colors hover:bg-green-700 disabled:cursor-not-allowed disabled:bg-green-300"
+          className="mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-green-600 text-sm font-semibold text-white transition-colors hover:bg-green-700 disabled:cursor-not-allowed disabled:bg-green-300"
         >
+          {submitting && <Spinner className="h-4 w-4" />}
           {submitting ? "Đang nộp..." : "Nộp bài"}
         </button>
       </aside>

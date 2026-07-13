@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Logo } from "@/app/components/logo";
+import { Spinner } from "@/app/components/spinner";
 
 interface Question {
   question: string;
@@ -201,8 +202,9 @@ export default function TaoDeThiPage() {
               <div className="text-4xl mb-3">📄</div>
               <p className="text-slate-600 text-sm mb-4">Upload file PDF hoặc Word có sẵn đề thi, AI sẽ tự đọc và tạo câu hỏi</p>
               <label className="cursor-pointer">
-                <span className="bg-blue-600 text-white px-6 py-2.5 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
-                  {uploading ? "⏳ Đang đọc file..." : "Chọn file PDF/Word"}
+                <span className="inline-flex items-center gap-2 bg-blue-600 text-white px-6 py-2.5 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
+                  {uploading && <Spinner className="h-4 w-4" />}
+                  {uploading ? "Đang đọc file..." : "Chọn file PDF/Word"}
                 </span>
                 <input
                   type="file"
@@ -270,8 +272,9 @@ export default function TaoDeThiPage() {
             <button
               onClick={publishExam}
               disabled={publishing}
-              className="bg-blue-600 text-white px-8 py-3 rounded-xl text-sm font-semibold hover:bg-blue-700 transition-colors disabled:cursor-not-allowed disabled:bg-blue-300"
+              className="inline-flex items-center gap-2 bg-blue-600 text-white px-8 py-3 rounded-xl text-sm font-semibold hover:bg-blue-700 transition-colors disabled:cursor-not-allowed disabled:bg-blue-300"
             >
+              {publishing && <Spinner className="h-4 w-4" />}
               {publishing ? "Đang xuất bản..." : "🚀 Xuất bản đề thi"}
             </button>
           )}
