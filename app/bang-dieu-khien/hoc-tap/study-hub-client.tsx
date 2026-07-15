@@ -408,7 +408,7 @@ function FlashcardPanel({
         <div className="flex gap-2">
           {mode !== "add" && (
             <button
-              onClick={() => setMode(mode === "add" ? "list" : "add")}
+              onClick={() => setMode("add")}
               className="inline-flex h-9 items-center rounded-lg border border-green-200 px-3 text-sm font-semibold text-green-700 hover:bg-green-50"
             >
               + Thêm thẻ
