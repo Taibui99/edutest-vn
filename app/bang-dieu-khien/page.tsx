@@ -212,13 +212,20 @@ export default async function DashboardPage({
         ) : (
           <>
             <h2 className="text-lg font-semibold text-slate-800 mb-4">Học tập của bạn</h2>
-            <div className="grid gap-4 sm:grid-cols-3 mb-8">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-8">
               <DashboardCard
                 icon="📋"
                 title="Vào thi bằng mã"
                 description="Nhập mã giáo viên cung cấp để bắt đầu làm bài."
                 color="green"
                 href="/vao-thi"
+              />
+              <DashboardCard
+                icon="🎯"
+                title="Góc học tập cá nhân"
+                description="Đếm ngược ngày thi, việc cần làm, flashcard ôn tập."
+                color="green"
+                href="/bang-dieu-khien/hoc-tap"
               />
               <DashboardCard
                 icon="📖"

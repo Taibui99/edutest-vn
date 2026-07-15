@@ -14,8 +14,12 @@ model User {
   password    String
   name        String
   role        String
+  examDate    DateTime?
   exams       Exam[]
   submissions Submission[]
+  studyTasks      StudyTask[]
+  flashcards      Flashcard[]
+  subjectProgress SubjectProgress[]
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 }
@@ -66,4 +70,45 @@ model Submission {
 
   @@unique([examId, studentId])
   @@index([studentId])
+}
+
+model StudyTask {
+  id        String    @id @default(cuid())
+  studentId String
+  student   User      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  title     String
+  subject   String?
+  dueDate   DateTime?
+  completed Boolean   @default(false)
+  createdAt DateTime  @default(now())
+
+  @@index([studentId])
+}
+
+model Flashcard {
+  id             String   @id @default(cuid())
+  studentId      String
+  student        User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  subject        String
+  front          String
+  back           String
+  easinessFactor Float    @default(2.5)
+  intervalDays   Int      @default(1)
+  repetitions    Int      @default(0)
+  nextReviewAt   DateTime @default(now())
+  createdAt      DateTime @default(now())
+
+  @@index([studentId])
+  @@index([nextReviewAt])
+}
+
+model SubjectProgress {
+  id        String   @id @default(cuid())
+  studentId String
+  student   User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  subject   String
+  progress  Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  @@unique([studentId, subject])
 }
