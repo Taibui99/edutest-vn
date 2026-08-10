@@ -1,41 +1,24 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
-import { Logo } from "@/app/components/logo";
 import { prisma } from "@/lib/prisma";
 import { ExamTakingClient } from "./exam-taking-client";
+import { Trophy, ArrowLeft } from "lucide-react";
 
-export default async function ThiPage({
-  params,
-}: {
-  params: Promise<{ code: string }>;
-}) {
+export default async function ThiPage({ params }: { params: Promise<{ code: string }> }) {
   const session = await auth();
-
-  if (!session?.user) {
-    redirect("/dang-nhap");
-  }
+  if (!session?.user) redirect("/dang-nhap");
 
   if (session.user.role !== "student") {
     return (
-      <div className="min-h-screen bg-slate-50">
-        <Header />
-        <main className="mx-auto max-w-xl px-4 py-14 text-center sm:px-6">
-          <div className="rounded-2xl border border-amber-100 bg-white p-8 shadow-sm">
-            <p className="text-sm font-semibold text-amber-600">Không đúng vai trò</p>
-            <h1 className="mt-2 text-2xl font-bold text-slate-900">Tài khoản này không phải học sinh</h1>
-            <p className="mt-2 text-sm text-slate-600">
-              Vai trò hiện tại của bạn là &quot;{session.user.role}&quot;. Nếu bạn nghĩ đây là nhầm lẫn (ví dụ
-              vừa đổi vai trò tài khoản), hãy đăng xuất rồi đăng nhập lại để làm mới phiên đăng nhập.
-            </p>
-            <Link
-              href="/bang-dieu-khien"
-              className="mt-6 inline-flex h-11 items-center justify-center rounded-xl bg-green-600 px-6 text-sm font-semibold text-white hover:bg-green-700"
-            >
-              Về dashboard
-            </Link>
-          </div>
-        </main>
+      <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl border border-[#E2E8F0] p-8 max-w-md w-full text-center">
+          <p className="text-sm font-semibold text-[#D97706] mb-2">Không đúng vai trò</p>
+          <h1 className="text-xl font-bold text-[#0F172A] mb-3">Tài khoản này không phải học sinh</h1>
+          <Link href="/bang-dieu-khien" className="inline-flex items-center gap-2 text-sm font-semibold text-[#2563EB]">
+            <ArrowLeft size={14} /> Về trang chủ
+          </Link>
+        </div>
       </div>
     );
   }
@@ -44,102 +27,57 @@ export default async function ThiPage({
   const exam = await prisma.exam.findUnique({
     where: { joinCode: code.toUpperCase() },
     include: {
-      questions: {
-        orderBy: { order: "asc" },
-      },
-      submissions: {
-        where: { studentId: session.user.id },
-        take: 1,
-      },
+      questions: { orderBy: { order: "asc" } },
+      submissions: { where: { studentId: session.user.id }, take: 1 },
     },
   });
 
   if (!exam || exam.status !== "published") {
     return (
-      <div className="min-h-screen bg-slate-50">
-        <Header />
-        <main className="mx-auto max-w-xl px-4 py-14 text-center sm:px-6">
-          <div className="rounded-2xl border border-red-100 bg-white p-8 shadow-sm">
-            <p className="text-sm font-semibold text-red-600">Không tìm thấy đề thi</p>
-            <h1 className="mt-2 text-2xl font-bold text-slate-900">Mã tham gia không hợp lệ</h1>
-            <Link
-              href="/vao-thi"
-              className="mt-6 inline-flex h-11 items-center justify-center rounded-xl bg-green-600 px-6 text-sm font-semibold text-white hover:bg-green-700"
-            >
-              Nhập mã khác
-            </Link>
-          </div>
-        </main>
+      <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl border border-[#FEE2E2] p-8 max-w-md w-full text-center">
+          <p className="text-sm font-semibold text-[#DC2626] mb-2">Không tìm thấy</p>
+          <h1 className="text-xl font-bold text-[#0F172A] mb-3">Mã tham gia không hợp lệ</h1>
+          <Link href="/vao-thi" className="inline-flex items-center gap-2 text-sm font-semibold text-[#2563EB]">
+            <ArrowLeft size={14} /> Nhập mã khác
+          </Link>
+        </div>
       </div>
     );
   }
 
   if (exam.submissions.length > 0) {
-    const submission = exam.submissions[0];
-
+    const sub = exam.submissions[0];
+    const scoreCol = sub.score >= 8 ? "#16A34A" : sub.score >= 5 ? "#D97706" : "#DC2626";
     return (
-      <div className="min-h-screen bg-slate-50">
-        <Header />
-        <main className="mx-auto max-w-xl px-4 py-14 text-center sm:px-6">
-          <div className="rounded-2xl border border-green-100 bg-white p-8 shadow-sm">
-            <p className="text-sm font-semibold text-green-600">Bạn đã nộp bài</p>
-            <h1 className="mt-2 text-3xl font-bold text-slate-900">{submission.score}/10 điểm</h1>
-            <p className="mt-2 text-sm text-slate-600">
-              Đúng {submission.correctCount}/{submission.totalQuestions} câu.
-            </p>
-            <Link
-              href="/bang-dieu-khien"
-              className="mt-6 inline-flex h-11 items-center justify-center rounded-xl bg-green-600 px-6 text-sm font-semibold text-white hover:bg-green-700"
-            >
-              Về dashboard
-            </Link>
+      <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl border border-[#E2E8F0] p-8 max-w-md w-full text-center">
+          <div className="w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center" style={{ background: `${scoreCol}15` }}>
+            <Trophy size={28} style={{ color: scoreCol }} />
           </div>
-        </main>
+          <p className="text-sm text-[#64748B] mb-1">Bạn đã nộp bài</p>
+          <h1 className="text-3xl font-bold mb-1" style={{ color: scoreCol }}>{sub.score}/10</h1>
+          <p className="text-sm text-[#94A3B8] mb-6">Đúng {sub.correctCount}/{sub.totalQuestions} câu</p>
+          <Link href="/bang-dieu-khien" className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#2563EB] text-white text-sm font-semibold rounded-lg hover:bg-[#1D4ED8]">
+            <ArrowLeft size={14} /> Về trang chủ
+          </Link>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <Header />
-      <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="mb-6 rounded-2xl bg-gradient-to-r from-green-500 to-green-600 p-6 text-white">
-          <p className="text-sm font-medium opacity-80">{exam.subject} · Mã {exam.joinCode}</p>
-          <h1 className="mt-1 text-2xl font-bold">{exam.title}</h1>
-          <p className="mt-2 text-sm opacity-80">
-            Thời gian {exam.durationMinutes} phút · {exam.questions.length} câu hỏi
-          </p>
-        </div>
-
-        <ExamTakingClient
-          exam={{
-            id: exam.id,
-            title: exam.title,
-            subject: exam.subject,
-            durationMinutes: exam.durationMinutes,
-            joinCode: exam.joinCode,
-            questions: exam.questions.map((question) => ({
-              id: question.id,
-              text: question.text,
-              options: question.options,
-              order: question.order,
-            })),
-          }}
-        />
-      </main>
-    </div>
-  );
-}
-
-function Header() {
-  return (
-    <header className="border-b border-green-100 bg-white sticky top-0 z-10">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6 lg:px-8">
-        <Logo />
-        <Link href="/bang-dieu-khien" className="text-sm font-medium text-slate-500 hover:text-slate-800">
-          Dashboard
-        </Link>
-      </div>
-    </header>
+    <ExamTakingClient
+      exam={{
+        id: exam.id,
+        title: exam.title,
+        subject: exam.subject,
+        durationMinutes: exam.durationMinutes,
+        joinCode: exam.joinCode,
+        questions: exam.questions.map((q: { id: string; text: string; options: string[]; order: number }) => ({
+          id: q.id, text: q.text, options: q.options, order: q.order,
+        })),
+      }}
+    />
   );
 }

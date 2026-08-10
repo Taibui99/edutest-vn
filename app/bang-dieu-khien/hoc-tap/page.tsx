@@ -28,7 +28,10 @@ export default async function StudyHubPage() {
     prisma.subjectProgress.findMany({ where: { studentId: session.user.id } }),
   ]);
 
-  const dueCards = allCards.filter((c) => c.nextReviewAt <= new Date());
+  type CardType = typeof allCards[0];
+  type TaskType = typeof tasks[0];
+  type ProgressType = typeof subjectProgress[0];
+  const dueCards = allCards.filter((c: CardType) => c.nextReviewAt <= new Date());
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -52,18 +55,18 @@ export default async function StudyHubPage() {
 
         <StudyHubClient
           initialExamDate={user?.examDate ? user.examDate.toISOString() : null}
-          initialTasks={tasks.map((t) => ({
+          initialTasks={tasks.map((t: TaskType) => ({
             ...t,
             dueDate: t.dueDate ? t.dueDate.toISOString() : null,
             createdAt: t.createdAt.toISOString(),
           }))}
-          initialCards={allCards.map((c) => ({
+          initialCards={allCards.map((c: CardType) => ({
             ...c,
             nextReviewAt: c.nextReviewAt.toISOString(),
             createdAt: c.createdAt.toISOString(),
           }))}
           initialDueCount={dueCards.length}
-          initialProgress={subjectProgress.map((p) => ({ subject: p.subject, progress: p.progress }))}
+          initialProgress={subjectProgress.map((p: ProgressType) => ({ subject: p.subject, progress: p.progress }))}
         />
       </main>
     </div>

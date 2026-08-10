@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const correctCount = exam.questions.reduce((count, question) => {
+  const correctCount = exam.questions.reduce((count: number, question: { id: string; answer: string }) => {
     const selected = answers[question.id]?.toUpperCase();
     return selected === question.answer.toUpperCase() ? count + 1 : count;
   }, 0);
@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
   const submission = await prisma.submission.create({
     data: {
       examId,
-      studentId: session.user.id,
+      studentId: session.user.id!,
       answers,
       correctCount,
       totalQuestions,
@@ -72,5 +72,23 @@ export async function POST(request: NextRequest) {
     },
   });
 
-  return NextResponse.json({ submission });
+  // Notify teacher
+  try {
+    await prisma.notification.create({
+      data: {
+        userId: exam.teacherId,
+        type: "exam_result",
+        title: "Học sinh vừa nộp bài",
+        message: `${session.user.name} vừa nộp bài "${exam.title}" — Điểm: ${score}/10`,
+        link: `/bang-dieu-khien/de-thi/${exam.id}`,
+      },
+    });
+  } catch {
+    // Non-critical, don't fail submission
+  }
+
+  return NextResponse.json({
+    submission,
+    resultLink: `/bang-dieu-khien/ket-qua/${submission.id}`,
+  });
 }

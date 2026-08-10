@@ -8,60 +8,129 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+// ─── Users ────────────────────────────────────────────────
 model User {
-  id          String       @id @default(cuid())
-  email       String       @unique
-  password    String
-  name        String
-  role        String
-  examDate    DateTime?
-  exams       Exam[]
-  submissions Submission[]
-  studyTasks      StudyTask[]
-  flashcards      Flashcard[]
-  subjectProgress SubjectProgress[]
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  id            String   @id @default(cuid())
+  email         String   @unique
+  password      String
+  name          String
+  role          String   // "student" | "teacher"
+  avatarUrl     String?
+  school        String?
+  grade         String?
+  bio           String?
+  examDate      DateTime?
+  streak        Int      @default(0)
+  lastStudyDate DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  exams              Exam[]
+  submissions        Submission[]
+  studyTasks         StudyTask[]
+  flashcards         Flashcard[]
+  subjectProgress    SubjectProgress[]
+  notifications      Notification[]
+  classroomsAsTeacher Classroom[]       @relation("TeacherClassrooms")
+  classroomsAsMember  ClassMember[]
+
+  @@index([email])
 }
 
+// ─── Classroom ────────────────────────────────────────────
+model Classroom {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  subject     String?
+  grade       String?
+  joinCode    String   @unique
+  teacherId   String
+  teacher     User     @relation("TeacherClassrooms", fields: [teacherId], references: [id], onDelete: Cascade)
+  archived    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  members     ClassMember[]
+  assignments ExamAssignment[]
+
+  @@index([teacherId])
+  @@index([joinCode])
+}
+
+model ClassMember {
+  id          String    @id @default(cuid())
+  classroomId String
+  classroom   Classroom @relation(fields: [classroomId], references: [id], onDelete: Cascade)
+  studentId   String
+  student     User      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  joinedAt    DateTime  @default(now())
+
+  @@unique([classroomId, studentId])
+  @@index([studentId])
+}
+
+model ExamAssignment {
+  id          String    @id @default(cuid())
+  classroomId String
+  classroom   Classroom @relation(fields: [classroomId], references: [id], onDelete: Cascade)
+  examId      String
+  exam        Exam      @relation(fields: [examId], references: [id], onDelete: Cascade)
+  dueDate     DateTime?
+  assignedAt  DateTime  @default(now())
+
+  @@unique([classroomId, examId])
+}
+
+// ─── Exam ─────────────────────────────────────────────────
 model Exam {
-  id              String       @id @default(cuid())
+  id              String   @id @default(cuid())
   title           String
   subject         String
+  description     String?
   durationMinutes Int
-  joinCode        String       @unique
-  status          String       @default("published")
+  joinCode        String   @unique
+  status          String   @default("published")
+  shuffleQuestions Boolean @default(false)
+  shuffleAnswers   Boolean @default(false)
+  maxAttempts     Int      @default(1)
+  showAnswers     Boolean  @default(true)
   teacherId       String
-  teacher         User         @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  teacher         User     @relation(fields: [teacherId], references: [id], onDelete: Cascade)
   questions       Question[]
   submissions     Submission[]
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
+  assignments     ExamAssignment[]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   @@index([teacherId])
   @@index([joinCode])
 }
 
 model Question {
-  id        String   @id @default(cuid())
-  examId    String
-  exam      Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
-  text      String
-  options   String[]
-  answer    String
-  order     Int
-  createdAt DateTime @default(now())
+  id          String   @id @default(cuid())
+  examId      String
+  exam        Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
+  text        String
+  options     String[]
+  answer      String
+  explanation String?
+  points      Float    @default(1)
+  order       Int
+  createdAt   DateTime @default(now())
 
   @@index([examId])
 }
 
+// ─── Submission ───────────────────────────────────────────
 model Submission {
   id              String   @id @default(cuid())
   examId          String
   exam            Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
   studentId       String
   student         User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  answers         Json
+  answers         Json     // { [questionId]: selectedOption }
   score           Float
   correctCount    Int
   totalQuestions  Int
@@ -70,8 +139,10 @@ model Submission {
 
   @@unique([examId, studentId])
   @@index([studentId])
+  @@index([examId])
 }
 
+// ─── Study ────────────────────────────────────────────────
 model StudyTask {
   id        String    @id @default(cuid())
   studentId String
@@ -111,4 +182,20 @@ model SubjectProgress {
   updatedAt DateTime @updatedAt
 
   @@unique([studentId, subject])
+}
+
+// ─── Notifications ────────────────────────────────────────
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String   // "exam_result" | "new_exam" | "class_invite" | "system" | "reminder"
+  title     String
+  message   String
+  link      String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([userId, read])
 }
