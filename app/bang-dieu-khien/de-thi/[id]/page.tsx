@@ -236,11 +236,11 @@ export default async function ExamDetailPage({ params }: { params: Promise<{ id:
           )}
         </div>
       </div>
-    </div>
 
       {/* Teacher actions — close / delete */}
       <Card className="mt-2">
         <ExamActions examId={exam.id} currentStatus={exam.status} />
       </Card>
+    </div>
   );
 }
