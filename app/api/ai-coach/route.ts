@@ -21,7 +21,6 @@ export async function POST(req: NextRequest) {
   const userId = session.user.id!;
   const isTeacher = session.user.role === "teacher";
 
-  // Build context from real data
   let context = "";
 
   if (!isTeacher) {
@@ -94,9 +93,6 @@ Hãy:
   try {
     const model = genAI.getGenerativeModel({ model: MODEL });
 
-    // The UI starts with a welcome assistant message. Gemini requires the
-    // history to begin with a user message, so drop leading model messages
-    // and ignore malformed/empty history entries.
     const normalizedHistory = (Array.isArray(history) ? history : [])
       .map((m: ChatHistoryMessage) => ({
         role: m.role === "assistant" || m.role === "model" ? "model" : "user",
@@ -112,7 +108,7 @@ Hãy:
         role: m.role,
         parts: [{ text: m.content }],
       })),
-      systemInstruction: systemPrompt,
+      systemInstruction: { parts: [{ text: systemPrompt }] },
     });
 
     const result = await chat.sendMessage(message);
