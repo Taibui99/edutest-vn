@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Bell, Check, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/cn";
@@ -25,14 +25,14 @@ function timeAgo(date: string): string {
   return `${Math.floor(hrs / 24)} ngày trước`;
 }
 
-
 export function NotificationBell() {
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unread, setUnread] = useState(0);
-  const ref = useRef<HTMLDivElement>(null);
+  const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({});
+  const buttonRef = useRef<HTMLButtonElement>(null);
 
-  const fetchNotifications = () => {
+  const fetchNotifications = useCallback(() => {
     fetch("/api/notifications")
       .then((r) => r.json())
       .then((d) => {
@@ -40,21 +40,46 @@ export function NotificationBell() {
         setUnread(d.unreadCount || 0);
       })
       .catch(() => {});
-  };
+  }, []);
 
   useEffect(() => {
     fetchNotifications();
     const interval = setInterval(fetchNotifications, 30000);
     return () => clearInterval(interval);
-  }, []);
+  }, [fetchNotifications]);
 
+  // Close on outside click
   useEffect(() => {
+    if (!open) return;
     function handleClick(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      if (buttonRef.current && !buttonRef.current.closest("[data-notif-root]")?.contains(e.target as Node)) {
+        setOpen(false);
+      }
     }
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
-  }, []);
+  }, [open]);
+
+  // Calculate fixed position from button
+  const handleOpen = () => {
+    if (buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      const dropdownWidth = 320;
+      const spaceRight = window.innerWidth - rect.left;
+      const left = spaceRight >= dropdownWidth
+        ? rect.left
+        : Math.max(8, window.innerWidth - dropdownWidth - 8);
+
+      setDropdownStyle({
+        position: "fixed",
+        top: rect.bottom + 8,
+        left,
+        width: Math.min(dropdownWidth, window.innerWidth - 16),
+        zIndex: 9999,
+      });
+    }
+    setOpen((o) => !o);
+  };
 
   const markAllRead = async () => {
     await fetch("/api/notifications", {
@@ -72,14 +97,17 @@ export function NotificationBell() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ids: [id] }),
     });
-    setNotifications((prev) => prev.map((n) => n.id === id ? { ...n, read: true } : n));
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, read: true } : n))
+    );
     setUnread((prev) => Math.max(0, prev - 1));
   };
 
   return (
-    <div ref={ref} className="relative">
+    <div data-notif-root className="relative">
       <button
-        onClick={() => setOpen((o) => !o)}
+        ref={buttonRef}
+        onClick={handleOpen}
         aria-label="Thông báo"
         className="relative w-9 h-9 rounded-xl flex items-center justify-center bg-[var(--gray-100)] hover:bg-[var(--gray-200)] transition-colors text-[var(--text-secondary)]"
       >
@@ -92,10 +120,17 @@ export function NotificationBell() {
       </button>
 
       {open && (
-        <div className="absolute left-0 top-11 w-72 sm:w-80 bg-[var(--surface-card)] border border-[var(--surface-border)] rounded-2xl shadow-xl z-50 overflow-hidden">
+        <div
+          style={dropdownStyle}
+          className="bg-[var(--surface-card)] border border-[var(--surface-border)] rounded-2xl shadow-2xl overflow-hidden"
+        >
+          {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--surface-border)]">
             <h3 className="text-sm font-black text-[var(--text-primary)]">
-              Thông báo {unread > 0 && <span className="text-[var(--primary)]">({unread})</span>}
+              Thông báo{" "}
+              {unread > 0 && (
+                <span className="text-[var(--primary)]">({unread})</span>
+              )}
             </h3>
             {unread > 0 && (
               <button
@@ -107,6 +142,7 @@ export function NotificationBell() {
             )}
           </div>
 
+          {/* List */}
           <div className="max-h-80 overflow-y-auto divide-y divide-[var(--surface-border)]">
             {notifications.length === 0 ? (
               <p className="text-center text-sm text-[var(--text-muted)] py-8">
@@ -117,23 +153,42 @@ export function NotificationBell() {
                 <div
                   key={n.id}
                   className={cn(
-                    "flex items-start gap-3 p-3.5 hover:bg-[var(--gray-100)] transition-colors",
+                    "flex items-start gap-3 p-3.5 hover:bg-[var(--gray-100)] transition-colors cursor-pointer",
                     !n.read && "bg-[var(--primary-light)]/30"
                   )}
                   onClick={() => !n.read && markRead(n.id)}
                 >
-                  <div className={cn("w-2 h-2 rounded-full mt-1.5 shrink-0", !n.read ? "bg-[var(--primary)]" : "bg-transparent")} />
+                  <div
+                    className={cn(
+                      "w-2 h-2 rounded-full mt-1.5 shrink-0",
+                      !n.read ? "bg-[var(--primary)]" : "bg-transparent"
+                    )}
+                  />
                   <div className="flex-1 min-w-0">
-                    <p className={cn("text-sm font-semibold truncate", !n.read ? "text-[var(--text-primary)]" : "text-[var(--text-secondary)]")}>
+                    <p
+                      className={cn(
+                        "text-sm font-semibold truncate",
+                        !n.read
+                          ? "text-[var(--text-primary)]"
+                          : "text-[var(--text-secondary)]"
+                      )}
+                    >
                       {n.title}
                     </p>
-                    <p className="text-xs text-[var(--text-muted)] mt-0.5 line-clamp-2">{n.message}</p>
-                    <p className="text-xs text-[var(--text-muted)] mt-1">{timeAgo(n.createdAt)}</p>
+                    <p className="text-xs text-[var(--text-muted)] mt-0.5 line-clamp-2">
+                      {n.message}
+                    </p>
+                    <p className="text-xs text-[var(--text-muted)] mt-1">
+                      {timeAgo(n.createdAt)}
+                    </p>
                   </div>
                   {n.link && (
                     <Link
                       href={n.link}
-                      onClick={(e) => e.stopPropagation()}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setOpen(false);
+                      }}
                       className="shrink-0 text-[var(--text-muted)] hover:text-[var(--primary)]"
                     >
                       <ExternalLink size={13} />
