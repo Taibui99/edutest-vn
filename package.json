@@ -12,6 +12,7 @@
     "db:push": "prisma db push"
   },
   "dependencies": {
+    "@google/genai": "^2.13.0",
     "@google/generative-ai": "^0.24.1",
     "@prisma/client": "^6.19.3",
     "@supabase/supabase-js": "^2.108.2",
