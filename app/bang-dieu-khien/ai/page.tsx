@@ -10,6 +10,13 @@ interface Message {
   content: string;
 }
 
+const INITIAL_MESSAGE: Message = {
+  role: "assistant",
+  content: "Xin chào! Tôi là AI Study Coach của EduTest 👋\n\nTôi có thể giúp bạn:\n• Phân tích điểm yếu và đề xuất ôn tập\n• Giải thích kiến thức, tạo câu hỏi luyện tập\n• Lập kế hoạch học tập cá nhân\n\nBạn muốn bắt đầu từ đâu?",
+};
+
+const STORAGE_PREFIX = "edutest-ai-chat-v2:";
+
 const STUDENT_PROMPTS = [
   "Tôi nên học gì hôm nay?",
   "Phân tích điểm yếu của tôi",
@@ -52,24 +59,66 @@ function MessageBubble({ msg }: { msg: Message }) {
 }
 
 export default function AICoachPage() {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      role: "assistant",
-      content: "Xin chào! Tôi là AI Study Coach của EduTest 👋\n\nTôi có thể giúp bạn:\n• Phân tích điểm yếu và đề xuất ôn tập\n• Giải thích kiến thức, tạo câu hỏi luyện tập\n• Lập kế hoạch học tập cá nhân\n\nBạn muốn bắt đầu từ đâu?",
-    },
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [role, setRole] = useState<"student" | "teacher">("student");
+  const [storageKey, setStorageKey] = useState<string | null>(null);
+  const [hydrated, setHydrated] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
+    let cancelled = false;
     fetch("/api/auth/session")
       .then((r) => r.json())
-      .then((s) => { if (s?.user?.role) setRole(s.user.role); })
-      .catch(() => {});
+      .then((s) => {
+        if (cancelled) return;
+        const user = s?.user;
+        if (user?.role) setRole(user.role);
+        if (user?.id) {
+          const key = `${STORAGE_PREFIX}${user.id}`;
+          setStorageKey(key);
+          try {
+            const raw = localStorage.getItem(key);
+            const saved = raw ? JSON.parse(raw) : null;
+            if (Array.isArray(saved) && saved.length > 0) {
+              const valid = saved.filter(
+                (m: unknown): m is Message =>
+                  typeof m === "object" && m !== null &&
+                  ((m as Message).role === "user" || (m as Message).role === "assistant") &&
+                  typeof (m as Message).content === "string"
+              );
+              setMessages(valid.length > 0 ? valid : [INITIAL_MESSAGE]);
+            } else {
+              setMessages([INITIAL_MESSAGE]);
+            }
+          } catch {
+            setMessages([INITIAL_MESSAGE]);
+          }
+          setHydrated(true);
+        } else {
+          setMessages([INITIAL_MESSAGE]);
+          setHydrated(true);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setMessages([INITIAL_MESSAGE]);
+          setHydrated(true);
+        }
+      });
+    return () => { cancelled = true; };
   }, []);
+
+  useEffect(() => {
+    if (!hydrated || !storageKey || messages.length === 0) return;
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(messages.slice(-100)));
+    } catch {
+      // Ignore storage quota/private-mode errors; chat still works in memory.
+    }
+  }, [messages, hydrated, storageKey]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -80,6 +129,7 @@ export default function AICoachPage() {
     if (!content || loading) return;
 
     const userMsg: Message = { role: "user", content };
+    const history = messages.slice(-10);
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
     setLoading(true);
@@ -90,7 +140,7 @@ export default function AICoachPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           message: content,
-          history: messages.slice(-10),
+          history,
         }),
       });
       const data = await res.json();
@@ -110,17 +160,20 @@ export default function AICoachPage() {
   };
 
   const reset = () => {
-    setMessages([{
-      role: "assistant",
+    const fresh = [{
+      role: "assistant" as const,
       content: "Cuộc trò chuyện mới bắt đầu! Tôi có thể giúp gì cho bạn?",
-    }]);
+    }];
+    setMessages(fresh);
+    if (storageKey) {
+      try { localStorage.setItem(storageKey, JSON.stringify(fresh)); } catch {}
+    }
   };
 
   const quickPrompts = role === "teacher" ? TEACHER_PROMPTS : STUDENT_PROMPTS;
 
   return (
     <div className="flex flex-col h-[calc(100vh-61px)] lg:h-screen">
-      {/* Header */}
       <div className="flex items-center justify-between px-5 py-3.5 bg-[var(--surface-card)] border-b border-[var(--surface-border)] shrink-0">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-xl bg-[var(--primary-light)] flex items-center justify-center">
@@ -141,7 +194,6 @@ export default function AICoachPage() {
         </button>
       </div>
 
-      {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-5 flex flex-col gap-4">
         {messages.map((msg, i) => (
           <MessageBubble key={i} msg={msg} />
@@ -163,14 +215,13 @@ export default function AICoachPage() {
         <div ref={bottomRef} />
       </div>
 
-      {/* Quick prompts */}
       {messages.length <= 2 && (
         <div className="px-4 pb-3 flex gap-2 overflow-x-auto scrollbar-hide shrink-0">
           {quickPrompts.map((p) => (
             <button
               key={p}
               onClick={() => send(p)}
-              disabled={loading}
+              disabled={loading || !hydrated}
               className="shrink-0 text-xs font-semibold px-3 py-2 rounded-xl border border-[var(--primary-muted)] text-[var(--primary)] bg-[var(--primary-light)] hover:bg-[var(--primary-muted)] transition-colors whitespace-nowrap disabled:opacity-50"
             >
               {p}
@@ -179,7 +230,6 @@ export default function AICoachPage() {
         </div>
       )}
 
-      {/* Input */}
       <div className="px-4 pb-4 lg:pb-5 shrink-0">
         <div className="flex gap-2 bg-[var(--surface-card)] border border-[var(--surface-border)] rounded-2xl p-2 focus-within:border-[var(--primary)] transition-colors">
           <textarea
@@ -196,7 +246,7 @@ export default function AICoachPage() {
           />
           <button
             onClick={() => send()}
-            disabled={!input.trim() || loading}
+            disabled={!input.trim() || loading || !hydrated}
             className="w-9 h-9 rounded-xl bg-[var(--primary)] text-white flex items-center justify-center shrink-0 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[var(--primary-hover)] transition-colors self-end"
           >
             {loading ? <Spinner size="sm" color="white" /> : <Send size={15} />}
