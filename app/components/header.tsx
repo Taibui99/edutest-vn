@@ -1,61 +1,59 @@
 import Link from "next/link";
 import { auth } from "@/auth";
 import { logoutAction } from "@/app/actions/auth";
-import { Logo } from "./logo";
 
 export async function Header() {
   const session = await auth();
 
   return (
-    <header className="sticky top-0 z-50 border-b border-blue-100 bg-white/95 backdrop-blur-sm">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6 lg:px-8">
-        <Logo />
+    <header className="sticky top-0 z-50" style={{ background: "rgba(255,255,255,0.92)", backdropFilter: "blur(12px)", borderBottom: "1px solid #E8E4FF" }}>
+      <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-5">
+        {/* Logo */}
+        <Link href="/" className="text-xl font-black tracking-tight">
+          <span style={{ color: "#6C63FF" }}>Edu</span>
+          <span style={{ color: "#FF6B6B" }}>Test</span>
+          <span style={{ color: "#94A3B8", fontWeight: 600, fontSize: "0.8em" }}>.vn</span>
+        </Link>
 
-        <nav className="hidden items-center gap-8 md:flex">
-          <Link
-            href="/#tinh-nang"
-            className="text-sm font-medium text-slate-600 transition-colors hover:text-blue-600"
-          >
+        {/* Nav */}
+        <nav className="hidden md:flex items-center gap-6">
+          <Link href="/#tinh-nang" className="text-sm font-semibold transition-colors" style={{ color: "#64748B" }}>
             Tính năng
           </Link>
-          <Link
-            href="/#huong-dan"
-            className="text-sm font-medium text-slate-600 transition-colors hover:text-blue-600"
-          >
+          <Link href="/#huong-dan" className="text-sm font-semibold transition-colors" style={{ color: "#64748B" }}>
             Hướng dẫn
-          </Link>
-          <Link
-            href="/#lien-he"
-            className="text-sm font-medium text-slate-600 transition-colors hover:text-blue-600"
-          >
-            Liên hệ
           </Link>
         </nav>
 
+        {/* Auth */}
         {session?.user ? (
           <div className="flex items-center gap-3">
-            <Link
-              href="/bang-dieu-khien"
-              className="hidden text-sm font-medium text-slate-600 transition-colors hover:text-blue-600 sm:inline"
-            >
-              {session.user.name}
+            <Link href="/bang-dieu-khien"
+              className="hidden sm:inline-flex h-9 items-center px-4 rounded-xl text-sm font-bold transition-colors"
+              style={{ background: "#EEEFFE", color: "#6C63FF" }}>
+              Vào app →
             </Link>
             <form action={logoutAction}>
-              <button
-                type="submit"
-                className="inline-flex h-10 items-center justify-center rounded-lg border border-blue-200 px-5 text-sm font-semibold text-blue-700 transition-colors hover:bg-blue-50"
-              >
+              <button type="submit"
+                className="h-9 px-4 rounded-xl text-sm font-semibold transition-colors"
+                style={{ border: "1.5px solid #E0DCFC", color: "#64748B" }}>
                 Đăng xuất
               </button>
             </form>
           </div>
         ) : (
-          <Link
-            href="/dang-nhap"
-            className="inline-flex h-10 items-center justify-center rounded-lg bg-blue-600 px-5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
-          >
-            Đăng nhập
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link href="/dang-nhap"
+              className="h-9 px-4 rounded-xl text-sm font-semibold"
+              style={{ color: "#6C63FF" }}>
+              Đăng nhập
+            </Link>
+            <Link href="/dang-ky"
+              className="h-9 px-5 rounded-xl text-sm font-black text-white"
+              style={{ background: "linear-gradient(135deg, #6C63FF, #a78bfa)" }}>
+              Đăng ký
+            </Link>
+          </div>
         )}
       </div>
     </header>

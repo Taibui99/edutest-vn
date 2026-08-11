@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Header } from "./components/header";
 import { Hero } from "./components/hero";
 import { Features } from "./components/features";
@@ -10,24 +11,60 @@ export default function Home() {
       <main>
         <Hero />
         <Features />
-        <section
-          id="huong-dan"
-          className="bg-gradient-to-r from-blue-600 to-blue-700 py-16 sm:py-20"
-        >
-          <div className="mx-auto max-w-4xl px-4 text-center sm:px-6 lg:px-8">
-            <h2 className="text-3xl font-bold text-white sm:text-4xl">
-              Sẵn sàng bắt đầu?
+
+        {/* How it works */}
+        <section id="huong-dan" className="py-20 sm:py-24" style={{ background: "white" }}>
+          <div className="mx-auto max-w-4xl px-5 text-center">
+            <span className="inline-block text-sm font-bold px-3 py-1 rounded-full mb-3"
+              style={{ background: "#FFF8E1", color: "#C49A00" }}>
+              Hướng dẫn
+            </span>
+            <h2 className="text-2xl sm:text-3xl font-black mb-12" style={{ color: "#1A1523" }}>
+              Bắt đầu chỉ trong 3 bước
             </h2>
-            <p className="mt-4 text-lg text-blue-100">
-              Tạo tài khoản miễn phí và trải nghiệm ngay hôm nay. Không cần cài
-              đặt, sử dụng trên trình duyệt.
+
+            <div className="grid gap-6 sm:grid-cols-3">
+              {[
+                { step: "1", emoji: "✍️", title: "Đăng ký tài khoản", desc: "Chọn vai trò học sinh hoặc giáo viên. Miễn phí hoàn toàn." },
+                { step: "2", emoji: "🏫", title: "Tham gia lớp học", desc: "Học sinh nhập mã lớp từ giáo viên. Giáo viên tạo lớp và mời học sinh." },
+                { step: "3", emoji: "🚀", title: "Học và thi thôi!", desc: "Làm bài, xem kết quả, ôn flashcard, chat với AI — tất cả ở một nơi." },
+              ].map((item) => (
+                <div key={item.step} className="relative rounded-2xl p-6 text-left"
+                  style={{ background: "#F8F7FF", border: "1px solid #E8E4FF" }}>
+                  <span className="absolute -top-3 -left-3 w-7 h-7 rounded-full text-xs font-black text-white flex items-center justify-center"
+                    style={{ background: "#6C63FF" }}>
+                    {item.step}
+                  </span>
+                  <div className="text-3xl mb-3">{item.emoji}</div>
+                  <h3 className="font-black mb-1.5" style={{ color: "#1A1523" }}>{item.title}</h3>
+                  <p className="text-sm leading-relaxed" style={{ color: "#64748B" }}>{item.desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* CTA */}
+        <section className="py-16" style={{ background: "linear-gradient(135deg, #6C63FF 0%, #a78bfa 100%)" }}>
+          <div className="mx-auto max-w-2xl px-5 text-center">
+            <h2 className="text-2xl sm:text-3xl font-black text-white mb-3">
+              Sẵn sàng chưa? 🎯
+            </h2>
+            <p className="text-white/80 mb-8">
+              Đăng ký miễn phí và bắt đầu học thông minh hơn ngay hôm nay.
             </p>
-            <a
-              href="/dang-ky"
-              className="mt-8 inline-flex h-12 items-center justify-center rounded-lg bg-white px-8 text-base font-semibold text-blue-700 shadow-md transition-colors hover:bg-blue-50"
-            >
-              Đăng ký miễn phí
-            </a>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+              <Link href="/dang-ky"
+                className="w-full sm:w-auto inline-flex h-12 items-center justify-center rounded-2xl px-8 text-base font-black transition-transform hover:scale-105"
+                style={{ background: "white", color: "#6C63FF" }}>
+                Đăng ký miễn phí
+              </Link>
+              <Link href="/vao-thi"
+                className="w-full sm:w-auto inline-flex h-12 items-center justify-center rounded-2xl px-8 text-base font-bold text-white/90 transition-colors"
+                style={{ border: "2px solid rgba(255,255,255,0.4)" }}>
+                Vào thi bằng mã →
+              </Link>
+            </div>
           </div>
         </section>
       </main>

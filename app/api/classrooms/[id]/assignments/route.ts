@@ -46,7 +46,7 @@ export async function POST(
   });
   if (members.length > 0) {
     await prisma.notification.createMany({
-      data: members.map((m) => ({
+      data: members.map((m: { studentId: string }) => ({
         userId: m.studentId,
         type: "new_exam",
         title: "Giáo viên vừa giao đề thi mới",

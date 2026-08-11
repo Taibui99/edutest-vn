@@ -2,58 +2,55 @@ import Link from "next/link";
 
 export function Hero() {
   return (
-    <section className="relative overflow-hidden bg-gradient-to-br from-blue-50 via-white to-blue-50">
-      <div className="absolute inset-0 -z-10">
-        <div className="absolute -top-24 right-0 h-96 w-96 rounded-full bg-blue-100/60 blur-3xl" />
-        <div className="absolute -bottom-24 left-0 h-80 w-80 rounded-full bg-blue-200/40 blur-3xl" />
-      </div>
+    <section className="relative overflow-hidden" style={{ background: "linear-gradient(135deg, #F0EFFE 0%, #fff 50%, #FFF8F8 100%)" }}>
+      {/* Decorative blobs */}
+      <div className="absolute -top-32 -right-32 w-96 h-96 rounded-full opacity-20" style={{ background: "radial-gradient(circle, #6C63FF, transparent)" }} />
+      <div className="absolute -bottom-20 -left-20 w-72 h-72 rounded-full opacity-15" style={{ background: "radial-gradient(circle, #FF6B6B, transparent)" }} />
 
-      <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6 sm:py-28 lg:px-8">
-        <div className="mx-auto max-w-3xl text-center">
-          <span className="inline-flex items-center rounded-full bg-blue-100 px-4 py-1.5 text-sm font-medium text-blue-700">
-            Nền tảng kiểm tra trực tuyến hàng đầu
-          </span>
+      <div className="relative mx-auto max-w-5xl px-5 py-20 sm:py-28 text-center">
+        {/* Badge */}
+        <span className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-bold mb-6"
+          style={{ background: "#EEEFFE", color: "#6C63FF" }}>
+          ✨ Dự án cá nhân — xây để học và thi cùng bạn bè
+        </span>
 
-          <h1 className="mt-6 text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl lg:text-6xl">
-            Kiểm tra trực tuyến{" "}
-            <span className="text-blue-600">nhanh chóng & chính xác</span>
-          </h1>
+        {/* Headline */}
+        <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight mb-5"
+          style={{ color: "#1A1523", lineHeight: 1.15 }}>
+          Ôn thi cùng nhau,{" "}
+          <span style={{ color: "#6C63FF" }}>dễ hơn bao giờ hết</span>
+        </h1>
 
-          <p className="mt-6 text-lg leading-8 text-slate-600 sm:text-xl">
-            EduTest giúp giáo viên tạo đề thi, học sinh làm bài trực tuyến và
-            chấm điểm tự động — tiết kiệm thời gian, nâng cao chất lượng giảng
-            dạy.
-          </p>
+        <p className="text-lg sm:text-xl max-w-2xl mx-auto mb-10" style={{ color: "#64748B", lineHeight: 1.7 }}>
+          EduTest là nền tảng tạo đề thi, ôn flashcard và theo dõi tiến độ học tập — được xây dựng cho học sinh lớp 12 và giáo viên của mình.
+        </p>
 
-          <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
-            <Link
-              href="/dang-ky"
-              className="inline-flex h-12 w-full items-center justify-center rounded-lg bg-blue-600 px-8 text-base font-semibold text-white shadow-md transition-colors hover:bg-blue-700 sm:w-auto"
-            >
-              Bắt đầu miễn phí
-            </Link>
-            <Link
-              href="#tinh-nang"
-              className="inline-flex h-12 w-full items-center justify-center rounded-lg border border-blue-200 bg-white px-8 text-base font-semibold text-blue-700 transition-colors hover:bg-blue-50 sm:w-auto"
-            >
-              Tìm hiểu thêm
-            </Link>
-          </div>
+        {/* CTAs */}
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+          <Link
+            href="/dang-ky"
+            className="w-full sm:w-auto inline-flex h-12 items-center justify-center rounded-2xl px-8 text-base font-black text-white shadow-lg transition-transform hover:scale-105"
+            style={{ background: "linear-gradient(135deg, #6C63FF, #a78bfa)" }}
+          >
+            Bắt đầu miễn phí
+          </Link>
+          <Link
+            href="/dang-nhap"
+            className="w-full sm:w-auto inline-flex h-12 items-center justify-center rounded-2xl px-8 text-base font-bold transition-colors"
+            style={{ border: "2px solid #E0DCFC", color: "#6C63FF", background: "white" }}
+          >
+            Đã có tài khoản →
+          </Link>
+        </div>
 
-          <div className="mt-16 grid grid-cols-3 gap-6 border-t border-blue-100 pt-10">
-            <div>
-              <p className="text-3xl font-bold text-blue-600">10K+</p>
-              <p className="mt-1 text-sm text-slate-500">Giáo viên tin dùng</p>
-            </div>
-            <div>
-              <p className="text-3xl font-bold text-blue-600">500K+</p>
-              <p className="mt-1 text-sm text-slate-500">Bài kiểm tra</p>
-            </div>
-            <div>
-              <p className="text-3xl font-bold text-blue-600">2M+</p>
-              <p className="mt-1 text-sm text-slate-500">Lượt làm bài</p>
-            </div>
-          </div>
+        {/* Feature pills */}
+        <div className="flex flex-wrap justify-center gap-2 mt-10">
+          {["📝 Tạo đề thi", "⏱️ Timer tự động", "🃏 Flashcard SM-2", "🤖 AI Study Coach", "👥 Lớp học", "📊 Thống kê"].map((f) => (
+            <span key={f} className="text-sm font-semibold px-3 py-1.5 rounded-xl"
+              style={{ background: "white", color: "#64748B", border: "1px solid #E8E4FF" }}>
+              {f}
+            </span>
+          ))}
         </div>
       </div>
     </section>
