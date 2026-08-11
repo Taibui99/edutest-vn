@@ -6,6 +6,8 @@ import { prisma } from "@/lib/prisma";
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 const MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
 
+type ChatHistoryMessage = { role: string; content: string };
+
 export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -91,9 +93,23 @@ Hãy:
 
   try {
     const model = genAI.getGenerativeModel({ model: MODEL });
+
+    // The UI starts with a welcome assistant message. Gemini requires the
+    // history to begin with a user message, so drop leading model messages
+    // and ignore malformed/empty history entries.
+    const normalizedHistory = (Array.isArray(history) ? history : [])
+      .map((m: ChatHistoryMessage) => ({
+        role: m.role === "assistant" || m.role === "model" ? "model" : "user",
+        content: typeof m.content === "string" ? m.content.trim() : "",
+      }))
+      .filter((m) => m.content.length > 0);
+
+    const firstUserIndex = normalizedHistory.findIndex((m) => m.role === "user");
+    const validHistory = firstUserIndex >= 0 ? normalizedHistory.slice(firstUserIndex) : [];
+
     const chat = model.startChat({
-      history: ((history ?? []) as { role: string; content: string }[]).map((m) => ({
-        role: m.role === "assistant" ? "model" : "user",
+      history: validHistory.map((m) => ({
+        role: m.role,
         parts: [{ text: m.content }],
       })),
       systemInstruction: systemPrompt,
