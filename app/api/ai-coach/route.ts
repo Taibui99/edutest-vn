@@ -108,7 +108,7 @@ Hãy:
         role: m.role,
         parts: [{ text: m.content }],
       })),
-      systemInstruction: { parts: [{ text: systemPrompt }] },
+      systemInstruction: { role: "system", parts: [{ text: systemPrompt }] },
     });
 
     const result = await chat.sendMessage(message);
