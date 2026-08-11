@@ -31,7 +31,7 @@ function normalizeQuestions(questions: IncomingQuestion[]) {
   return questions.map((item, index) => {
     const text = (item.question || item.text || "").trim();
     const options = Array.isArray(item.options)
-      ? item.options.map((option) => option.trim()).filter(Boolean)
+      ? item.options.map((option) => String(option).trim()).filter(Boolean)
       : [];
     const answer = (item.answer || "").trim().charAt(0).toUpperCase();
 
@@ -104,16 +104,25 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Đề thi cần có ít nhất 1 câu hỏi" }, { status: 400 });
   }
 
-  const invalidQuestion = questions.find(
-    (question) =>
+  const invalidQuestion = questions.find((question) => {
+    const uniqueOptions = new Set(question.options.map((option) => option.toLowerCase()));
+    const answerIndex = question.answer.charCodeAt(0) - 65;
+
+    return (
       !question.text ||
       question.options.length < 2 ||
-      !["A", "B", "C", "D"].includes(question.answer),
-  );
+      question.options.length > 4 ||
+      uniqueOptions.size !== question.options.length ||
+      !["A", "B", "C", "D"].includes(question.answer) ||
+      answerIndex < 0 ||
+      answerIndex >= question.options.length ||
+      !question.options[answerIndex]
+    );
+  });
 
   if (invalidQuestion) {
     return NextResponse.json(
-      { error: "Mỗi câu hỏi cần có nội dung, ít nhất 2 đáp án và đáp án đúng A-D" },
+      { error: "Mỗi câu hỏi cần có nội dung, từ 2-4 đáp án không trùng nhau và đáp án đúng hợp lệ" },
       { status: 400 },
     );
   }
