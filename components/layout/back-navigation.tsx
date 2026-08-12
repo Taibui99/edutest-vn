@@ -19,15 +19,17 @@ export function BackNavigation() {
   };
 
   return (
-    <button
-      type="button"
-      onClick={handleBack}
-      className="fixed left-3 top-[68px] lg:left-[276px] lg:top-5 z-30 inline-flex h-9 items-center gap-1.5 rounded-xl border border-[var(--surface-border)] bg-[var(--surface-card)] px-3 text-xs font-bold text-[var(--text-secondary)] shadow-sm backdrop-blur-sm transition hover:bg-[var(--gray-100)] hover:text-[var(--text-primary)] active:scale-[0.98]"
-      aria-label="Quay lại trang trước"
-      title="Quay lại"
-    >
-      <ArrowLeft size={15} />
-      <span className="hidden sm:inline">Quay lại</span>
-    </button>
+    <div className="px-5 lg:px-8 pt-4 pb-1">
+      <button
+        type="button"
+        onClick={handleBack}
+        className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-[var(--surface-border)] bg-[var(--surface-card)] px-3 text-xs font-bold text-[var(--text-secondary)] shadow-sm transition hover:bg-[var(--gray-100)] hover:text-[var(--text-primary)] active:scale-[0.98]"
+        aria-label="Quay lại trang trước"
+        title="Quay lại"
+      >
+        <ArrowLeft size={15} />
+        <span>Quay lại</span>
+      </button>
+    </div>
   );
 }
