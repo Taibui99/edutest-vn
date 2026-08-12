@@ -17,8 +17,8 @@ const tools = [
   { type: "function", name: "get_dashboard", description: "Lấy dữ liệu tổng quan thật của tài khoản hiện tại.", parameters: { type: "object", properties: {}, required: [] } },
   { type: "function", name: "list_exams", description: "Liệt kê đề thi của giáo viên hoặc đề được giao cho học sinh.", parameters: { type: "object", properties: {}, required: [] } },
   { type: "function", name: "get_exam", description: "Xem chi tiết một đề thi có quyền truy cập.", parameters: { type: "object", properties: { exam_id: { type: "string" } }, required: ["exam_id"] } },
-  { type: "function", name: "create_exam", description: "Tạo đề thi thật trong database. Chỉ gọi khi giáo viên yêu cầu tạo đề.", parameters: { type: "object", properties: { title: { type: "string" }, subject: { type: "string" }, duration_minutes: { type: "integer" }, questions: { type: "array", items: { type: "object", properties: { text: { type: "string" }, options: { type: "array", items: { type: "string" } }, answer: { type: "string" }, explanation: { type: "string" } }, required: ["text", "options", "answer"] } } }, required: ["title", "subject", "duration_minutes", "questions"] } },
-  { type: "function", name: "set_exam_status", description: "Xuất bản hoặc chuyển đề về bản nháp.", parameters: { type: "object", properties: { exam_id: { type: "string" }, status: { type: "string", enum: ["published", "draft"] } }, required: ["exam_id", "status"] } },
+  { type: "function", name: "create_exam", description: "Tạo BẢN NHÁP đề thi thật trong database. Không xuất bản đề. Chỉ gọi khi giáo viên yêu cầu tạo đề và đã cung cấp đủ thông tin.", parameters: { type: "object", properties: { title: { type: "string" }, subject: { type: "string" }, duration_minutes: { type: "integer" }, questions: { type: "array", items: { type: "object", properties: { text: { type: "string" }, options: { type: "array", items: { type: "string" } }, answer: { type: "string" }, explanation: { type: "string" } }, required: ["text", "options", "answer"] } } }, required: ["title", "subject", "duration_minutes", "questions"] } },
+  { type: "function", name: "set_exam_status", description: "Xuất bản hoặc chuyển đề về bản nháp. Chỉ gọi khi giáo viên yêu cầu rõ ràng thay đổi trạng thái.", parameters: { type: "object", properties: { exam_id: { type: "string" }, status: { type: "string", enum: ["published", "draft"] } }, required: ["exam_id", "status"] } },
   { type: "function", name: "delete_exam", description: "Xóa vĩnh viễn đề của giáo viên. Chỉ gọi khi được yêu cầu rõ ràng.", parameters: { type: "object", properties: { exam_id: { type: "string" } }, required: ["exam_id"] } },
   { type: "function", name: "list_classrooms", description: "Liệt kê lớp học hiện tại.", parameters: { type: "object", properties: {}, required: [] } },
   { type: "function", name: "get_classroom", description: "Xem thành viên và đề đã giao của một lớp.", parameters: { type: "object", properties: { classroom_id: { type: "string" } }, required: ["classroom_id"] } },
@@ -93,7 +93,7 @@ async function runTool(name: string, a: Args, userId: string, role: Role): Promi
     const invalid = questions.some((q) => !q.text || q.options.length < 2 || q.options.length > 4 || !["A", "B", "C", "D"].includes(q.answer) || q.answer.charCodeAt(0) - 65 >= q.options.length || new Set(q.options.map((o) => o.toLowerCase())).size !== q.options.length);
     if (!title || !subject || duration < 1 || !questions.length || invalid) return { success: false, error: "Thông tin đề hoặc câu hỏi không hợp lệ" };
     const exam = await prisma.exam.create({ data: { title, subject, durationMinutes: duration, joinCode: await examCode(), teacherId: userId, questions: { create: questions } }, include: { questions: true } });
-    return { success: true, action: "created", exam };
+    return { success: true, action: "created_draft", exam };
   }
 
   if (name === "set_exam_status") {
@@ -158,7 +158,7 @@ async function runTool(name: string, a: Args, userId: string, role: Role): Promi
     if (!c || !exam) return { success: false, error: "Không tìm thấy lớp hoặc đề" };
     const due = str(a, "due_date");
     const dueDate = due ? new Date(due) : null;
-    if (due && Number.isNaN(dueDate.getTime())) return { success: false, error: "Hạn nộp không hợp lệ" };
+    if (dueDate && Number.isNaN(dueDate.getTime())) return { success: false, error: "Hạn nộp không hợp lệ" };
     const assignment = await prisma.examAssignment.upsert({ where: { classroomId_examId: { classroomId, examId } }, create: { classroomId, examId, dueDate }, update: { dueDate } });
     const members = await prisma.classMember.findMany({ where: { classroomId }, select: { studentId: true } });
     if (members.length) await prisma.notification.createMany({ data: members.map((m) => ({ userId: m.studentId, type: "new_exam", title: "Giáo viên vừa giao đề thi mới", message: `Đề "${exam.title}" đã được giao trong lớp ${c.name}`, link: "/vao-thi" })) });
@@ -201,7 +201,7 @@ async function runTool(name: string, a: Args, userId: string, role: Role): Promi
     if (role !== "student") return { success: false, error: "Chỉ học sinh được tạo nhiệm vụ" };
     const title = str(a, "title"); if (!title) return { success: false, error: "Thiếu tiêu đề" };
     const due = str(a, "due_date"), dueDate = due ? new Date(due) : null;
-    if (due && Number.isNaN(dueDate.getTime())) return { success: false, error: "Ngày hạn không hợp lệ" };
+    if (dueDate && Number.isNaN(dueDate.getTime())) return { success: false, error: "Ngày hạn không hợp lệ" };
     return { success: true, action: "created", task: await prisma.studyTask.create({ data: { studentId: userId, title, subject: str(a, "subject") || null, dueDate } }) };
   }
 
@@ -241,7 +241,7 @@ async function runTool(name: string, a: Args, userId: string, role: Role): Promi
   if (name === "set_exam_date") {
     if (role !== "student") return { success: false, error: "Không có quyền" };
     const value = str(a, "exam_date"), date = value ? new Date(value) : null;
-    if (value && Number.isNaN(date.getTime())) return { success: false, error: "Ngày thi không hợp lệ" };
+    if (date && Number.isNaN(date.getTime())) return { success: false, error: "Ngày thi không hợp lệ" };
     return { success: true, action: "updated", user: await prisma.user.update({ where: { id: userId }, data: { examDate: date } }) };
   }
 
@@ -258,7 +258,11 @@ async function context(userId: string, role: Role) {
 }
 
 function system(role: Role, ctx: string) {
-  return role === "teacher" ? `Bạn là AI Agent của EduTest.vn dành cho giáo viên. Bạn có thể đọc và thao tác hệ thống bằng tools. QUY TẮC: Chỉ xác nhận thao tác khi tool trả success=true; tuyệt đối không bịa ID, mã đề, mã lớp, link, số liệu hay trạng thái. Nếu người dùng yêu cầu tạo/xuất bản/giao/xóa/cập nhật, hãy dùng tool và báo đúng kết quả thật. Không xóa nếu chưa được yêu cầu rõ ràng. Nếu thiếu thông tin, hỏi lại. Trả lời tiếng Việt, ngắn gọn. ${ctx}` : `Bạn là AI Study Coach của EduTest.vn. Bạn có thể đọc dữ liệu học tập và thực hiện các thao tác học tập bằng tools. Chỉ xác nhận thao tác khi tool trả success=true; không bịa dữ liệu. Trả lời tiếng Việt thân thiện, ngắn gọn. ${ctx}`;
+  return role === "teacher" ? `Bạn là AI Agent của EduTest.vn dành cho giáo viên. Bạn có thể đọc và thao tác hệ thống bằng tools.
+QUY TẮC AN TOÀN: Chỉ xác nhận thao tác khi tool trả success=true; tuyệt đối không bịa ID, mã đề, mã lớp, link, số liệu hay trạng thái. Không xóa nếu chưa được yêu cầu rõ ràng. Nếu thiếu thông tin cần thiết, hỏi lại.
+QUY TRÌNH TẠO ĐỀ: Khi giáo viên yêu cầu tạo đề, hãy tạo đề ở trạng thái BẢN NHÁP bằng create_exam. Không được tự động gọi set_exam_status để xuất bản. Sau khi create_exam thành công, phải nói rõ đây là BẢN NHÁP và cung cấp tên đề, mã đề, số câu và thời lượng từ dữ liệu tool. Chỉ gọi set_exam_status với published khi giáo viên yêu cầu rõ ràng như "xuất bản", "đăng đề", "mở cho học sinh". Sau khi xuất bản thành công mới được nói đề đã xuất bản.
+QUY TRÌNH GIAO ĐỀ: Chỉ gọi assign_exam khi giáo viên yêu cầu giao đề. Nếu chưa biết lớp hoặc đề nào, dùng list_classrooms/list_exams để tìm; không đoán ID.
+Trả lời tiếng Việt, ngắn gọn. ${ctx}` : `Bạn là AI Study Coach của EduTest.vn. Bạn có thể đọc dữ liệu học tập và thực hiện các thao tác học tập bằng tools. Chỉ xác nhận thao tác khi tool trả success=true; không bịa dữ liệu. Trả lời tiếng Việt thân thiện, ngắn gọn. ${ctx}`;
 }
 
 export async function POST(req: NextRequest) {
