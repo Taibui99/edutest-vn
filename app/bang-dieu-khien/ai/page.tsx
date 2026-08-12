@@ -135,7 +135,7 @@ export default function AICoachPage() {
     setLoading(true);
 
     try {
-      const res = await fetch("/api/ai-coach", {
+      const res = await fetch("/api/ai-router", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -183,7 +183,7 @@ export default function AICoachPage() {
             <h1 className="text-sm font-black text-[var(--text-primary)]">
               {role === "teacher" ? "AI Tạo Đề" : "AI Study Coach"}
             </h1>
-            <p className="text-xs text-[var(--text-muted)]">Powered by Gemini AI</p>
+            <p className="text-xs text-[var(--text-muted)]">Powered by Gemini AI + Groq</p>
           </div>
         </div>
         <button
