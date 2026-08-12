@@ -30,7 +30,15 @@ function scoreColor(score: number) {
   return "#DC2626";
 }
 
-export function ExamTakingClient({ exam, preview = false }: { exam: Exam; preview?: boolean }) {
+export function ExamTakingClient({
+  exam,
+  preview = false,
+  backHref,
+}: {
+  exam: Exam;
+  preview?: boolean;
+  backHref: string;
+}) {
   const router = useRouter();
   const isPreview = preview;
   const totalSeconds = exam.durationMinutes * 60;
@@ -40,6 +48,7 @@ export function ExamTakingClient({ exam, preview = false }: { exam: Exam; previe
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<SubmissionResult | null>(null);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
 
   const answeredCount = Object.keys(answers).length;
   const question = exam.questions[current];
@@ -70,6 +79,19 @@ export function ExamTakingClient({ exam, preview = false }: { exam: Exam; previe
       setSubmitting(false);
     }
   }, [answers, answeredCount, exam.id, exam.questions.length, isPreview, remaining, result, router, showConfirm, submitting, totalSeconds]);
+
+  const leaveExam = () => {
+    setShowExitConfirm(false);
+    router.push(backHref);
+  };
+
+  const requestExit = () => {
+    if (isPreview || answeredCount === 0) {
+      leaveExam();
+      return;
+    }
+    setShowExitConfirm(true);
+  };
 
   useEffect(() => {
     if (result || isPreview) return;
@@ -107,17 +129,28 @@ export function ExamTakingClient({ exam, preview = false }: { exam: Exam; previe
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex flex-col">
-      <header className="bg-white border-b border-[#E2E8F0] px-4 py-3 flex items-center justify-between sticky top-0 z-50">
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="font-bold text-[#2563EB] text-base shrink-0">EduTest</div>
+      <header className="bg-white border-b border-[#E2E8F0] px-3 sm:px-4 py-3 flex items-center justify-between sticky top-0 z-50">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+          <button
+            type="button"
+            onClick={requestExit}
+            className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-xl border border-[#E2E8F0] bg-white px-2.5 text-xs font-bold text-[#64748B] transition hover:bg-[#F8FAFC] hover:text-[#0F172A] active:scale-[0.98]"
+            aria-label={isPreview ? "Quay lại chi tiết đề" : "Thoát bài thi"}
+            title={isPreview ? "Quay lại chi tiết đề" : "Thoát bài thi"}
+          >
+            <ArrowLeft size={15} />
+            <span className="hidden sm:inline">{isPreview ? "Quay lại" : "Thoát"}</span>
+          </button>
           <div className="h-4 w-px bg-[#E2E8F0] shrink-0" />
+          <div className="font-bold text-[#2563EB] text-base shrink-0 hidden sm:block">EduTest</div>
+          <div className="h-4 w-px bg-[#E2E8F0] shrink-0 hidden sm:block" />
           <div className="min-w-0">
             <p className="text-sm font-medium text-[#0F172A] truncate">{exam.title}</p>
             {exam.isGuest && <p className="text-[11px] text-[#64748B] truncate">{exam.participantName} · {exam.participantClass}</p>}
             {isPreview && <p className="text-[11px] font-semibold text-[#7C3AED] flex items-center gap-1"><Eye size={11} /> Chế độ xem trước</p>}
           </div>
         </div>
-        <div className="flex items-center gap-4 shrink-0">
+        <div className="flex items-center gap-2 sm:gap-4 shrink-0">
           <div className={cn("flex items-center gap-1.5 font-mono font-bold text-sm", isLow && !isPreview ? "text-[#DC2626]" : "text-[#0F172A]")}>
             <Clock size={15} className={isLow && !isPreview ? "text-[#DC2626] animate-pulse" : "text-[#94A3B8]"} />
             {isPreview ? "XEM TRƯỚC" : formatTime(remaining)}
@@ -183,6 +216,21 @@ export function ExamTakingClient({ exam, preview = false }: { exam: Exam; previe
             <h3 className="text-base font-bold text-[#0F172A] mb-2">Xác nhận nộp bài?</h3>
             <p className="text-sm text-[#64748B] mb-5">Bạn còn <strong>{exam.questions.length - answeredCount} câu</strong> chưa trả lời. Vẫn nộp bài?</p>
             <div className="flex gap-3"><Button variant="outline" className="flex-1" onClick={() => setShowConfirm(false)}>Làm tiếp</Button><Button className="flex-1" onClick={() => submitExam(true)} loading={submitting}>Nộp bài</Button></div>
+          </div>
+        </div>
+      )}
+
+      {showExitConfirm && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[100] p-4">
+          <div className="bg-white rounded-2xl p-6 max-w-sm w-full animate-fade-in">
+            <h3 className="text-base font-bold text-[#0F172A] mb-2">Thoát bài thi?</h3>
+            <p className="text-sm text-[#64748B] mb-5">
+              Bạn đã chọn <strong>{answeredCount} câu</strong>. Nếu thoát bây giờ, bài làm hiện tại sẽ không được nộp và tiến độ có thể bị mất.
+            </p>
+            <div className="flex gap-3">
+              <Button variant="outline" className="flex-1" onClick={() => setShowExitConfirm(false)}>Ở lại làm</Button>
+              <Button className="flex-1" onClick={leaveExam}>Thoát</Button>
+            </div>
           </div>
         </div>
       )}
