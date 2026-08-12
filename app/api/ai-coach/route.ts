@@ -202,7 +202,7 @@ async function runTool(name: string, a: Args, userId: string, role: Role): Promi
     const title = str(a, "title"); if (!title) return { success: false, error: "Thiếu tiêu đề" };
     const due = str(a, "due_date"), dueDate = due ? new Date(due) : null;
     if (dueDate && Number.isNaN(dueDate.getTime())) return { success: false, error: "Ngày hạn không hợp lệ" };
-    return { success: true, action: "created", task: await prisma.studyTask.create({ data: { studentId: userId, title, subject: str(a, "subject") || null, dueDate } });
+    return { success: true, action: "created", task: await prisma.studyTask.create({ data: { studentId: userId, title, subject: str(a, "subject") || null, dueDate } }) };
   }
 
   if (name === "complete_study_task") {
