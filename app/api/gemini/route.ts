@@ -27,14 +27,8 @@ const responseSchema = {
         type: "object",
         properties: {
           question: { type: "string" },
-          options: {
-            type: "array",
-            items: { type: "string" },
-          },
-          answer: {
-            type: "string",
-            enum: ["A", "B", "C", "D", ""],
-          },
+          options: { type: "array", items: { type: "string" } },
+          answer: { type: "string", enum: ["A", "B", "C", "D", ""] },
         },
         required: ["question", "options", "answer"],
       },
@@ -49,14 +43,13 @@ function generationConfig() {
   return {
     responseMimeType: "application/json",
     responseSchema,
-    temperature: 0.1,
     maxOutputTokens: 32768,
+    thinkingConfig: { thinkingLevel: "minimal" },
   };
 }
 
 export async function POST(request: NextRequest) {
   const startedAt = Date.now();
-
   try {
     if (!process.env.GEMINI_API_KEY) {
       return NextResponse.json({ error: "Thiếu GEMINI_API_KEY" }, { status: 500 });
@@ -65,96 +58,55 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
     const prompt = (formData.get("prompt") as string | null)?.trim();
-
-    if (!file && !prompt) {
-      return NextResponse.json({ error: "Thiếu file hoặc nội dung cần xử lý" }, { status: 400 });
-    }
+    if (!file && !prompt) return NextResponse.json({ error: "Thiếu file hoặc nội dung cần xử lý" }, { status: 400 });
 
     let resultText: string;
 
     if (file) {
-      const bytes = await file.arrayBuffer();
-      const buffer = Buffer.from(bytes);
-      const isDocx =
-        file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
-        file.name.toLowerCase().endsWith(".docx");
+      const buffer = Buffer.from(await file.arrayBuffer());
+      const isDocx = file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" || file.name.toLowerCase().endsWith(".docx");
 
       if (isDocx) {
-        // DOCX: extract text locally first, so Gemini only receives useful text.
         const docx = await mammoth.extractRawText({ buffer });
         const content = docx.value.trim();
-
-        if (!content) {
-          return NextResponse.json(
-            { error: "Không đọc được nội dung trong file Word" },
-            { status: 400 },
-          );
-        }
+        if (!content) return NextResponse.json({ error: "Không đọc được nội dung trong file Word" }, { status: 400 });
 
         const result = await ai.models.generateContent({
           model: geminiModel,
           contents: `${extractionPrompt}\n\nNỘI DUNG ĐỀ:\n${content}`,
           config: generationConfig(),
         });
-
         resultText = result.text;
       } else {
-        // PDF: use Gemini Files API instead of embedding the entire PDF as base64
-        // inside the generation request. This is the recommended path for documents.
-        const fileBlob = new Blob([buffer], { type: file.type || "application/pdf" });
         const uploaded = await ai.files.upload({
-          file: fileBlob,
-          config: {
-            displayName: file.name,
-            mimeType: file.type || "application/pdf",
-          },
+          file: new Blob([buffer], { type: file.type || "application/pdf" }),
+          config: { displayName: file.name, mimeType: file.type || "application/pdf" },
         });
 
         let processed = uploaded;
         while (processed.state === "PROCESSING") {
-          await new Promise((resolve) => setTimeout(resolve, 1000));
+          await new Promise((resolve) => setTimeout(resolve, 500));
           processed = await ai.files.get({ name: uploaded.name! });
         }
-
-        if (processed.state === "FAILED") {
-          return NextResponse.json({ error: "Gemini không xử lý được file PDF" }, { status: 422 });
-        }
+        if (processed.state === "FAILED") return NextResponse.json({ error: "Gemini không xử lý được file PDF" }, { status: 422 });
 
         const result = await ai.models.generateContent({
           model: geminiModel,
-          contents: [
-            extractionPrompt,
-            {
-              fileData: {
-                fileUri: processed.uri!,
-                mimeType: processed.mimeType || file.type || "application/pdf",
-              },
-            },
-          ],
+          contents: [extractionPrompt, { fileData: { fileUri: processed.uri!, mimeType: processed.mimeType || file.type || "application/pdf" } }],
           config: generationConfig(),
         });
-
         resultText = result.text;
 
-        // Files API storage is temporary. Clean up after extraction when possible.
         try {
           if (processed.name) await ai.files.delete({ name: processed.name });
-        } catch {
-          // Cleanup failure must not make a successful import fail.
-        }
+        } catch {}
       }
     } else {
-      const result = await ai.models.generateContent({
-        model: geminiModel,
-        contents: prompt!,
-        config: generationConfig(),
-      });
+      const result = await ai.models.generateContent({ model: geminiModel, contents: prompt!, config: generationConfig() });
       resultText = result.text;
     }
 
-    if (!resultText?.trim()) {
-      return NextResponse.json({ error: "AI không trả về dữ liệu câu hỏi" }, { status: 422 });
-    }
+    if (!resultText?.trim()) return NextResponse.json({ error: "AI không trả về dữ liệu câu hỏi" }, { status: 422 });
 
     console.info(`[exam-import] completed in ${Date.now() - startedAt}ms`);
     return NextResponse.json({ result: resultText });
