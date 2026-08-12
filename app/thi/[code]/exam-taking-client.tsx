@@ -90,26 +90,12 @@ export function ExamTakingClient({ exam }: { exam: Exam }) {
           <div className="w-20 h-20 rounded-full mx-auto mb-5 flex items-center justify-center" style={{ background: `${col}15` }}>
             <Trophy size={36} style={{ color: col }} />
           </div>
-          {exam.isGuest && (
-            <p className="text-xs font-semibold text-[#64748B] mb-2">{exam.participantName} · {exam.participantClass}</p>
-          )}
+          {exam.isGuest && <p className="text-xs font-semibold text-[#64748B] mb-2">{exam.participantName} · {exam.participantClass}</p>}
           <h1 className="text-3xl font-bold mb-1" style={{ color: col }}>{result.score}/10</h1>
-          <p className="text-[#64748B] text-sm mb-5">
-            Đúng {result.correctCount}/{result.totalQuestions} câu · Thời gian {formatTime(result.durationSeconds)}
-          </p>
-          <div className="h-3 bg-[#F1F5F9] rounded-full mb-6 overflow-hidden">
-            <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: col }} />
-          </div>
-          <p className="text-sm text-[#64748B] mb-6">
-            {result.score >= 8 ? "Xuất sắc! Bạn đã làm rất tốt 🎉" : result.score >= 5 ? "Khá tốt! Tiếp tục cố gắng nhé 💪" : "Đừng nản! Ôn lại và thử lần sau 📚"}
-          </p>
-          {exam.isGuest ? (
-            <p className="text-xs text-[#94A3B8]">Kết quả đã được ghi nhận cho bài thi này. Bạn có thể đóng trang.</p>
-          ) : (
-            <Button className="w-full" onClick={() => router.push("/bang-dieu-khien")}>
-              Về trang chủ
-            </Button>
-          )}
+          <p className="text-[#64748B] text-sm mb-5">Đúng {result.correctCount}/{result.totalQuestions} câu · Thời gian {formatTime(result.durationSeconds)}</p>
+          <div className="h-3 bg-[#F1F5F9] rounded-full mb-6 overflow-hidden"><div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: col }} /></div>
+          <p className="text-sm text-[#64748B] mb-6">{result.score >= 8 ? "Xuất sắc! Bạn đã làm rất tốt 🎉" : result.score >= 5 ? "Khá tốt! Tiếp tục cố gắng nhé 💪" : "Đừng nản! Ôn lại và thử lần sau 📚"}</p>
+          {exam.isGuest ? <p className="text-xs text-[#94A3B8]">Kết quả đã được ghi nhận cho bài thi này. Bạn có thể đóng trang.</p> : <Button className="w-full" onClick={() => router.push("/bang-dieu-khien")}>Về trang chủ</Button>}
         </div>
       </div>
     );
@@ -131,7 +117,7 @@ export function ExamTakingClient({ exam }: { exam: Exam }) {
         </div>
         <div className="flex items-center gap-4 shrink-0">
           <div className={cn("flex items-center gap-1.5 font-mono font-bold text-sm", isLow ? "text-[#DC2626]" : "text-[#0F172A]")}>
-            <Clock size={15} className={isLow ? "text-[#DC2626] animate-pulse" : "text-[#94A3B8"} />
+            <Clock size={15} className={isLow ? "text-[#DC2626] animate-pulse" : "text-[#94A3B8]"} />
             {formatTime(remaining)}
           </div>
           <div className="text-xs text-[#64748B] hidden sm:block">{answeredCount}/{exam.questions.length} câu</div>
@@ -152,12 +138,7 @@ export function ExamTakingClient({ exam }: { exam: Exam }) {
               {question.options.map((option, idx) => {
                 const letter = String.fromCharCode(65 + idx);
                 const selected = answers[question.id] === letter;
-                return (
-                  <button key={`${question.id}-${letter}`} onClick={() => setAnswers((a) => ({ ...a, [question.id]: letter }))} className={cn("flex items-center gap-3 rounded-xl border p-4 text-left text-sm transition-all", selected ? "border-[#2563EB] bg-[#EFF6FF] text-[#1D4ED8] font-medium" : "border-[#E2E8F0] bg-white text-[#334155] hover:border-[#2563EB]/40 hover:bg-[#F8FAFC]")}>
-                    <span className={cn("w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 transition-all", selected ? "bg-[#2563EB] text-white" : "bg-[#F1F5F9] text-[#64748B]")}>{letter}</span>
-                    {option}
-                  </button>
-                );
+                return <button key={`${question.id}-${letter}`} onClick={() => setAnswers((a) => ({ ...a, [question.id]: letter }))} className={cn("flex items-center gap-3 rounded-xl border p-4 text-left text-sm transition-all", selected ? "border-[#2563EB] bg-[#EFF6FF] text-[#1D4ED8] font-medium" : "border-[#E2E8F0] bg-white text-[#334155] hover:border-[#2563EB]/40 hover:bg-[#F8FAFC]")}><span className={cn("w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 transition-all", selected ? "bg-[#2563EB] text-white" : "bg-[#F1F5F9] text-[#64748B]")}>{letter}</span>{option}</button>;
               })}
             </div>
           </div>
@@ -172,11 +153,7 @@ export function ExamTakingClient({ exam }: { exam: Exam }) {
           <div className="bg-white rounded-xl border border-[#E2E8F0] p-4 lg:sticky lg:top-24">
             <p className="text-xs font-semibold text-[#94A3B8] mb-3">ĐIỀU HƯỚNG CÂU HỎI</p>
             <div className="grid grid-cols-5 lg:grid-cols-4 gap-1.5 mb-4">
-              {exam.questions.map((q, i) => {
-                const answered = !!answers[q.id];
-                const isCurrent = current === i;
-                return <button key={q.id} onClick={() => setCurrent(i)} className={cn("w-full aspect-square rounded-lg text-xs font-semibold transition-all", isCurrent ? "bg-[#2563EB] text-white ring-2 ring-[#2563EB]/30" : answered ? "bg-[#F0FDF4] text-[#16A34A] border border-[#BBF7D0]" : "bg-[#F8FAFC] text-[#94A3B8] border border-[#E2E8F0] hover:border-[#2563EB]/40")}>{i + 1}</button>;
-              })}
+              {exam.questions.map((q, i) => { const answered = !!answers[q.id]; const isCurrent = current === i; return <button key={q.id} onClick={() => setCurrent(i)} className={cn("w-full aspect-square rounded-lg text-xs font-semibold transition-all", isCurrent ? "bg-[#2563EB] text-white ring-2 ring-[#2563EB]/30" : answered ? "bg-[#F0FDF4] text-[#16A34A] border border-[#BBF7D0]" : "bg-[#F8FAFC] text-[#94A3B8] border border-[#E2E8F0] hover:border-[#2563EB]/40")}>{i + 1}</button>; })}
             </div>
             <div className="flex flex-col gap-1 text-xs mb-4">
               <div className="flex items-center gap-2"><div className="w-3 h-3 rounded bg-[#2563EB]" /><span className="text-[#64748B]">Đang làm</span></div>
@@ -193,10 +170,7 @@ export function ExamTakingClient({ exam }: { exam: Exam }) {
           <div className="bg-white rounded-2xl p-6 max-w-sm w-full animate-fade-in">
             <h3 className="text-base font-bold text-[#0F172A] mb-2">Xác nhận nộp bài?</h3>
             <p className="text-sm text-[#64748B] mb-5">Bạn còn <strong>{exam.questions.length - answeredCount} câu</strong> chưa trả lời. Vẫn nộp bài?</p>
-            <div className="flex gap-3">
-              <Button variant="outline" className="flex-1" onClick={() => setShowConfirm(false)}>Làm tiếp</Button>
-              <Button className="flex-1" onClick={() => submitExam(true)} loading={submitting}>Nộp bài</Button>
-            </div>
+            <div className="flex gap-3"><Button variant="outline" className="flex-1" onClick={() => setShowConfirm(false)}>Làm tiếp</Button><Button className="flex-1" onClick={() => submitExam(true)} loading={submitting}>Nộp bài</Button></div>
           </div>
         </div>
       )}
