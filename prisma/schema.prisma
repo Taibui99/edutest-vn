@@ -14,7 +14,7 @@ model User {
   email         String   @unique
   password      String
   name          String
-  role          String   // "student" | "teacher"
+  role          String
   avatarUrl     String?
   school        String?
   grade         String?
@@ -37,7 +37,6 @@ model User {
   @@index([email])
 }
 
-// ─── Classroom ────────────────────────────────────────────
 model Classroom {
   id          String   @id @default(cuid())
   name        String
@@ -82,7 +81,6 @@ model ExamAssignment {
   @@unique([classroomId, examId])
 }
 
-// ─── Exam ─────────────────────────────────────────────────
 model Exam {
   id                 String   @id @default(cuid())
   title              String
@@ -91,7 +89,7 @@ model Exam {
   durationMinutes    Int
   joinCode           String   @unique
   status             String   @default("published")
-  allowGuestAttempts Boolean  @default(false)
+  allowGuestAttempts Boolean  @default(true)
   shuffleQuestions   Boolean  @default(false)
   shuffleAnswers     Boolean  @default(false)
   maxAttempts        Int      @default(1)
@@ -102,8 +100,8 @@ model Exam {
   submissions        Submission[]
   guestParticipants  GuestParticipant[]
   assignments        ExamAssignment[]
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 
   @@index([teacherId])
   @@index([joinCode])
@@ -139,28 +137,26 @@ model GuestParticipant {
   @@index([examId])
 }
 
-// ─── Submission ───────────────────────────────────────────
 model Submission {
-  id                  String            @id @default(cuid())
-  examId              String
-  exam                Exam              @relation(fields: [examId], references: [id], onDelete: Cascade)
-  studentId           String?
-  student             User?             @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  guestParticipantId  String?           @unique
-  guestParticipant    GuestParticipant? @relation(fields: [guestParticipantId], references: [id], onDelete: Cascade)
-  answers             Json              // { [questionId]: selectedOption }
-  score               Float
-  correctCount        Int
-  totalQuestions      Int
-  durationSeconds     Int
-  submittedAt         DateTime          @default(now())
+  id                 String            @id @default(cuid())
+  examId             String
+  exam               Exam              @relation(fields: [examId], references: [id], onDelete: Cascade)
+  studentId          String?
+  student            User?             @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  guestParticipantId String?           @unique
+  guestParticipant   GuestParticipant? @relation(fields: [guestParticipantId], references: [id], onDelete: Cascade)
+  answers            Json
+  score              Float
+  correctCount       Int
+  totalQuestions     Int
+  durationSeconds    Int
+  submittedAt        DateTime          @default(now())
 
   @@unique([examId, studentId])
   @@index([studentId])
   @@index([examId])
 }
 
-// ─── Study ────────────────────────────────────────────────
 model StudyTask {
   id        String    @id @default(cuid())
   studentId String
@@ -202,12 +198,11 @@ model SubjectProgress {
   @@unique([studentId, subject])
 }
 
-// ─── Notifications ────────────────────────────────────────
 model Notification {
   id        String   @id @default(cuid())
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  type      String   // "exam_result" | "new_exam" | "class_invite" | "system" | "reminder"
+  type      String
   title     String
   message   String
   link      String?
