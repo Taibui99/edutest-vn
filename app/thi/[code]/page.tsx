@@ -6,8 +6,15 @@ import { ExamTakingClient } from "./exam-taking-client";
 import { GuestJoin } from "./guest-join";
 import { Trophy, ArrowLeft, UserRound } from "lucide-react";
 
-export default async function ThiPage({ params }: { params: Promise<{ code: string }> }) {
+export default async function ThiPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ code: string }>;
+  searchParams: Promise<{ preview?: string }>;
+}) {
   const { code } = await params;
+  const { preview } = await searchParams;
   const normalizedCode = code.toUpperCase();
   const session = await auth();
 
@@ -93,6 +100,23 @@ export default async function ThiPage({ params }: { params: Promise<{ code: stri
           isGuest: true,
           participantName: guest.name,
           participantClass: guest.className,
+          questions: exam.questions.map((q) => ({ id: q.id, text: q.text, options: q.options, order: q.order })),
+        }}
+      />
+    );
+  }
+
+  // Teacher preview: open the real student exam UI without creating a submission.
+  if (preview === "1" && session.user.role === "teacher") {
+    return (
+      <ExamTakingClient
+        exam={{
+          id: exam.id,
+          title: exam.title,
+          subject: exam.subject,
+          durationMinutes: exam.durationMinutes,
+          joinCode: exam.joinCode,
+          isGuest: false,
           questions: exam.questions.map((q) => ({ id: q.id, text: q.text, options: q.options, order: q.order })),
         }}
       />
