@@ -1,6 +1,6 @@
 import type { NextAuthConfig } from "next-auth";
 
-export const authConfig = {
+export const authConfig: NextAuthConfig = {
   pages: {
     signIn: "/dang-nhap",
   },
@@ -39,4 +39,4 @@ export const authConfig = {
       return session;
     },
   },
-} satisfies NextAuthConfig;
+};
