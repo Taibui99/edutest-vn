@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { CheckCircle2, Clock, Trophy, ArrowLeft, ArrowRight, Send, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
@@ -30,10 +30,9 @@ function scoreColor(score: number) {
   return "#DC2626";
 }
 
-export function ExamTakingClient({ exam }: { exam: Exam }) {
+export function ExamTakingClient({ exam, preview = false }: { exam: Exam; preview?: boolean }) {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const isPreview = searchParams.get("preview") === "1";
+  const isPreview = preview;
   const totalSeconds = exam.durationMinutes * 60;
   const [remaining, setRemaining] = useState(totalSeconds);
   const [answers, setAnswers] = useState<Record<string, string>>({});
@@ -104,7 +103,7 @@ export function ExamTakingClient({ exam }: { exam: Exam }) {
   }
 
   const isLow = remaining <= 60;
-  const progress = (answeredCount / exam.questions.length) * 100;
+  const progress = exam.questions.length ? (answeredCount / exam.questions.length) * 100 : 0;
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex flex-col">
@@ -137,24 +136,28 @@ export function ExamTakingClient({ exam }: { exam: Exam }) {
 
       <div className="flex-1 flex flex-col lg:flex-row max-w-5xl mx-auto w-full p-4 gap-5 pt-6">
         <div className="flex-1">
-          <div className="bg-white rounded-xl border border-[#E2E8F0] p-6 mb-4 animate-fade-in" key={question.id}>
-            <div className="flex items-center gap-2 mb-4">
-              <span className="text-xs font-semibold text-white bg-[#2563EB] px-2.5 py-1 rounded-md">Câu {question.order}/{exam.questions.length}</span>
-              {answers[question.id] && <span className="text-xs font-semibold text-[#16A34A] bg-[#F0FDF4] px-2 py-1 rounded-md flex items-center gap-1"><CheckCircle2 size={11} /> Đã chọn</span>}
+          {question ? (
+            <div className="bg-white rounded-xl border border-[#E2E8F0] p-6 mb-4 animate-fade-in" key={question.id}>
+              <div className="flex items-center gap-2 mb-4">
+                <span className="text-xs font-semibold text-white bg-[#2563EB] px-2.5 py-1 rounded-md">Câu {question.order}/{exam.questions.length}</span>
+                {answers[question.id] && <span className="text-xs font-semibold text-[#16A34A] bg-[#F0FDF4] px-2 py-1 rounded-md flex items-center gap-1"><CheckCircle2 size={11} /> Đã chọn</span>}
+              </div>
+              <p className="text-base font-medium text-[#0F172A] leading-relaxed mb-5">{question.text}</p>
+              <div className="flex flex-col gap-2">
+                {question.options.map((option, idx) => {
+                  const letter = String.fromCharCode(65 + idx);
+                  const selected = answers[question.id] === letter;
+                  return <button key={`${question.id}-${letter}`} onClick={() => setAnswers((a) => ({ ...a, [question.id]: letter }))} className={cn("flex items-center gap-3 rounded-xl border p-4 text-left text-sm transition-all", selected ? "border-[#2563EB] bg-[#EFF6FF] text-[#1D4ED8] font-medium" : "border-[#E2E8F0] bg-white text-[#334155] hover:border-[#2563EB]/40 hover:bg-[#F8FAFC]")}><span className={cn("w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 transition-all", selected ? "bg-[#2563EB] text-white" : "bg-[#F1F5F9] text-[#64748B]")}>{letter}</span>{option}</button>;
+                })}
+              </div>
             </div>
-            <p className="text-base font-medium text-[#0F172A] leading-relaxed mb-5">{question.text}</p>
-            <div className="flex flex-col gap-2">
-              {question.options.map((option, idx) => {
-                const letter = String.fromCharCode(65 + idx);
-                const selected = answers[question.id] === letter;
-                return <button key={`${question.id}-${letter}`} onClick={() => setAnswers((a) => ({ ...a, [question.id]: letter }))} className={cn("flex items-center gap-3 rounded-xl border p-4 text-left text-sm transition-all", selected ? "border-[#2563EB] bg-[#EFF6FF] text-[#1D4ED8] font-medium" : "border-[#E2E8F0] bg-white text-[#334155] hover:border-[#2563EB]/40 hover:bg-[#F8FAFC]") }><span className={cn("w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 transition-all", selected ? "bg-[#2563EB] text-white" : "bg-[#F1F5F9] text-[#64748B]")}>{letter}</span>{option}</button>;
-              })}
-            </div>
-          </div>
+          ) : (
+            <div className="bg-white rounded-xl border border-[#E2E8F0] p-8 text-center text-sm text-[#64748B]">Đề thi chưa có câu hỏi.</div>
+          )}
 
           <div className="flex items-center justify-between">
             <Button variant="outline" onClick={() => setCurrent((c) => Math.max(0, c - 1))} disabled={current === 0} icon={<ArrowLeft size={16} />}>Trước</Button>
-            {current < exam.questions.length - 1 ? <Button onClick={() => setCurrent((c) => c + 1)}>Tiếp <ArrowRight size={16} /></Button> : <Button onClick={() => submitExam(false)} loading={submitting} disabled={isPreview} icon={isPreview ? <Eye size={16} /> : <Send size={16} />}>{isPreview ? "Xem trước · không nộp" : "Nộp bài"}</Button>}
+            {current < exam.questions.length - 1 ? <Button onClick={() => setCurrent((c) => c + 1)}>Tiếp <ArrowRight size={16} /></Button> : <Button onClick={() => submitExam(false)} loading={submitting} disabled={isPreview || exam.questions.length === 0} icon={isPreview ? <Eye size={16} /> : <Send size={16} />}>{isPreview ? "Xem trước · không nộp" : "Nộp bài"}</Button>}
           </div>
         </div>
 
@@ -169,7 +172,7 @@ export function ExamTakingClient({ exam }: { exam: Exam }) {
               <div className="flex items-center gap-2"><div className="w-3 h-3 rounded bg-[#F0FDF4] border border-[#BBF7D0]" /><span className="text-[#64748B]">Đã trả lời</span></div>
               <div className="flex items-center gap-2"><div className="w-3 h-3 rounded bg-[#F8FAFC] border border-[#E2E8F0]" /><span className="text-[#64748B]">Chưa trả lời</span></div>
             </div>
-            <Button onClick={() => submitExam(false)} loading={submitting} disabled={isPreview} className="w-full" size="sm">{isPreview ? "Chế độ xem trước" : "Nộp bài"}</Button>
+            <Button onClick={() => submitExam(false)} loading={submitting} disabled={isPreview || exam.questions.length === 0} className="w-full" size="sm">{isPreview ? "Chế độ xem trước" : "Nộp bài"}</Button>
           </div>
         </aside>
       </div>
