@@ -72,6 +72,8 @@ export default function ShareExamPage() {
     return <div className="min-h-screen grid place-items-center text-sm text-[var(--text-muted)]">Đang chuẩn bị link tham gia...</div>;
   }
 
+  const previewUrl = `${data.shareUrl}${data.shareUrl.includes("?") ? "&" : "?"}preview=1`;
+
   return (
     <main className="min-h-screen bg-[var(--surface-page)] px-4 py-6 lg:px-8 lg:py-10">
       <div className="mx-auto max-w-3xl">
@@ -114,7 +116,7 @@ export default function ShareExamPage() {
                 <Button onClick={downloadQr} variant="outline" icon={<Download size={16} />}>Tải QR</Button>
               </div>
 
-              <a href={data.shareUrl} target="_blank" rel="noreferrer" className="mt-4 inline-flex items-center justify-center gap-2 text-sm font-semibold text-[var(--primary)] hover:underline">
+              <a href={previewUrl} target="_blank" rel="noreferrer" className="mt-4 inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--primary-light)] px-4 py-3 text-sm font-bold text-[var(--primary)] transition hover:bg-[var(--primary-muted)]">
                 Mở thử trang học sinh <ExternalLink size={14} />
               </a>
             </div>
