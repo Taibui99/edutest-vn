@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { CheckCircle2, Clock, Trophy, ArrowLeft, ArrowRight, Send } from "lucide-react";
+import { useSearchParams, useRouter } from "next/navigation";
+import { CheckCircle2, Clock, Trophy, ArrowLeft, ArrowRight, Send, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 
@@ -32,6 +32,8 @@ function scoreColor(score: number) {
 
 export function ExamTakingClient({ exam }: { exam: Exam }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isPreview = searchParams.get("preview") === "1";
   const totalSeconds = exam.durationMinutes * 60;
   const [remaining, setRemaining] = useState(totalSeconds);
   const [answers, setAnswers] = useState<Record<string, string>>({});
@@ -44,7 +46,7 @@ export function ExamTakingClient({ exam }: { exam: Exam }) {
   const question = exam.questions[current];
 
   const submitExam = useCallback(async (auto = false) => {
-    if (submitting || result) return;
+    if (isPreview || submitting || result) return;
     if (!auto && answeredCount < exam.questions.length && !showConfirm) {
       setShowConfirm(true);
       return;
@@ -68,10 +70,10 @@ export function ExamTakingClient({ exam }: { exam: Exam }) {
       alert(err instanceof Error ? err.message : "Không thể nộp bài");
       setSubmitting(false);
     }
-  }, [answers, answeredCount, exam.id, exam.questions.length, remaining, result, router, showConfirm, submitting, totalSeconds]);
+  }, [answers, answeredCount, exam.id, exam.questions.length, isPreview, remaining, result, router, showConfirm, submitting, totalSeconds]);
 
   useEffect(() => {
-    if (result) return;
+    if (result || isPreview) return;
     const t = setInterval(() => {
       setRemaining((s) => {
         if (s <= 1) { clearInterval(t); void submitExam(true); return 0; }
@@ -79,7 +81,7 @@ export function ExamTakingClient({ exam }: { exam: Exam }) {
       });
     }, 1000);
     return () => clearInterval(t);
-  }, [result, submitExam]);
+  }, [isPreview, result, submitExam]);
 
   if (result) {
     const pct = (result.score / 10) * 100;
@@ -113,16 +115,23 @@ export function ExamTakingClient({ exam }: { exam: Exam }) {
           <div className="min-w-0">
             <p className="text-sm font-medium text-[#0F172A] truncate">{exam.title}</p>
             {exam.isGuest && <p className="text-[11px] text-[#64748B] truncate">{exam.participantName} · {exam.participantClass}</p>}
+            {isPreview && <p className="text-[11px] font-semibold text-[#7C3AED] flex items-center gap-1"><Eye size={11} /> Chế độ xem trước</p>}
           </div>
         </div>
         <div className="flex items-center gap-4 shrink-0">
-          <div className={cn("flex items-center gap-1.5 font-mono font-bold text-sm", isLow ? "text-[#DC2626]" : "text-[#0F172A]")}>
-            <Clock size={15} className={isLow ? "text-[#DC2626] animate-pulse" : "text-[#94A3B8]"} />
-            {formatTime(remaining)}
+          <div className={cn("flex items-center gap-1.5 font-mono font-bold text-sm", isLow && !isPreview ? "text-[#DC2626]" : "text-[#0F172A]")}>
+            <Clock size={15} className={isLow && !isPreview ? "text-[#DC2626] animate-pulse" : "text-[#94A3B8]"} />
+            {isPreview ? "XEM TRƯỚC" : formatTime(remaining)}
           </div>
           <div className="text-xs text-[#64748B] hidden sm:block">{answeredCount}/{exam.questions.length} câu</div>
         </div>
       </header>
+
+      {isPreview && (
+        <div className="bg-[#F3E8FF] border-b border-[#E9D5FF] px-4 py-2.5 text-center text-xs font-semibold text-[#7E22CE]">
+          Bạn đang xem giao diện học sinh. Mọi lựa chọn chỉ để thử nghiệm và sẽ không được nộp.
+        </div>
+      )}
 
       <div className="h-1 bg-[#F1F5F9]"><div className="h-full bg-[#2563EB] transition-all" style={{ width: `${progress}%` }} /></div>
 
@@ -138,14 +147,14 @@ export function ExamTakingClient({ exam }: { exam: Exam }) {
               {question.options.map((option, idx) => {
                 const letter = String.fromCharCode(65 + idx);
                 const selected = answers[question.id] === letter;
-                return <button key={`${question.id}-${letter}`} onClick={() => setAnswers((a) => ({ ...a, [question.id]: letter }))} className={cn("flex items-center gap-3 rounded-xl border p-4 text-left text-sm transition-all", selected ? "border-[#2563EB] bg-[#EFF6FF] text-[#1D4ED8] font-medium" : "border-[#E2E8F0] bg-white text-[#334155] hover:border-[#2563EB]/40 hover:bg-[#F8FAFC]")}><span className={cn("w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 transition-all", selected ? "bg-[#2563EB] text-white" : "bg-[#F1F5F9] text-[#64748B]")}>{letter}</span>{option}</button>;
+                return <button key={`${question.id}-${letter}`} onClick={() => setAnswers((a) => ({ ...a, [question.id]: letter }))} className={cn("flex items-center gap-3 rounded-xl border p-4 text-left text-sm transition-all", selected ? "border-[#2563EB] bg-[#EFF6FF] text-[#1D4ED8] font-medium" : "border-[#E2E8F0] bg-white text-[#334155] hover:border-[#2563EB]/40 hover:bg-[#F8FAFC]") }><span className={cn("w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 transition-all", selected ? "bg-[#2563EB] text-white" : "bg-[#F1F5F9] text-[#64748B]")}>{letter}</span>{option}</button>;
               })}
             </div>
           </div>
 
           <div className="flex items-center justify-between">
             <Button variant="outline" onClick={() => setCurrent((c) => Math.max(0, c - 1))} disabled={current === 0} icon={<ArrowLeft size={16} />}>Trước</Button>
-            {current < exam.questions.length - 1 ? <Button onClick={() => setCurrent((c) => c + 1)}>Tiếp <ArrowRight size={16} /></Button> : <Button onClick={() => submitExam(false)} loading={submitting} icon={<Send size={16} />}>Nộp bài</Button>}
+            {current < exam.questions.length - 1 ? <Button onClick={() => setCurrent((c) => c + 1)}>Tiếp <ArrowRight size={16} /></Button> : <Button onClick={() => submitExam(false)} loading={submitting} disabled={isPreview} icon={isPreview ? <Eye size={16} /> : <Send size={16} />}>{isPreview ? "Xem trước · không nộp" : "Nộp bài"}</Button>}
           </div>
         </div>
 
@@ -160,12 +169,12 @@ export function ExamTakingClient({ exam }: { exam: Exam }) {
               <div className="flex items-center gap-2"><div className="w-3 h-3 rounded bg-[#F0FDF4] border border-[#BBF7D0]" /><span className="text-[#64748B]">Đã trả lời</span></div>
               <div className="flex items-center gap-2"><div className="w-3 h-3 rounded bg-[#F8FAFC] border border-[#E2E8F0]" /><span className="text-[#64748B]">Chưa trả lời</span></div>
             </div>
-            <Button onClick={() => submitExam(false)} loading={submitting} className="w-full" size="sm">Nộp bài</Button>
+            <Button onClick={() => submitExam(false)} loading={submitting} disabled={isPreview} className="w-full" size="sm">{isPreview ? "Chế độ xem trước" : "Nộp bài"}</Button>
           </div>
         </aside>
       </div>
 
-      {showConfirm && (
+      {showConfirm && !isPreview && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[100] p-4">
           <div className="bg-white rounded-2xl p-6 max-w-sm w-full animate-fade-in">
             <h3 className="text-base font-bold text-[#0F172A] mb-2">Xác nhận nộp bài?</h3>
