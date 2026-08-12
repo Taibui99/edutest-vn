@@ -4,11 +4,12 @@ import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import {
-  ArrowLeft, Copy, Users, Clock, FileText,
+  ArrowLeft, Users, Clock, FileText,
   CheckCircle2, XCircle, BarChart3,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { ExamActions } from "./exam-actions";
+import { CopyJoinCode } from "./copy-join-code";
 import { EmptyState } from "@/components/ui/empty-state";
 import { getSubjectColor } from "@/lib/subject";
 
@@ -48,7 +49,6 @@ export default async function ExamDetailPage({ params }: { params: Promise<{ id:
   const passCount = subs.filter((s: Sub) => s.score >= 5).length;
   const c = getSubjectColor(exam.subject);
 
-  // Score distribution
   const dist = [0, 0, 0, 0, 0];
   for (const s of subs as Sub[]) {
     if (s.score < 4) dist[0]++;
@@ -61,7 +61,6 @@ export default async function ExamDetailPage({ params }: { params: Promise<{ id:
 
   return (
     <div className="p-4 lg:p-8 max-w-5xl mx-auto animate-fade-in">
-      {/* Back */}
       <Link
         href="/bang-dieu-khien/de-thi"
         className="inline-flex items-center gap-1.5 text-sm text-[var(--text-muted)] hover:text-[var(--primary)] mb-5 transition-colors"
@@ -69,7 +68,6 @@ export default async function ExamDetailPage({ params }: { params: Promise<{ id:
         <ArrowLeft size={15} /> Danh sách đề thi
       </Link>
 
-      {/* Header */}
       <div className="rounded-2xl p-5 mb-6 relative overflow-hidden" style={{ background: `linear-gradient(135deg, ${c.text}CC, ${c.text}99)` }}>
         <div className="absolute -top-8 -right-8 w-40 h-40 rounded-full bg-white/10" />
         <div className="relative">
@@ -82,9 +80,7 @@ export default async function ExamDetailPage({ params }: { params: Promise<{ id:
               )}
             </div>
             <div className="shrink-0 flex flex-col items-end gap-2">
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/20 text-white text-sm font-mono font-black">
-                <Copy size={12} /> {exam.joinCode}
-              </div>
+              <CopyJoinCode code={exam.joinCode} />
               <span className={`text-xs px-2 py-0.5 rounded-lg font-bold ${
                 exam.status === "published" ? "bg-white/20 text-white" : "bg-black/20 text-white/70"
               }`}>
@@ -100,7 +96,6 @@ export default async function ExamDetailPage({ params }: { params: Promise<{ id:
         </div>
       </div>
 
-      {/* Stats row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         {[
           { label: "Bài nộp", value: subs.length, color: "bg-[#EEEFFE] text-[#6C63FF]" },
@@ -116,7 +111,6 @@ export default async function ExamDetailPage({ params }: { params: Promise<{ id:
       </div>
 
       <div className="grid lg:grid-cols-3 gap-5">
-        {/* Submissions list */}
         <div className="lg:col-span-2">
           <Card padding="none">
             <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--surface-border)]">
@@ -169,9 +163,7 @@ export default async function ExamDetailPage({ params }: { params: Promise<{ id:
           </Card>
         </div>
 
-        {/* Right: distribution + questions */}
         <div className="flex flex-col gap-5">
-          {/* Score distribution */}
           <Card>
             <h2 className="text-sm font-black text-[var(--text-primary)] mb-3 flex items-center gap-2">
               <BarChart3 size={14} className="text-[var(--primary)]" /> Phân bố điểm
@@ -201,7 +193,6 @@ export default async function ExamDetailPage({ params }: { params: Promise<{ id:
             )}
           </Card>
 
-          {/* Questions preview */}
           <Card padding="none">
             <div className="px-4 py-3.5 border-b border-[var(--surface-border)]">
               <h2 className="text-sm font-black text-[var(--text-primary)]">
@@ -219,7 +210,6 @@ export default async function ExamDetailPage({ params }: { params: Promise<{ id:
             </div>
           </Card>
 
-          {/* Quick stats */}
           {subs.length > 0 && (
             <div className="grid grid-cols-2 gap-2">
               <div className="rounded-xl bg-[#E1F5EE] p-3 text-center">
@@ -237,7 +227,6 @@ export default async function ExamDetailPage({ params }: { params: Promise<{ id:
         </div>
       </div>
 
-      {/* Teacher actions — close / delete */}
       <Card className="mt-2">
         <ExamActions examId={exam.id} currentStatus={exam.status} />
       </Card>
