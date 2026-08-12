@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
-import { Bell, Check, ExternalLink } from "lucide-react";
+import { Bell, Check } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/cn";
 
@@ -52,7 +52,6 @@ export function NotificationBell() {
     return () => clearInterval(interval);
   }, [fetchNotifications]);
 
-  // Close on outside click
   useEffect(() => {
     if (!open) return;
 
@@ -129,6 +128,74 @@ export function NotificationBell() {
     setUnread((prev) => Math.max(0, prev - 1));
   };
 
+  const handleNotificationClick = (notification: Notification) => {
+    if (!notification.read) {
+      void markRead(notification.id);
+    }
+    setOpen(false);
+  };
+
+  const renderNotification = (n: Notification) => {
+    const rowClass = cn(
+      "flex items-start gap-3 p-4 hover:bg-[var(--gray-100)] transition-colors",
+      !n.read && "bg-[var(--primary-light)]/30",
+      n.link ? "cursor-pointer" : "cursor-default"
+    );
+
+    const content = (
+      <>
+        <div
+          className={cn(
+            "w-2.5 h-2.5 rounded-full mt-1.5 shrink-0",
+            !n.read ? "bg-[var(--primary)]" : "bg-transparent"
+          )}
+        />
+        <div className="flex-1 min-w-0">
+          <p
+            className={cn(
+              "text-sm font-semibold",
+              !n.read
+                ? "text-[var(--text-primary)]"
+                : "text-[var(--text-secondary)]"
+            )}
+          >
+            {n.title}
+          </p>
+          <p className="text-xs text-[var(--text-muted)] mt-0.5 line-clamp-2">
+            {n.message}
+          </p>
+          <p className="text-xs text-[var(--text-muted)] mt-1">
+            {timeAgo(n.createdAt)}
+          </p>
+        </div>
+      </>
+    );
+
+    if (n.link) {
+      return (
+        <Link
+          key={n.id}
+          href={n.link}
+          onClick={() => handleNotificationClick(n)}
+          className={rowClass}
+        >
+          {content}
+        </Link>
+      );
+    }
+
+    return (
+      <button
+        key={n.id}
+        type="button"
+        onClick={() => handleNotificationClick(n)}
+        className={cn(rowClass, "w-full text-left")}
+      >
+        {content}
+      </button>
+    );
+  };
+
   const dropdown = open ? (
     <div
       ref={dropdownRef}
@@ -158,53 +225,7 @@ export function NotificationBell() {
             Không có thông báo nào
           </p>
         ) : (
-          notifications.map((n) => (
-            <div
-              key={n.id}
-              className={cn(
-                "flex items-start gap-3 p-3.5 hover:bg-[var(--gray-100)] transition-colors cursor-pointer",
-                !n.read && "bg-[var(--primary-light)]/30"
-              )}
-              onClick={() => !n.read && markRead(n.id)}
-            >
-              <div
-                className={cn(
-                  "w-2 h-2 rounded-full mt-1.5 shrink-0",
-                  !n.read ? "bg-[var(--primary)]" : "bg-transparent"
-                )}
-              />
-              <div className="flex-1 min-w-0">
-                <p
-                  className={cn(
-                    "text-sm font-semibold truncate",
-                    !n.read
-                      ? "text-[var(--text-primary)]"
-                      : "text-[var(--text-secondary)]"
-                  )}
-                >
-                  {n.title}
-                </p>
-                <p className="text-xs text-[var(--text-muted)] mt-0.5 line-clamp-2">
-                  {n.message}
-                </p>
-                <p className="text-xs text-[var(--text-muted)] mt-1">
-                  {timeAgo(n.createdAt)}
-                </p>
-              </div>
-              {n.link && (
-                <Link
-                  href={n.link}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setOpen(false);
-                  }}
-                  className="shrink-0 text-[var(--text-muted)] hover:text-[var(--primary)]"
-                >
-                  <ExternalLink size={13} />
-                </Link>
-              )}
-            </div>
-          ))
+          notifications.map(renderNotification)
         )}
       </div>
     </div>
