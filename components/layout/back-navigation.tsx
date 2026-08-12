@@ -7,28 +7,21 @@ import { useEffect, useRef, useState } from "react";
 const IMPORT_TRIGGER_TEXT = "import pdf/word";
 const IMPORT_ENDPOINT = "/api/gemini";
 
-function formatEta(seconds: number) {
-  if (seconds <= 0) return "Sắp hoàn tất...";
-  return `Còn khoảng ${Math.max(1, Math.ceil(seconds))} giây`;
-}
+type ImportStage = "preparing" | "processing" | "finishing" | "done";
 
 export function BackNavigation() {
   const router = useRouter();
   const pathname = usePathname();
   const [importOpen, setImportOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [progress, setProgress] = useState(0);
   const [importing, setImporting] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState("");
-  const [eta, setEta] = useState("");
+  const [stage, setStage] = useState<ImportStage>("preparing");
   const [elapsed, setElapsed] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const importStartedRef = useRef(false);
 
-  // Dashboard root is already the top-level destination, so don't show a back control.
-  // The import modal is still mounted on dashboard pages so it can intercept the existing
-  // "Import PDF/Word" action without forcing every page to implement its own modal.
   const showBack = !!pathname && pathname !== "/bang-dieu-khien";
 
   const handleBack = () => {
@@ -42,11 +35,10 @@ export function BackNavigation() {
   const openImport = () => {
     setImportOpen(true);
     setSelectedFile(null);
-    setProgress(0);
     setImporting(false);
     setDone(false);
     setError("");
-    setEta("");
+    setStage("preparing");
     setElapsed(0);
     importStartedRef.current = false;
   };
@@ -82,8 +74,7 @@ export function BackNavigation() {
   };
 
   const startImport = (file: File) => {
-    const valid = /\.(pdf|docx)$/i.test(file.name);
-    if (!valid) {
+    if (!/\.(pdf|docx)$/i.test(file.name)) {
       setError("Chỉ hỗ trợ file PDF hoặc Word (.docx).");
       return;
     }
@@ -92,9 +83,8 @@ export function BackNavigation() {
     setError("");
     setDone(false);
     setImporting(true);
-    setProgress(12);
+    setStage("preparing");
     setElapsed(0);
-    setEta("Đang chuẩn bị file...");
     importStartedRef.current = true;
     triggerExistingImporter(file);
   };
@@ -117,7 +107,7 @@ export function BackNavigation() {
     return () => document.removeEventListener("click", onDocumentClick, true);
   }, []);
 
-  // Observe the existing import request so the modal reflects the real end-to-end operation.
+  // The current importer does not expose real byte/model progress, so never invent a %.
   useEffect(() => {
     const originalFetch = window.fetch.bind(window);
 
@@ -128,8 +118,7 @@ export function BackNavigation() {
 
       if (!isImportRequest) return originalFetch(...args);
 
-      setProgress(28);
-      setEta("AI đang bắt đầu đọc đề...");
+      setStage("processing");
 
       try {
         const response = await originalFetch(...args);
@@ -140,8 +129,7 @@ export function BackNavigation() {
           return response;
         }
 
-        setProgress(96);
-        setEta("Đang hoàn tất và đưa câu hỏi vào đề...");
+        setStage("finishing");
         return response;
       } catch (fetchError) {
         setError("Mất kết nối trong lúc import. Vui lòng thử lại.");
@@ -161,47 +149,34 @@ export function BackNavigation() {
 
     const startedAt = Date.now();
     const timer = window.setInterval(() => {
-      const seconds = (Date.now() - startedAt) / 1000;
-      setElapsed(Math.floor(seconds));
-
-      // This is an estimated processing progress, not a fake network-byte counter.
-      // It deliberately eases toward 92% while AI processing is running and waits for
-      // the real API response before showing 100%.
-      setProgress((current) => {
-        if (current >= 92 || done) return current;
-        const next = current + Math.max(0.4, (92 - current) * 0.035);
-        return Math.min(92, next);
-      });
-
-      const estimatedSeconds = selectedFile
-        ? Math.min(35, Math.max(8, 8 + selectedFile.size / 180000))
-        : 12;
-      setEta(formatEta(estimatedSeconds - seconds));
+      setElapsed(Math.floor((Date.now() - startedAt) / 1000));
     }, 250);
 
     return () => window.clearInterval(timer);
-  }, [importing, selectedFile, done]);
+  }, [importing]);
 
   useEffect(() => {
-    if (!importing || progress < 96 || error) return;
+    if (!importing || stage !== "finishing" || error) return;
 
     const finishTimer = window.setTimeout(() => {
-      setProgress(100);
       setDone(true);
       setImporting(false);
-      setEta("Đã xử lý xong");
+      setStage("done");
       importStartedRef.current = false;
 
       window.setTimeout(() => {
         setImportOpen(false);
         setSelectedFile(null);
       }, 900);
-    }, 250);
+    }, 450);
 
     return () => window.clearTimeout(finishTimer);
-  }, [importing, progress, error]);
+  }, [importing, stage, error]);
 
   if (!showBack && !importOpen) return null;
+
+  const stageIndex = stage === "preparing" ? 0 : stage === "processing" ? 1 : 2;
+  const stageLabels = ["Chuẩn bị file", "AI phân tích đề", "Hoàn tất"];
 
   return (
     <>
@@ -222,33 +197,14 @@ export function BackNavigation() {
 
       {importOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/45 px-4 py-6 backdrop-blur-[3px]">
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="import-exam-title"
-            className="w-full max-w-xl overflow-hidden rounded-3xl border border-white/70 bg-white shadow-2xl"
-          >
+          <div role="dialog" aria-modal="true" aria-labelledby="import-exam-title" className="w-full max-w-xl overflow-hidden rounded-3xl border border-white/70 bg-white shadow-2xl">
             <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4 sm:px-7">
               <div>
-                <div className="mb-1 flex items-center gap-2 text-sm font-semibold text-violet-600">
-                  <FileUp size={17} /> Import đề thi
-                </div>
-                <h2 id="import-exam-title" className="text-xl font-bold text-slate-900">
-                  Tải đề PDF / Word lên
-                </h2>
-                <p className="mt-1 text-sm text-slate-500">
-                  AI sẽ đọc file và tự đưa câu hỏi vào trình tạo đề.
-                </p>
+                <div className="mb-1 flex items-center gap-2 text-sm font-semibold text-violet-600"><FileUp size={17} /> Import đề thi</div>
+                <h2 id="import-exam-title" className="text-xl font-bold text-slate-900">Tải đề PDF / Word lên</h2>
+                <p className="mt-1 text-sm text-slate-500">AI sẽ đọc file và tự đưa câu hỏi vào trình tạo đề.</p>
               </div>
-              <button
-                type="button"
-                onClick={closeImport}
-                disabled={importing}
-                className="rounded-full p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
-                aria-label="Đóng"
-              >
-                <X size={20} />
-              </button>
+              <button type="button" onClick={closeImport} disabled={importing} className="rounded-full p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 disabled:cursor-not-allowed disabled:opacity-40" aria-label="Đóng"><X size={20} /></button>
             </div>
 
             <div className="p-5 sm:p-7">
@@ -265,75 +221,52 @@ export function BackNavigation() {
                     }}
                     className="group flex min-h-[250px] w-full flex-col items-center justify-center rounded-2xl border-2 border-dashed border-violet-200 bg-violet-50/50 px-5 text-center transition hover:border-violet-400 hover:bg-violet-50"
                   >
-                    <span className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-white text-violet-600 shadow-sm ring-1 ring-violet-100 transition group-hover:scale-105">
-                      <UploadCloud size={31} />
-                    </span>
+                    <span className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-white text-violet-600 shadow-sm ring-1 ring-violet-100 transition group-hover:scale-105"><UploadCloud size={31} /></span>
                     <span className="text-base font-bold text-slate-800">Kéo thả đề vào đây</span>
                     <span className="mt-1 text-sm text-slate-500">hoặc nhấn để chọn file từ thiết bị</span>
-                    <span className="mt-4 rounded-xl bg-violet-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm">
-                      Chọn file PDF / Word
-                    </span>
+                    <span className="mt-4 rounded-xl bg-violet-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm">Chọn file PDF / Word</span>
                     <span className="mt-3 text-xs text-slate-400">Hỗ trợ .pdf và .docx</span>
                   </button>
 
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                    className="hidden"
-                    onChange={(event) => {
-                      const file = event.target.files?.[0];
-                      if (file) startImport(file);
-                      event.currentTarget.value = "";
-                    }}
-                  />
+                  <input ref={fileInputRef} type="file" accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" className="hidden" onChange={(event) => { const file = event.target.files?.[0]; if (file) startImport(file); event.currentTarget.value = ""; }} />
                 </>
               )}
 
               {(importing || done) && (
                 <div className="rounded-2xl border border-slate-100 bg-slate-50 p-5 sm:p-6">
                   <div className="flex items-start gap-4">
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-violet-100 text-violet-600">
-                      {done ? <CheckCircle2 size={25} /> : <Loader2 size={25} className="animate-spin" />}
-                    </div>
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-violet-100 text-violet-600">{done ? <CheckCircle2 size={25} /> : <Loader2 size={25} className="animate-spin" />}</div>
                     <div className="min-w-0 flex-1">
-                      <p className="font-bold text-slate-900">
-                        {done ? "Import đề hoàn tất" : "Đang xử lý đề thi..."}
-                      </p>
+                      <p className="font-bold text-slate-900">{done ? "Import đề hoàn tất" : stageLabels[stageIndex]}</p>
                       <p className="mt-1 truncate text-sm text-slate-500">{selectedFile?.name}</p>
                     </div>
-                    <span className="text-lg font-extrabold text-violet-600">{Math.round(progress)}%</span>
                   </div>
 
-                  <div className="mt-5 h-3 overflow-hidden rounded-full bg-slate-200">
-                    <div
-                      className="h-full rounded-full bg-gradient-to-r from-violet-500 to-indigo-500 transition-[width] duration-300"
-                      style={{ width: `${progress}%` }}
-                    />
+                  <div className="mt-6 grid grid-cols-3 gap-2">
+                    {stageLabels.map((label, index) => {
+                      const active = !done && index === stageIndex;
+                      const completed = done || index < stageIndex;
+                      return (
+                        <div key={label} className="flex flex-col items-center gap-2 text-center">
+                          <div className={`flex h-9 w-9 items-center justify-center rounded-full text-xs font-bold ${completed ? "bg-emerald-100 text-emerald-600" : active ? "bg-violet-600 text-white" : "bg-slate-200 text-slate-400"}`}>
+                            {completed ? <CheckCircle2 size={17} /> : index + 1}
+                          </div>
+                          <span className={`text-xs font-semibold ${active ? "text-violet-700" : "text-slate-500"}`}>{label}</span>
+                        </div>
+                      );
+                    })}
                   </div>
 
-                  <div className="mt-4 flex items-center justify-between gap-3 text-sm">
-                    <span className="font-medium text-slate-700">
-                      {done ? "Đã đưa câu hỏi vào trình tạo đề." : "AI đang đọc và phân tích câu hỏi..."}
-                    </span>
-                    <span className="flex shrink-0 items-center gap-1 text-slate-500">
-                      <Clock3 size={14} /> {done ? `${elapsed}s` : eta}
-                    </span>
+                  <div className="mt-6 flex items-center justify-center gap-2 rounded-xl bg-white px-4 py-3 text-sm text-slate-600 ring-1 ring-slate-100">
+                    <Clock3 size={15} className="text-violet-500" />
+                    <span>Đã xử lý {elapsed} giây</span>
                   </div>
 
-                  {!done && (
-                    <p className="mt-3 text-xs leading-5 text-slate-400">
-                      Thời gian còn lại là ước tính và có thể thay đổi tùy kích thước đề và tốc độ xử lý AI.
-                    </p>
-                  )}
+                  <p className="mt-3 text-center text-xs leading-5 text-slate-400">{done ? "Câu hỏi đã được đưa vào trình tạo đề." : "Hệ thống không hiển thị % giả hoặc đếm ngược giả; trạng thái sẽ thay đổi khi từng bước thực sự hoàn thành."}</p>
                 </div>
               )}
 
-              {error && (
-                <div className="mt-4 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-medium text-red-600">
-                  {error}
-                </div>
-              )}
+              {error && <div className="mt-4 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-medium text-red-600">{error}</div>}
             </div>
           </div>
         </div>
