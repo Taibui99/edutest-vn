@@ -110,6 +110,7 @@ export default async function ThiPage({
   if (preview === "1" && session.user.role === "teacher") {
     return (
       <ExamTakingClient
+        preview
         exam={{
           id: exam.id,
           title: exam.title,
