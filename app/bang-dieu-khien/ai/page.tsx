@@ -59,7 +59,7 @@ function MessageBubble({ msg }: { msg: Message }) {
 }
 
 export default function AICoachPage() {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<Message[]>([INITIAL_MESSAGE]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [role, setRole] = useState<"student" | "teacher">("student");
@@ -194,7 +194,7 @@ export default function AICoachPage() {
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-4 py-5 flex flex-col gap-4">
+      <div className="flex-1 min-h-0 overflow-y-auto px-4 py-5 flex flex-col gap-4">
         {messages.map((msg, i) => (
           <MessageBubble key={i} msg={msg} />
         ))}
