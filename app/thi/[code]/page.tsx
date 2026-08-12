@@ -91,6 +91,7 @@ export default async function ThiPage({
 
     return (
       <ExamTakingClient
+        backHref="/vao-thi"
         exam={{
           id: exam.id,
           title: exam.title,
@@ -111,6 +112,7 @@ export default async function ThiPage({
     return (
       <ExamTakingClient
         preview
+        backHref={`/bang-dieu-khien/de-thi/${exam.id}`}
         exam={{
           id: exam.id,
           title: exam.title,
@@ -163,6 +165,7 @@ export default async function ThiPage({
 
   return (
     <ExamTakingClient
+      backHref="/bang-dieu-khien/de-thi"
       exam={{
         id: exam.id,
         title: exam.title,
