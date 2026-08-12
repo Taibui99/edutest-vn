@@ -2,38 +2,38 @@ const STUDENT_FEATURES = [
   {
     emoji: "📝",
     color: { bg: "#EEEFFE", text: "#6C63FF" },
-    title: "Vào thi bằng mã",
-    desc: "Nhập mã đề từ giáo viên, làm bài ngay — không cần tài khoản phức tạp.",
+    title: "Vào thi bằng mã hoặc link",
+    desc: "Mở đề giáo viên gửi và bắt đầu làm bài nhanh chóng. Học sinh chưa có tài khoản vẫn có thể tham gia khi đề cho phép.",
   },
   {
     emoji: "⏱️",
     color: { bg: "#E1F5EE", text: "#06D6A0" },
     title: "Timer + tự nộp bài",
-    desc: "Đồng hồ đếm ngược, tự động nộp khi hết giờ. Kết quả hiện ngay sau khi nộp.",
+    desc: "Đồng hồ đếm ngược và tự động nộp khi hết giờ. Kết quả được ghi nhận ngay sau khi hoàn thành.",
   },
   {
     emoji: "🃏",
     color: { bg: "#FFF8E1", text: "#C49A00" },
     title: "Flashcard thông minh",
-    desc: "Thuật toán SM-2 tự động sắp xếp thẻ cần ôn mỗi ngày. Càng dùng càng thông minh.",
+    desc: "Ôn tập theo lịch thông minh để ghi nhớ kiến thức tốt hơn và duy trì thói quen học mỗi ngày.",
   },
   {
     emoji: "🤖",
     color: { bg: "#FFECEC", text: "#FF6B6B" },
     title: "AI Study Coach",
-    desc: "Phân tích điểm yếu của bạn, đề xuất ôn tập cụ thể dựa trên kết quả thực tế.",
+    desc: "Hỗ trợ giải đáp, phân tích kết quả học tập và đề xuất nội dung ôn tập phù hợp.",
   },
   {
     emoji: "📅",
     color: { bg: "#E8F4FD", text: "#4EA8DE" },
     title: "Đếm ngược THPT",
-    desc: "Biết chính xác còn bao nhiêu ngày đến kỳ thi. Lên kế hoạch ôn tập rõ ràng hơn.",
+    desc: "Theo dõi thời gian còn lại đến kỳ thi và lên kế hoạch ôn tập rõ ràng hơn.",
   },
   {
     emoji: "📊",
     color: { bg: "#E1F5EE", text: "#06D6A0" },
-    title: "Xem lại đáp án",
-    desc: "Sau mỗi bài thi, xem lại từng câu, đáp án đúng và giải thích chi tiết.",
+    title: "Xem lại kết quả",
+    desc: "Xem điểm, số câu đúng và thông tin kết quả sau khi hoàn thành bài thi.",
   },
 ];
 
@@ -41,20 +41,20 @@ const TEACHER_FEATURES = [
   {
     emoji: "✍️",
     color: { bg: "#EEEFFE", text: "#6C63FF" },
-    title: "Tạo đề 5 bước",
-    desc: "Thêm câu hỏi thủ công hoặc import từ PDF/Word. Có preview trước khi xuất bản.",
+    title: "Tạo đề trên một màn hình",
+    desc: "Soạn câu hỏi trực tiếp, chỉnh sửa nhanh hoặc import PDF/Word rồi tiếp tục hoàn thiện trước khi xuất bản.",
   },
   {
     emoji: "🏫",
     color: { bg: "#FFF8E1", text: "#C49A00" },
     title: "Quản lý lớp học",
-    desc: "Tạo lớp, chia sẻ mã, quản lý học sinh. Giao đề thi trực tiếp vào lớp.",
+    desc: "Tạo lớp, quản lý học sinh và giao đề trực tiếp cho lớp. Học sinh có thể tham gia bằng tài khoản hoặc guest tùy cấu hình đề.",
   },
   {
     emoji: "📈",
     color: { bg: "#FFECEC", text: "#FF6B6B" },
-    title: "Thống kê lớp",
-    desc: "Xem điểm trung bình, phân bố điểm, bài nộp theo ngày. Biết lớp đang học tốt không.",
+    title: "Thống kê kết quả",
+    desc: "Xem bài nộp, điểm trung bình, phân bố điểm và kết quả của học sinh theo từng đề.",
   },
 ];
 
@@ -63,14 +63,13 @@ export function Features() {
     <section id="tinh-nang" style={{ background: "#F8F7FF" }} className="py-20 sm:py-24">
       <div className="mx-auto max-w-5xl px-5">
 
-        {/* Student section */}
         <div className="text-center mb-12">
           <span className="inline-block text-sm font-bold px-3 py-1 rounded-full mb-3"
             style={{ background: "#EEEFFE", color: "#6C63FF" }}>
             Dành cho học sinh
           </span>
           <h2 className="text-2xl sm:text-3xl font-black" style={{ color: "#1A1523" }}>
-            Học thông minh hơn mỗi ngày
+            Học và kiểm tra thuận tiện hơn
           </h2>
         </div>
 
@@ -89,14 +88,13 @@ export function Features() {
           ))}
         </div>
 
-        {/* Teacher section */}
         <div className="text-center mb-12">
           <span className="inline-block text-sm font-bold px-3 py-1 rounded-full mb-3"
             style={{ background: "#E1F5EE", color: "#0F6E56" }}>
             Dành cho giáo viên
           </span>
           <h2 className="text-2xl sm:text-3xl font-black" style={{ color: "#1A1523" }}>
-            Quản lý lớp học dễ dàng
+            Tạo đề và quản lý lớp học dễ dàng
           </h2>
         </div>
 
