@@ -25,7 +25,6 @@ model User {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  // Relations
   exams              Exam[]
   submissions        Submission[]
   studyTasks         StudyTask[]
@@ -85,24 +84,26 @@ model ExamAssignment {
 
 // ─── Exam ─────────────────────────────────────────────────
 model Exam {
-  id              String   @id @default(cuid())
-  title           String
-  subject         String
-  description     String?
-  durationMinutes Int
-  joinCode        String   @unique
-  status          String   @default("published")
-  shuffleQuestions Boolean @default(false)
-  shuffleAnswers   Boolean @default(false)
-  maxAttempts     Int      @default(1)
-  showAnswers     Boolean  @default(true)
-  teacherId       String
-  teacher         User     @relation(fields: [teacherId], references: [id], onDelete: Cascade)
-  questions       Question[]
-  submissions     Submission[]
-  assignments     ExamAssignment[]
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id                 String   @id @default(cuid())
+  title              String
+  subject            String
+  description        String?
+  durationMinutes    Int
+  joinCode           String   @unique
+  status             String   @default("published")
+  allowGuestAttempts Boolean  @default(false)
+  shuffleQuestions   Boolean  @default(false)
+  shuffleAnswers     Boolean  @default(false)
+  maxAttempts        Int      @default(1)
+  showAnswers        Boolean  @default(true)
+  teacherId          String
+  teacher            User     @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  questions          Question[]
+  submissions        Submission[]
+  guestParticipants  GuestParticipant[]
+  assignments        ExamAssignment[]
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
   @@index([teacherId])
   @@index([joinCode])
@@ -123,19 +124,36 @@ model Question {
   @@index([examId])
 }
 
+model GuestParticipant {
+  id           String   @id @default(cuid())
+  examId       String
+  exam         Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
+  name         String
+  className    String
+  tokenHash    String   @unique
+  startedAt    DateTime @default(now())
+  submittedAt  DateTime?
+  createdAt    DateTime @default(now())
+  submission   Submission?
+
+  @@index([examId])
+}
+
 // ─── Submission ───────────────────────────────────────────
 model Submission {
-  id              String   @id @default(cuid())
-  examId          String
-  exam            Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
-  studentId       String
-  student         User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  answers         Json     // { [questionId]: selectedOption }
-  score           Float
-  correctCount    Int
-  totalQuestions  Int
-  durationSeconds Int
-  submittedAt     DateTime @default(now())
+  id                  String            @id @default(cuid())
+  examId              String
+  exam                Exam              @relation(fields: [examId], references: [id], onDelete: Cascade)
+  studentId           String?
+  student             User?             @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  guestParticipantId  String?           @unique
+  guestParticipant    GuestParticipant? @relation(fields: [guestParticipantId], references: [id], onDelete: Cascade)
+  answers             Json              // { [questionId]: selectedOption }
+  score               Float
+  correctCount        Int
+  totalQuestions      Int
+  durationSeconds     Int
+  submittedAt         DateTime          @default(now())
 
   @@unique([examId, studentId])
   @@index([studentId])
