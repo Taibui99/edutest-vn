@@ -5,7 +5,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import {
   ArrowLeft, Users, Clock, FileText,
-  CheckCircle2, XCircle, BarChart3,
+  CheckCircle2, XCircle, BarChart3, Share2, QrCode,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { ExamActions } from "./exam-actions";
@@ -68,11 +68,11 @@ export default async function ExamDetailPage({ params }: { params: Promise<{ id:
         <ArrowLeft size={15} /> Danh sách đề thi
       </Link>
 
-      <div className="rounded-2xl p-5 mb-6 relative overflow-hidden" style={{ background: `linear-gradient(135deg, ${c.text}CC, ${c.text}99)` }}>
+      <div className="rounded-2xl p-5 mb-4 relative overflow-hidden" style={{ background: `linear-gradient(135deg, ${c.text}CC, ${c.text}99)` }}>
         <div className="absolute -top-8 -right-8 w-40 h-40 rounded-full bg-white/10" />
         <div className="relative">
           <div className="flex items-start justify-between gap-4">
-            <div>
+            <div className="min-w-0">
               <span className="text-white/70 text-sm font-medium">{exam.subject}</span>
               <h1 className="text-2xl font-black text-white mt-0.5">{exam.title}</h1>
               {exam.description && (
@@ -88,13 +88,34 @@ export default async function ExamDetailPage({ params }: { params: Promise<{ id:
               </span>
             </div>
           </div>
-          <div className="flex items-center gap-4 mt-4 text-white/70 text-sm">
+          <div className="flex flex-wrap items-center gap-4 mt-4 text-white/70 text-sm">
             <span className="flex items-center gap-1.5"><FileText size={13} /> {exam.questions.length} câu hỏi</span>
             <span className="flex items-center gap-1.5"><Clock size={13} /> {exam.durationMinutes} phút</span>
             <span className="flex items-center gap-1.5"><Users size={13} /> {subs.length} bài nộp</span>
           </div>
         </div>
       </div>
+
+      <Card className="mb-6 overflow-hidden border-[var(--primary)]/15">
+        <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3 min-w-0">
+            <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-[var(--primary-light)] text-[var(--primary)]">
+              <QrCode size={22} />
+            </div>
+            <div className="min-w-0">
+              <h2 className="text-sm font-black text-[var(--text-primary)]">Chia sẻ đề cho học sinh</h2>
+              <p className="mt-1 text-xs text-[var(--text-muted)]">Gửi link hoặc QR để học sinh vào làm bài. Không cần nhớ mã truy cập.</p>
+            </div>
+          </div>
+          <Link
+            href={`/bang-dieu-khien/chia-se-de/${exam.joinCode}`}
+            className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-[var(--primary)] px-5 text-sm font-bold text-white shadow-sm transition hover:opacity-90 active:scale-[0.98]"
+          >
+            <Share2 size={17} />
+            Chia sẻ đề
+          </Link>
+        </div>
+      </Card>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         {[
@@ -121,7 +142,7 @@ export default async function ExamDetailPage({ params }: { params: Promise<{ id:
               <EmptyState
                 icon={<Users />}
                 title="Chưa có bài nộp"
-                description="Chia sẻ mã đề để học sinh tham gia"
+                description="Chia sẻ đề để học sinh tham gia"
                 className="py-12"
               />
             ) : (
