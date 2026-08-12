@@ -28,6 +28,13 @@ interface Question {
   answer: string;
 }
 
+type ImportedQuestion = {
+  question?: unknown;
+  questionText?: unknown;
+  options?: unknown;
+  answer?: unknown;
+};
+
 const DURATION_OPTIONS = [
   { value: "10", label: "10 phút" },
   { value: "15", label: "15 phút" },
@@ -134,12 +141,12 @@ export default function TaoDeThiPage() {
       const parsed = parseGeminiJson(data.result);
       if (parsed.title) setTitle(String(parsed.title));
       if (parsed.questions && Array.isArray(parsed.questions)) {
-        const imported: Question[] = parsed.questions.map((q: Question) => ({
-          question: String(q.question || q.questionText || ""),
-          options: Array.isArray(q.options)
-            ? q.options.slice(0, 4).map((option) => String(option).replace(/^[A-D]\.\s*/i, ""))
+        const imported: Question[] = parsed.questions.map((raw: ImportedQuestion) => ({
+          question: String(raw.question ?? raw.questionText ?? ""),
+          options: Array.isArray(raw.options)
+            ? raw.options.slice(0, 4).map((option) => String(option).replace(/^[A-D]\.\s*/i, ""))
             : ["", "", "", ""],
-          answer: String(q.answer || "A").trim().charAt(0).toUpperCase() || "A",
+          answer: String(raw.answer ?? "A").trim().charAt(0).toUpperCase() || "A",
         }));
         setQuestions(imported.length ? imported : [createBlankQuestion()]);
       }
