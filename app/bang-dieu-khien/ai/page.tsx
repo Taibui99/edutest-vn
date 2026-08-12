@@ -23,14 +23,16 @@ const STUDENT_PROMPTS = [
   "Tạo 5 câu hỏi Toán luyện tập",
   "Lập kế hoạch ôn thi THPT",
   "Giải thích Hàm số cho tôi",
+  "Tạo flashcard từ chủ đề này",
 ];
 
 const TEACHER_PROMPTS = [
   "Tạo 5 câu hỏi Toán lớp 12",
+  "Tạo một đề Toán 12 gồm 20 câu",
   "Phân tích kết quả lớp tôi",
   "Đề xuất chủ đề ôn tập",
-  "Tạo câu hỏi Tiếng Anh Grammar",
-  "Viết câu hỏi Vật lý Điện từ",
+  "Xem các đề thi của tôi",
+  "Giao đề gần nhất cho lớp 12A1",
 ];
 
 function MessageBubble({ msg }: { msg: Message }) {
@@ -215,23 +217,29 @@ export default function AICoachPage() {
         <div ref={bottomRef} />
       </div>
 
-      {messages.length <= 2 && (
-        <div className="px-4 pb-3 flex gap-2 overflow-x-auto scrollbar-hide shrink-0">
+      <div className="shrink-0 border-t border-[var(--surface-border)] bg-[var(--surface-bg)]/95 backdrop-blur-sm px-4 pt-3 pb-2 lg:pb-3">
+        <div className="flex items-center justify-between gap-3 mb-2">
+          <span className="text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-wide">
+            Gợi ý cho bạn
+          </span>
+          <span className="text-[10px] text-[var(--text-muted)] hidden sm:block">
+            Chạm để gửi ngay
+          </span>
+        </div>
+        <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
           {quickPrompts.map((p) => (
             <button
               key={p}
               onClick={() => send(p)}
               disabled={loading || !hydrated}
-              className="shrink-0 text-xs font-semibold px-3 py-2 rounded-xl border border-[var(--primary-muted)] text-[var(--primary)] bg-[var(--primary-light)] hover:bg-[var(--primary-muted)] transition-colors whitespace-nowrap disabled:opacity-50"
+              className="shrink-0 text-xs font-semibold px-3.5 py-2.5 rounded-xl border border-[var(--primary-muted)] text-[var(--primary)] bg-[var(--primary-light)] hover:bg-[var(--primary-muted)] active:scale-[0.98] transition-all whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {p}
             </button>
           ))}
         </div>
-      )}
 
-      <div className="px-4 pb-4 lg:pb-5 shrink-0">
-        <div className="flex gap-2 bg-[var(--surface-card)] border border-[var(--surface-border)] rounded-2xl p-2 focus-within:border-[var(--primary)] transition-colors">
+        <div className="mt-2 flex gap-2 bg-[var(--surface-card)] border border-[var(--surface-border)] rounded-2xl p-2 focus-within:border-[var(--primary)] transition-colors">
           <textarea
             ref={inputRef}
             value={input}
@@ -239,7 +247,7 @@ export default function AICoachPage() {
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
             }}
-            placeholder="Hỏi AI Study Coach..."
+            placeholder={role === "teacher" ? "Bạn muốn AI hỗ trợ gì cho lớp học?" : "Hỏi AI Study Coach điều bạn đang thắc mắc..."}
             rows={1}
             className="flex-1 resize-none bg-transparent text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] outline-none px-2 py-1.5 max-h-32 overflow-y-auto"
             style={{ scrollbarWidth: "none" }}
