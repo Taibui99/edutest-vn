@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { Sidebar } from "@/components/layout/sidebar";
 import { MobileTopbar, MobileBottomNav } from "@/components/layout/mobile-nav";
+import { BackNavigation } from "@/components/layout/back-navigation";
 import { logoutAction } from "@/app/actions/auth";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -9,9 +10,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
   if (!session?.user) redirect("/dang-nhap");
 
   const user = {
-    name:  session.user.name  ?? "User",
+    name: session.user.name ?? "User",
     email: session.user.email ?? "",
-    role:  session.user.role  ?? "student",
+    role: session.user.role ?? "student",
   };
 
   return (
@@ -22,6 +23,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         <Sidebar user={user} logoutAction={logoutAction} />
 
         <main className="flex-1 min-w-0 pb-[72px] lg:pb-0">
+          <BackNavigation />
           {children}
         </main>
       </div>
