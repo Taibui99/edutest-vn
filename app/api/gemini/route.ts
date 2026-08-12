@@ -2,8 +2,7 @@ import { GoogleGenAI } from "@google/genai";
 import { NextRequest, NextResponse } from "next/server";
 import mammoth from "mammoth";
 
-// Keep exam import independent from the general Gemini/agent model setting.
-// Gemini 3.5 Flash-Lite is designed for high-volume document extraction and structured JSON.
+// Dedicated model for exam import. It is independent from the general AI agent model.
 const geminiModel = process.env.EXAM_IMPORT_MODEL || "gemini-3.5-flash-lite";
 const MAX_FILE_BYTES = 50 * 1024 * 1024;
 const INLINE_PDF_BYTES = 20 * 1024 * 1024;
@@ -49,7 +48,7 @@ function generationConfig() {
     responseMimeType: "application/json",
     responseSchema,
     maxOutputTokens: 32768,
-    thinkingConfig: { thinkingLevel: "minimal" },
+    thinkingConfig: { thinkingLevel: "minimal" as const },
   };
 }
 
@@ -60,8 +59,7 @@ function mimeTypeFor(file: File) {
 }
 
 async function generateFromPdf(buffer: Buffer, mimeType: string, fileName: string) {
-  // Small PDFs are sent inline. This avoids the File API upload + PROCESSING poll,
-  // which was the main source of the very long "Đang đọc..." wait.
+  // Small PDFs go inline so there is no File API PROCESSING polling delay.
   if (buffer.byteLength <= INLINE_PDF_BYTES) {
     const result = await ai.models.generateContent({
       model: geminiModel,
@@ -74,7 +72,7 @@ async function generateFromPdf(buffer: Buffer, mimeType: string, fileName: strin
     return result.text;
   }
 
-  // Larger PDFs use the File API as recommended by Gemini.
+  // Larger PDFs use Gemini File API.
   const uploaded = await ai.files.upload({
     file: new Blob([buffer], { type: mimeType }),
     config: { displayName: fileName, mimeType },
@@ -86,9 +84,7 @@ async function generateFromPdf(buffer: Buffer, mimeType: string, fileName: strin
     processed = await ai.files.get({ name: uploaded.name! });
   }
 
-  if (processed.state === "FAILED") {
-    throw new Error("Gemini không xử lý được file PDF");
-  }
+  if (processed.state === "FAILED") throw new Error("Gemini không xử lý được file PDF");
 
   try {
     const result = await ai.models.generateContent({
