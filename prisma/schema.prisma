@@ -8,7 +8,6 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-// ─── Users ────────────────────────────────────────────────
 model User {
   id            String   @id @default(cuid())
   email         String   @unique
@@ -49,10 +48,8 @@ model Classroom {
   archived    Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-
   members     ClassMember[]
   assignments ExamAssignment[]
-
   @@index([teacherId])
   @@index([joinCode])
 }
@@ -64,20 +61,18 @@ model ClassMember {
   studentId   String
   student     User      @relation(fields: [studentId], references: [id], onDelete: Cascade)
   joinedAt    DateTime  @default(now())
-
   @@unique([classroomId, studentId])
   @@index([studentId])
 }
 
 model ExamAssignment {
-  id          String    @id @default(cuid())
+  id          String   @id @default(cuid())
   classroomId String
   classroom   Classroom @relation(fields: [classroomId], references: [id], onDelete: Cascade)
   examId      String
-  exam        Exam      @relation(fields: [examId], references: [id], onDelete: Cascade)
+  exam        Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
   dueDate     DateTime?
-  assignedAt  DateTime  @default(now())
-
+  assignedAt  DateTime @default(now())
   @@unique([classroomId, examId])
 }
 
@@ -100,9 +95,8 @@ model Exam {
   submissions        Submission[]
   guestParticipants  GuestParticipant[]
   assignments        ExamAssignment[]
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
-
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
   @@index([teacherId])
   @@index([joinCode])
 }
@@ -111,14 +105,15 @@ model Question {
   id          String   @id @default(cuid())
   examId      String
   exam        Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
+  type        String   @default("mcq")
   text        String
   options     String[]
   answer      String
+  grading     Json?
   explanation String?
   points      Float    @default(1)
   order       Int
   createdAt   DateTime @default(now())
-
   @@index([examId])
 }
 
@@ -133,7 +128,6 @@ model GuestParticipant {
   submittedAt  DateTime?
   createdAt    DateTime @default(now())
   submission   Submission?
-
   @@index([examId])
 }
 
@@ -151,7 +145,6 @@ model Submission {
   totalQuestions     Int
   durationSeconds    Int
   submittedAt        DateTime          @default(now())
-
   @@unique([examId, studentId])
   @@index([studentId])
   @@index([examId])
@@ -166,7 +159,6 @@ model StudyTask {
   dueDate   DateTime?
   completed Boolean   @default(false)
   createdAt DateTime  @default(now())
-
   @@index([studentId])
 }
 
@@ -182,7 +174,6 @@ model Flashcard {
   repetitions    Int      @default(0)
   nextReviewAt   DateTime @default(now())
   createdAt      DateTime @default(now())
-
   @@index([studentId])
   @@index([nextReviewAt])
 }
@@ -194,7 +185,6 @@ model SubjectProgress {
   subject   String
   progress  Int      @default(0)
   updatedAt DateTime @updatedAt
-
   @@unique([studentId, subject])
 }
 
@@ -208,7 +198,6 @@ model Notification {
   link      String?
   read      Boolean  @default(false)
   createdAt DateTime @default(now())
-
   @@index([userId])
   @@index([userId, read])
 }
