@@ -58,7 +58,6 @@ function mimeTypeFor(file: File) {
 }
 
 async function generateFromPdf(buffer: Buffer, mimeType: string, fileName: string) {
-  // Small PDFs go inline so there is no File API PROCESSING polling delay.
   if (buffer.byteLength <= INLINE_PDF_BYTES) {
     const result = await ai.models.generateContent({
       model: geminiModel,
@@ -71,9 +70,11 @@ async function generateFromPdf(buffer: Buffer, mimeType: string, fileName: strin
     return result.text;
   }
 
-  // Larger PDFs use Gemini File API.
+  const safeBytes = new Uint8Array(buffer.byteLength);
+  safeBytes.set(buffer);
+
   const uploaded = await ai.files.upload({
-    file: new Blob([buffer], { type: mimeType }),
+    file: new Blob([safeBytes.buffer], { type: mimeType }),
     config: { displayName: fileName, mimeType },
   });
 
