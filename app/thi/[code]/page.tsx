@@ -12,7 +12,7 @@ export default async function ThiPage({ params, searchParams }: { params: Promis
   const normalizedCode = code.toUpperCase();
   const session = await auth();
   const exam = await prisma.exam.findUnique({ where: { joinCode: normalizedCode }, include: { questions: { orderBy: { order: "asc" } } } });
-  const mapQuestions = () => exam?.questions.map((q) => ({ id: q.id, text: q.text, options: q.options, order: q.order })) || [];
+  const mapQuestions = () => exam?.questions.map((q) => ({ id: q.id, type: q.type, text: q.text, options: q.options, answer: q.answer, grading: q.grading, order: q.order })) || [];
 
   if (!exam || exam.status !== "published") return <div className="min-h-screen grid place-items-center bg-[#F8FAFC] p-4"><div className="rounded-2xl bg-white p-8 text-center"><h1 className="text-xl font-bold">Mã tham gia không hợp lệ</h1><Link href="/vao-thi" className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-[#2563EB]"><ArrowLeft size={14}/> Nhập mã khác</Link></div></div>;
 
