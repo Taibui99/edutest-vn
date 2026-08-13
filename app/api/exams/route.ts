@@ -1,5 +1,6 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 
 type QuestionType = "mcq" | "true_false" | "short_answer" | "essay";
@@ -27,6 +28,17 @@ async function createUniqueJoinCode() {
   throw new Error("Không thể tạo mã tham gia");
 }
 
+function normalizeGrading(value: unknown): Prisma.InputJsonValue | undefined {
+  if (value === undefined) return undefined;
+  if (value === null) return null;
+  try {
+    JSON.stringify(value);
+    return value as Prisma.InputJsonValue;
+  } catch {
+    return undefined;
+  }
+}
+
 function normalizeQuestions(questions: IncomingQuestion[]) {
   return questions.map((item, index) => {
     const type: QuestionType = ["mcq", "true_false", "short_answer", "essay"].includes(item.type || "")
@@ -42,7 +54,7 @@ function normalizeQuestions(questions: IncomingQuestion[]) {
       text,
       options,
       answer,
-      grading: item.grading === undefined ? undefined : item.grading,
+      grading: normalizeGrading(item.grading),
       points,
       order: index + 1,
     };
@@ -74,7 +86,7 @@ function validateQuestion(question: ReturnType<typeof normalizeQuestions>[number
     }
     case "short_answer": {
       const grading = question.grading as { acceptedAnswers?: string[] } | undefined;
-      const accepted = Array.isArray(grading?.acceptedAnswers) ? grading!.acceptedAnswers.filter((x) => String(x).trim()) : [];
+      const accepted = Array.isArray(grading?.acceptedAnswers) ? grading.acceptedAnswers.filter((x) => String(x).trim()) : [];
       return accepted.length ? null : "Câu trả lời ngắn cần ít nhất một đáp án chấp nhận";
     }
     case "essay":
@@ -103,12 +115,19 @@ export async function POST(request: NextRequest) {
   const body = await request.json();
   const title = String(body.title || "").trim();
   const subject = String(body.subject || "").trim();
+  const description = String(body.description || "").trim() || undefined;
   const durationMinutes = Number(body.durationMinutes || body.duration || 0);
+  const shuffleQuestions = Boolean(body.shuffleQuestions);
+  const shuffleAnswers = Boolean(body.shuffleAnswers);
+  const allowGuestAttempts = body.allowGuestAttempts === undefined ? true : Boolean(body.allowGuestAttempts);
+  const maxAttempts = Math.max(1, Number(body.maxAttempts || 1));
+  const showAnswers = body.showAnswers === undefined ? true : Boolean(body.showAnswers);
   const questions = normalizeQuestions(Array.isArray(body.questions) ? body.questions : []);
 
   if (!title) return NextResponse.json({ error: "Vui lòng nhập tên đề thi" }, { status: 400 });
   if (!subject) return NextResponse.json({ error: "Vui lòng chọn môn học" }, { status: 400 });
   if (!Number.isInteger(durationMinutes) || durationMinutes < 1) return NextResponse.json({ error: "Thời gian làm bài không hợp lệ" }, { status: 400 });
+  if (!Number.isInteger(maxAttempts) || maxAttempts < 1) return NextResponse.json({ error: "Số lần làm tối đa không hợp lệ" }, { status: 400 });
   if (questions.length === 0) return NextResponse.json({ error: "Đề thi cần có ít nhất 1 câu hỏi" }, { status: 400 });
 
   const invalid = questions.find((question) => validateQuestion(question));
@@ -119,8 +138,14 @@ export async function POST(request: NextRequest) {
     data: {
       title,
       subject,
+      description,
       durationMinutes,
       joinCode,
+      shuffleQuestions,
+      shuffleAnswers,
+      allowGuestAttempts,
+      maxAttempts,
+      showAnswers,
       teacherId: session.user.id,
       questions: { create: questions },
     },
