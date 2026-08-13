@@ -35,7 +35,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
               "placeholder:text-[#94A3B8]",
               "focus:outline-none focus:ring-2 focus:ring-[#2563EB]/30 focus:border-[#2563EB]",
               "disabled:bg-[#F8FAFC] disabled:cursor-not-allowed disabled:text-[#94A3B8]",
-              "transition-colors",
+              "motion-input",
               error && "border-[#EF4444] focus:ring-[#EF4444]/20 focus:border-[#EF4444]",
               icon && "pl-9",
               className,
@@ -43,7 +43,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             {...props}
           />
         </div>
-        {error && <p className="text-xs text-[#EF4444]">{error}</p>}
+        {error && <p className="animate-fade-in text-xs text-[#EF4444]">{error}</p>}
         {hint && !error && <p className="text-xs text-[#94A3B8]">{hint}</p>}
       </div>
     );
