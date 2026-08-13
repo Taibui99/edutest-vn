@@ -15,12 +15,14 @@ QUY TẮC BẮT BUỘC:
 - Giữ nguyên nội dung câu hỏi và đáp án, chỉ bỏ phần đánh số thừa nếu cần.
 - Mỗi câu có tối đa 4 lựa chọn A, B, C, D.
 - answer chỉ được là A, B, C hoặc D nếu tài liệu xác định được đáp án.
-- Nếu tài liệu không có đáp án, để answer là "".
+- Nếu tài liệu không có đáp án, để answer là chuỗi rỗng.
 - title lấy tên đề nếu tài liệu có; nếu không có thì để "Đề thi mới".
 - Không giải bài, không giải thích, không thêm nội dung ngoài tài liệu.
 - Chỉ trả về dữ liệu đúng với response schema, không markdown.
 `;
 
+// Gemini responseSchema does not accept an empty string inside enum[].
+// Keep answer as a plain string and validate/normalize it on the client.
 const responseSchema = {
   type: "object",
   properties: {
@@ -32,7 +34,7 @@ const responseSchema = {
         properties: {
           question: { type: "string" },
           options: { type: "array", items: { type: "string" } },
-          answer: { type: "string", enum: ["A", "B", "C", "D", ""] },
+          answer: { type: "string" },
         },
         required: ["question", "options", "answer"],
       },
