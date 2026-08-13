@@ -4,10 +4,26 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 
-type AnswerMap = Record<string, string>;
+type AnswerValue = string | { statements?: boolean[]; text?: string };
+type AnswerMap = Record<string, AnswerValue>;
 
-function hashToken(token: string) {
-  return createHash("sha256").update(token).digest("hex");
+function hashToken(token: string) { return createHash("sha256").update(token).digest("hex"); }
+function normalizeText(value: string) { return value.trim().toLowerCase().replace(/\s+/g, " "); }
+
+function isCorrect(question: { type: string; answer: string; grading: unknown }, selected: AnswerValue | undefined) {
+  if (selected === undefined) return false;
+  if (question.type === "mcq") return typeof selected === "string" && selected.trim().toUpperCase() === question.answer.toUpperCase();
+  if (question.type === "true_false") {
+    const expected = (question.grading as { statements?: Array<{ answer?: boolean }> } | null)?.statements?.map((s) => Boolean(s.answer)) || [];
+    const actual = typeof selected === "object" && Array.isArray(selected.statements) ? selected.statements : [];
+    return expected.length > 0 && expected.length === actual.length && expected.every((value, index) => value === actual[index]);
+  }
+  if (question.type === "short_answer") {
+    const accepted = ((question.grading as { acceptedAnswers?: string[] } | null)?.acceptedAnswers || []).map(normalizeText);
+    return typeof selected === "object" && typeof selected.text === "string" ? accepted.includes(normalizeText(selected.text)) : typeof selected === "string" && accepted.includes(normalizeText(selected));
+  }
+  // Essays require manual grading; they are not automatically marked correct.
+  return false;
 }
 
 export async function POST(request: NextRequest) {
@@ -16,110 +32,46 @@ export async function POST(request: NextRequest) {
   const examId = typeof body.examId === "string" ? body.examId : "";
   const answers = (body.answers && typeof body.answers === "object" ? body.answers : {}) as AnswerMap;
   const durationSeconds = Math.max(0, Number(body.durationSeconds || 0));
+  if (!examId) return NextResponse.json({ error: "Thiếu mã đề thi" }, { status: 400 });
 
-  if (!examId) {
-    return NextResponse.json({ error: "Thiếu mã đề thi" }, { status: 400 });
-  }
-
-  const exam = await prisma.exam.findUnique({
-    where: { id: examId },
-    include: { questions: { orderBy: { order: "asc" } } },
-  });
-
-  if (!exam || exam.status !== "published") {
-    return NextResponse.json({ error: "Không tìm thấy đề thi" }, { status: 404 });
-  }
+  const exam = await prisma.exam.findUnique({ where: { id: examId }, include: { questions: { orderBy: { order: "asc" } } } });
+  if (!exam || exam.status !== "published") return NextResponse.json({ error: "Không tìm thấy đề thi" }, { status: 404 });
 
   let studentId: string | null = null;
   let guestParticipantId: string | null = null;
   let participantName = "Học sinh";
 
   if (session?.user) {
-    if (session.user.role !== "student") {
-      return NextResponse.json({ error: "Chỉ học sinh mới nộp bài thi" }, { status: 403 });
-    }
+    if (session.user.role !== "student") return NextResponse.json({ error: "Chỉ học sinh mới nộp bài thi" }, { status: 403 });
     studentId = session.user.id;
     participantName = session.user.name || "Học sinh";
-
-    const existingSubmission = await prisma.submission.findUnique({
-      where: { examId_studentId: { examId, studentId: session.user.id } },
-    });
-    if (existingSubmission) {
-      return NextResponse.json({ error: "Bạn đã nộp bài này rồi", submission: existingSubmission }, { status: 409 });
-    }
+    const existingSubmission = await prisma.submission.findUnique({ where: { examId_studentId: { examId, studentId: session.user.id } } });
+    if (existingSubmission) return NextResponse.json({ error: "Bạn đã nộp bài này rồi", submission: existingSubmission }, { status: 409 });
   } else {
-    if (!exam.allowGuestAttempts) {
-      return NextResponse.json({ error: "Đề thi này yêu cầu đăng nhập tài khoản EduTest" }, { status: 401 });
-    }
-    const cookieStore = await cookies();
-    const token = cookieStore.get(`edutest_guest_${exam.id}`)?.value;
-    if (!token) {
-      return NextResponse.json({ error: "Phiên khách không hợp lệ hoặc đã hết hạn" }, { status: 401 });
-    }
-
-    const guest = await prisma.guestParticipant.findFirst({
-      where: { examId, tokenHash: hashToken(token) },
-      select: { id: true, name: true, submittedAt: true },
-    });
-    if (!guest) {
-      return NextResponse.json({ error: "Phiên khách không hợp lệ hoặc đã hết hạn" }, { status: 401 });
-    }
-    if (guest.submittedAt) {
-      return NextResponse.json({ error: "Bạn đã nộp bài này rồi" }, { status: 409 });
-    }
-
+    if (!exam.allowGuestAttempts) return NextResponse.json({ error: "Đề thi này yêu cầu đăng nhập tài khoản EduTest" }, { status: 401 });
+    const token = (await cookies()).get(`edutest_guest_${exam.id}`)?.value;
+    if (!token) return NextResponse.json({ error: "Phiên khách không hợp lệ hoặc đã hết hạn" }, { status: 401 });
+    const guest = await prisma.guestParticipant.findFirst({ where: { examId, tokenHash: hashToken(token) }, select: { id: true, name: true, submittedAt: true } });
+    if (!guest) return NextResponse.json({ error: "Phiên khách không hợp lệ hoặc đã hết hạn" }, { status: 401 });
+    if (guest.submittedAt) return NextResponse.json({ error: "Bạn đã nộp bài này rồi" }, { status: 409 });
     guestParticipantId = guest.id;
     participantName = guest.name;
   }
 
-  const correctCount = exam.questions.reduce((count, question) => {
-    const selected = answers[question.id]?.toUpperCase();
-    return selected === question.answer.toUpperCase() ? count + 1 : count;
-  }, 0);
+  const autoGradedQuestions = exam.questions.filter((q) => q.type !== "essay");
+  const correctCount = autoGradedQuestions.reduce((count, question) => isCorrect(question, answers[question.id]) ? count + 1 : count, 0);
   const totalQuestions = exam.questions.length;
   const score = totalQuestions > 0 ? Number(((correctCount / totalQuestions) * 10).toFixed(2)) : 0;
 
   const submission = await prisma.$transaction(async (tx) => {
-    const created = await tx.submission.create({
-      data: {
-        examId,
-        studentId,
-        guestParticipantId,
-        answers,
-        correctCount,
-        totalQuestions,
-        score,
-        durationSeconds,
-      },
-    });
-
-    if (guestParticipantId) {
-      await tx.guestParticipant.update({
-        where: { id: guestParticipantId },
-        data: { submittedAt: new Date() },
-      });
-    }
-
+    const created = await tx.submission.create({ data: { examId, studentId, guestParticipantId, answers, correctCount, totalQuestions, score, durationSeconds } });
+    if (guestParticipantId) await tx.guestParticipant.update({ where: { id: guestParticipantId }, data: { submittedAt: new Date() } });
     return created;
   });
 
   try {
-    await prisma.notification.create({
-      data: {
-        userId: exam.teacherId,
-        type: "exam_result",
-        title: "Có người vừa nộp bài",
-        message: `${participantName} vừa nộp bài "${exam.title}" — Điểm: ${score}/10`,
-        link: `/bang-dieu-khien/de-thi/${exam.id}`,
-      },
-    });
-  } catch {
-    // Notification failure must not fail a valid submission.
-  }
+    await prisma.notification.create({ data: { userId: exam.teacherId, type: "exam_result", title: "Có người vừa nộp bài", message: `${participantName} vừa nộp bài "${exam.title}" — Điểm: ${score}/10`, link: `/bang-dieu-khien/de-thi/${exam.id}` } });
+  } catch { /* ignore notification errors */ }
 
-  return NextResponse.json({
-    submission,
-    isGuest: Boolean(guestParticipantId),
-    resultLink: guestParticipantId ? null : `/bang-dieu-khien/ket-qua/${submission.id}`,
-  });
+  return NextResponse.json({ submission, isGuest: Boolean(guestParticipantId), resultLink: guestParticipantId ? null : `/bang-dieu-khien/ket-qua/${submission.id}` });
 }
