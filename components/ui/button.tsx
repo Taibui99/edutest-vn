@@ -24,9 +24,9 @@ const variantStyles: Record<Variant, string> = {
 };
 
 const sizeStyles: Record<Size, string> = {
-  sm: "h-8  px-3 text-xs gap-1.5 rounded-xl",
-  md: "h-9  px-4 text-sm gap-2   rounded-xl",
-  lg: "h-10 px-5 text-sm gap-2   rounded-2xl",
+  sm: "h-8 px-3 text-xs gap-1.5 rounded-xl",
+  md: "h-9 px-4 text-sm gap-2 rounded-xl",
+  lg: "h-10 px-5 text-sm gap-2 rounded-2xl",
 };
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
@@ -36,8 +36,9 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         disabled={disabled || loading}
         className={cn(
-          "inline-flex items-center justify-center font-bold transition-all cursor-pointer",
-          "disabled:cursor-not-allowed",
+          "inline-flex items-center justify-center font-bold cursor-pointer",
+          "motion-button ripple-host",
+          "disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none",
           variantStyles[variant],
           sizeStyles[size],
           className,
