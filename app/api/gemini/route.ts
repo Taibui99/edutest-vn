@@ -1,28 +1,28 @@
 import { GoogleGenAI } from "@google/genai";
 import { NextRequest, NextResponse } from "next/server";
 import mammoth from "mammoth";
+import pdfParse from "pdf-parse";
 
 const geminiModel = process.env.EXAM_IMPORT_MODEL || "gemini-3.5-flash-lite";
 const MAX_FILE_BYTES = 50 * 1024 * 1024;
-const INLINE_PDF_BYTES = 20 * 1024 * 1024;
+const MAX_TEXT_CHARS = 120_000;
+const MAX_MODEL_OUTPUT = 16_384;
+const AI_TIMEOUT_MS = 45_000;
 
 const extractionPrompt = `Bạn là bộ máy nhập đề thi của EduTest.
 Trích xuất CÁC CÂU HỎI ĐÃ CÓ SẴN trong tài liệu và tự nhận diện loại câu hỏi.
 
 Loại hợp lệ: mcq, true_false, short_answer, essay.
 - mcq: trắc nghiệm 1 đáp án đúng, options A-D, answer là A/B/C/D.
-- true_false: câu Đúng/Sai; grading.statements là danh sách mệnh đề, mỗi mệnh đề có text và answer boolean.
-- short_answer: trả lời ngắn; grading.acceptedAnswers là danh sách các đáp án được chấp nhận.
+- true_false: Đúng/Sai; grading.statements gồm text + answer boolean.
+- short_answer: trả lời ngắn; grading.acceptedAnswers là các đáp án chấp nhận.
 - essay: tự luận; không cần đáp án tự động.
 
 QUY TẮC:
 - Không tự tạo câu hỏi mới.
 - Giữ nguyên nội dung và đáp án có trong tài liệu.
-- Nếu không xác định được đáp án, để answer là chuỗi rỗng.
-- title lấy tên đề nếu có, nếu không là "Đề thi mới".
-- Không giải bài, không giải thích, không thêm nội dung ngoài tài liệu.
-- Chỉ trả về JSON đúng response schema.
-`;
+- Không giải bài, không giải thích, không thêm nội dung.
+- Trả về JSON đúng response schema.`;
 
 const responseSchema = {
   type: "object",
@@ -61,31 +61,61 @@ const responseSchema = {
 };
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-const generationConfig = () => ({ responseMimeType: "application/json", responseSchema, maxOutputTokens: 32768 });
+const generationConfig = () => ({ responseMimeType: "application/json", responseSchema, maxOutputTokens: MAX_MODEL_OUTPUT });
+
+function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => setTimeout(() => reject(new Error(message)), ms)),
+  ]);
+}
+
+async function extractPdfText(buffer: Buffer) {
+  try {
+    const parsed = await pdfParse(buffer);
+    const text = parsed.text.trim();
+    return text.length >= 300 ? text.slice(0, MAX_TEXT_CHARS) : "";
+  } catch {
+    return "";
+  }
+}
+
+async function generatePdfFallback(buffer: Buffer, mimeType: string, fileName: string) {
+  const safeBytes = new Uint8Array(buffer.byteLength);
+  safeBytes.set(buffer);
+  const uploaded = await withTimeout(
+    ai.files.upload({ file: new Blob([safeBytes.buffer], { type: mimeType }), config: { displayName: fileName, mimeType } }),
+    AI_TIMEOUT_MS,
+    "Gemini tải PDF quá lâu",
+  );
+  let processed = uploaded;
+  const started = Date.now();
+  while (processed.state === "PROCESSING") {
+    if (Date.now() - started > AI_TIMEOUT_MS) throw new Error("Gemini xử lý PDF quá lâu");
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    processed = await ai.files.get({ name: uploaded.name! });
+  }
+  if (processed.state === "FAILED") throw new Error("Gemini không xử lý được file PDF");
+  try {
+    const result = await withTimeout(
+      ai.models.generateContent({
+        model: geminiModel,
+        contents: [extractionPrompt, { fileData: { fileUri: processed.uri!, mimeType: processed.mimeType || mimeType } }],
+        config: generationConfig(),
+      }),
+      AI_TIMEOUT_MS,
+      "Gemini đọc PDF quá lâu",
+    );
+    return result.text;
+  } finally {
+    try { if (processed.name) await ai.files.delete({ name: processed.name }); } catch {}
+  }
+}
 
 function mimeTypeFor(file: File) {
   if (file.name.toLowerCase().endsWith(".pdf")) return "application/pdf";
   if (file.name.toLowerCase().endsWith(".docx")) return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
   return file.type || "application/octet-stream";
-}
-
-async function generateFromPdf(buffer: Buffer, mimeType: string, fileName: string) {
-  if (buffer.byteLength <= INLINE_PDF_BYTES) {
-    const result = await ai.models.generateContent({ model: geminiModel, contents: [extractionPrompt, { inlineData: { data: buffer.toString("base64"), mimeType } }], config: generationConfig() });
-    return result.text;
-  }
-  const safeBytes = new Uint8Array(buffer.byteLength);
-  safeBytes.set(buffer);
-  const uploaded = await ai.files.upload({ file: new Blob([safeBytes.buffer], { type: mimeType }), config: { displayName: fileName, mimeType } });
-  let processed = uploaded;
-  while (processed.state === "PROCESSING") { await new Promise((resolve) => setTimeout(resolve, 500)); processed = await ai.files.get({ name: uploaded.name! }); }
-  if (processed.state === "FAILED") throw new Error("Gemini không xử lý được file PDF");
-  try {
-    const result = await ai.models.generateContent({ model: geminiModel, contents: [extractionPrompt, { fileData: { fileUri: processed.uri!, mimeType: processed.mimeType || mimeType } }], config: generationConfig() });
-    return result.text;
-  } finally {
-    try { if (processed.name) await ai.files.delete({ name: processed.name }); } catch { /* ignore cleanup */ }
-  }
 }
 
 export async function POST(request: NextRequest) {
@@ -97,12 +127,15 @@ export async function POST(request: NextRequest) {
     const prompt = (formData.get("prompt") as string | null)?.trim();
     if (!file && !prompt) return NextResponse.json({ error: "Thiếu file hoặc nội dung cần xử lý" }, { status: 400 });
 
-    let resultText: string;
-    let source: "docx" | "pdf-inline" | "pdf-file-api" | "text" = "text";
+    let resultText = "";
+    let source: "docx" | "pdf-text" | "pdf-gemini" | "text" = "text";
 
     if (file) {
+      if (!file.size) return NextResponse.json({ error: "File tải lên rỗng hoặc không hợp lệ" }, { status: 400 });
       if (file.size > MAX_FILE_BYTES) return NextResponse.json({ error: "File quá lớn. Vui lòng chọn file dưới 50 MB." }, { status: 413 });
+
       const buffer = Buffer.from(await file.arrayBuffer());
+      if (!buffer.byteLength) return NextResponse.json({ error: "Không đọc được dữ liệu file" }, { status: 400 });
       const lowerName = file.name.toLowerCase();
       const isDocx = lowerName.endsWith(".docx");
       const isPdf = lowerName.endsWith(".pdf");
@@ -114,16 +147,36 @@ export async function POST(request: NextRequest) {
         const content = docx.value.trim();
         if (!content) return NextResponse.json({ error: "Không đọc được nội dung trong file Word" }, { status: 400 });
         console.info(`[exam-import] docx extracted ${content.length} chars; model=${geminiModel}`);
-        const result = await ai.models.generateContent({ model: geminiModel, contents: `${extractionPrompt}\n\nNỘI DUNG ĐỀ:\n${content}`, config: generationConfig() });
+        const result = await withTimeout(
+          ai.models.generateContent({ model: geminiModel, contents: `${extractionPrompt}\n\nNỘI DUNG ĐỀ:\n${content.slice(0, MAX_TEXT_CHARS)}`, config: generationConfig() }),
+          AI_TIMEOUT_MS,
+          "AI xử lý Word quá lâu",
+        );
         resultText = result.text;
         source = "docx";
       } else {
-        source = buffer.byteLength <= INLINE_PDF_BYTES ? "pdf-inline" : "pdf-file-api";
-        console.info(`[exam-import] pdf ${Math.round(buffer.byteLength / 1024 / 1024)}MB; source=${source}; model=${geminiModel}`);
-        resultText = await generateFromPdf(buffer, mimeType, file.name);
+        const extractedText = await extractPdfText(buffer);
+        if (extractedText) {
+          console.info(`[exam-import] pdf text extracted ${extractedText.length} chars; model=${geminiModel}`);
+          const result = await withTimeout(
+            ai.models.generateContent({ model: geminiModel, contents: `${extractionPrompt}\n\nNỘI DUNG PDF:\n${extractedText}`, config: generationConfig() }),
+            AI_TIMEOUT_MS,
+            "AI xử lý nội dung PDF quá lâu",
+          );
+          resultText = result.text;
+          source = "pdf-text";
+        } else {
+          console.info(`[exam-import] pdf text extraction empty; fallback=gemini; bytes=${buffer.byteLength}; model=${geminiModel}`);
+          resultText = await generatePdfFallback(buffer, mimeType, file.name);
+          source = "pdf-gemini";
+        }
       }
     } else {
-      const result = await ai.models.generateContent({ model: geminiModel, contents: `${extractionPrompt}\n\nNỘI DUNG:\n${prompt!}`, config: generationConfig() });
+      const result = await withTimeout(
+        ai.models.generateContent({ model: geminiModel, contents: `${extractionPrompt}\n\nNỘI DUNG:\n${prompt!}`, config: generationConfig() }),
+        AI_TIMEOUT_MS,
+        "AI xử lý nội dung quá lâu",
+      );
       resultText = result.text;
     }
 
@@ -136,7 +189,7 @@ export async function POST(request: NextRequest) {
     console.error(`[exam-import] failed after ${elapsedMs}ms`, error);
     const message = error instanceof Error ? error.message : "Lỗi không xác định";
     if (/429|rate.?limit|quota/i.test(message)) return NextResponse.json({ error: "Gemini đang quá tải hoặc hết quota. Vui lòng thử lại sau ít phút." }, { status: 429 });
-    if (/timeout|timed out|deadline/i.test(message)) return NextResponse.json({ error: "Gemini xử lý tài liệu quá lâu. Hãy thử file ngắn hơn hoặc PDF dưới 20 MB." }, { status: 504 });
+    if (/timeout|timed out|deadline|quá lâu/i.test(message)) return NextResponse.json({ error: message.slice(0, 300) }, { status: 504 });
     return NextResponse.json({ error: `Không thể import đề: ${message.slice(0, 300)}` }, { status: 500 });
   }
 }
