@@ -2,7 +2,7 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { ExamTakingClient } from "./exam-taking-client";
+import { ExamTakingClientV2 } from "./exam-taking-client-v2";
 import { GuestJoin } from "./guest-join";
 import { Trophy, ArrowLeft, UserRound } from "lucide-react";
 
@@ -12,7 +12,7 @@ export default async function ThiPage({ params, searchParams }: { params: Promis
   const normalizedCode = code.toUpperCase();
   const session = await auth();
   const exam = await prisma.exam.findUnique({ where: { joinCode: normalizedCode }, include: { questions: { orderBy: { order: "asc" } } } });
-  const mapQuestions = () => exam?.questions.map((q) => ({ id: q.id, type: q.type, text: q.text, options: q.options, answer: q.answer, grading: q.grading, order: q.order })) || [];
+  const mapQuestions = () => exam?.questions.map((q) => ({ id: q.id, type: q.type, text: q.text, options: q.options, answer: q.answer, grading: q.grading as any, order: q.order })) || [];
 
   if (!exam || exam.status !== "published") return <div className="min-h-screen grid place-items-center bg-[#F8FAFC] p-4"><div className="rounded-2xl bg-white p-8 text-center"><h1 className="text-xl font-bold">Mã tham gia không hợp lệ</h1><Link href="/vao-thi" className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-[#2563EB]"><ArrowLeft size={14}/> Nhập mã khác</Link></div></div>;
 
@@ -24,12 +24,12 @@ export default async function ThiPage({ params, searchParams }: { params: Promis
     const guest = await prisma.guestParticipant.findFirst({ where: { examId: exam.id, tokenHash: createHash("sha256").update(token).digest("hex") } });
     if (!guest) return <GuestJoin code={exam.joinCode} title={exam.title} />;
     if (guest.submittedAt) { const sub = await prisma.submission.findUnique({ where: { guestParticipantId: guest.id } }); if (sub) return <div className="min-h-screen grid place-items-center bg-[#F8FAFC] p-4"><div className="rounded-2xl bg-white p-8 text-center"><Trophy className="mx-auto mb-4 text-[#16A34A]"/><p className="text-sm font-semibold">Đã nộp bài</p><p className="mt-2 text-3xl font-black text-[#16A34A]">{sub.score}/10</p><p className="mt-1 text-sm text-[#64748B]">{guest.name} · {guest.className}</p></div></div>; }
-    return <ExamTakingClient backHref="/vao-thi" exam={{ id: exam.id, title: exam.title, subject: exam.subject, durationMinutes: exam.durationMinutes, joinCode: exam.joinCode, isGuest: true, participantName: guest.name, participantClass: guest.className, questions: mapQuestions() }} />;
+    return <ExamTakingClientV2 backHref="/vao-thi" exam={{ id: exam.id, title: exam.title, subject: exam.subject, durationMinutes: exam.durationMinutes, joinCode: exam.joinCode, isGuest: true, participantName: guest.name, participantClass: guest.className, questions: mapQuestions() }} />;
   }
 
-  if (preview === "1" && session.user.role === "teacher") return <ExamTakingClient preview backHref={`/bang-dieu-khien/de-thi/${exam.id}`} exam={{ id: exam.id, title: exam.title, subject: exam.subject, durationMinutes: exam.durationMinutes, joinCode: exam.joinCode, isGuest: false, questions: mapQuestions() }} />;
+  if (preview === "1" && session.user.role === "teacher") return <ExamTakingClientV2 preview backHref={`/bang-dieu-khien/de-thi/${exam.id}`} exam={{ id: exam.id, title: exam.title, subject: exam.subject, durationMinutes: exam.durationMinutes, joinCode: exam.joinCode, isGuest: false, questions: mapQuestions() }} />;
   if (session.user.role !== "student") return <div className="min-h-screen grid place-items-center bg-[#F8FAFC] p-4"><div className="rounded-2xl bg-white p-8 text-center"><p className="font-semibold text-[#D97706]">Tài khoản này không phải học sinh</p><Link href="/bang-dieu-khien" className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-[#2563EB]"><ArrowLeft size={14}/> Về trang chủ</Link></div></div>;
   const submission = await prisma.submission.findUnique({ where: { examId_studentId: { examId: exam.id, studentId: session.user.id } } });
   if (submission) return <div className="min-h-screen grid place-items-center bg-[#F8FAFC] p-4"><div className="rounded-2xl bg-white p-8 text-center"><Trophy className="mx-auto mb-4 text-[#16A34A]"/><p className="text-sm">Bạn đã nộp bài</p><p className="mt-2 text-3xl font-black text-[#16A34A]">{submission.score}/10</p><Link href="/bang-dieu-khien" className="mt-5 inline-flex items-center gap-2 rounded-lg bg-[#2563EB] px-5 py-2.5 text-sm font-semibold text-white"><ArrowLeft size={14}/> Về trang chủ</Link></div></div>;
-  return <ExamTakingClient backHref="/bang-dieu-khien/de-thi" exam={{ id: exam.id, title: exam.title, subject: exam.subject, durationMinutes: exam.durationMinutes, joinCode: exam.joinCode, isGuest: false, questions: mapQuestions() }} />;
+  return <ExamTakingClientV2 backHref="/bang-dieu-khien/de-thi" exam={{ id: exam.id, title: exam.title, subject: exam.subject, durationMinutes: exam.durationMinutes, joinCode: exam.joinCode, isGuest: false, questions: mapQuestions() }} />;
 }
