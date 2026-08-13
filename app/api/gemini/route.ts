@@ -48,7 +48,6 @@ function generationConfig() {
     responseMimeType: "application/json",
     responseSchema,
     maxOutputTokens: 32768,
-    thinkingConfig: { thinkingLevel: "minimal" as const },
   };
 }
 
