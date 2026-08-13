@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useActionState } from "react";
 import { loginAction, type AuthFormState } from "@/app/actions/auth";
 import { Spinner } from "@/app/components/spinner";
@@ -40,20 +39,12 @@ export function LoginForm() {
       </div>
 
       <div>
-        <div className="flex items-center justify-between">
-          <label
-            htmlFor="password"
-            className="block text-sm font-medium text-slate-700"
-          >
-            Mật khẩu
-          </label>
-          <Link
-            href="#"
-            className="text-sm font-medium text-blue-600 hover:text-blue-700"
-          >
-            Quên mật khẩu?
-          </Link>
-        </div>
+        <label
+          htmlFor="password"
+          className="block text-sm font-medium text-slate-700"
+        >
+          Mật khẩu
+        </label>
         <input
           id="password"
           name="password"
@@ -65,15 +56,6 @@ export function LoginForm() {
           className="mt-1.5 block w-full rounded-lg border border-slate-200 px-4 py-2.5 text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
         />
       </div>
-
-      <label className="flex items-center gap-2.5">
-        <input
-          type="checkbox"
-          name="remember"
-          className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-        />
-        <span className="text-sm text-slate-600">Ghi nhớ đăng nhập</span>
-      </label>
 
       <button
         type="submit"

@@ -122,6 +122,7 @@ export async function POST(request: NextRequest) {
   const allowGuestAttempts = body.allowGuestAttempts === undefined ? true : Boolean(body.allowGuestAttempts);
   const maxAttempts = Math.max(1, Number(body.maxAttempts || 1));
   const showAnswers = body.showAnswers === undefined ? true : Boolean(body.showAnswers);
+  const status = body.status === "draft" ? "draft" : "published";
   const questions = normalizeQuestions(Array.isArray(body.questions) ? body.questions : []);
 
   if (!title) return NextResponse.json({ error: "Vui lòng nhập tên đề thi" }, { status: 400 });
@@ -146,6 +147,7 @@ export async function POST(request: NextRequest) {
       allowGuestAttempts,
       maxAttempts,
       showAnswers,
+      status,
       teacherId: session.user.id,
       questions: { create: questions },
     },

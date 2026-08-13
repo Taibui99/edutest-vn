@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
@@ -6,13 +7,23 @@ import { ExamTakingClientV2 } from "./exam-taking-client-v2";
 import { GuestJoin } from "./guest-join";
 import { Trophy, ArrowLeft, UserRound } from "lucide-react";
 
+export async function generateMetadata({ params }: { params: Promise<{ code: string }> }): Promise<Metadata> {
+  const { code } = await params;
+  const exam = await prisma.exam.findUnique({ where: { joinCode: code.toUpperCase() }, select: { title: true } });
+  return exam
+    ? { title: `${exam.title} — EduTest` }
+    : { title: "Mã tham gia không hợp lệ — EduTest" };
+}
+
+type ClientGrading = { statements?: Array<{ text: string; answer: boolean }>; acceptedAnswers?: string[] } | null;
+
 export default async function ThiPage({ params, searchParams }: { params: Promise<{ code: string }>; searchParams: Promise<{ preview?: string }> }) {
   const { code } = await params;
   const { preview } = await searchParams;
   const normalizedCode = code.toUpperCase();
   const session = await auth();
   const exam = await prisma.exam.findUnique({ where: { joinCode: normalizedCode }, include: { questions: { orderBy: { order: "asc" } } } });
-  const mapQuestions = () => exam?.questions.map((q) => ({ id: q.id, type: q.type, text: q.text, options: q.options, answer: q.answer, grading: q.grading as any, order: q.order })) || [];
+  const mapQuestions = () => exam?.questions.map((q) => ({ id: q.id, type: q.type, text: q.text, options: q.options, answer: q.answer, grading: q.grading as ClientGrading, order: q.order })) || [];
 
   if (!exam || exam.status !== "published") return <div className="min-h-screen grid place-items-center bg-[#F8FAFC] p-4"><div className="rounded-2xl bg-white p-8 text-center"><h1 className="text-xl font-bold">Mã tham gia không hợp lệ</h1><Link href="/vao-thi" className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-[#2563EB]"><ArrowLeft size={14}/> Nhập mã khác</Link></div></div>;
 

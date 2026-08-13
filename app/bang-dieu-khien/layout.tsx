@@ -1,9 +1,15 @@
 import { redirect } from "next/navigation";
+import type { Metadata } from "next";
 import { auth } from "@/auth";
 import { Sidebar } from "@/components/layout/sidebar";
 import { MobileTopbar, MobileBottomNav } from "@/components/layout/mobile-nav";
 import { BackNavigation } from "@/components/layout/back-navigation";
 import { logoutAction } from "@/app/actions/auth";
+
+export const metadata: Metadata = {
+  title: "Dashboard — EduTest",
+  description: "Bảng điều khiển EduTest — quản lý đề thi, lớp học và kết quả học tập.",
+};
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();

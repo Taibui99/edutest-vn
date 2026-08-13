@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Check, Eye, FileText, Plus, Send, Trash2, X } from "lucide-react";
+import { ArrowLeft, Eye, FileText, Plus, Save, Send, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -86,21 +86,25 @@ export default function TaoDeThiPage() {
     const res = await fetch("/api/gemini", { method: "POST", body: form });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Không thể import đề");
-    let parsed: any;
+    let parsed: { title?: unknown; questions?: unknown[] };
     try { parsed = JSON.parse(String(data.result).replace(/^```json\s*/i, "").replace(/```$/i, "").trim()); } catch { throw new Error("AI trả về dữ liệu không hợp lệ"); }
     if (parsed.title) setTitle(String(parsed.title));
     if (Array.isArray(parsed.questions)) setQuestions(parsed.questions.map(importedToQuestion));
   };
 
-  const publishExam = async () => {
+  const publishExam = async (status: "published" | "draft" = "published") => {
     setError("");
     if (!stats.valid) { setError("Hãy hoàn thiện tên đề, môn học và các câu hỏi trước khi xuất bản."); return; }
     setPublishing(true);
     try {
-      const res = await fetch("/api/exams", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title: title.trim(), subject, description: description.trim() || undefined, durationMinutes: Number(duration), shuffleQuestions, shuffleAnswers, allowGuestAttempts: allowGuest, maxAttempts: Number(maxAttempts), showAnswers, questions }) });
+      const res = await fetch("/api/exams", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title: title.trim(), subject, description: description.trim() || undefined, durationMinutes: Number(duration), shuffleQuestions, shuffleAnswers, allowGuestAttempts: allowGuest, maxAttempts: Number(maxAttempts), showAnswers, status, questions }) });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Không thể xuất bản đề");
-      router.push(`/bang-dieu-khien?created=${data.exam.joinCode}`);
+      if (status === "draft") {
+        router.push("/bang-dieu-khien/de-thi");
+      } else {
+        router.push(`/bang-dieu-khien?created=${data.exam.joinCode}`);
+      }
     } catch (e) { setError(e instanceof Error ? e.message : "Không thể xuất bản đề"); setPublishing(false); }
   };
 
@@ -109,7 +113,7 @@ export default function TaoDeThiPage() {
       <div className="mx-auto max-w-7xl">
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3"><Link href="/bang-dieu-khien/de-thi"><button className="grid h-9 w-9 place-items-center rounded-xl border border-[var(--surface-border)] bg-[var(--surface-card)]"><ArrowLeft size={17}/></button></Link><div><h1 className="text-xl font-black text-[var(--text-primary)]">Tạo đề thi</h1><p className="text-xs text-[var(--text-muted)]">Soạn, import, cấu hình và xuất bản trên một màn hình</p></div></div>
-          <div className="flex flex-wrap gap-2"><Button variant="outline" onClick={() => setImportOpen(true)}>Import PDF/Word</Button><Button variant="outline" onClick={() => setQuestions([blankQuestion()])}>Đề mới</Button><Button variant="outline" onClick={() => setPreview(true)} icon={<Eye size={15}/>}>Xem trước</Button><Button onClick={publishExam} loading={publishing} disabled={!stats.valid} icon={<Send size={15}/>}>Xuất bản</Button></div>
+          <div className="flex flex-wrap gap-2"><Button variant="outline" onClick={() => setImportOpen(true)}>Import PDF/Word</Button><Button variant="outline" onClick={() => setQuestions([blankQuestion()])}>Đề mới</Button><Button variant="outline" onClick={() => setPreview(true)} icon={<Eye size={15}/>}>Xem trước</Button><Button variant="outline" onClick={() => publishExam("draft")} loading={publishing} disabled={!stats.valid} icon={<Save size={15}/>}>Lưu nháp</Button><Button onClick={() => publishExam("published")} loading={publishing} disabled={!stats.valid} icon={<Send size={15}/>}>Xuất bản</Button></div>
         </div>
         {error && <div className="mb-5 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-600">{error}</div>}
 
@@ -136,7 +140,7 @@ export default function TaoDeThiPage() {
 
           <aside className="flex flex-col gap-5 xl:sticky xl:top-5 xl:self-start">
             <div className="rounded-2xl border border-[var(--surface-border)] bg-[var(--surface-card)] p-5 shadow-sm"><h3 className="mb-4 text-sm font-black">Thông tin đề</h3><div className="flex flex-col gap-4"><Input label="Tên đề thi" value={title} onChange={(e)=>setTitle(e.target.value)} placeholder="VD: Kiểm tra chương 1"/><Select label="Môn học" value={subject} onChange={(e)=>setSubject(e.target.value)} options={SUBJECTS.map((s)=>({value:s,label:s}))} placeholder="Chọn môn học"/><Input label="Mô tả / hướng dẫn" value={description} onChange={(e)=>setDescription(e.target.value)} placeholder="Hướng dẫn ngắn cho học sinh"/><Select label="Thời gian" value={duration} onChange={(e)=>setDuration(e.target.value)} options={DURATION_OPTIONS}/><Input label="Số lần làm tối đa" type="number" min={1} value={maxAttempts} onChange={(e)=>setMaxAttempts(e.target.value)}/></div></div>
-            <div className="rounded-2xl border border-[var(--surface-border)] bg-[var(--surface-card)] p-5 shadow-sm"><h3 className="mb-4 text-sm font-black">Cấu hình bài thi</h3><div className="flex flex-col gap-3 text-sm">{[[shuffleQuestions,"Trộn câu hỏi",setShuffleQuestions],[shuffleAnswers,"Trộn đáp án",setShuffleAnswers],[allowGuest,"Cho phép khách làm bài",setAllowGuest],[showAnswers,"Cho xem đáp án sau khi nộp",setShowAnswers]].map(([value,label,setter])=><label key={String(label)} className="flex items-center justify-between gap-3"><span className="text-slate-600">{String(label)}</span><input type="checkbox" checked={Boolean(value)} onChange={(e)=>(setter as any)(e.target.checked)}/></label>)}</div><div className="mt-4 border-t pt-4 text-xs text-slate-500"><div className="flex justify-between py-1"><span>Số câu</span><strong>{stats.total}</strong></div><div className="flex justify-between py-1"><span>Lỗi cần sửa</span><strong className={stats.errors?"text-red-500":"text-emerald-600"}>{stats.errors}</strong></div></div></div>
+            <div className="rounded-2xl border border-[var(--surface-border)] bg-[var(--surface-card)] p-5 shadow-sm"><h3 className="mb-4 text-sm font-black">Cấu hình bài thi</h3><div className="flex flex-col gap-3 text-sm">{[[shuffleQuestions,"Trộn câu hỏi",setShuffleQuestions],[shuffleAnswers,"Trộn đáp án",setShuffleAnswers],[allowGuest,"Cho phép khách làm bài",setAllowGuest],[showAnswers,"Cho xem đáp án sau khi nộp",setShowAnswers]].map(([value,label,setter])=>label && setter ? <label key={String(label)} className="flex items-center justify-between gap-3"><span className="text-slate-600">{String(label)}</span><input type="checkbox" checked={Boolean(value)} onChange={(e)=>(setter as (v: boolean) => void)(e.target.checked)}/></label> : null)}</div><div className="mt-4 border-t pt-4 text-xs text-slate-500"><div className="flex justify-between py-1"><span>Số câu</span><strong>{stats.total}</strong></div><div className="flex justify-between py-1"><span>Lỗi cần sửa</span><strong className={stats.errors?"text-red-500":"text-emerald-600"}>{stats.errors}</strong></div></div></div>
           </aside>
         </div>
       </div>

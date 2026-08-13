@@ -2,6 +2,7 @@ import { GoogleGenAI } from "@google/genai";
 import { NextRequest, NextResponse } from "next/server";
 import mammoth from "mammoth";
 import pdfParse from "pdf-parse";
+import { auth } from "@/auth";
 
 const geminiModel = process.env.EXAM_IMPORT_MODEL || "gemini-3.5-flash-lite";
 const MAX_FILE_BYTES = 50 * 1024 * 1024;
@@ -121,6 +122,9 @@ function mimeTypeFor(file: File) {
 export async function POST(request: NextRequest) {
   const startedAt = Date.now();
   try {
+    const session = await auth();
+    if (!session?.user) return NextResponse.json({ error: "Bạn cần đăng nhập" }, { status: 401 });
+    if (session.user.role !== "teacher") return NextResponse.json({ error: "Chỉ giáo viên mới được import đề" }, { status: 403 });
     if (!process.env.GEMINI_API_KEY) return NextResponse.json({ error: "Thiếu GEMINI_API_KEY" }, { status: 500 });
     const formData = await request.formData();
     const file = formData.get("file") as File | null;

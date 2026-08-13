@@ -12,10 +12,10 @@ export function ImportExamModal({ open, onClose, onImport }: { open: boolean; on
   const [elapsed, setElapsed] = useState(0);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    if (!open) return;
+  const close = () => {
     setStage("select"); setFile(null); setElapsed(0); setError("");
-  }, [open]);
+    onClose();
+  };
 
   useEffect(() => {
     if (!open || stage !== "processing") return;
@@ -30,7 +30,7 @@ export function ImportExamModal({ open, onClose, onImport }: { open: boolean; on
     if (!next) return;
     if (!/\.(pdf|docx)$/i.test(next.name)) { setError("Chỉ hỗ trợ PDF hoặc Word (.docx)."); setStage("error"); return; }
     setFile(next); setError(""); setStage("processing"); setElapsed(0);
-    try { await onImport(next); setStage("done"); window.setTimeout(onClose, 900); }
+    try { await onImport(next); setStage("done"); window.setTimeout(close, 900); }
     catch (e) { setError(e instanceof Error ? e.message : "Không thể import đề."); setStage("error"); }
   };
 
@@ -42,7 +42,7 @@ export function ImportExamModal({ open, onClose, onImport }: { open: boolean; on
       <div role="dialog" aria-modal="true" className="w-full max-w-xl overflow-hidden rounded-3xl border border-white/70 bg-white shadow-2xl">
         <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4 sm:px-7">
           <div><div className="mb-1 flex items-center gap-2 text-sm font-semibold text-violet-600"><FileUp size={17}/> Import đề thi</div><h2 className="text-xl font-bold text-slate-900">Tải đề PDF / Word lên</h2><p className="mt-1 text-sm text-slate-500">File sẽ được gửi trực tiếp tới bộ xử lý đề.</p></div>
-          <button type="button" onClick={onClose} disabled={stage === "processing"} className="rounded-full p-2 text-slate-400 hover:bg-slate-100 disabled:opacity-40"><X size={20}/></button>
+          <button type="button" onClick={close} disabled={stage === "processing"} className="rounded-full p-2 text-slate-400 hover:bg-slate-100 disabled:opacity-40"><X size={20}/></button>
         </div>
         <div className="p-5 sm:p-7">
           {stage === "select" ? (

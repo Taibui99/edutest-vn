@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { Bell, Check } from "lucide-react";
 import Link from "next/link";
@@ -28,12 +28,16 @@ function timeAgo(date: string): string {
 
 export function NotificationBell() {
   const [open, setOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unread, setUnread] = useState(0);
   const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({});
   const buttonRef = useRef<HTMLButtonElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const mounted = useSyncExternalStore(
+    () => () => undefined,
+    () => true,
+    () => false
+  );
 
   const fetchNotifications = useCallback(() => {
     fetch("/api/notifications")
@@ -46,7 +50,6 @@ export function NotificationBell() {
   }, []);
 
   useEffect(() => {
-    setMounted(true);
     fetchNotifications();
     const interval = setInterval(fetchNotifications, 30000);
     return () => clearInterval(interval);

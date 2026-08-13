@@ -76,6 +76,11 @@ export default async function ExamListPage() {
                           </div>
                         </div>
                         <Badge variant="primary">{exam.joinCode}</Badge>
+                        {exam.status === "draft" && (
+                          <span className="text-xs px-2 py-0.5 rounded-md font-medium bg-amber-100 text-amber-700">
+                            Bản nháp
+                          </span>
+                        )}
                       </div>
                       <div className="flex items-center gap-4 text-xs text-[#64748B]">
                         <span className="flex items-center gap-1"><FileText size={12} /> {exam._count.questions} câu</span>
