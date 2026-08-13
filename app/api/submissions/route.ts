@@ -22,7 +22,6 @@ function isCorrect(question: { type: string; answer: string; grading: unknown },
     const accepted = ((question.grading as { acceptedAnswers?: string[] } | null)?.acceptedAnswers || []).map(normalizeText);
     return typeof selected === "object" && typeof selected.text === "string" ? accepted.includes(normalizeText(selected.text)) : typeof selected === "string" && accepted.includes(normalizeText(selected));
   }
-  // Essays require manual grading; they are not automatically marked correct.
   return false;
 }
 
@@ -58,10 +57,10 @@ export async function POST(request: NextRequest) {
     participantName = guest.name;
   }
 
-  const autoGradedQuestions = exam.questions.filter((q) => q.type !== "essay");
-  const correctCount = autoGradedQuestions.reduce((count, question) => isCorrect(question, answers[question.id]) ? count + 1 : count, 0);
+  const correctCount = exam.questions.reduce((count, question) => isCorrect(question, answers[question.id]) ? count + 1 : count, 0);
   const totalQuestions = exam.questions.length;
-  const score = totalQuestions > 0 ? Number(((correctCount / totalQuestions) * 10).toFixed(2)) : 0;
+  const autoGradedCount = exam.questions.filter((q) => q.type !== "essay").length;
+  const score = autoGradedCount > 0 ? Number(((correctCount / autoGradedCount) * 10).toFixed(2)) : 0;
 
   const submission = await prisma.$transaction(async (tx) => {
     const created = await tx.submission.create({ data: { examId, studentId, guestParticipantId, answers, correctCount, totalQuestions, score, durationSeconds } });
