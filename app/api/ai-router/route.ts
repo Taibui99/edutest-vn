@@ -5,7 +5,7 @@ const GROQ_MODEL = process.env.GROQ_MODEL || "openai/gpt-oss-120b";
 const AGENT_HINT = "__NEEDS_EDUTEST_AGENT__";
 
 function shouldDelegate(message: string) {
-  return /\b(tạo|xuất bản|đăng|giao|gỡ|xóa|xoá|cập nhật|sửa|tạo lớp|tạo đề|đề thi|bài nộp|thống kê|phân tích lớp|học sinh|lớp|đề vừa tạo|publish|assign|delete|update)\b/i.test(message);
+  return /\b(tạo đề|tạo bài thi|xuất bản đề|đăng đề|giao đề|gỡ đề|gỡ bài|xóa đề|xoá đề|cập nhật đề|sửa đề|chỉnh đề|tạo lớp|lớp học mới|thêm thành viên|duyệt|bài nộp|thống kê|phân tích lớp|học sinh lớp|đề vừa tạo|publish|assign|delete|update)\b/i.test(message);
 }
 
 function buildPrompt(role: string, message: string) {

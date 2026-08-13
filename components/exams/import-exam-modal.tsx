@@ -45,7 +45,54 @@ export function ImportExamModal({ open, onClose, onImport }: { open: boolean; on
           <button type="button" onClick={onClose} disabled={stage === "processing"} className="rounded-full p-2 text-slate-400 hover:bg-slate-100 disabled:opacity-40"><X size={20}/></button>
         </div>
         <div className="p-5 sm:p-7">
-          {stage === "select" ? <><button type="button" onClick={() => inputRef.current?.click()} onDragOver={(e)=>e.preventDefault()} onDrop={(e)=>{e.preventDefault(); void choose(e.dataTransfer.files?.[0]);}} className="group flex min-h-[250px] w-full flex-col items-center justify-center rounded-2xl border-2 border-dashed border-violet-200 bg-violet-50/50 px-5 text-center hover:border-violet-400 hover:bg-violet-50"><span className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-white text-violet-600 shadow-sm"><UploadCloud size={31}/></span><span className="text-base font-bold text-slate-800">Kéo thả đề vào đây</span><span className="mt-1 text-sm text-slate-500">hoặc nhấn để chọn file từ thiết bị</span><span className="mt-4 rounded-xl bg-violet-600 px-5 py-2.5 text-sm font-semibold text-white">Chọn file PDF / Word</span><span className="mt-3 text-xs text-slate-400">Hỗ trợ .pdf và .docx</span></button><input ref={inputRef} type="file" accept=".pdf,.docx" className="hidden" onChange={(e)=>{const f=e.target.files?.[0]; e.currentTarget.value=""; void choose(f);}}/></> : <div className="rounded-2xl border border-slate-100 bg-slate-50 p-5 sm:p-6"><div className="flex items-start gap-4"><div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-100 text-violet-600">{stage === "done" ? <CheckCircle2 size={25}/> : stage === "error" ? <X size={24}/> : <Loader2 size={25} className="animate-spin"/>}</div><div className="min-w-0 flex-1"><p className="font-bold text-slate-900">{stage === "processing" ? "AI đang phân tích đề..." : stage === "done" ? "Import đề hoàn tất" : "Import đề thất bại"}</p><p className="mt-1 truncate text-sm text-slate-500">{file?.name}</p></div></div><div className="mt-6 grid grid-cols-3 gap-2">{labels.map((label,i)=>{const done=stage === "done" || i < step; const active=stage === "processing" && i===1; return <div key={label} className="flex flex-col items-center gap-2 text-center"><div className={`flex h-9 w-9 items-center justify-center rounded-full text-xs font-bold ${done?"bg-emerald-100 text-emerald-600":active?"bg-violet-600 text-white":"bg-slate-200 text-slate-400"}`}>{done?<CheckCircle2 size={17}/>:i+1}</div><span className={`text-xs font-semibold ${active?"text-violet-700":"text-slate-500"}`}>{label}</span></div>})}</div><div className="mt-6 flex items-center justify-center gap-2 rounded-xl bg-white px-4 py-3 text-sm text-slate-600 ring-1 ring-slate-100"><Clock3 size={15} className="text-violet-500"/> Đã xử lý {elapsed} giây</div>{error&&<div className="mt-4 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-medium text-red-600">{error}</div>}</div>}
+          {stage === "select" ? (
+            <>
+              <button
+                type="button"
+                onClick={() => inputRef.current?.click()}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => { e.preventDefault(); void choose(e.dataTransfer.files?.[0]); }}
+                className="group flex min-h-[250px] w-full flex-col items-center justify-center rounded-2xl border-2 border-dashed border-violet-200 bg-violet-50/50 px-5 text-center hover:border-violet-400 hover:bg-violet-50"
+              >
+                <span className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-white text-violet-600 shadow-sm"><UploadCloud size={31} /></span>
+                <span className="text-base font-bold text-slate-800">Kéo thả đề vào đây</span>
+                <span className="mt-1 text-sm text-slate-500">hoặc nhấn để chọn file từ thiết bị</span>
+                <span className="mt-4 rounded-xl bg-violet-600 px-5 py-2.5 text-sm font-semibold text-white">Chọn file PDF / Word</span>
+                <span className="mt-3 text-xs text-slate-400">Hỗ trợ .pdf và .docx</span>
+              </button>
+              <input ref={inputRef} type="file" accept=".pdf,.docx" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; e.currentTarget.value = ""; void choose(f); }} />
+            </>
+          ) : (
+            <div className="rounded-2xl border border-slate-100 bg-slate-50 p-5 sm:p-6">
+              <div className="flex items-start gap-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-100 text-violet-600">
+                  {stage === "done" ? <CheckCircle2 size={25} /> : stage === "error" ? <X size={24} /> : <Loader2 size={25} className="animate-spin" />}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="font-bold text-slate-900">{stage === "processing" ? "AI đang phân tích đề..." : stage === "done" ? "Import đề hoàn tất" : "Import đề thất bại"}</p>
+                  <p className="mt-1 truncate text-sm text-slate-500">{file?.name}</p>
+                </div>
+              </div>
+              <div className="mt-6 grid grid-cols-3 gap-2">
+                {labels.map((label, i) => {
+                  const done = stage === "done" || i < step;
+                  const active = stage === "processing" && i === 1;
+                  return (
+                    <div key={label} className="flex flex-col items-center gap-2 text-center">
+                      <div className={`flex h-9 w-9 items-center justify-center rounded-full text-xs font-bold ${done ? "bg-emerald-100 text-emerald-600" : active ? "bg-violet-600 text-white" : "bg-slate-200 text-slate-400"}`}>
+                        {done ? <CheckCircle2 size={17} /> : i + 1}
+                      </div>
+                      <span className={`text-xs font-semibold ${active ? "text-violet-700" : "text-slate-500"}`}>{label}</span>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="mt-6 flex items-center justify-center gap-2 rounded-xl bg-white px-4 py-3 text-sm text-slate-600 ring-1 ring-slate-100">
+                <Clock3 size={15} className="text-violet-500" /> Đã xử lý {elapsed} giây
+              </div>
+              {error && <div className="mt-4 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-medium text-red-600">{error}</div>}
+            </div>
+          )}
         </div>
       </div>
     </div>

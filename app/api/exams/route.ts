@@ -130,8 +130,8 @@ export async function POST(request: NextRequest) {
   if (!Number.isInteger(maxAttempts) || maxAttempts < 1) return NextResponse.json({ error: "Số lần làm tối đa không hợp lệ" }, { status: 400 });
   if (questions.length === 0) return NextResponse.json({ error: "Đề thi cần có ít nhất 1 câu hỏi" }, { status: 400 });
 
-  const invalid = questions.find((question) => validateQuestion(question));
-  if (invalid) return NextResponse.json({ error: validateQuestion(invalid) }, { status: 400 });
+  const invalid = questions.map(validateQuestion).find(Boolean);
+  if (invalid) return NextResponse.json({ error: invalid }, { status: 400 });
 
   const joinCode = await createUniqueJoinCode();
   const exam = await prisma.exam.create({
