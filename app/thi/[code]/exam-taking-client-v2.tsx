@@ -69,8 +69,20 @@ export function ExamTakingClientV2({ exam, preview = false, backHref }: { exam: 
   const optionShuffleRef = useRef<Record<string, number[]>>({});
   const [violations, setViolations] = useState(0);
   const [warnVisible, setWarnVisible] = useState(false);
+  const [offline, setOffline] = useState(() => typeof navigator === "undefined" ? false : !navigator.onLine);
   const MAX_VIOLATIONS = 3;
   const violationsRef = useRef(0);
+
+  useEffect(() => {
+    const goOffline = () => setOffline(true);
+    const goOnline = () => setOffline(false);
+    window.addEventListener("offline", goOffline);
+    window.addEventListener("online", goOnline);
+    return () => {
+      window.removeEventListener("offline", goOffline);
+      window.removeEventListener("online", goOnline);
+    };
+  }, []);
 
   const orderedQuestions = questionOrder ? questionOrder.map((i) => exam.questions[i]) : exam.questions;
   const question = orderedQuestions[current];
@@ -276,6 +288,11 @@ export function ExamTakingClientV2({ exam, preview = false, backHref }: { exam: 
       )}
       {!preview && warnVisible && violations < MAX_VIOLATIONS && <div className="bg-amber-100 border-b border-amber-300 px-4 py-1.5 text-center text-[11px] font-bold text-amber-800">Bạn đã rời khỏi trang thi (lần {violations}). Vui lòng quay lại làm bài ngay!</div>}
       {!preview && restored && <div className="bg-blue-50 border-b border-blue-200 px-4 py-2 text-center text-xs font-semibold text-blue-700">Đã khôi phục bài làm trước đó của bạn</div>}
+      {offline && !preview && (
+        <div role="status" className="bg-orange-100 border-b border-orange-300 px-4 py-2 text-center text-xs font-bold text-orange-800">
+          📡 Mất kết nối mạng — bài làm vẫn được lưu cục bộ. Kiểm tra lại mạng để nộp bài.
+        </div>
+      )}
       {!preview && remaining <= 60 && remaining > 0 && <div className="bg-red-50 border-b border-red-200 px-4 py-2 text-center text-xs font-bold text-red-600 animate-pulse">⏰ Còn {formatTime(remaining)} — sắp hết giờ!</div>}
       {!preview && remaining <= 300 && remaining > 60 && <div className="bg-amber-50 border-b border-amber-200 px-4 py-2 text-center text-xs font-bold text-amber-700">⏳ Còn {Math.ceil(remaining / 60)} phút để hoàn thành bài thi</div>}
       <div className="h-1 bg-slate-100"><div className="h-full bg-blue-600 transition-all" style={{ width: `${progress}%` }}/></div>

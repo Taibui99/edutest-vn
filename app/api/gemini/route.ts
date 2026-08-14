@@ -239,6 +239,11 @@ export async function POST(request: NextRequest) {
             data: { status: "failed", error: message.slice(0, 1000) },
           }).catch(() => {});
         }
+        try {
+          await prisma.appLog.create({
+            data: { type: "error", message: `exam-import: ${message.slice(0, 500)}`, meta: { elapsedMs } },
+          });
+        } catch {}
       } finally {
         try { controller.close(); } catch {}
       }

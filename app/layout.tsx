@@ -22,6 +22,12 @@ export default async function RootLayout({
   return (
     <html lang="vi" className="h-full scroll-smooth antialiased">
       <body className="min-h-full flex flex-col">
+        <a
+          href="#main-content"
+          className="skip-link"
+        >
+          Bỏ qua điều hướng
+        </a>
         <MaintenanceGate
           maintenanceOn={maintenance === "true"}
           isAdmin={session?.user?.role === "admin"}

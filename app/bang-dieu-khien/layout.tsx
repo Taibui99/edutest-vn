@@ -28,7 +28,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       <div className="flex">
         <Sidebar user={user} logoutAction={logoutAction} />
 
-        <main className="flex-1 min-w-0 pb-[72px] lg:pb-0">
+        <main id="main-content" className="flex-1 min-w-0 pb-[72px] lg:pb-0" tabIndex={-1}>
           <BackNavigation />
           {children}
         </main>
