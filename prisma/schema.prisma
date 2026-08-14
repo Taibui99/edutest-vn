@@ -32,6 +32,7 @@ model User {
   notifications      Notification[]
   classroomsAsTeacher Classroom[]       @relation("TeacherClassrooms")
   classroomsAsMember  ClassMember[]
+  questionBankItems   QuestionBankItem[]
 
   @@index([email])
 }
@@ -200,4 +201,22 @@ model Notification {
   createdAt DateTime @default(now())
   @@index([userId])
   @@index([userId, read])
+}
+
+model QuestionBankItem {
+  id          String   @id @default(cuid())
+  teacherId   String
+  teacher     User     @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  subject     String
+  type        String   @default("mcq")
+  text        String
+  options     String[]
+  answer      String
+  grading     Json?
+  explanation String?
+  points      Float    @default(1)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  @@index([teacherId])
+  @@index([teacherId, subject])
 }

@@ -10,16 +10,11 @@ import {
 import { Card } from "@/components/ui/card";
 import { ExamActions } from "./exam-actions";
 import { CopyJoinCode } from "./copy-join-code";
-import { EmptyState } from "@/components/ui/empty-state";
 import { getSubjectColor } from "@/lib/subject";
+import { isQuestionCorrect, isAutoGraded, type AnswerValue } from "@/lib/grading";
+import { SubmissionsPanel, type SubRow, type SubQuestion } from "./submissions-panel";
 
 export const metadata: Metadata = { title: "Chi tiết đề thi — EduTest" };
-
-function scoreColor(score: number) {
-  if (score >= 8) return { text: "#06D6A0", bg: "#E1F5EE" };
-  if (score >= 6.5) return { text: "#D4A017", bg: "#FFF8E1" };
-  return { text: "#FF6B6B", bg: "#FFECEC" };
-}
 
 export default async function ExamDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
@@ -32,7 +27,10 @@ export default async function ExamDetailPage({ params }: { params: Promise<{ id:
     include: {
       questions: { orderBy: { order: "asc" } },
       submissions: {
-        include: { student: { select: { id: true, name: true, email: true } } },
+        include: {
+          student: { select: { id: true, name: true, email: true, grade: true } },
+          guestParticipant: { select: { name: true, className: true } },
+        },
         orderBy: { submittedAt: "desc" },
       },
     },
@@ -58,6 +56,41 @@ export default async function ExamDetailPage({ params }: { params: Promise<{ id:
     else dist[4]++;
   }
   const maxDist = Math.max(...dist, 1);
+
+  const serializedSubs: SubRow[] = subs.map((s) => ({
+    id: s.id,
+    studentName: s.student?.name || s.guestParticipant?.name || "Khách",
+    studentClass: s.guestParticipant?.className || s.student?.grade || "",
+    score: s.score,
+    correctCount: s.correctCount,
+    totalQuestions: s.totalQuestions,
+    durationSeconds: s.durationSeconds,
+    submittedAt: s.submittedAt.toISOString(),
+    answers: (s.answers as Record<string, AnswerValue>) || {},
+  }));
+
+  const serializedQuestions: SubQuestion[] = exam.questions.map((q) => ({
+    id: q.id,
+    type: q.type,
+    text: q.text,
+    options: q.options,
+    answer: q.answer,
+    grading: q.grading ?? undefined,
+    order: q.order,
+  }));
+
+  const qStats = exam.questions.map((q) => {
+    let attempted = 0;
+    let correct = 0;
+    for (const s of subs) {
+      const sel = (s.answers as Record<string, AnswerValue>)[q.id];
+      if (sel === undefined || sel === null) continue;
+      attempted++;
+      if (isQuestionCorrect({ type: q.type, answer: q.answer, grading: q.grading }, sel)) correct++;
+    }
+    return { question: q, attempted, correct, auto: isAutoGraded(q) };
+  });
+  const answeredAny = qStats.some((s) => s.attempted > 0);
 
   return (
     <div className="p-4 lg:p-8 max-w-5xl mx-auto animate-fade-in">
@@ -133,55 +166,7 @@ export default async function ExamDetailPage({ params }: { params: Promise<{ id:
 
       <div className="grid lg:grid-cols-3 gap-5">
         <div className="lg:col-span-2 min-w-0">
-          <Card padding="none">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--surface-border)]">
-              <h2 className="text-sm font-black text-[var(--text-primary)]">Danh sách bài nộp</h2>
-              <span className="text-xs text-[var(--text-muted)]">{subs.length} học sinh</span>
-            </div>
-            {subs.length === 0 ? (
-              <EmptyState
-                icon={<Users />}
-                title="Chưa có bài nộp"
-                description="Chia sẻ đề để học sinh tham gia"
-                className="py-12"
-              />
-            ) : (
-              <div className="divide-y divide-[var(--surface-border)]">
-                {subs.map((sub: Sub, i: number) => {
-                  const sc = scoreColor(sub.score);
-                  const mins = Math.floor(sub.durationSeconds / 60);
-                  const secs = sub.durationSeconds % 60;
-                  return (
-                    <div key={sub.id} className="flex items-center gap-3 px-5 py-3.5 hover:bg-[var(--gray-100)] transition-colors">
-                      <span className="text-xs font-bold text-[var(--text-muted)] w-5 shrink-0">{i + 1}</span>
-                      <div className="w-8 h-8 rounded-full bg-[var(--primary-light)] flex items-center justify-center shrink-0">
-                        <span className="text-xs font-black text-[var(--primary)]">
-                          {sub.student.name.charAt(0).toUpperCase()}
-                        </span>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-[var(--text-primary)] truncate">{sub.student.name}</p>
-                        <p className="text-xs text-[var(--text-muted)]">
-                          {sub.correctCount}/{sub.totalQuestions} đúng · {mins}:{String(secs).padStart(2, "0")} phút
-                        </p>
-                      </div>
-                      <div className="shrink-0 text-right">
-                        <span
-                          className="text-sm font-black px-3 py-1 rounded-xl"
-                          style={{ background: sc.bg, color: sc.text }}
-                        >
-                          {sub.score}/10
-                        </span>
-                        <p className="text-xs text-[var(--text-muted)] mt-0.5">
-                          {new Date(sub.submittedAt).toLocaleDateString("vi-VN")}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </Card>
+          <SubmissionsPanel subs={serializedSubs} questions={serializedQuestions} />
         </div>
 
         <div className="flex flex-col gap-5 min-w-0">
@@ -217,18 +202,46 @@ export default async function ExamDetailPage({ params }: { params: Promise<{ id:
           <Card padding="none">
             <div className="px-4 py-3.5 border-b border-[var(--surface-border)]">
               <h2 className="text-sm font-black text-[var(--text-primary)]">
-                <FileText size={13} className="inline mr-1.5 text-[var(--primary)]" />
-                Câu hỏi ({exam.questions.length})
+                <BarChart3 size={13} className="inline mr-1.5 text-[var(--primary)]" />
+                Phân tích câu hỏi
               </h2>
             </div>
-            <div className="divide-y divide-[var(--surface-border)] max-h-64 overflow-y-auto">
-              {exam.questions.map((q: { id: string; text: string; order: number }, i: number) => (
-                <div key={q.id} className="flex items-start gap-2.5 px-4 py-2.5">
-                  <span className="text-xs font-black text-[var(--text-muted)] mt-0.5 shrink-0">{i + 1}</span>
-                  <p className="text-xs text-[var(--text-secondary)] line-clamp-2">{q.text}</p>
-                </div>
-              ))}
-            </div>
+            {!answeredAny ? (
+              <p className="text-xs text-[var(--text-muted)] text-center py-8">Chưa có dữ liệu trả lời</p>
+            ) : (
+              <div className="divide-y divide-[var(--surface-border)] max-h-80 overflow-y-auto">
+                {qStats.map(({ question, attempted, correct, auto }) => {
+                  const pct = attempted > 0 ? Math.round((correct / attempted) * 100) : null;
+                  return (
+                    <div key={question.id} className="px-4 py-3">
+                      <div className="flex items-center justify-between gap-2 mb-1.5">
+                        <p className="text-xs text-[var(--text-secondary)] line-clamp-2">
+                          <span className="font-black text-[var(--text-muted)] mr-1">Câu {question.order + 1}.</span>
+                          {question.text}
+                        </p>
+                        {pct !== null && (
+                          <span className={`shrink-0 text-xs font-black ${pct >= 70 ? "text-[#06D6A0]" : pct >= 40 ? "text-[#D4A017]" : "text-[#FF6B6B]"}`}>
+                            {pct}%
+                          </span>
+                        )}
+                      </div>
+                      <div className="h-1.5 bg-[var(--gray-200)] rounded-full overflow-hidden">
+                        <div
+                          className="h-full rounded-full transition-all"
+                          style={{
+                            width: `${pct ?? 0}%`,
+                            background: pct === null ? "#CBD5E1" : pct >= 70 ? "#06D6A0" : pct >= 40 ? "#D4A017" : "#FF6B6B",
+                          }}
+                        />
+                      </div>
+                      <p className="mt-1 text-[11px] text-[var(--text-muted)]">
+                        {attempted > 0 ? `${correct}/${attempted} đúng` : auto ? "Chưa ai trả lời" : "Tự luận"}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </Card>
 
           {subs.length > 0 && (

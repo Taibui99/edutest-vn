@@ -9,18 +9,31 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { getSubjectColor } from "@/lib/subject";
+import { ExamListFilters } from "./exam-list-filters";
 
 export const metadata: Metadata = { title: "Đề thi — EduTest" };
 
-export default async function ExamListPage() {
+export default async function ExamListPage({ searchParams }: { searchParams: Promise<{ q?: string; subject?: string; status?: string }> }) {
   const session = await auth();
   if (!session?.user) redirect("/dang-nhap");
 
   const isTeacher = session.user.role === "teacher";
 
   if (isTeacher) {
-    const exams = await prisma.exam.findMany({
+    const { q, subject, status } = await searchParams;
+    const allExams = await prisma.exam.findMany({
       where: { teacherId: session.user.id },
+      select: { subject: true },
+    });
+    const subjects = Array.from(new Set(allExams.map((e) => e.subject))).sort();
+
+    const exams = await prisma.exam.findMany({
+      where: {
+        teacherId: session.user.id,
+        ...(q ? { title: { contains: q, mode: "insensitive" } } : {}),
+        ...(subject ? { subject } : {}),
+        ...(status === "published" || status === "draft" ? { status } : {}),
+      },
       include: {
         _count: { select: { questions: true, submissions: true } },
         submissions: { select: { score: true } },
@@ -40,16 +53,25 @@ export default async function ExamListPage() {
           </Link>
         </div>
 
+        <ExamListFilters
+          subjects={subjects}
+          initialQ={q || ""}
+          initialSubject={subject || ""}
+          initialStatus={status || ""}
+        />
+
         {exams.length === 0 ? (
           <Card className="py-16">
             <EmptyState
               icon={<FileText />}
-              title="Chưa có đề thi nào"
-              description="Tạo đề thi đầu tiên để chia sẻ với học sinh"
+              title={q || subject || status ? "Không tìm thấy đề thi nào" : "Chưa có đề thi nào"}
+              description={q || subject || status ? "Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm" : "Tạo đề thi đầu tiên để chia sẻ với học sinh"}
               action={
-                <Link href="/bang-dieu-khien/tao-de-thi">
-                  <Button icon={<Plus size={16} />}>Tạo đề thi</Button>
-                </Link>
+                q || subject || status ? undefined : (
+                  <Link href="/bang-dieu-khien/tao-de-thi">
+                    <Button icon={<Plus size={16} />}>Tạo đề thi</Button>
+                  </Link>
+                )
               }
             />
           </Card>

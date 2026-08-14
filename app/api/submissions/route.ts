@@ -2,28 +2,12 @@ import { createHash } from "node:crypto";
 import { cookies } from "next/headers";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { isQuestionCorrect, isAutoGraded, type AnswerValue } from "@/lib/grading";
 import { NextRequest, NextResponse } from "next/server";
 
-type AnswerValue = string | { statements?: boolean[]; text?: string };
 type AnswerMap = Record<string, AnswerValue>;
 
 function hashToken(token: string) { return createHash("sha256").update(token).digest("hex"); }
-function normalizeText(value: string) { return value.trim().toLowerCase().replace(/\s+/g, " "); }
-
-function isCorrect(question: { type: string; answer: string; grading: unknown }, selected: AnswerValue | undefined) {
-  if (selected === undefined) return false;
-  if (question.type === "mcq") return typeof selected === "string" && selected.trim().toUpperCase() === question.answer.toUpperCase();
-  if (question.type === "true_false") {
-    const expected = (question.grading as { statements?: Array<{ answer?: boolean }> } | null)?.statements?.map((s) => Boolean(s.answer)) || [];
-    const actual = typeof selected === "object" && Array.isArray(selected.statements) ? selected.statements : [];
-    return expected.length > 0 && expected.length === actual.length && expected.every((value, index) => value === actual[index]);
-  }
-  if (question.type === "short_answer") {
-    const accepted = ((question.grading as { acceptedAnswers?: string[] } | null)?.acceptedAnswers || []).map(normalizeText);
-    return typeof selected === "object" && typeof selected.text === "string" ? accepted.includes(normalizeText(selected.text)) : typeof selected === "string" && accepted.includes(normalizeText(selected));
-  }
-  return false;
-}
 
 export async function POST(request: NextRequest) {
   const session = await auth();
@@ -60,9 +44,9 @@ export async function POST(request: NextRequest) {
     participantName = guest.name;
   }
 
-  const correctCount = exam.questions.reduce((count, question) => isCorrect(question, answers[question.id]) ? count + 1 : count, 0);
+  const correctCount = exam.questions.reduce((count, question) => isQuestionCorrect(question, answers[question.id]) ? count + 1 : count, 0);
   const totalQuestions = exam.questions.length;
-  const autoGradedCount = exam.questions.filter((q) => q.type !== "essay").length;
+  const autoGradedCount = exam.questions.filter((q) => isAutoGraded(q)).length;
   const score = autoGradedCount > 0 ? Number(((correctCount / autoGradedCount) * 10).toFixed(2)) : 0;
 
   const submission = await prisma.$transaction(async (tx) => {
