@@ -25,6 +25,8 @@ type Exam = {
   isGuest: boolean;
   participantName?: string;
   participantClass?: string;
+  shuffleQuestions?: boolean;
+  shuffleAnswers?: boolean;
   questions: Question[];
 };
 
@@ -42,6 +44,15 @@ function scoreColor(score: number) {
   return "#DC2626";
 }
 
+function shuffledRange(n: number) {
+  const arr = Array.from({ length: n }, (_, i) => i);
+  for (let i = n - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
 export function ExamTakingClientV2({ exam, preview = false, backHref }: { exam: Exam; preview?: boolean; backHref: string }) {
   const router = useRouter();
   const [remaining, setRemaining] = useState(exam.durationMinutes * 60);
@@ -54,14 +65,17 @@ export function ExamTakingClientV2({ exam, preview = false, backHref }: { exam: 
   const [result, setResult] = useState<SubmissionResult | null>(null);
   const [showConfirm, setShowConfirm] = useState(false);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
+  const [questionOrder, setQuestionOrder] = useState<number[] | null>(null);
+  const optionShuffleRef = useRef<Record<string, number[]>>({});
 
-  const question = exam.questions[current];
+  const orderedQuestions = questionOrder ? questionOrder.map((i) => exam.questions[i]) : exam.questions;
+  const question = orderedQuestions[current];
   const answeredCount = Object.keys(answers).length;
   const totalQuestions = exam.questions.length;
 
   const draftKey = `edutest-draft-${exam.id}`;
-  const draftRef = useRef({ answers, marked, remaining });
-  draftRef.current = { answers, marked, remaining };
+  const draftRef = useRef({ answers, marked, remaining, shuffle: null as number[] | null, optionShuffle: {} as Record<string, number[]> });
+  draftRef.current = { answers, marked, remaining, shuffle: questionOrder, optionShuffle: optionShuffleRef.current };
 
   const saveDraft = useCallback(() => {
     if (preview) return;
@@ -126,21 +140,38 @@ export function ExamTakingClientV2({ exam, preview = false, backHref }: { exam: 
   }, [preview, result, submitExam]);
 
   useEffect(() => {
-    if (preview) return;
+    if (preview) {
+      setQuestionOrder(Array.from({ length: exam.questions.length }, (_, i) => i));
+      return;
+    }
+    const identity = Array.from({ length: exam.questions.length }, (_, i) => i);
     try {
       const raw = localStorage.getItem(draftKey);
-      if (!raw) return;
-      const d = JSON.parse(raw);
-      if (!d || typeof d.answers !== "object") return;
-      const savedAt = typeof d.savedAt === "number" ? d.savedAt : Date.now();
-      const elapsed = Math.max(0, Math.floor((Date.now() - savedAt) / 1000));
-      const restoredRemaining = typeof d.remaining === "number" ? Math.max(0, d.remaining - elapsed) : exam.durationMinutes * 60;
-      setAnswers((prev) => ({ ...prev, ...(d.answers || {}) }));
-      setMarked((prev) => ({ ...prev, ...(d.marked || {}) }));
-      setRemaining(restoredRemaining);
-      if (Object.keys(d.answers).length > 0) setRestored(true);
+      const d = raw ? JSON.parse(raw) : null;
+      if (d && Array.isArray(d.shuffle) && d.shuffle.length === exam.questions.length) {
+        setQuestionOrder(d.shuffle);
+        optionShuffleRef.current = d.optionShuffle && typeof d.optionShuffle === "object" ? d.optionShuffle : {};
+        if (d.answers && typeof d.answers === "object") {
+          const savedAt = typeof d.savedAt === "number" ? d.savedAt : Date.now();
+          const elapsed = Math.max(0, Math.floor((Date.now() - savedAt) / 1000));
+          const restoredRemaining = typeof d.remaining === "number" ? Math.max(0, d.remaining - elapsed) : exam.durationMinutes * 60;
+          setAnswers((prev) => ({ ...prev, ...(d.answers || {}) }));
+          setMarked((prev) => ({ ...prev, ...(d.marked || {}) }));
+          setRemaining(restoredRemaining);
+          if (Object.keys(d.answers).length > 0) setRestored(true);
+        }
+        return;
+      }
     } catch {
       /* corrupt draft */
+    }
+    setQuestionOrder(exam.shuffleQuestions ? shuffledRange(exam.questions.length) : identity);
+    if (exam.shuffleAnswers) {
+      const perms: Record<string, number[]> = {};
+      for (const q of exam.questions) if (q.type === "mcq" && q.options.length > 1) perms[q.id] = shuffledRange(q.options.length);
+      optionShuffleRef.current = perms;
+    } else {
+      optionShuffleRef.current = {};
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -223,7 +254,7 @@ export function ExamTakingClientV2({ exam, preview = false, backHref }: { exam: 
           </div>
             <p className="text-base font-medium leading-relaxed text-slate-900 mb-5">{question?.text}</p>
 
-            {question?.type === "mcq" && <div className="flex flex-col gap-2">{question.options.map((option, index) => { const letter = String.fromCharCode(65 + index); const selected = currentAnswer === letter; return <button key={letter} onClick={() => setMcqAnswer(letter)} className={cn("flex items-center gap-3 rounded-xl border p-4 text-left text-sm transition", selected ? "border-blue-600 bg-blue-50 text-blue-700 font-semibold" : "border-slate-200 hover:bg-slate-50")}><span className={cn("w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0", selected ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-500")}>{letter}</span>{option}</button>;})}</div>}
+            {question?.type === "mcq" && <div className="flex flex-col gap-2">{(() => { const perm = optionShuffleRef.current[question.id] || Array.from({ length: question.options.length }, (_, i) => i); return question.options.map((_, displayIndex) => { const origIndex = perm[displayIndex]; const letter = String.fromCharCode(65 + displayIndex); const selected = typeof currentAnswer === "string" && (currentAnswer.charCodeAt(0) - 65) === origIndex; return <button key={displayIndex} onClick={() => setMcqAnswer(String.fromCharCode(65 + origIndex))} className={cn("flex items-center gap-3 rounded-xl border p-4 text-left text-sm transition", selected ? "border-blue-600 bg-blue-50 text-blue-700 font-semibold" : "border-slate-200 hover:bg-slate-50")}><span className={cn("w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0", selected ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-500")}>{letter}</span>{question.options[origIndex]}</button>; }); })()}</div>}
 
             {question?.type === "true_false" && <div className="flex flex-col gap-3">{(question.grading?.statements || []).map((statement, index) => { const values = (typeof currentAnswer === "object" ? currentAnswer : {}) as Record<string, boolean>; const selected = values[String(index)]; return <div key={index} className="rounded-xl border border-slate-200 p-4"><p className="text-sm text-slate-800 mb-3"><span className="font-bold mr-2">{String.fromCharCode(97 + index)}.</span>{statement.text}</p><div className="flex gap-2"><button onClick={() => setTrueFalse(index, true)} className={cn("flex-1 rounded-lg border py-2 text-sm font-semibold", selected === true ? "border-green-500 bg-green-50 text-green-700" : "border-slate-200")}>Đúng</button><button onClick={() => setTrueFalse(index, false)} className={cn("flex-1 rounded-lg border py-2 text-sm font-semibold", selected === false ? "border-red-500 bg-red-50 text-red-700" : "border-slate-200")}>Sai</button></div></div>;})}</div>}
 
@@ -235,7 +266,7 @@ export function ExamTakingClientV2({ exam, preview = false, backHref }: { exam: 
           <div className="flex items-center justify-between gap-3"><Button variant="outline" onClick={() => setCurrent((v) => Math.max(0, v - 1))} disabled={current === 0}><ArrowLeft size={16}/> Trước</Button>{current < totalQuestions - 1 ? <Button onClick={() => setCurrent((v) => v + 1)}>Tiếp <ArrowRight size={16}/></Button> : <Button onClick={() => submitExam(false)} loading={submitting} disabled={preview || totalQuestions === 0}><Send size={16}/> {preview ? "Không nộp trong xem trước" : "Nộp bài"}</Button>}</div>
         </main>
 
-        <aside className="lg:w-56 lg:shrink-0"><div className="bg-white rounded-2xl border border-slate-200 p-4 lg:sticky lg:top-24"><p className="text-xs font-bold text-slate-400 mb-3">CÂU HỎI</p><div className="grid grid-cols-5 gap-1.5 mb-3">{exam.questions.map((q, i) => <button key={q.id} onClick={() => setCurrent(i)} className={cn("aspect-square rounded-lg text-xs font-bold", current === i ? "bg-blue-600 text-white" : marked[q.id] ? "bg-amber-100 text-amber-700 border border-amber-400" : answers[q.id] ? "bg-green-50 text-green-700 border border-green-200" : "bg-slate-50 text-slate-400 border border-slate-200")}>{i + 1}</button>)}</div><div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-500 mb-3"><span className="flex items-center gap-1"><span className="w-3 h-3 rounded border border-amber-400 bg-amber-100 inline-block" /> Xem lại</span><span className="flex items-center gap-1"><span className="w-3 h-3 rounded border border-green-200 bg-green-50 inline-block" /> Đã trả lời</span></div><Button className="w-full" onClick={() => submitExam(false)} disabled={preview || totalQuestions === 0} loading={submitting}>{preview ? "Xem trước" : "Nộp bài"}</Button></div></aside>
+        <aside className="lg:w-56 lg:shrink-0"><div className="bg-white rounded-2xl border border-slate-200 p-4 lg:sticky lg:top-24"><p className="text-xs font-bold text-slate-400 mb-3">CÂU HỎI</p><div className="grid grid-cols-5 gap-1.5 mb-3">{orderedQuestions.map((q, i) => <button key={q.id} onClick={() => setCurrent(i)} className={cn("aspect-square rounded-lg text-xs font-bold", current === i ? "bg-blue-600 text-white" : marked[q.id] ? "bg-amber-100 text-amber-700 border border-amber-400" : answers[q.id] ? "bg-green-50 text-green-700 border border-green-200" : "bg-slate-50 text-slate-400 border border-slate-200")}>{i + 1}</button>)}</div><div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-500 mb-3"><span className="flex items-center gap-1"><span className="w-3 h-3 rounded border border-amber-400 bg-amber-100 inline-block" /> Xem lại</span><span className="flex items-center gap-1"><span className="w-3 h-3 rounded border border-green-200 bg-green-50 inline-block" /> Đã trả lời</span></div><Button className="w-full" onClick={() => submitExam(false)} disabled={preview || totalQuestions === 0} loading={submitting}>{preview ? "Xem trước" : "Nộp bài"}</Button></div></aside>
       </div>
 
       {showConfirm && <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4"><div className="bg-white rounded-2xl p-6 max-w-sm w-full"><h3 className="font-bold mb-2">Xác nhận nộp bài?</h3><p className="text-sm text-slate-500 mb-5">Bạn còn {totalQuestions - answeredCount} câu chưa trả lời. Vẫn nộp bài?</p><div className="flex gap-3"><Button variant="outline" className="flex-1" onClick={() => setShowConfirm(false)}>Làm tiếp</Button><Button className="flex-1" onClick={() => submitExam(true)} loading={submitting}>Nộp bài</Button></div></div></div>}

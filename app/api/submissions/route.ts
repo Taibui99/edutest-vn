@@ -44,8 +44,11 @@ export async function POST(request: NextRequest) {
     if (session.user.role !== "student") return NextResponse.json({ error: "Chỉ học sinh mới nộp bài thi" }, { status: 403 });
     studentId = session.user.id;
     participantName = session.user.name || "Học sinh";
-    const existingSubmission = await prisma.submission.findUnique({ where: { examId_studentId: { examId, studentId: session.user.id } } });
-    if (existingSubmission) return NextResponse.json({ error: "Bạn đã nộp bài này rồi", submission: existingSubmission }, { status: 409 });
+    const attemptsUsed = await prisma.submission.count({ where: { examId, studentId: session.user.id } });
+    if (attemptsUsed >= exam.maxAttempts) {
+      const latest = await prisma.submission.findFirst({ where: { examId, studentId: session.user.id }, orderBy: { submittedAt: "desc" } });
+      return NextResponse.json({ error: `Bạn đã hết số lần làm bài (${exam.maxAttempts} lần)`, submission: latest }, { status: 409 });
+    }
   } else {
     if (!exam.allowGuestAttempts) return NextResponse.json({ error: "Đề thi này yêu cầu đăng nhập tài khoản EduTest" }, { status: 401 });
     const token = (await cookies()).get(`edutest_guest_${exam.id}`)?.value;

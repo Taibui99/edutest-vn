@@ -145,8 +145,8 @@ model Submission {
   totalQuestions     Int
   durationSeconds    Int
   submittedAt        DateTime          @default(now())
-  @@unique([examId, studentId])
   @@index([studentId])
+  @@index([examId, studentId])
   @@index([examId])
 }
 
