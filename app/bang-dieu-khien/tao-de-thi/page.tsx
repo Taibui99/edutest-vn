@@ -1,10 +1,8 @@
 import type { Metadata } from "next";
-import dynamic from "next/dynamic";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import type { InitialExam } from "./editor";
-
-const TaoDeThiEditor = dynamic(() => import("./editor").then((m) => m.TaoDeThiEditor), { ssr: false });
+import type { InitialExam } from "./editor-lazy";
+import { TaoDeThiEditorLazy } from "./editor-lazy";
 
 export async function generateMetadata({ searchParams }: { searchParams: Promise<{ edit?: string }> }): Promise<Metadata> {
   const { edit } = await searchParams;
@@ -44,5 +42,5 @@ export default async function TaoDeThiPage({ searchParams }: { searchParams: Pro
     }
   }
 
-  return <TaoDeThiEditor editId={edit || null} initialExam={initialExam} />;
+  return <TaoDeThiEditorLazy editId={edit || null} initialExam={initialExam} />;
 }
