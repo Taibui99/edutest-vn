@@ -4,6 +4,7 @@ import mammoth from "mammoth";
 import pdfParse from "pdf-parse";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { getSetting } from "@/lib/settings";
 
 const geminiModel = process.env.EXAM_IMPORT_MODEL || "gemini-3.5-flash-lite";
 const MAX_FILE_BYTES = 50 * 1024 * 1024;
@@ -133,6 +134,9 @@ export async function POST(request: NextRequest) {
   if (!session?.user) return NextResponse.json({ error: "Bạn cần đăng nhập" }, { status: 401 });
   if (session.user.role !== "teacher") return NextResponse.json({ error: "Chỉ giáo viên mới được import đề" }, { status: 403 });
   if (!process.env.GEMINI_API_KEY) return NextResponse.json({ error: "Thiếu GEMINI_API_KEY" }, { status: 500 });
+  if ((await getSetting("enableAiImport", "true")) !== "true") {
+    return NextResponse.json({ error: "Tính năng AI import đang tắt bởi quản trị viên" }, { status: 403 });
+  }
 
   const formData = await request.formData();
   const file = formData.get("file") as File | null;

@@ -26,11 +26,12 @@ export async function GET(
       joinCode: true,
       status: true,
       teacherId: true,
+      deletedAt: true,
       _count: { select: { questions: true } },
     },
   });
 
-  if (!exam || exam.teacherId !== session.user.id) {
+  if (!exam || exam.teacherId !== session.user.id || exam.deletedAt) {
     return NextResponse.json({ error: "Không tìm thấy đề thi" }, { status: 404 });
   }
 

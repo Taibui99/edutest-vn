@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
     }
 
     const exam = await prisma.exam.findUnique({ where: { joinCode: examCode } });
-    if (!exam || exam.status !== "published") {
+    if (!exam || exam.status !== "published" || exam.hidden || exam.deletedAt) {
       return NextResponse.json({ error: "Đề thi không tồn tại hoặc chưa được công bố." }, { status: 404 });
     }
     if (!exam.allowGuestAttempts) {

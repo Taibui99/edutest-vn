@@ -21,7 +21,7 @@ export async function POST(
 
   // Verify teacher owns this exam
   const exam = await prisma.exam.findFirst({
-    where: { id: examId, teacherId: session.user.id! },
+    where: { id: examId, teacherId: session.user.id!, deletedAt: null, hidden: false },
     select: { id: true, title: true, subject: true, joinCode: true, durationMinutes: true,
       _count: { select: { questions: true, submissions: true } } },
   });

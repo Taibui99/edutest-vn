@@ -5,6 +5,7 @@ import { AuthError } from "next-auth";
 import { signIn, signOut } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { logAudit } from "@/lib/audit";
+import { getSetting } from "@/lib/settings";
 
 export type AuthFormState = {
   error?: string;
@@ -52,6 +53,11 @@ export async function registerAction(
 
   if (!fullName || !email || !role || !password) {
     return { error: "Vui lòng điền đầy đủ thông tin." };
+  }
+
+  const allowRegistration = await getSetting("allowRegistration", "true");
+  if (allowRegistration !== "true") {
+    return { error: "Hệ thống tạm thời đóng đăng ký mới. Vui lòng thử lại sau." };
   }
 
   if (password.length < 6) {

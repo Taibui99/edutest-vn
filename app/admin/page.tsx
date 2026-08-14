@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Users, FileText, ClipboardList, School, Layers, Flag, Sparkles, Flame, ShieldCheck } from "lucide-react";
+import { Users, FileText, ClipboardList, School, Layers, Flag, Sparkles, Flame, ShieldCheck, AlertTriangle } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 
 interface Stats {
@@ -13,6 +13,8 @@ interface Stats {
   flashcards: number;
   pendingReports: number;
   aiLogs24h: number;
+  aiByStatus: Record<string, number>;
+  aiErrors: { model: string | null; error: string; createdAt: string }[];
   streakTop: { name: string; email: string; streak: number }[];
   usersGrowth: { day: string; count: number }[];
   subsGrowth: { day: string; count: number }[];
@@ -82,6 +84,38 @@ export default function AdminDashboard() {
         <div className="rounded-2xl bg-white border border-slate-200 p-5">
           <h2 className="text-sm font-black text-slate-800 mb-4">Bài nộp 7 ngày</h2>
           <MiniBar data={data.subsGrowth} />
+        </div>
+      </div>
+
+      <div className="grid lg:grid-cols-2 gap-5 mb-5">
+        <div className="rounded-2xl bg-white border border-slate-200 p-5">
+          <h2 className="text-sm font-black text-slate-800 mb-4 flex items-center gap-2">
+            <Sparkles size={15} className="text-[#4EA8DE]" /> AI Import ({data.aiLogs24h} lượt / 24h)
+          </h2>
+          <div className="flex flex-wrap gap-2">
+            {Object.entries(data.aiByStatus).map(([k, v]) => (
+              <span key={k} className={`rounded-lg px-3 py-1.5 text-xs font-bold ${k === "success" ? "bg-emerald-50 text-emerald-700" : k === "failed" || k === "timeout" ? "bg-red-50 text-red-600" : "bg-slate-50 text-slate-600"}`}>
+                {k === "success" ? "Thành công" : k === "failed" ? "Thất bại" : k === "timeout" ? "Timeout" : k === "running" ? "Đang chạy" : k}: {v}
+              </span>
+            ))}
+          </div>
+        </div>
+        <div className="rounded-2xl bg-white border border-slate-200 p-5">
+          <h2 className="text-sm font-black text-slate-800 mb-4 flex items-center gap-2">
+            <AlertTriangle size={15} className="text-[#FF6B6B]" /> Lỗi AI gần đây
+          </h2>
+          {data.aiErrors.length === 0 ? (
+            <p className="text-sm text-emerald-600 text-center py-6">Không có lỗi nào gần đây</p>
+          ) : (
+            <div className="flex flex-col gap-2 max-h-44 overflow-y-auto">
+              {data.aiErrors.map((e, i) => (
+                <div key={i} className="rounded-lg bg-red-50 px-3 py-2 text-xs">
+                  <p className="text-red-700 font-semibold truncate">{e.error}</p>
+                  <p className="text-red-400 text-[10px]">{e.model ?? "gemini"} · {new Date(e.createdAt).toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" })}</p>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 

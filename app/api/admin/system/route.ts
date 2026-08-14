@@ -26,16 +26,27 @@ export async function GET() {
     checks.gemini = { ok: false, detail: String(e) };
   }
 
-  const [examCount, userCount, notifCount, settingCount] = await Promise.all([
-    prisma.exam.count(),
-    prisma.user.count(),
+  checks.auth = {
+    ok: true,
+    detail: `Phiên hợp lệ · vai trò ${session.user.role}`,
+  };
+
+  checks.api = { ok: true, detail: "API server phản hồi bình thường" };
+
+  checks.storage = { ok: true, detail: "Không sử dụng storage ngoài (dữ liệu trong DB)" };
+
+  const [examCount, userCount, notifCount, settingCount, lastAi] = await Promise.all([
+    prisma.exam.count({ where: { deletedAt: null } }),
+    prisma.user.count({ where: { deletedAt: null } }),
     prisma.notification.count(),
     prisma.systemSetting.count(),
+    prisma.aiImportLog.findFirst({ orderBy: { createdAt: "desc" }, select: { status: true, model: true, createdAt: true } }),
   ]);
 
   return NextResponse.json({
     checks,
     counts: { exams: examCount, users: userCount, notifications: notifCount, settings: settingCount },
+    lastAiImport: lastAi,
     env: {
       nextAuthSecretSet: Boolean(process.env.AUTH_SECRET),
       geminiKeySet: Boolean(process.env.GEMINI_API_KEY),

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, Users, FileText, Flag, Sparkles, Activity,
-  Settings, ScrollText, ArrowLeft, ShieldCheck,
+  Settings, ScrollText, ArrowLeft, ShieldCheck, BarChart3,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 
@@ -13,6 +13,7 @@ const items = [
   { href: "/admin/users", label: "Người dùng", icon: <Users size={17} /> },
   { href: "/admin/exams", label: "Đề thi", icon: <FileText size={17} /> },
   { href: "/admin/reports", label: "Báo cáo", icon: <Flag size={17} /> },
+  { href: "/admin/analytics", label: "Phân tích", icon: <BarChart3 size={17} /> },
   { href: "/admin/ai", label: "AI & Import", icon: <Sparkles size={17} /> },
   { href: "/admin/system", label: "Hệ thống", icon: <Activity size={17} /> },
   { href: "/admin/settings", label: "Cài đặt", icon: <Settings size={17} /> },
@@ -81,7 +82,7 @@ export function AdminSidebar({ user }: { user: { name: string; email: string; ro
       </aside>
 
       <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-slate-200 flex items-stretch h-[60px]">
-        {items.slice(0, 5).map((item) => {
+        {items.slice(0, 6).map((item) => {
           const active = item.exact ? pathname === item.href : pathname.startsWith(item.href);
           return (
             <Link

@@ -74,14 +74,14 @@ async function runTool(name: string, a: Args, userId: string, role: Role): Promi
   }
 
   if (name === "list_exams") {
-    if (role === "teacher") return { success: true, exams: await prisma.exam.findMany({ where: { teacherId: userId }, include: { _count: { select: { questions: true, submissions: true, assignments: true } } }, orderBy: { createdAt: "desc" } }) };
-    const rows = await prisma.examAssignment.findMany({ where: { classroom: { members: { some: { studentId: userId } } }, exam: { status: "published" } }, include: { exam: { include: { _count: { select: { questions: true, submissions: true } } } } }, orderBy: { assignedAt: "desc" } });
+    if (role === "teacher") return { success: true, exams: await prisma.exam.findMany({ where: { teacherId: userId, deletedAt: null }, include: { _count: { select: { questions: true, submissions: true, assignments: true } } }, orderBy: { createdAt: "desc" } }) };
+    const rows = await prisma.examAssignment.findMany({ where: { classroom: { members: { some: { studentId: userId } } }, exam: { status: "published", hidden: false, deletedAt: null } }, include: { exam: { include: { _count: { select: { questions: true, submissions: true } } } } }, orderBy: { assignedAt: "desc" } });
     return { success: true, exams: rows.map((r) => ({ ...r.exam, classroomId: r.classroomId, dueDate: r.dueDate })) };
   }
 
   if (name === "get_exam") {
     const id = str(a, "exam_id");
-    const exam = role === "teacher" ? await prisma.exam.findFirst({ where: { id, teacherId: userId }, include: { questions: { orderBy: { order: "asc" } }, _count: { select: { submissions: true, assignments: true } } } }) : await prisma.exam.findFirst({ where: { id, status: "published", assignments: { some: { classroom: { members: { some: { studentId: userId } } } } } }, include: { questions: { orderBy: { order: "asc" }, select: { id: true, text: true, options: true, explanation: true, order: true } } } });
+    const exam = role === "teacher" ? await prisma.exam.findFirst({ where: { id, teacherId: userId, deletedAt: null }, include: { questions: { orderBy: { order: "asc" } }, _count: { select: { submissions: true, assignments: true } } } }) : await prisma.exam.findFirst({ where: { id, status: "published", hidden: false, deletedAt: null, assignments: { some: { classroom: { members: { some: { studentId: userId } } } } } }, include: { questions: { orderBy: { order: "asc" }, select: { id: true, text: true, options: true, explanation: true, order: true } } } });
     return exam ? { success: true, exam } : { success: false, error: "Không tìm thấy đề hoặc không có quyền" };
   }
 

@@ -7,6 +7,7 @@ import { Spinner } from "@/components/ui/spinner";
 interface SystemData {
   checks: Record<string, { ok: boolean; detail?: string }>;
   counts: { exams: number; users: number; notifications: number; settings: number };
+  lastAiImport: { status: string; model: string | null; createdAt: string } | null;
   env: { nextAuthSecretSet: boolean; geminiKeySet: boolean; nodeEnv: string };
   now: string;
 }
@@ -36,6 +37,9 @@ export default function AdminSystem() {
   const checkItems = [
     { key: "db", label: "Kết nối database (Prisma/PostgreSQL)" },
     { key: "gemini", label: "Kết nối Google Gemini API" },
+    { key: "auth", label: "Xác thực (NextAuth session)" },
+    { key: "api", label: "API server" },
+    { key: "storage", label: "Storage" },
   ];
 
   return (
@@ -95,6 +99,21 @@ export default function AdminSystem() {
                 </div>
               ))}
             </div>
+          </div>
+
+          <div className="rounded-2xl bg-white border border-slate-200 p-5 mb-6">
+            <h2 className="text-sm font-black text-slate-800 mb-3">AI import gần nhất</h2>
+            {data.lastAiImport ? (
+              <div className="flex items-center gap-2 text-sm">
+                <span className={`text-[11px] font-bold px-2 py-0.5 rounded-lg ${data.lastAiImport.status === "success" ? "bg-emerald-100 text-emerald-700" : data.lastAiImport.status === "running" ? "bg-blue-100 text-blue-700" : "bg-red-100 text-red-600"}`}>
+                  {data.lastAiImport.status === "success" ? "Thành công" : data.lastAiImport.status === "running" ? "Đang chạy" : "Thất bại"}
+                </span>
+                <span className="font-bold text-slate-700">{data.lastAiImport.model ?? "gemini"}</span>
+                <span className="text-slate-400 text-xs">{new Date(data.lastAiImport.createdAt).toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" })}</span>
+              </div>
+            ) : (
+              <p className="text-sm text-slate-400">Chưa có lượt import nào</p>
+            )}
           </div>
 
           <div className="rounded-2xl bg-white border border-slate-200 p-5">

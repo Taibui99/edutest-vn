@@ -6,7 +6,7 @@ import { normalizeQuestions, validateQuestion } from "../exam-helpers";
 
 async function getOwnedExam(examId: string, teacherId: string) {
   return prisma.exam.findFirst({
-    where: { id: examId, teacherId },
+    where: { id: examId, teacherId, deletedAt: null },
   });
 }
 
@@ -56,6 +56,10 @@ export async function PUT(
 
   if (!exam) {
     return NextResponse.json({ error: "Không tìm thấy đề thi" }, { status: 404 });
+  }
+
+  if (exam.hidden) {
+    return NextResponse.json({ error: "Đề thi đã bị quản trị viên ẩn" }, { status: 403 });
   }
 
   const body = await request.json();
@@ -127,6 +131,10 @@ export async function PATCH(
 
   if (!exam) {
     return NextResponse.json({ error: "Không tìm thấy đề thi" }, { status: 404 });
+  }
+
+  if (exam.hidden) {
+    return NextResponse.json({ error: "Đề thi đã bị quản trị viên ẩn" }, { status: 403 });
   }
 
   const body = await request.json();

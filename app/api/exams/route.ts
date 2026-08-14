@@ -1,5 +1,6 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { getSetting } from "@/lib/settings";
 import { NextRequest, NextResponse } from "next/server";
 import { normalizeQuestions, validateQuestion } from "./exam-helpers";
 
@@ -23,7 +24,7 @@ export async function GET() {
   if (session.user.role !== "teacher") return NextResponse.json({ error: "Chỉ giáo viên mới xem danh sách đề" }, { status: 403 });
 
   const exams = await prisma.exam.findMany({
-    where: { teacherId: session.user.id },
+    where: { teacherId: session.user.id, deletedAt: null, hidden: false },
     include: { _count: { select: { questions: true, submissions: true } } },
     orderBy: { createdAt: "desc" },
   });
@@ -42,7 +43,9 @@ export async function POST(request: NextRequest) {
   const durationMinutes = Number(body.durationMinutes || body.duration || 0);
   const shuffleQuestions = Boolean(body.shuffleQuestions);
   const shuffleAnswers = Boolean(body.shuffleAnswers);
-  const allowGuestAttempts = body.allowGuestAttempts === undefined ? true : Boolean(body.allowGuestAttempts);
+  const allowGuestAttempts = body.allowGuestAttempts === undefined
+    ? (await getSetting("allowGuestAttempts", "true")) === "true"
+    : Boolean(body.allowGuestAttempts);
   const maxAttempts = Math.max(1, Number(body.maxAttempts || 1));
   const showAnswers = body.showAnswers === undefined ? true : Boolean(body.showAnswers);
   const openAt = body.openAt ? new Date(String(body.openAt)) : null;

@@ -9,6 +9,8 @@ const ALLOWED_KEYS = new Set([
   "allowGuestAttempts",
   "maintenanceMode",
   "exposeResetLink",
+  "allowRegistration",
+  "enableAiImport",
 ]);
 
 export async function GET() {

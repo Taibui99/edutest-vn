@@ -25,6 +25,7 @@ model User {
   lastLoginAt      DateTime?
   resetToken       String?  @unique
   resetTokenExpiry DateTime?
+  deletedAt        DateTime?
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
@@ -39,6 +40,7 @@ model User {
   questionBankItems   QuestionBankItem[]
   appLogs             AppLog[]
   reports             Report[]
+  reportsHandled      Report[]          @relation("ReportHandledBy")
   aiImportLogs        AiImportLog[]
 
   @@index([email])
@@ -99,6 +101,8 @@ model Exam {
   showAnswers        Boolean   @default(true)
   openAt             DateTime?
   closeAt            DateTime?
+  hidden             Boolean   @default(false)
+  deletedAt          DateTime?
   teacherId          String
   teacher            User     @relation(fields: [teacherId], references: [id], onDelete: Cascade)
   questions          Question[]
@@ -252,16 +256,21 @@ model SystemSetting {
 }
 
 model Report {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   reporterId  String?
-  reporter    User?    @relation(fields: [reporterId], references: [id], onDelete: SetNull)
+  reporter    User?     @relation(fields: [reporterId], references: [id], onDelete: SetNull)
   examId      String?
-  exam        Exam?    @relation(fields: [examId], references: [id], onDelete: SetNull)
+  exam        Exam?     @relation(fields: [examId], references: [id], onDelete: SetNull)
   type        String
   description String
-  status      String   @default("pending")
+  status      String    @default("pending")
+  handledById String?
+  handledBy   User?     @relation("ReportHandledBy", fields: [handledById], references: [id], onDelete: SetNull)
+  handledAt   DateTime?
+  resolution  String?
+  deletedAt   DateTime?
   resolvedAt  DateTime?
-  createdAt   DateTime @default(now())
+  createdAt   DateTime  @default(now())
   @@index([status])
   @@index([createdAt])
 }

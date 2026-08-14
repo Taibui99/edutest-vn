@@ -19,13 +19,18 @@ export async function GET() {
     streakTop,
     users7d,
     subs7d,
+    aiByStatus,
+    aiErrors,
+    reportsByStatus,
+    topExams,
+    subjectGroups,
   ] = await Promise.all([
     prisma.user.groupBy({ by: ["role"], _count: { _all: true } }),
-    prisma.exam.count(),
+    prisma.exam.count({ where: { deletedAt: null } }),
     prisma.submission.count(),
     prisma.classroom.count(),
     prisma.flashcard.count(),
-    prisma.report.count({ where: { status: "pending" } }),
+    prisma.report.count({ where: { status: "pending", deletedAt: null } }),
     prisma.aiImportLog.count({ where: { createdAt: { gte: new Date(Date.now() - 24 * 3600 * 1000) } } }),
     prisma.user.findMany({
       where: { streak: { gt: 0 } },
@@ -41,10 +46,34 @@ export async function GET() {
       where: { submittedAt: { gte: new Date(Date.now() - 7 * 24 * 3600 * 1000) } },
       select: { submittedAt: true },
     }),
+    prisma.aiImportLog.groupBy({ by: ["status"], _count: { _all: true } }),
+    prisma.aiImportLog.findMany({
+      where: { status: { not: "success" }, error: { not: null } },
+      orderBy: { createdAt: "desc" },
+      take: 5,
+      select: { model: true, error: true, createdAt: true },
+    }),
+    prisma.report.groupBy({ by: ["status"], where: { deletedAt: null }, _count: { _all: true } }),
+    prisma.exam.findMany({
+      where: { deletedAt: null },
+      orderBy: { submissions: { _count: "desc" } },
+      take: 5,
+      select: { id: true, title: true, subject: true, _count: { select: { submissions: true } } },
+    }),
+    prisma.exam.findMany({
+      where: { deletedAt: null },
+      select: { subject: true },
+    }),
   ]);
 
   const byRole: Record<string, number> = {};
   for (const r of userCounts) byRole[r.role] = r._count._all;
+
+  const aiStatus: Record<string, number> = {};
+  for (const g of aiByStatus) aiStatus[g.status] = g._count._all;
+
+  const reportStatus: Record<string, number> = {};
+  for (const g of reportsByStatus) reportStatus[g.status] = g._count._all;
 
   const days = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(Date.now() - (6 - i) * 24 * 3600 * 1000);
@@ -73,6 +102,14 @@ export async function GET() {
     flashcards: totalFlashcards,
     pendingReports,
     aiLogs24h,
+    aiByStatus: aiStatus,
+    aiErrors,
+    reportsByStatus: reportStatus,
+    topExams,
+    subjects: Array.from(
+      subjectGroups.reduce((map, s) => map.set(s.subject, (map.get(s.subject) ?? 0) + 1), new Map<string, number>()),
+      ([subject, count]) => ({ subject, count }),
+    ).sort((a, b) => b.count - a.count).slice(0, 6),
     streakTop,
     usersGrowth,
     subsGrowth,

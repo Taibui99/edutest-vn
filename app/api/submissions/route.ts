@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
   if (!examId) return NextResponse.json({ error: "Thiếu mã đề thi" }, { status: 400 });
 
   const exam = await prisma.exam.findUnique({ where: { id: examId }, include: { questions: { orderBy: { order: "asc" } } } });
-  if (!exam || exam.status !== "published") return NextResponse.json({ error: "Không tìm thấy đề thi" }, { status: 404 });
+  if (!exam || exam.status !== "published" || exam.hidden || exam.deletedAt) return NextResponse.json({ error: "Không tìm thấy đề thi" }, { status: 404 });
 
   const now = new Date();
   if (exam.openAt && now < exam.openAt) return NextResponse.json({ error: "Đề thi chưa mở" }, { status: 403 });

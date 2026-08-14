@@ -25,7 +25,7 @@ export default async function ThiPage({ params, searchParams }: { params: Promis
   const exam = await prisma.exam.findUnique({ where: { joinCode: normalizedCode }, include: { questions: { orderBy: { order: "asc" } } } });
   const mapQuestions = () => exam?.questions.map((q) => ({ id: q.id, type: q.type, text: q.text, options: q.options, answer: q.answer, grading: q.grading as ClientGrading, order: q.order })) || [];
 
-  if (!exam || exam.status !== "published") return <div className="min-h-screen grid place-items-center bg-[#F8FAFC] p-4"><div className="rounded-2xl bg-white p-8 text-center"><h1 className="text-xl font-bold">Mã tham gia không hợp lệ</h1><Link href="/vao-thi" className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-[#2563EB]"><ArrowLeft size={14}/> Nhập mã khác</Link></div></div>;
+  if (!exam || exam.status !== "published" || exam.hidden || exam.deletedAt) return <div className="min-h-screen grid place-items-center bg-[#F8FAFC] p-4"><div className="rounded-2xl bg-white p-8 text-center"><h1 className="text-xl font-bold">Mã tham gia không hợp lệ</h1><Link href="/vao-thi" className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-[#2563EB]"><ArrowLeft size={14}/> Nhập mã khác</Link></div></div>;
 
   const now = new Date();
   const notStarted = exam.openAt ? now < exam.openAt : false;
