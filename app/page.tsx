@@ -1,10 +1,17 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { auth } from "@/auth";
 import { Header } from "./components/header";
 import { Hero } from "./components/hero";
 import { Features } from "./components/features";
 import { Footer } from "./components/footer";
 
-export default function Home() {
+export default async function Home() {
+  try {
+    const session = await auth();
+    if (session?.user) redirect("/bang-dieu-khien");
+  } catch {}
+
   return (
     <>
       <Header />

@@ -76,7 +76,7 @@ export default async function ExamListPage({ searchParams }: { searchParams: Pro
             />
           </Card>
         ) : (
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-2">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-2 motion-enter-stagger">
             {exams.map((exam: { id: string; title: string; subject: string; joinCode: string; status: string; durationMinutes: number; openAt: Date | null; closeAt: Date | null; createdAt: Date; _count: { questions: number; submissions: number }; submissions: { score: number }[] }) => {
               const c = getSubjectColor(exam.subject);
               const avgScore = exam.submissions.length > 0

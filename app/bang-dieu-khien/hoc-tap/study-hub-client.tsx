@@ -45,7 +45,7 @@ export function StudyHubClient({
   return (
     <div className="space-y-8">
       <ExamCountdown initialExamDate={initialExamDate} />
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-6 lg:grid-cols-2 motion-enter-stagger">
         <TaskTracker initialTasks={initialTasks} />
         <SubjectProgressPanel initialProgress={initialProgress} />
       </div>

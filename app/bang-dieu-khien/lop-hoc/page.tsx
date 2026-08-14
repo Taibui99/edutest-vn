@@ -207,7 +207,7 @@ export default function ClassroomsPage() {
           />
         </Card>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 motion-enter-stagger">
           {classrooms.map((cls) => (
             <Link key={cls.id} href={`/bang-dieu-khien/lop-hoc/${cls.id}`}>
               <Card hover className="h-full p-0 overflow-hidden group">

@@ -21,7 +21,8 @@ export function Card({ children, className, hover, padding = "md", accent }: Car
       className={cn(
         "bg-[var(--surface-card)] rounded-2xl border border-[var(--surface-border)] relative overflow-hidden",
         paddingStyles[padding],
-        hover && "transition-all hover:border-[#6C63FF]/40 hover:shadow-md cursor-pointer",
+        "motion-card",
+        hover && "cursor-pointer",
         className,
       )}
     >
