@@ -23,23 +23,24 @@
 - [x] **P1-6 Ngân hàng câu hỏi thật** — model `QuestionBankItem` + CRUD `/api/question-bank` + UI 2 tab (kho riêng / trong đề) với modal thêm/sửa/xóa (commit `85df926` verified live)
 - [x] **Bonus fix true_false grading** — client gửi `{"0":true}` nhưng route chấm đọc `.statements` → không bao giờ đúng; gộp `lib/grading.ts` chấm cả 2 format (verified live: TF đúng → 10/10)
 
-## 🟡 P2 — Student features + Admin Panel
-- [ ] **P2-1 Student analytics** `/bang-dieu-khien/tien-do` — biểu đồ điểm theo thời gian
-- [ ] **P2-2 Streak tracking** — cập nhật `streak` + `lastStudyDate` khi hoạt động
-- [ ] **P2-3 Notification đề mới** — khi teacher tạo/giao đề
-- [ ] **P2-4 Schedule exam** — thời gian mở/đóng tự động
-- [ ] **P2-5 Anti-cheat** — tab detection, fullscreen
-- [ ] **P2-6 Forgot password** — quên/đặt lại mật khẩu
-- [ ] **P2-7 Flashcard deck / bộ thẻ**
-- [ ] **P2-8 Admin Dashboard** — counts (users/teachers/students/exams/submissions) + chart tăng trưởng
-- [ ] **P2-9 Admin Users** — search/filter, khóa/mở khóa, đổi role, login history
-- [ ] **P2-10 Admin Exams** — xem toàn bộ, ẩn/xóa, moderation
-- [ ] **P2-11 Admin Reports** — pending/investigating/resolved/rejected
-- [ ] **P2-12 Admin AI Monitoring** — số import, success/error rate, latency, model, timeout
-- [ ] **P2-13 Admin System** — health check (DB/API/AI/Storage/Auth) + error logs
-- [ ] **P2-14 Admin Settings** — site name, logo, feature flags, maintenance, upload/AI limits
-- [ ] **P2-15 Admin Security** — RBAC, admin-only APIs, audit logs, session management
-- [ ] **P2-16 Auth/RBAC audit** — role `admin` chưa tồn tại; route + API + ownership
+## 🟡 P2 — Student features + Admin Panel (đã xong)
+> Admin Panel spec (#1–#20) đã implement theo yêu cầu: `/admin` route/layout/permission riêng, RBAC server-side, dashboard + `/admin/analytics`, users/exams/reports/audit/settings/system, soft delete (User/Exam/Report), maintenance mode (admin bypass), search/pagination server-side, responsive — commit `e2fcf4b` verified live (admin/teacher/student/guest + API trực tiếp).
+- [x] **P2-1 Student analytics** `/bang-dieu-khien/tien-do` — biểu đồ điểm theo thời gian (commit `dba6760` verified live)
+- [x] **P2-2 Streak tracking** — cập nhật `streak` + `lastStudyDate` khi hoạt động (commit `dba6760`)
+- [x] **P2-3 Notification đề mới** — khi teacher tạo/giao đề (commit `dba6760`)
+- [x] **P2-4 Schedule exam** — thời gian mở/đóng tự động (commit `dba6760`; editor "Lịch mở / đóng đề" verified live)
+- [x] **P2-5 Anti-cheat** — tab detection, fullscreen (commit `dba6760`; 3 vi phạm → cảnh báo + auto-submit verified live)
+- [x] **P2-6 Forgot password** — quên/đặt lại mật khẩu (commit `dba6760`)
+- [x] **P2-7 Flashcard deck / bộ thẻ** (commit `dba6760` verified live)
+- [x] **P2-8 Admin Dashboard** — counts (users/teachers/students/exams/submissions) + chart tăng trưởng (commits `dba6760`, `e2fcf4b` — thêm aiByStatus/aiErrors/reportsByStatus/topExams/subjects + `/admin/analytics`)
+- [x] **P2-9 Admin Users** — search/filter, khóa/mở khóa, đổi role, login history (commit `e2fcf4b` — q/role/status/page, restore, xóa kèm nhập DELETE)
+- [x] **P2-10 Admin Exams** — xem toàn bộ, ẩn/xóa, moderation (commit `e2fcf4b` — hide/unhide/restore, soft delete, badge report)
+- [x] **P2-11 Admin Reports** — pending/investigating/resolved/rejected (commit `e2fcf4b` — pending/reviewing/resolved/rejected + resolution + handledBy/handledAt)
+- [x] **P2-12 Admin AI Monitoring** — số import, success/error rate, latency, model, timeout (commits `dba6760`, `e2fcf4b` — thêm aiErrors)
+- [x] **P2-13 Admin System** — health check (DB/API/AI/Storage/Auth) + error logs (commit `e2fcf4b` — 5 checks + lastAiImport)
+- [x] **P2-14 Admin Settings** — site name, logo, feature flags, maintenance, upload/AI limits (commit `e2fcf4b` — tabs General/Authentication/Exams/AI/Maintenance, `allowRegistration`/`enableAiImport` thật)
+- [x] **P2-15 Admin Security** — RBAC, admin-only APIs, audit logs, session management (commits `dba6760`, `e2fcf4b` — audit search + pagination; mọi API admin chặn teacher/student 403 verified)
+- [x] **P2-16 Auth/RBAC audit** — role `admin` chưa tồn tại; route + API + ownership (commit `dba6760`; E1 RBAC guest/teacher/student `/admin` → 307 + API 403 verified live)
 
 ## 🟢 P3 — polish & hardening
 - [ ] **P3-1 Animation system** — subtle/playful/smooth + hover + `prefers-reduced-motion`
