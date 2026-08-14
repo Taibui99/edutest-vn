@@ -10,9 +10,9 @@
 - [x] **P0-3 Student Runner** — autosave/resume, mark-for-review, timer cảnh báo, confirm nộp (commits `33095f1`, `eff9a83` verified live)
 - [x] **P0-4 Exam Configuration** — 4 loại câu, maxAttempts hoạt động thật, trộn câu/đáp án, guest, xem đáp án (commits `d173e79`, `f7f6b9e` verified live)
 
-### P0 cũ (từ HANDOFF) — còn 2 mục
-- [ ] **P0-A Fix 404 `/bang-dieu-khien/hoc-sinh`** — tạo trang danh sách học sinh cho teacher (sidebar có link, trang chưa tồn tại)
-- [ ] **P0-B Verify `exam-actions.tsx`** — nút Đóng/Mở/Xóa đề (API `PATCH`/`DELETE` + UI có sẵn, chưa test live)
+### P0 cũ (từ HANDOFF) — đã xong
+- [x] **P0-A Fix 404 `/bang-dieu-khien/hoc-sinh`** — trang danh sách học sinh cho teacher: search, filter "Có bài nộp", thống kê (commit `14f1283` verified live)
+- [x] **P0-B Verify `exam-actions.tsx`** — Đóng→"Mở lại"+badge "Đã đóng", Mở→"Đóng đề"+badge "Đang mở", Xóa đề thật (verified live, không cần sửa code)
 
 ## 🟠 P1 — tính năng chính
 - [ ] **P1-1 Results/Analytics nâng cao** — thống kê theo câu hỏi (% đúng), ranking, export CSV/Excel, chi tiết từng học sinh
