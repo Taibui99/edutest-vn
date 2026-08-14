@@ -62,7 +62,7 @@ export default async function ExamListPage() {
                 : null;
 
               return (
-                <Link key={exam.id} href={`/bang-dieu-khien/de-thi/${exam.id}`}>
+                <Link key={exam.id} href={`/bang-dieu-khien/de-thi/${exam.id}`} className="min-w-0">
                   <Card hover className="p-0 overflow-hidden h-full">
                     <div className="h-1.5" style={{ background: c.text }} />
                     <div className="p-4">
