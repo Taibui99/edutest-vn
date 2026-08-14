@@ -145,7 +145,7 @@ async function StudentDashboard({ userId, name }: { userId: string; name: string
 
       <div className="grid lg:grid-cols-3 gap-5">
         {/* ── Left column (2/3) */}
-        <div className="lg:col-span-2 flex flex-col gap-5">
+        <div className="lg:col-span-2 min-w-0 flex flex-col gap-5">
 
           {/* AI Study Coach */}
           <div className="bg-[#EEEFFE] border border-[#C7C4FC] rounded-2xl p-5">
@@ -264,7 +264,7 @@ async function StudentDashboard({ userId, name }: { userId: string; name: string
         </div>
 
         {/* ── Right column (1/3) */}
-        <div className="flex flex-col gap-5">
+        <div className="flex flex-col gap-5 min-w-0">
 
           {/* Today's tasks */}
           <Card padding="none">
@@ -432,10 +432,10 @@ async function TeacherDashboard({ userId, name }: { userId: string; name: string
       </div>
 
       <div className="grid lg:grid-cols-3 gap-5">
-        <div className="lg:col-span-2 flex flex-col gap-5">
+        <div className="lg:col-span-2 min-w-0 flex flex-col gap-5">
           {/* Quick actions */}
-          <div className="flex gap-3">
-            <Link href="/bang-dieu-khien/tao-de-thi" className="flex-1">
+          <div className="flex flex-wrap gap-3">
+            <Link href="/bang-dieu-khien/tao-de-thi" className="flex-1 min-w-0">
               <Button className="w-full" icon={<Plus size={16} />}>Tạo đề thi mới</Button>
             </Link>
             <Link href="/bang-dieu-khien/thong-ke">
@@ -509,7 +509,7 @@ async function TeacherDashboard({ userId, name }: { userId: string; name: string
         </div>
 
         {/* Right: Needs attention */}
-        <div className="flex flex-col gap-5">
+        <div className="flex flex-col gap-5 min-w-0">
           <Card padding="none">
             <div className="px-4 py-3.5 border-b border-[var(--surface-border)]">
               <h2 className="text-sm font-black text-[var(--text-primary)]">

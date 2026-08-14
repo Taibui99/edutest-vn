@@ -132,7 +132,7 @@ export default async function ExamDetailPage({ params }: { params: Promise<{ id:
       </div>
 
       <div className="grid lg:grid-cols-3 gap-5">
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-2 min-w-0">
           <Card padding="none">
             <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--surface-border)]">
               <h2 className="text-sm font-black text-[var(--text-primary)]">Danh sách bài nộp</h2>
@@ -184,7 +184,7 @@ export default async function ExamDetailPage({ params }: { params: Promise<{ id:
           </Card>
         </div>
 
-        <div className="flex flex-col gap-5">
+        <div className="flex flex-col gap-5 min-w-0">
           <Card>
             <h2 className="text-sm font-black text-[var(--text-primary)] mb-3 flex items-center gap-2">
               <BarChart3 size={14} className="text-[var(--primary)]" /> Phân bố điểm
