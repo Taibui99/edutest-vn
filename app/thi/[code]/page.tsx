@@ -1,11 +1,13 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import dynamic from "next/dynamic";
 import { cookies } from "next/headers";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { ExamTakingClientV2 } from "./exam-taking-client-v2";
-import { GuestJoin } from "./guest-join";
 import { Trophy, ArrowLeft, UserRound } from "lucide-react";
+
+const ExamTakingClientV2 = dynamic(() => import("./exam-taking-client-v2").then((m) => m.ExamTakingClientV2));
+const GuestJoin = dynamic(() => import("./guest-join").then((m) => m.GuestJoin));
 
 export async function generateMetadata({ params }: { params: Promise<{ code: string }> }): Promise<Metadata> {
   const { code } = await params;

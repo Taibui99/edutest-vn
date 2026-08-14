@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
+import dynamic from "next/dynamic";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { ProgressClient } from "./progress-client";
+
+const ProgressClient = dynamic(() => import("./progress-client").then((m) => m.ProgressClient));
 
 export const metadata: Metadata = {
   title: "Tiến độ học tập — EduTest",

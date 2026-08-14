@@ -5,6 +5,7 @@ import pdfParse from "pdf-parse";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getSetting } from "@/lib/settings";
+import { generateWithRetry, withTimeout } from "@/lib/ai";
 
 const geminiModel = process.env.EXAM_IMPORT_MODEL || "gemini-3.5-flash-lite";
 const MAX_FILE_BYTES = 50 * 1024 * 1024;
@@ -65,13 +66,7 @@ const responseSchema = {
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 const generationConfig = () => ({ responseMimeType: "application/json", responseSchema, maxOutputTokens: MAX_MODEL_OUTPUT });
-
-function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
-  return Promise.race([
-    promise,
-    new Promise<T>((_, reject) => setTimeout(() => reject(new Error(message)), ms)),
-  ]);
-}
+const retryOpts = { attempts: 2 };
 
 async function extractPdfText(buffer: Buffer) {
   try {
@@ -100,16 +95,15 @@ async function generatePdfFallback(buffer: Buffer, mimeType: string, fileName: s
   }
   if (processed.state === "FAILED") throw new Error("Gemini không xử lý được file PDF");
   try {
-    const result = await withTimeout(
-      ai.models.generateContent({
-        model: geminiModel,
+    const resultText = await generateWithRetry(
+      (model) => ai.models.generateContent({
+        model,
         contents: [extractionPrompt, { fileData: { fileUri: processed.uri!, mimeType: processed.mimeType || mimeType } }],
         config: generationConfig(),
-      }),
-      AI_TIMEOUT_MS,
-      "Gemini đọc PDF quá lâu",
+      }).then((r) => r.text),
+      retryOpts,
     );
-    return result.text;
+    return resultText;
   } finally {
     try { if (processed.name) await ai.files.delete({ name: processed.name }); } catch {}
   }
@@ -189,24 +183,22 @@ export async function POST(request: NextRequest) {
             if (!content) return send({ type: "error", error: "Không đọc được nội dung trong file Word" });
             console.info(`[exam-import] docx extracted ${content.length} chars; model=${geminiModel}`);
             send({ type: "stage", stage: "analyze" });
-            const result = await withTimeout(
-              ai.models.generateContent({ model: geminiModel, contents: `${extractionPrompt}\n\nNỘI DUNG ĐỀ:\n${content.slice(0, MAX_TEXT_CHARS)}`, config: generationConfig() }),
-              AI_TIMEOUT_MS,
-              "AI xử lý Word quá lâu",
+            const result = await generateWithRetry(
+              (model) => ai.models.generateContent({ model, contents: `${extractionPrompt}\n\nNỘI DUNG ĐỀ:\n${content.slice(0, MAX_TEXT_CHARS)}`, config: generationConfig() }).then((r) => r.text),
+              retryOpts,
             );
-            resultText = result.text;
+            resultText = result;
             source = "docx";
           } else {
             const extractedText = await extractPdfText(buffer);
             if (extractedText) {
               console.info(`[exam-import] pdf text extracted ${extractedText.length} chars; model=${geminiModel}`);
               send({ type: "stage", stage: "analyze" });
-              const result = await withTimeout(
-                ai.models.generateContent({ model: geminiModel, contents: `${extractionPrompt}\n\nNỘI DUNG PDF:\n${extractedText}`, config: generationConfig() }),
-                AI_TIMEOUT_MS,
-                "AI xử lý nội dung PDF quá lâu",
+              const result = await generateWithRetry(
+                (model) => ai.models.generateContent({ model, contents: `${extractionPrompt}\n\nNỘI DUNG PDF:\n${extractedText}`, config: generationConfig() }).then((r) => r.text),
+                retryOpts,
               );
-              resultText = result.text;
+              resultText = result;
               source = "pdf-text";
             } else {
               console.info(`[exam-import] pdf text extraction empty; fallback=gemini; bytes=${buffer.byteLength}; model=${geminiModel}`);
@@ -217,12 +209,11 @@ export async function POST(request: NextRequest) {
           }
         } else {
           send({ type: "stage", stage: "analyze" });
-          const result = await withTimeout(
-            ai.models.generateContent({ model: geminiModel, contents: `${extractionPrompt}\n\nNỘI DUNG:\n${prompt!}`, config: generationConfig() }),
-            AI_TIMEOUT_MS,
-            "AI xử lý nội dung quá lâu",
+          const result = await generateWithRetry(
+            (model) => ai.models.generateContent({ model, contents: `${extractionPrompt}\n\nNỘI DUNG:\n${prompt!}`, config: generationConfig() }).then((r) => r.text),
+            retryOpts,
           );
-          resultText = result.text;
+          resultText = result;
         }
 
         if (!resultText?.trim()) return send({ type: "error", error: "AI không trả về dữ liệu câu hỏi" });

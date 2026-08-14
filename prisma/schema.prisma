@@ -114,6 +114,7 @@ model Exam {
   updatedAt          DateTime @updatedAt
   @@index([teacherId])
   @@index([joinCode])
+  @@index([subject])
 }
 
 model Question {
@@ -163,6 +164,7 @@ model Submission {
   @@index([studentId])
   @@index([examId, studentId])
   @@index([examId])
+  @@index([createdAt])
 }
 
 model StudyTask {
@@ -273,6 +275,8 @@ model Report {
   createdAt   DateTime  @default(now())
   @@index([status])
   @@index([createdAt])
+  @@index([reporterId])
+  @@index([examId])
 }
 
 model AiImportLog {
@@ -289,4 +293,5 @@ model AiImportLog {
   createdAt  DateTime @default(now())
   @@index([userId])
   @@index([createdAt])
+  @@index([status, createdAt])
 }

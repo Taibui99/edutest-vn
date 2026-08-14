@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
+import dynamic from "next/dynamic";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { TaoDeThiEditor, type InitialExam } from "./editor";
+import type { InitialExam } from "./editor";
+
+const TaoDeThiEditor = dynamic(() => import("./editor").then((m) => m.TaoDeThiEditor), { ssr: false });
 
 export async function generateMetadata({ searchParams }: { searchParams: Promise<{ edit?: string }> }): Promise<Metadata> {
   const { edit } = await searchParams;
