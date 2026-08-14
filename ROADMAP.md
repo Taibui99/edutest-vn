@@ -14,13 +14,14 @@
 - [x] **P0-A Fix 404 `/bang-dieu-khien/hoc-sinh`** — trang danh sách học sinh cho teacher: search, filter "Có bài nộp", thống kê (commit `14f1283` verified live)
 - [x] **P0-B Verify `exam-actions.tsx`** — Đóng→"Mở lại"+badge "Đã đóng", Mở→"Đóng đề"+badge "Đang mở", Xóa đề thật (verified live, không cần sửa code)
 
-## 🟠 P1 — tính năng chính
-- [ ] **P1-1 Results/Analytics nâng cao** — thống kê theo câu hỏi (% đúng), ranking, export CSV/Excel, chi tiết từng học sinh
-- [ ] **P1-2 Search/filter danh sách đề** — theo tên/môn/trạng thái
-- [ ] **P1-3 Edit đề sau khi tạo** — verify `tao-de-thi?edit` + `PUT /api/exams/[id]` E2E (code có sẵn)
-- [ ] **P1-4 Preview student flow** — verify `?preview=1` + nút quay lại quản lý đề
-- [ ] **P1-5 Teacher dashboard** — rà soát workflow tạo→publish→theo dõi liền mạch
-- [ ] **P1-6 Ngân hàng câu hỏi thật** — CRUD độc lập với exam (hiện placeholder `/ngan-hang`)
+## 🟠 P1 — tính năng chính (đã xong)
+- [x] **P1-1 Results/Analytics nâng cao** — % đúng theo câu + phân tích câu hỏi, ranking + 🥇🥈🥉, export CSV (UTF-8 BOM), chi tiết đáp án từng học sinh (commit `85df926` verified live)
+- [x] **P1-2 Search/filter danh sách đề** — theo tên (`q`), môn, trạng thái (commit `85df926` verified live)
+- [x] **P1-3 Edit đề sau khi tạo** — `tao-de-thi?edit` load + `PUT /api/exams/[id]` E2E (đổi tên đề → persist + redirect) (verified live)
+- [x] **P1-4 Preview student flow** — `?preview=1` banner "chế độ xem trước", không nộp được, nút "Quay lại" → trang quản lý đề (verified live)
+- [x] **P1-5 Teacher dashboard** — rà soát workflow tạo→publish→theo dõi: greeting, stats, "Cần chú ý", quick actions (verified live)
+- [x] **P1-6 Ngân hàng câu hỏi thật** — model `QuestionBankItem` + CRUD `/api/question-bank` + UI 2 tab (kho riêng / trong đề) với modal thêm/sửa/xóa (commit `85df926` verified live)
+- [x] **Bonus fix true_false grading** — client gửi `{"0":true}` nhưng route chấm đọc `.statements` → không bao giờ đúng; gộp `lib/grading.ts` chấm cả 2 format (verified live: TF đúng → 10/10)
 
 ## 🟡 P2 — Student features + Admin Panel
 - [ ] **P2-1 Student analytics** `/bang-dieu-khien/tien-do` — biểu đồ điểm theo thời gian
