@@ -43,22 +43,22 @@
 - [x] **P2-16 Auth/RBAC audit** — role `admin` chưa tồn tại; route + API + ownership (commit `dba6760`; E1 RBAC guest/teacher/student `/admin` → 307 + API 403 verified live)
 
 ## 🟢 P3 — polish & hardening
-- [ ] **P3-1 Animation system** — subtle/playful/smooth + hover + `prefers-reduced-motion`
-- [ ] **P3-2 Landing polish** — + redirect người đã đăng nhập → dashboard (hiện chưa có)
-- [ ] **P3-3 Avatar upload** (Supabase Storage)
-- [ ] **P3-4 Edit flashcard** — hiện chỉ tạo/xóa
-- [ ] **P3-5 AI generate flashcard**
-- [ ] **P3-6 Performance** — bundle, lazy load, Prisma indexes, AI retry/fallback/model
-- [ ] **P3-7 Accessibility**
-- [ ] **P3-8 Production hardening** — error boundary, logging, monitoring
+- [x] **P3-1 Animation system** (commit `d0a5b92`) — subtle/playful/smooth + hover + `prefers-reduced-motion`
+- [x] **P3-2 Landing polish** (commit `d0a5b92`) — + redirect người đã đăng nhập → dashboard (hiện chưa có)
+- [x] **P3-3 Avatar upload** (commit `b05676a`) (Supabase Storage)
+- [x] **P3-4 Edit flashcard** (commit `b05676a`) — hiện chỉ tạo/xóa
+- [x] **P3-5 AI generate flashcard** (commit `b05676a`)
+- [x] **P3-6 Performance** (commit `5b28a9d`) — bundle, lazy load, Prisma indexes, AI retry/fallback/model
+- [x] **P3-7 Accessibility** (commit `d615da1` — skip link, aria-label, focus)
+- [x] **P3-8 Production hardening** (commit `d615da1` — error.tsx/global-error, /api/health, appLog) — error boundary, logging, monitoring
 
 ## 📌 Mục nhỏ trong roadmap
-- [ ] **Nhỏ-1 Cảnh báo mất mạng** trong runner (`navigator.onLine`)
-- [ ] **Nhỏ-2 Setting "Hiển thị điểm ngay sau khi nộp"** — thêm field + tôn trọng khi hiện kết quả
+- [x] **Nhỏ-1 Cảnh báo mất mạng** (commit `d615da1`) trong runner (`navigator.onLine`)
+- [x] **Nhỏ-2 Setting "Hiển thị điểm ngay sau khi nộp"** (commit `781eb88`) — thêm field + tôn trọng khi hiện kết quả
 
 ## ⚙️ Kỹ thuật
-- [ ] **KT-1 Chuyển `prisma db push --accept-data-loss` → `migrate deploy`** — giảm rủi ro production
-- [ ] **KT-2 Dọn test data** — guest "Test Guest"/"12A1" trên YN5GQZ + tài khoản `testrunner-1786689480719@edutest.vn`
+- [x] **KT-1 Chuyển `prisma db push --accept-data-loss` → `migrate deploy`** — baseline migration `0_init` + fallback db push (commit `8e81377`) — giảm rủi ro production
+- [x] **KT-2 Dọn test data** — soft-delete `testrunner-1786689480719@edutest.vn` qua admin API (commit `8e81377`); guest "Test Guest" giữ lại — không có API xóa guest (chỉ POST) và không truy cập được DB — guest "Test Guest"/"12A1" trên YN5GQZ + tài khoản `testrunner-1786689480719@edutest.vn`
 
 ## ✅ Đã xong (không cần làm lại)
 - Share/QR (§8, §14) — `chia-se-de/[joinCode]`: copy link, mã truy cập, QR + tải QR, native share
