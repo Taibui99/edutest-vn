@@ -47,3 +47,23 @@ export async function PATCH(req: NextRequest) {
 
   return NextResponse.json({ report: updated });
 }
+
+export async function DELETE(req: NextRequest) {
+  const session = await auth();
+  if (!session?.user || session.user.role !== "admin") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const { id } = await req.json();
+  const report = await prisma.report.findUnique({ where: { id } });
+  if (!report) return NextResponse.json({ error: "Không tìm thấy báo cáo" }, { status: 404 });
+
+  await prisma.report.delete({ where: { id } });
+  await logAudit({
+    actorId: session.user.id,
+    type: "admin.report_delete",
+    message: `Admin ${session.user.email} xóa báo cáo ${id}`,
+  });
+
+  return NextResponse.json({ ok: true });
+}
