@@ -333,7 +333,7 @@ function FlashcardPanel({
 }) {
   const [cards, setCards] = useState(initialCards);
   const [dueCount, setDueCount] = useState(initialDueCount);
-  const [mode, setMode] = useState<"list" | "review" | "add">("list");
+  const [mode, setMode] = useState<"list" | "review" | "add" | "ai">("list");
   const [reviewQueue, setReviewQueue] = useState<Card[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
@@ -343,7 +343,38 @@ function FlashcardPanel({
   const [newFront, setNewFront] = useState("");
   const [newBack, setNewBack] = useState("");
   const [addingCard, setAddingCard] = useState(false);
+  const [editing, setEditing] = useState<Card | null>(null);
   const [deckFilter, setDeckFilter] = useState("Tất cả");
+  const [aiSubject, setAiSubject] = useState("");
+  const [aiTopic, setAiTopic] = useState("");
+  const [generating, setGenerating] = useState(false);
+  const [aiError, setAiError] = useState("");
+
+  const generateCards = async () => {
+    if (!aiSubject.trim()) { setAiError("Nhập môn học trước khi tạo"); return; }
+    setGenerating(true); setAiError("");
+    try {
+      const res = await fetch("/api/study/flashcards/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ subject: aiSubject, topic: aiTopic }),
+      });
+      const data = await res.json();
+      if (res.ok && Array.isArray(data.cards) && data.cards.length) {
+        setCards((prev) => [...data.cards, ...prev]);
+        setDueCount((prev) => prev + data.cards.length);
+        setAiSubject("");
+        setAiTopic("");
+        setMode("list");
+      } else {
+        setAiError(data.error || "Không tạo được thẻ, thử lại sau");
+      }
+    } catch {
+      setAiError("Lỗi kết nối, thử lại sau");
+    } finally {
+      setGenerating(false);
+    }
+  };
 
   const decks = useMemo(() => {
     const set = new Set<string>(["Tất cả"]);
@@ -364,23 +395,46 @@ function FlashcardPanel({
     setMode("review");
   };
 
-  const addCard = async () => {
+  const resetForm = () => {
+    setNewSubject("");
+    setNewDeck("");
+    setNewFront("");
+    setNewBack("");
+    setEditing(null);
+  };
+
+  const startAdd = () => {
+    resetForm();
+    setMode("add");
+  };
+
+  const startEdit = (card: Card) => {
+    setEditing(card);
+    setNewSubject(card.subject);
+    setNewDeck(card.deck);
+    setNewFront(card.front);
+    setNewBack(card.back);
+    setMode("add");
+  };
+
+  const saveCard = async () => {
     if (!newSubject.trim() || !newFront.trim() || !newBack.trim()) return;
     setAddingCard(true);
     try {
-      const res = await fetch("/api/study/flashcards", {
-        method: "POST",
+      const res = await fetch(editing ? `/api/study/flashcards/${editing.id}` : "/api/study/flashcards", {
+        method: editing ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ subject: newSubject, deck: newDeck, front: newFront, back: newBack }),
       });
       const data = await res.json();
       if (res.ok) {
-        setCards((prev) => [data.card, ...prev]);
-        setDueCount((prev) => prev + 1);
-        setNewSubject("");
-        setNewDeck("");
-        setNewFront("");
-        setNewBack("");
+        if (editing) {
+          setCards((prev) => prev.map((c) => (c.id === editing.id ? data.card : c)));
+        } else {
+          setCards((prev) => [data.card, ...prev]);
+          setDueCount((prev) => prev + 1);
+        }
+        resetForm();
         setMode("list");
       }
     } finally {
@@ -421,9 +475,17 @@ function FlashcardPanel({
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
         <h3 className="font-semibold text-slate-800">🗂️ Flashcard ôn tập</h3>
         <div className="flex gap-2">
-          {mode !== "add" && (
+          {mode !== "add" && mode !== "ai" && (
             <button
-              onClick={() => setMode("add")}
+              onClick={() => setMode("ai")}
+              className="inline-flex h-9 items-center rounded-lg border border-purple-200 px-3 text-sm font-semibold text-purple-700 hover:bg-purple-50"
+            >
+              ✨ Tạo bằng AI
+            </button>
+          )}
+          {mode !== "add" && mode !== "ai" && (
+            <button
+              onClick={startAdd}
               className="inline-flex h-9 items-center rounded-lg border border-green-200 px-3 text-sm font-semibold text-green-700 hover:bg-green-50"
             >
               + Thêm thẻ
@@ -442,6 +504,19 @@ function FlashcardPanel({
 
       {mode === "add" && (
         <div className="space-y-3 rounded-lg border border-slate-100 bg-slate-50 p-4 mb-4">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-semibold text-slate-700">
+              {editing ? "Sửa thẻ" : "Thêm thẻ mới"}
+            </p>
+            {editing && (
+              <button
+                onClick={() => { resetForm(); setMode("list"); }}
+                className="text-xs font-semibold text-slate-500 hover:text-red-500"
+              >
+                Huỷ sửa
+              </button>
+            )}
+          </div>
           <div className="grid sm:grid-cols-2 gap-3">
             <input
               type="text"
@@ -474,20 +549,68 @@ function FlashcardPanel({
           />
           <div className="flex gap-2">
             <button
-              onClick={addCard}
+              onClick={saveCard}
               disabled={addingCard}
               className="inline-flex h-9 items-center gap-2 rounded-lg bg-green-600 px-4 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-50"
             >
               {addingCard && <Spinner className="h-3.5 w-3.5" />}
-              Lưu thẻ
+              {editing ? "Lưu thay đổi" : "Lưu thẻ"}
             </button>
             <button
-              onClick={() => setMode("list")}
+              onClick={() => { resetForm(); setMode("list"); }}
               className="inline-flex h-9 items-center rounded-lg border border-slate-200 px-4 text-sm font-semibold text-slate-600 hover:bg-slate-100"
             >
               Huỷ
             </button>
           </div>
+        </div>
+      )}
+
+      {mode === "ai" && (
+        <div className="space-y-3 rounded-lg border border-purple-100 bg-purple-50 p-4 mb-4">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-semibold text-purple-800">✨ Tạo thẻ học bằng AI</p>
+            <button
+              onClick={() => { setAiError(""); setMode("list"); }}
+              className="text-xs font-semibold text-slate-500 hover:text-red-500"
+            >
+              Đóng
+            </button>
+          </div>
+          <div className="grid sm:grid-cols-2 gap-3">
+            <input
+              type="text"
+              placeholder="Môn học (bắt buộc)"
+              value={aiSubject}
+              onChange={(e) => setAiSubject(e.target.value)}
+              className="w-full h-9 rounded-lg border border-slate-200 px-3 text-sm"
+            />
+            <input
+              type="text"
+              placeholder="Chủ đề (VD: Từ vựng Unit 1, Định luật Newton...)"
+              value={aiTopic}
+              onChange={(e) => setAiTopic(e.target.value)}
+              className="w-full h-9 rounded-lg border border-slate-200 px-3 text-sm"
+            />
+          </div>
+          {aiError && <p className="text-xs font-semibold text-red-600">{aiError}</p>}
+          <div className="flex gap-2">
+            <button
+              onClick={generateCards}
+              disabled={generating}
+              className="inline-flex h-9 items-center gap-2 rounded-lg bg-purple-600 px-4 text-sm font-semibold text-white hover:bg-purple-700 disabled:opacity-50"
+            >
+              {generating && <Spinner className="h-3.5 w-3.5" />}
+              {generating ? "AI đang tạo..." : "Tạo thẻ"}
+            </button>
+            <button
+              onClick={() => { setAiError(""); setMode("list"); }}
+              className="inline-flex h-9 items-center rounded-lg border border-slate-200 px-4 text-sm font-semibold text-slate-600 hover:bg-slate-100"
+            >
+              Huỷ
+            </button>
+          </div>
+          <p className="text-xs text-slate-400">AI tạo tối đa 8 thẻ cho chủ đề bạn nhập. Kiểm tra lại nội dung trước khi học.</p>
         </div>
       )}
 
@@ -556,9 +679,18 @@ function FlashcardPanel({
                       <span className="text-[10px] font-bold bg-green-100 text-green-700 px-1.5 py-0.5 rounded">{card.deck}</span>
                     )}
                   </div>
-                  <button onClick={() => deleteCard(card.id)} className="text-slate-400 hover:text-red-500 text-xs">
-                    ✕
-                  </button>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => startEdit(card)}
+                      aria-label="Sửa thẻ"
+                      className="text-slate-400 hover:text-green-600 text-xs font-semibold"
+                    >
+                      Sửa
+                    </button>
+                    <button onClick={() => deleteCard(card.id)} aria-label="Xoá thẻ" className="text-slate-400 hover:text-red-500 text-xs">
+                      ✕
+                    </button>
+                  </div>
                 </div>
                 <p className="mt-1 text-sm font-medium text-slate-800 line-clamp-2">{card.front}</p>
                 <p className="mt-1 text-xs text-slate-500">

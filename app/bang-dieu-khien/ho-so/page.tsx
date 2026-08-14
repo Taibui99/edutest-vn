@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { User, Mail, School, BookOpen, Lock, CheckCircle2, AlertCircle } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { User, Mail, School, BookOpen, Lock, CheckCircle2, AlertCircle, Camera, Trash2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,7 @@ interface Profile {
   school?: string;
   grade?: string;
   bio?: string;
+  avatarUrl?: string | null;
   createdAt: string;
 }
 
@@ -45,6 +46,9 @@ export default function ProfilePage() {
   const [currentPw, setCurrentPw] = useState("");
   const [newPw, setNewPw] = useState("");
   const [confirmPw, setConfirmPw] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [avatarFeedback, setAvatarFeedback] = useState<{ type: "success" | "error"; msg: string } | null>(null);
 
   useEffect(() => {
     fetch("/api/profile")
@@ -98,6 +102,43 @@ export default function ProfilePage() {
     setTimeout(() => setPwFeedback(null), 3000);
   };
 
+  const uploadAvatar = async (file: File) => {
+    setUploading(true); setAvatarFeedback(null);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/profile/avatar", { method: "POST", body: fd });
+      const data = await res.json();
+      if (res.ok) {
+        setProfile((prev) => prev ? { ...prev, avatarUrl: data.avatarUrl } : prev);
+        setAvatarFeedback({ type: "success", msg: "Đã cập nhật ảnh đại diện!" });
+      } else {
+        setAvatarFeedback({ type: "error", msg: data.error || "Lỗi upload ảnh" });
+      }
+    } catch {
+      setAvatarFeedback({ type: "error", msg: "Lỗi upload ảnh" });
+    }
+    setUploading(false);
+    setTimeout(() => setAvatarFeedback(null), 3000);
+  };
+
+  const removeAvatar = async () => {
+    setUploading(true); setAvatarFeedback(null);
+    try {
+      const res = await fetch("/api/profile/avatar", { method: "DELETE" });
+      if (res.ok) {
+        setProfile((prev) => prev ? { ...prev, avatarUrl: null } : prev);
+        setAvatarFeedback({ type: "success", msg: "Đã xoá ảnh đại diện" });
+      } else {
+        setAvatarFeedback({ type: "error", msg: "Lỗi xoá ảnh" });
+      }
+    } catch {
+      setAvatarFeedback({ type: "error", msg: "Lỗi xoá ảnh" });
+    }
+    setUploading(false);
+    setTimeout(() => setAvatarFeedback(null), 3000);
+  };
+
   if (loading) return (
     <div className="flex items-center justify-center py-32"><Spinner /></div>
   );
@@ -109,19 +150,59 @@ export default function ProfilePage() {
 
       {/* Avatar + basic info */}
       <div className="flex items-center gap-4 mb-6 p-5 bg-[var(--surface-card)] rounded-2xl border border-[var(--surface-border)]">
-        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[var(--primary)] to-[var(--coral)] flex items-center justify-center text-white text-2xl font-black shrink-0">
-          {profile.name.charAt(0).toUpperCase()}
+        <div className="relative shrink-0">
+          {profile.avatarUrl ? (
+            <img
+              src={profile.avatarUrl}
+              alt={`Ảnh đại diện của ${profile.name}`}
+              className="w-16 h-16 rounded-2xl object-cover border border-[var(--surface-border)]"
+            />
+          ) : (
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[var(--primary)] to-[var(--coral)] flex items-center justify-center text-white text-2xl font-black">
+              {profile.name.charAt(0).toUpperCase()}
+            </div>
+          )}
+          <button
+            onClick={() => fileRef.current?.click()}
+            disabled={uploading}
+            aria-label="Đổi ảnh đại diện"
+            className="absolute -bottom-1.5 -right-1.5 w-7 h-7 rounded-full bg-[var(--primary)] text-white flex items-center justify-center shadow-md hover:bg-[var(--primary-hover)] disabled:opacity-50 transition-colors"
+          >
+            <Camera size={13} />
+          </button>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) void uploadAvatar(f);
+              e.target.value = "";
+            }}
+          />
         </div>
-        <div>
-          <h2 className="font-black text-[var(--text-primary)] text-lg">{profile.name}</h2>
-          <p className="text-sm text-[var(--text-muted)]">{profile.email}</p>
+        <div className="min-w-0">
+          <h2 className="font-black text-[var(--text-primary)] text-lg truncate">{profile.name}</h2>
+          <p className="text-sm text-[var(--text-muted)] truncate">{profile.email}</p>
           <span className={`inline-block mt-1 text-xs font-bold px-2.5 py-0.5 rounded-full ${
             profile.role === "teacher" ? "bg-[#E8F4FD] text-[#4EA8DE]" : "bg-[#E1F5EE] text-[#06D6A0]"
           }`}>
             {profile.role === "teacher" ? "Giáo viên" : "Học sinh"}
           </span>
         </div>
+        {profile.avatarUrl && (
+          <button
+            onClick={removeAvatar}
+            disabled={uploading}
+            aria-label="Xoá ảnh đại diện"
+            className="ml-auto flex items-center gap-1.5 text-xs font-semibold text-[var(--text-muted)] hover:text-[var(--danger)] transition-colors"
+          >
+            <Trash2 size={13} /> Xoá ảnh
+          </button>
+        )}
       </div>
+      {avatarFeedback && <div className="mb-5"><Alert type={avatarFeedback.type} msg={avatarFeedback.msg} /></div>}
 
       {/* Edit profile */}
       <Card className="mb-5">
