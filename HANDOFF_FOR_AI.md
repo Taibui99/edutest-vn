@@ -370,9 +370,10 @@ await prisma.notification.create({
 | Ngân hàng câu hỏi | Có file `ngan-hang/page.tsx` nhưng chỉ là placeholder, không có backend |
 | Sửa đề thi | Không có trang edit, không có `PUT /api/exams/[id]` |
 | Nút đóng/mở đề | API có (`PATCH status`) nhưng cần verify UI trong `exam-actions.tsx` |
-| Autosave bài thi | Answers mất khi refresh (chưa dùng localStorage/sessionStorage) |
+| Autosave bài thi | Đã làm: autosave/resume qua localStorage, restore đúng thời gian, clear sau nộp (P0#3) |
 | Streak học tập | Schema có cột `streak` nhưng không bao giờ cập nhật |
-| `maxAttempts` | Schema có nhưng logic submission chỉ enforce 1 lần (@@unique) |
+| `maxAttempts` | Đã fix (P0#4): bỏ `@@unique([examId, studentId])` → index, enforce bằng count + gate "Đã làm X/Y lượt" |
+| Trộn câu/đáp án | Đã wire vào runner (P0#4): shuffleQuestions/shuffleAnswers lưu trong draft, map lại letter để chấm đúng |
 | Landing page | Dùng design cũ, chưa cập nhật theo v2 |
 | `/bang-dieu-khien/hoc-sinh` | Sidebar teacher có link nhưng trang không tồn tại (404) |
 
