@@ -1,5 +1,6 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { logAudit } from "@/lib/audit";
 import { NextRequest, NextResponse } from "next/server";
 import { normalizeQuestions, validateQuestion } from "../exam-helpers";
 
@@ -67,6 +68,8 @@ export async function PUT(
   const allowGuestAttempts = body.allowGuestAttempts === undefined ? exam.allowGuestAttempts : Boolean(body.allowGuestAttempts);
   const maxAttempts = Math.max(1, Number(body.maxAttempts || 1));
   const showAnswers = body.showAnswers === undefined ? exam.showAnswers : Boolean(body.showAnswers);
+  const openAt = body.openAt ? new Date(String(body.openAt)) : null;
+  const closeAt = body.closeAt ? new Date(String(body.closeAt)) : null;
   const status = body.status === "draft" ? "draft" : "published";
   const questions = normalizeQuestions(Array.isArray(body.questions) ? body.questions : []);
 
@@ -94,6 +97,8 @@ export async function PUT(
         maxAttempts,
         showAnswers,
         status,
+        openAt,
+        closeAt,
         questions: { create: questions },
       },
       include: { _count: { select: { questions: true, submissions: true } } },
@@ -136,6 +141,39 @@ export async function PATCH(
     data: { status },
   });
 
+  await logAudit({
+    actorId: session.user.id,
+    type: "exam.publish",
+    message: `GV chuyển đề "${exam.title}" sang trạng thái ${status === "published" ? "mở" : "nháp"}`,
+  });
+
+  if (status === "published") {
+    try {
+      const assignments = await prisma.examAssignment.findMany({
+        where: { examId: id },
+        include: { classroom: { select: { name: true } } },
+      });
+      for (const a of assignments) {
+        const members = await prisma.classMember.findMany({
+          where: { classroomId: a.classroomId },
+          select: { studentId: true },
+        });
+        if (members.length > 0) {
+          await prisma.notification.createMany({
+            data: members.map((m: { studentId: string }) => ({
+              userId: m.studentId,
+              type: "new_exam",
+              title: "Đề thi đã được mở",
+              message: `Đề "${exam.title}" vừa được mở trong lớp ${a.classroom.name}`,
+              link: `/vao-thi`,
+            })),
+            skipDuplicates: true,
+          });
+        }
+      }
+    } catch {}
+  }
+
   return NextResponse.json({ exam: updated });
 }
 
@@ -161,6 +199,11 @@ export async function DELETE(
   }
 
   await prisma.exam.delete({ where: { id } });
+  await logAudit({
+    actorId: session.user.id,
+    type: "exam.delete",
+    message: `Xóa đề "${exam.title}" (${exam.joinCode})`,
+  });
 
   return NextResponse.json({ success: true });
 }

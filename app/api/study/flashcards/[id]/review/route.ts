@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { calculateNextReview } from "@/lib/spaced-repetition";
+import { bumpStudyStreak } from "@/lib/streak";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(
@@ -38,6 +39,8 @@ export async function POST(
       nextReviewAt: next.nextReviewAt,
     },
   });
+
+  try { await bumpStudyStreak(session.user.id!); } catch { /* ignore */ }
 
   return NextResponse.json({ card: updated });
 }

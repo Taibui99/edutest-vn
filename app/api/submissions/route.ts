@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { isQuestionCorrect, isAutoGraded, type AnswerValue } from "@/lib/grading";
+import { bumpStudyStreak } from "@/lib/streak";
 import { NextRequest, NextResponse } from "next/server";
 
 type AnswerMap = Record<string, AnswerValue>;
@@ -19,6 +20,10 @@ export async function POST(request: NextRequest) {
 
   const exam = await prisma.exam.findUnique({ where: { id: examId }, include: { questions: { orderBy: { order: "asc" } } } });
   if (!exam || exam.status !== "published") return NextResponse.json({ error: "Không tìm thấy đề thi" }, { status: 404 });
+
+  const now = new Date();
+  if (exam.openAt && now < exam.openAt) return NextResponse.json({ error: "Đề thi chưa mở" }, { status: 403 });
+  if (exam.closeAt && now > exam.closeAt) return NextResponse.json({ error: "Đề thi đã đóng" }, { status: 403 });
 
   let studentId: string | null = null;
   let guestParticipantId: string | null = null;
@@ -58,6 +63,10 @@ export async function POST(request: NextRequest) {
   try {
     await prisma.notification.create({ data: { userId: exam.teacherId, type: "exam_result", title: "Có người vừa nộp bài", message: `${participantName} vừa nộp bài "${exam.title}" — Điểm: ${score}/10`, link: `/bang-dieu-khien/de-thi/${exam.id}` } });
   } catch { /* ignore notification errors */ }
+
+  if (studentId) {
+    try { await bumpStudyStreak(studentId); } catch { /* ignore streak errors */ }
+  }
 
   return NextResponse.json({ submission, isGuest: Boolean(guestParticipantId), resultLink: guestParticipantId ? null : `/bang-dieu-khien/ket-qua/${submission.id}` });
 }

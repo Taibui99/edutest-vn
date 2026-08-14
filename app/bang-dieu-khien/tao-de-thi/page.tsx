@@ -27,6 +27,8 @@ export default async function TaoDeThiPage({ searchParams }: { searchParams: Pro
           allowGuestAttempts: true,
           maxAttempts: true,
           showAnswers: true,
+          openAt: true,
+          closeAt: true,
           status: true,
           questions: {
             orderBy: { order: "asc" },
@@ -34,7 +36,7 @@ export default async function TaoDeThiPage({ searchParams }: { searchParams: Pro
           },
         },
       });
-      if (exam) initialExam = exam;
+      if (exam) initialExam = { ...exam, openAt: exam.openAt ? exam.openAt.toISOString() : null, closeAt: exam.closeAt ? exam.closeAt.toISOString() : null };
     }
   }
 

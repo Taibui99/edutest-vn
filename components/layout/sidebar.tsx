@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, BookOpen, FileText, Sparkles, Users,
-  User, Plus, Library, BarChart3, GraduationCap, LogOut,
+  User, Plus, Library, BarChart3, GraduationCap, LogOut, TrendingUp, ShieldCheck,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { NotificationBell } from "@/components/ui/notification-bell";
@@ -19,6 +19,7 @@ interface NavItem {
 const studentNav: NavItem[] = [
   { href: "/bang-dieu-khien",            label: "Tổng quan",  icon: <LayoutDashboard size={18} />, exact: true },
   { href: "/bang-dieu-khien/hoc-tap",    label: "Học tập",    icon: <BookOpen size={18} /> },
+  { href: "/bang-dieu-khien/tien-do",    label: "Tiến độ",    icon: <TrendingUp size={18} /> },
   { href: "/bang-dieu-khien/de-thi",     label: "Đề thi",     icon: <FileText size={18} /> },
   { href: "/bang-dieu-khien/ai",         label: "AI Coach",   icon: <Sparkles size={18} /> },
   { href: "/bang-dieu-khien/lop-hoc",   label: "Lớp học",    icon: <GraduationCap size={18} /> },
@@ -68,8 +69,9 @@ function NavLink({ item, pathname }: { item: NavItem; pathname: string }) {
 
 export function Sidebar({ user, logoutAction }: SidebarProps) {
   const pathname = usePathname();
-  const isTeacher = user.role === "teacher";
+  const isTeacher = user.role === "teacher" || user.role === "admin";
   const nav = isTeacher ? teacherNav : studentNav;
+  const isAdmin = user.role === "admin";
 
   return (
     <aside className="hidden lg:flex flex-col w-[220px] shrink-0 border-r border-[var(--surface-border)] bg-[var(--surface-sidebar)] h-screen sticky top-0 overflow-y-auto">
@@ -98,6 +100,12 @@ export function Sidebar({ user, logoutAction }: SidebarProps) {
         {nav.map((item) => (
           <NavLink key={item.href} item={item} pathname={pathname} />
         ))}
+        {isAdmin && (
+          <NavLink
+            item={{ href: "/admin", label: "Quản trị", icon: <ShieldCheck size={18} />, exact: true }}
+            pathname={pathname}
+          />
+        )}
       </nav>
 
       {/* User + logout */}

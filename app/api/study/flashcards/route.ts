@@ -26,6 +26,7 @@ export async function POST(request: NextRequest) {
 
   const body = await request.json();
   const subject = String(body.subject || "").trim();
+  const deck = String(body.deck || "Mặc định").trim() || "Mặc định";
   const front = String(body.front || "").trim();
   const back = String(body.back || "").trim();
 
@@ -34,7 +35,7 @@ export async function POST(request: NextRequest) {
   }
 
   const card = await prisma.flashcard.create({
-    data: { studentId: session.user.id, subject, front, back },
+    data: { studentId: session.user.id, subject, deck, front, back },
   });
 
   return NextResponse.json({ card });

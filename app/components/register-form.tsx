@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { registerAction, type AuthFormState } from "@/app/actions/auth";
 import { Spinner } from "@/app/components/spinner";
 
@@ -11,6 +11,14 @@ export function RegisterForm() {
     registerAction,
     initialState,
   );
+  const [canAdmin, setCanAdmin] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/admin/status")
+      .then((r) => r.json())
+      .then((d: { hasAdmin: boolean }) => setCanAdmin(!d.hasAdmin))
+      .catch(() => {});
+  }, []);
 
   return (
     <form action={formAction} className="space-y-5">
@@ -75,6 +83,7 @@ export function RegisterForm() {
           </option>
           <option value="teacher">Giáo viên</option>
           <option value="student">Học sinh</option>
+          {canAdmin && <option value="admin">Quản trị viên (admin đầu tiên)</option>}
         </select>
       </div>
 

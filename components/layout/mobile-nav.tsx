@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, BookOpen, FileText, Sparkles, User,
-  Users, MoreHorizontal,
+  Users, MoreHorizontal, TrendingUp,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { NotificationBell } from "@/components/ui/notification-bell";
@@ -12,8 +12,8 @@ import { NotificationBell } from "@/components/ui/notification-bell";
 const studentMobileNav = [
   { href: "/bang-dieu-khien",         label: "Home",   icon: <LayoutDashboard size={20} />, exact: true },
   { href: "/bang-dieu-khien/hoc-tap", label: "Học",    icon: <BookOpen size={20} /> },
+  { href: "/bang-dieu-khien/tien-do", label: "Tiến độ", icon: <TrendingUp size={20} /> },
   { href: "/bang-dieu-khien/de-thi",  label: "Đề",     icon: <FileText size={20} /> },
-  { href: "/bang-dieu-khien/ai",      label: "AI",     icon: <Sparkles size={20} /> },
   { href: "/bang-dieu-khien/ho-so",  label: "Profile", icon: <User size={20} /> },
 ];
 
@@ -43,7 +43,7 @@ export function MobileTopbar({ user }: { user: { name: string; role: string } })
 
 export function MobileBottomNav({ user }: { user: { name: string; role: string } }) {
   const pathname = usePathname();
-  const nav = user.role === "teacher" ? teacherMobileNav : studentMobileNav;
+  const nav = user.role === "teacher" || user.role === "admin" ? teacherMobileNav : studentMobileNav;
 
   return (
     <nav

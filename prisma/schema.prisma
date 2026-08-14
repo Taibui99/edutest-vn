@@ -18,11 +18,15 @@ model User {
   school        String?
   grade         String?
   bio           String?
-  examDate      DateTime?
-  streak        Int      @default(0)
-  lastStudyDate DateTime?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  examDate         DateTime?
+  streak           Int      @default(0)
+  lastStudyDate    DateTime?
+  isBlocked        Boolean  @default(false)
+  lastLoginAt      DateTime?
+  resetToken       String?  @unique
+  resetTokenExpiry DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   exams              Exam[]
   submissions        Submission[]
@@ -33,6 +37,9 @@ model User {
   classroomsAsTeacher Classroom[]       @relation("TeacherClassrooms")
   classroomsAsMember  ClassMember[]
   questionBankItems   QuestionBankItem[]
+  appLogs             AppLog[]
+  reports             Report[]
+  aiImportLogs        AiImportLog[]
 
   @@index([email])
 }
@@ -88,14 +95,17 @@ model Exam {
   allowGuestAttempts Boolean  @default(true)
   shuffleQuestions   Boolean  @default(false)
   shuffleAnswers     Boolean  @default(false)
-  maxAttempts        Int      @default(1)
-  showAnswers        Boolean  @default(true)
+  maxAttempts        Int       @default(1)
+  showAnswers        Boolean   @default(true)
+  openAt             DateTime?
+  closeAt            DateTime?
   teacherId          String
   teacher            User     @relation(fields: [teacherId], references: [id], onDelete: Cascade)
   questions          Question[]
   submissions        Submission[]
   guestParticipants  GuestParticipant[]
   assignments        ExamAssignment[]
+  reports            Report[]
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
   @@index([teacherId])
@@ -168,6 +178,7 @@ model Flashcard {
   studentId      String
   student        User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
   subject        String
+  deck           String   @default("Mặc định")
   front          String
   back           String
   easinessFactor Float    @default(2.5)
@@ -219,4 +230,54 @@ model QuestionBankItem {
   updatedAt   DateTime @updatedAt
   @@index([teacherId])
   @@index([teacherId, subject])
+}
+
+model AppLog {
+  id        String   @id @default(cuid())
+  actorId   String?
+  actor     User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  type      String
+  message   String
+  meta      Json?
+  createdAt DateTime @default(now())
+  @@index([type])
+  @@index([actorId])
+  @@index([createdAt])
+}
+
+model SystemSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
+model Report {
+  id          String   @id @default(cuid())
+  reporterId  String?
+  reporter    User?    @relation(fields: [reporterId], references: [id], onDelete: SetNull)
+  examId      String?
+  exam        Exam?    @relation(fields: [examId], references: [id], onDelete: SetNull)
+  type        String
+  description String
+  status      String   @default("pending")
+  resolvedAt  DateTime?
+  createdAt   DateTime @default(now())
+  @@index([status])
+  @@index([createdAt])
+}
+
+model AiImportLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action     String
+  provider   String
+  status     String
+  model      String?
+  prompt     String?
+  error      String?
+  meta       Json?
+  createdAt  DateTime @default(now())
+  @@index([userId])
+  @@index([createdAt])
 }

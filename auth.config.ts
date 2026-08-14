@@ -9,7 +9,9 @@ export const authConfig: NextAuthConfig = {
   callbacks: {
     authorized({ auth, request: { nextUrl } }) {
       const isLoggedIn = !!auth?.user;
-      const isProtected = nextUrl.pathname.startsWith("/bang-dieu-khien");
+      const isProtected =
+        nextUrl.pathname.startsWith("/bang-dieu-khien") ||
+        nextUrl.pathname.startsWith("/admin");
       const isAuthPage =
         nextUrl.pathname.startsWith("/dang-nhap") ||
         nextUrl.pathname.startsWith("/dang-ky");

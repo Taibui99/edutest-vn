@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import { AuthError } from "next-auth";
 import { signIn, signOut } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { logAudit } from "@/lib/audit";
 
 export type AuthFormState = {
   error?: string;
@@ -62,7 +63,14 @@ export async function registerAction(
   }
 
   if (!["teacher", "student"].includes(role)) {
-    return { error: "Vai trò không hợp lệ." };
+    if (role === "admin") {
+      const adminCount = await prisma.user.count({ where: { role: "admin" } });
+      if (adminCount > 0) {
+        return { error: "Vai trò không hợp lệ." };
+      }
+    } else {
+      return { error: "Vai trò không hợp lệ." };
+    }
   }
 
   const existingUser = await prisma.user.findUnique({ where: { email } });
@@ -80,6 +88,11 @@ export async function registerAction(
       password: hashedPassword,
       role,
     },
+  });
+
+  await logAudit({
+    type: "user.register",
+    message: `Tài khoản mới: ${fullName} (${email}, vai trò ${role})`,
   });
 
   try {

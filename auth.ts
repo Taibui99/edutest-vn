@@ -28,11 +28,20 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           return null;
         }
 
+        if (user.isBlocked) {
+          return null;
+        }
+
         const isValid = await bcrypt.compare(password, user.password);
 
         if (!isValid) {
           return null;
         }
+
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { lastLoginAt: new Date() },
+        });
 
         return {
           id: user.id,

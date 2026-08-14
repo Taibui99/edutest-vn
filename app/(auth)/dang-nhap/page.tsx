@@ -22,6 +22,13 @@ export default function LoginPage() {
           >
             Đăng ký ngay
           </Link>
+          {" · "}
+          <Link
+            href="/quen-mat-khau"
+            className="font-semibold text-blue-600 hover:text-blue-700"
+          >
+            Quên mật khẩu?
+          </Link>
         </>
       }
     >

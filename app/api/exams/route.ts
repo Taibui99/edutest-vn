@@ -45,6 +45,8 @@ export async function POST(request: NextRequest) {
   const allowGuestAttempts = body.allowGuestAttempts === undefined ? true : Boolean(body.allowGuestAttempts);
   const maxAttempts = Math.max(1, Number(body.maxAttempts || 1));
   const showAnswers = body.showAnswers === undefined ? true : Boolean(body.showAnswers);
+  const openAt = body.openAt ? new Date(String(body.openAt)) : null;
+  const closeAt = body.closeAt ? new Date(String(body.closeAt)) : null;
   const status = body.status === "draft" ? "draft" : "published";
   const questions = normalizeQuestions(Array.isArray(body.questions) ? body.questions : []);
 
@@ -71,6 +73,8 @@ export async function POST(request: NextRequest) {
       maxAttempts,
       showAnswers,
       status,
+      openAt,
+      closeAt,
       teacherId: session.user.id,
       questions: { create: questions },
     },

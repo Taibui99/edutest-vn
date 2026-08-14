@@ -17,7 +17,7 @@ export default async function ExamListPage({ searchParams }: { searchParams: Pro
   const session = await auth();
   if (!session?.user) redirect("/dang-nhap");
 
-  const isTeacher = session.user.role === "teacher";
+  const isTeacher = session.user.role === "teacher" || session.user.role === "admin";
 
   if (isTeacher) {
     const { q, subject, status } = await searchParams;
@@ -77,10 +77,16 @@ export default async function ExamListPage({ searchParams }: { searchParams: Pro
           </Card>
         ) : (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-2">
-            {exams.map((exam: { id: string; title: string; subject: string; joinCode: string; status: string; durationMinutes: number; createdAt: Date; _count: { questions: number; submissions: number }; submissions: { score: number }[] }) => {
+            {exams.map((exam: { id: string; title: string; subject: string; joinCode: string; status: string; durationMinutes: number; openAt: Date | null; closeAt: Date | null; createdAt: Date; _count: { questions: number; submissions: number }; submissions: { score: number }[] }) => {
               const c = getSubjectColor(exam.subject);
               const avgScore = exam.submissions.length > 0
                 ? exam.submissions.reduce((s, sub) => s + sub.score, 0) / exam.submissions.length
+                : null;
+              const now = new Date();
+              const schedule = exam.openAt || exam.closeAt
+                ? exam.openAt && now < exam.openAt ? `Mở lúc ${exam.openAt.toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" })}`
+                  : exam.closeAt && now > exam.closeAt ? `Đóng lúc ${exam.closeAt.toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" })}`
+                    : exam.closeAt ? `Đóng lúc ${exam.closeAt.toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" })}` : null
                 : null;
 
               return (
@@ -109,6 +115,11 @@ export default async function ExamListPage({ searchParams }: { searchParams: Pro
                         <span className="flex items-center gap-1"><Clock size={12} /> {exam.durationMinutes} phút</span>
                         <span className="flex items-center gap-1"><Users size={12} /> {exam._count.submissions} bài nộp</span>
                       </div>
+                      {schedule && (
+                        <p className="mt-2 text-[11px] font-semibold text-[#D97706] flex items-center gap-1">
+                          <Clock size={11} /> {schedule}
+                        </p>
+                      )}
                       {avgScore !== null && (
                         <div className="mt-3 pt-3 border-t border-[#F1F5F9] flex items-center justify-between">
                           <span className="text-xs text-[#94A3B8]">Điểm trung bình</span>

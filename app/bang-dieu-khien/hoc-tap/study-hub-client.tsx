@@ -15,6 +15,7 @@ type Task = {
 type Card = {
   id: string;
   subject: string;
+  deck: string;
   front: string;
   back: string;
   easinessFactor: number;
@@ -338,9 +339,22 @@ function FlashcardPanel({
   const [flipped, setFlipped] = useState(false);
 
   const [newSubject, setNewSubject] = useState("");
+  const [newDeck, setNewDeck] = useState("");
   const [newFront, setNewFront] = useState("");
   const [newBack, setNewBack] = useState("");
   const [addingCard, setAddingCard] = useState(false);
+  const [deckFilter, setDeckFilter] = useState("Tất cả");
+
+  const decks = useMemo(() => {
+    const set = new Set<string>(["Tất cả"]);
+    cards.forEach((c) => set.add(c.deck || "Mặc định"));
+    return Array.from(set);
+  }, [cards]);
+
+  const visibleCards = useMemo(
+    () => (deckFilter === "Tất cả" ? cards : cards.filter((c) => (c.deck || "Mặc định") === deckFilter)),
+    [cards, deckFilter],
+  );
 
   const startReview = () => {
     const due = cards.filter((c) => new Date(c.nextReviewAt) <= new Date());
@@ -357,13 +371,14 @@ function FlashcardPanel({
       const res = await fetch("/api/study/flashcards", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ subject: newSubject, front: newFront, back: newBack }),
+        body: JSON.stringify({ subject: newSubject, deck: newDeck, front: newFront, back: newBack }),
       });
       const data = await res.json();
       if (res.ok) {
         setCards((prev) => [data.card, ...prev]);
         setDueCount((prev) => prev + 1);
         setNewSubject("");
+        setNewDeck("");
         setNewFront("");
         setNewBack("");
         setMode("list");
@@ -427,13 +442,22 @@ function FlashcardPanel({
 
       {mode === "add" && (
         <div className="space-y-3 rounded-lg border border-slate-100 bg-slate-50 p-4 mb-4">
-          <input
-            type="text"
-            placeholder="Môn học"
-            value={newSubject}
-            onChange={(e) => setNewSubject(e.target.value)}
-            className="w-full h-9 rounded-lg border border-slate-200 px-3 text-sm"
-          />
+          <div className="grid sm:grid-cols-2 gap-3">
+            <input
+              type="text"
+              placeholder="Môn học"
+              value={newSubject}
+              onChange={(e) => setNewSubject(e.target.value)}
+              className="w-full h-9 rounded-lg border border-slate-200 px-3 text-sm"
+            />
+            <input
+              type="text"
+              placeholder="Bộ thẻ (VD: Chương 1, Từ vựng...)"
+              value={newDeck}
+              onChange={(e) => setNewDeck(e.target.value)}
+              className="w-full h-9 rounded-lg border border-slate-200 px-3 text-sm"
+            />
+          </div>
           <textarea
             placeholder="Mặt trước (câu hỏi)"
             value={newFront}
@@ -508,27 +532,49 @@ function FlashcardPanel({
       )}
 
       {mode === "list" && (
-        <div className="grid gap-3 sm:grid-cols-2">
-          {cards.map((card) => (
-            <div key={card.id} className="rounded-lg border border-slate-100 bg-slate-50 p-3">
-              <div className="flex items-start justify-between gap-2">
-                <span className="text-xs font-semibold text-green-600">{card.subject}</span>
-                <button onClick={() => deleteCard(card.id)} className="text-slate-400 hover:text-red-500 text-xs">
-                  ✕
+        <>
+          {decks.length > 1 && (
+            <div className="flex gap-2 mb-3 flex-wrap">
+              {decks.map((d) => (
+                <button
+                  key={d}
+                  onClick={() => setDeckFilter(d)}
+                  className={`rounded-lg px-3 py-1 text-xs font-semibold transition-colors ${deckFilter === d ? "bg-green-600 text-white" : "bg-slate-100 text-slate-500 hover:bg-slate-200"}`}
+                >
+                  {d}
                 </button>
-              </div>
-              <p className="mt-1 text-sm font-medium text-slate-800 line-clamp-2">{card.front}</p>
-              <p className="mt-1 text-xs text-slate-500">
-                Ôn lại: {new Date(card.nextReviewAt).toLocaleDateString("vi-VN")}
-              </p>
-            </div>
-          ))}
-          {cards.length === 0 && (
-            <div className="col-span-2 text-sm text-slate-400 text-center py-6">
-              Chưa có thẻ nào, bấm &quot;+ Thêm thẻ&quot; để tạo thẻ đầu tiên.
+              ))}
             </div>
           )}
-        </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {visibleCards.map((card) => (
+              <div key={card.id} className="rounded-lg border border-slate-100 bg-slate-50 p-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex flex-wrap gap-1.5">
+                    <span className="text-xs font-semibold text-green-600">{card.subject}</span>
+                    {card.deck && card.deck !== "Mặc định" && (
+                      <span className="text-[10px] font-bold bg-green-100 text-green-700 px-1.5 py-0.5 rounded">{card.deck}</span>
+                    )}
+                  </div>
+                  <button onClick={() => deleteCard(card.id)} className="text-slate-400 hover:text-red-500 text-xs">
+                    ✕
+                  </button>
+                </div>
+                <p className="mt-1 text-sm font-medium text-slate-800 line-clamp-2">{card.front}</p>
+                <p className="mt-1 text-xs text-slate-500">
+                  Ôn lại: {new Date(card.nextReviewAt).toLocaleDateString("vi-VN")}
+                </p>
+              </div>
+            ))}
+            {visibleCards.length === 0 && (
+              <div className="col-span-2 text-sm text-slate-400 text-center py-6">
+                {deckFilter === "Tất cả"
+                  ? "Chưa có thẻ nào, bấm \"+ Thêm thẻ\" để tạo thẻ đầu tiên."
+                  : "Bộ thẻ này chưa có thẻ nào."}
+              </div>
+            )}
+          </div>
+        </>
       )}
     </div>
   );

@@ -27,6 +27,35 @@ export default async function ThiPage({ params, searchParams }: { params: Promis
 
   if (!exam || exam.status !== "published") return <div className="min-h-screen grid place-items-center bg-[#F8FAFC] p-4"><div className="rounded-2xl bg-white p-8 text-center"><h1 className="text-xl font-bold">Mã tham gia không hợp lệ</h1><Link href="/vao-thi" className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-[#2563EB]"><ArrowLeft size={14}/> Nhập mã khác</Link></div></div>;
 
+  const now = new Date();
+  const notStarted = exam.openAt ? now < exam.openAt : false;
+  const expired = exam.closeAt ? now > exam.closeAt : false;
+  const isPreview = preview === "1" && session?.user?.role === "teacher";
+  const fmt = (d: Date) => d.toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" });
+  if ((notStarted || expired) && !isPreview) {
+    return (
+      <div className="min-h-screen grid place-items-center bg-[#F8FAFC] p-4">
+        <div className="max-w-md w-full rounded-2xl bg-white p-8 text-center">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[#FFF4E5] text-[#D97706] text-xl">⏰</div>
+          {notStarted ? (
+            <>
+              <h1 className="text-xl font-bold">Chưa đến giờ mở đề</h1>
+              <p className="mt-2 text-sm text-[#64748B]">Đề thi sẽ mở lúc <span className="font-bold text-[#D97706]">{exam.openAt ? fmt(exam.openAt) : ""}</span></p>
+            </>
+          ) : (
+            <>
+              <h1 className="text-xl font-bold">Đề thi đã đóng</h1>
+              <p className="mt-2 text-sm text-[#64748B]">Đề thi đã đóng lúc <span className="font-bold text-[#D97706]">{exam.closeAt ? fmt(exam.closeAt) : ""}</span></p>
+            </>
+          )}
+          <Link href="/vao-thi" className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#2563EB] px-5 py-2.5 text-sm font-semibold text-white">
+            <ArrowLeft size={14}/> Nhập mã khác
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   if (!session?.user) {
     if (!exam.allowGuestAttempts) return <div className="min-h-screen grid place-items-center bg-[#F8FAFC] p-4"><div className="max-w-md rounded-2xl bg-white p-8 text-center"><UserRound size={30} className="mx-auto mb-4 text-[#2563EB]"/><p className="text-sm font-semibold text-[#2563EB]">Đề thi chính thức</p><h1 className="mt-2 text-xl font-bold">Cần đăng nhập</h1><p className="my-4 text-sm text-[#64748B]">Giáo viên không cho phép khách tham gia đề thi này.</p><Link href="/dang-nhap" className="inline-flex w-full justify-center rounded-lg bg-[#2563EB] px-5 py-2.5 text-sm font-semibold text-white">Đăng nhập để làm bài</Link></div></div>;
     const token = (await cookies()).get(`edutest_guest_${exam.id}`)?.value;

@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import mammoth from "mammoth";
 import pdfParse from "pdf-parse";
 import { auth } from "@/auth";
+import { prisma } from "@/lib/prisma";
 
 const geminiModel = process.env.EXAM_IMPORT_MODEL || "gemini-3.5-flash-lite";
 const MAX_FILE_BYTES = 50 * 1024 * 1024;
@@ -143,6 +144,7 @@ export async function POST(request: NextRequest) {
   }
 
   const encoder = new TextEncoder();
+  let aiLogId: string | null = null;
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
       const send = (payload: unknown) => {
@@ -150,6 +152,19 @@ export async function POST(request: NextRequest) {
       };
 
       try {
+        try {
+          const log = await prisma.aiImportLog.create({
+            data: {
+              userId: session.user.id,
+              action: "exam_import",
+              provider: "gemini",
+              status: "running",
+              model: geminiModel,
+              prompt: prompt ? prompt.slice(0, 2000) : null,
+            },
+          });
+          aiLogId = log.id;
+        } catch {}
         let resultText = "";
         let source: "docx" | "pdf-text" | "pdf-gemini" | "text" = "text";
 
@@ -212,11 +227,23 @@ export async function POST(request: NextRequest) {
         const elapsedMs = Date.now() - startedAt;
         console.info(`[exam-import] completed in ${elapsedMs}ms; model=${geminiModel}; source=${source}`);
         send({ type: "result", result: resultText, meta: { model: geminiModel, source, elapsedMs } });
+        if (aiLogId) {
+          await prisma.aiImportLog.update({
+            where: { id: aiLogId },
+            data: { status: "success", meta: { source, elapsedMs } },
+          }).catch(() => {});
+        }
       } catch (error) {
         const elapsedMs = Date.now() - startedAt;
         console.error(`[exam-import] failed after ${elapsedMs}ms`, error);
         const message = error instanceof Error ? error.message : "Lỗi không xác định";
         send({ type: "error", error: mapError(message) });
+        if (aiLogId) {
+          await prisma.aiImportLog.update({
+            where: { id: aiLogId },
+            data: { status: "failed", error: message.slice(0, 1000) },
+          }).catch(() => {});
+        }
       } finally {
         try { controller.close(); } catch {}
       }
