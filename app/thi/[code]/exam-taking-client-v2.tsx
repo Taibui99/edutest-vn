@@ -76,9 +76,10 @@ export function ExamTakingClientV2({ exam, preview = false, backHref }: { exam: 
   const draftKey = `edutest-draft-${exam.id}`;
   const draftRef = useRef({ answers, marked, remaining, shuffle: null as number[] | null, optionShuffle: {} as Record<string, number[]> });
   draftRef.current = { answers, marked, remaining, shuffle: questionOrder, optionShuffle: optionShuffleRef.current };
+  const submittedRef = useRef(false);
 
   const saveDraft = useCallback(() => {
-    if (preview) return;
+    if (preview || submittedRef.current) return;
     if (Object.keys(draftRef.current.answers).length === 0 && Object.keys(draftRef.current.marked).length === 0) return;
     try {
       localStorage.setItem(draftKey, JSON.stringify({ ...draftRef.current, savedAt: Date.now() }));
@@ -112,6 +113,7 @@ export function ExamTakingClientV2({ exam, preview = false, backHref }: { exam: 
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Không thể nộp bài");
+      submittedRef.current = true;
       clearDraft();
       if (data.resultLink) {
         router.push(data.resultLink);
