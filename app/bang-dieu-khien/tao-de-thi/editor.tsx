@@ -115,13 +115,7 @@ export function TaoDeThiEditor({ editId, initialExam }: { editId: string | null;
   const addQuestion = (type: QuestionType = "mcq") => setQuestions((all) => [...all, blankQuestion(type)]);
   const removeQuestion = (index: number) => setQuestions((all) => all.length === 1 ? [blankQuestion()] : all.filter((_, i) => i !== index));
 
-  const handleImport = async (file: File) => {
-    const form = new FormData(); form.append("file", file);
-    const res = await fetch("/api/gemini", { method: "POST", body: form });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Không thể import đề");
-    let parsed: { title?: unknown; questions?: unknown[] };
-    try { parsed = JSON.parse(String(data.result).replace(/^```json\s*/i, "").replace(/```$/i, "").trim()); } catch { throw new Error("AI trả về dữ liệu không hợp lệ"); }
+  const applyImported = (parsed: { title?: unknown; questions?: unknown[] }) => {
     if (parsed.title) setTitle(String(parsed.title));
     if (Array.isArray(parsed.questions)) setQuestions(parsed.questions.map(importedToQuestion));
   };
@@ -183,7 +177,7 @@ export function TaoDeThiEditor({ editId, initialExam }: { editId: string | null;
         </div>
       </div>
 
-      <ImportExamModal open={importOpen} onClose={()=>setImportOpen(false)} onImport={handleImport}/>
+      <ImportExamModal open={importOpen} onClose={()=>setImportOpen(false)} onSuccess={applyImported}/>
       {preview && <div className="fixed inset-0 z-[100] overflow-y-auto bg-black/50 p-4 backdrop-blur-sm"><div className="mx-auto max-w-4xl rounded-2xl bg-white p-6 shadow-2xl"><div className="mb-5 flex items-center justify-between"><div><p className="text-xs text-slate-500">Xem trước</p><h2 className="text-xl font-black">{title || "Đề thi mới"}</h2></div><button onClick={()=>setPreview(false)} className="grid h-9 w-9 place-items-center rounded-lg bg-slate-100"><X size={17}/></button></div><div className="flex flex-col gap-4">{questions.map((q,i)=><div key={i} className="rounded-xl border p-4"><p className="mb-3 font-semibold">Câu {i+1}. {q.question}</p>{q.type==="mcq"&&q.options.map((o,oi)=><div key={oi} className="mb-1 rounded-lg border p-2 text-sm">{String.fromCharCode(65+oi)}. {o}</div>)}{q.type==="true_false"&&(q.grading?.statements||[]).map((s,si)=><div key={si} className="mb-1 flex justify-between rounded-lg border p-2 text-sm"><span>{String.fromCharCode(97+si)}) {s.text}</span><strong>{s.answer?"Đúng":"Sai"}</strong></div>)}{q.type==="short_answer"&&<div className="rounded-lg border bg-slate-50 p-3 text-sm">Ô trả lời ngắn</div>}{q.type==="essay"&&<div className="min-h-28 rounded-lg border bg-slate-50 p-3 text-sm">Ô trả lời tự luận</div>}</div>)}</div></div></div>}
     </div>
   );
