@@ -33,6 +33,7 @@ interface Submission {
     title: string;
     subject: string;
     showAnswers: boolean;
+    showScoreImmediately: boolean;
     teacher: { name: string };
     questions: Question[];
   };
@@ -114,7 +115,15 @@ export default function ResultPage({ params }: { params: Promise<{ id: string }>
         <h1 className="text-lg font-black text-[var(--text-primary)] mb-1">{exam.title}</h1>
         <p className="text-sm text-[var(--text-muted)] mb-4">GV: {exam.teacher.name}</p>
 
-        <ScoreGauge score={sub.score} />
+        {exam.showScoreImmediately === false ? (
+          <div className="rounded-2xl bg-amber-50 border border-amber-200 p-5">
+            <div className="text-3xl mb-2">⏳</div>
+            <p className="font-black text-[var(--text-primary)] mb-1">Đã nộp bài thành công</p>
+            <p className="text-sm text-[var(--text-muted)]">Giáo viên sẽ công bố điểm sau khi chấm bài.</p>
+          </div>
+        ) : (
+          <ScoreGauge score={sub.score} />
+        )}
 
         <div className="grid grid-cols-3 gap-3 mt-2">
           <div className="rounded-xl bg-[#E1F5EE] p-3">

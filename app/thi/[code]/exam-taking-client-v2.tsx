@@ -27,6 +27,7 @@ type Exam = {
   participantClass?: string;
   shuffleQuestions?: boolean;
   shuffleAnswers?: boolean;
+  showScoreImmediately?: boolean;
   questions: Question[];
 };
 
@@ -254,10 +255,21 @@ export function ExamTakingClientV2({ exam, preview = false, backHref }: { exam: 
     return (
       <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl border border-[#E2E8F0] p-8 max-w-md w-full text-center">
-          <div className="w-20 h-20 rounded-full mx-auto mb-5 flex items-center justify-center" style={{ background: `${col}15` }}><Trophy size={36} style={{ color: col }} /></div>
-          {exam.isGuest && <p className="text-xs font-semibold text-[#64748B] mb-2">{exam.participantName} · {exam.participantClass}</p>}
-          <h1 className="text-3xl font-bold mb-1" style={{ color: col }}>{result.score}/10</h1>
-          <p className="text-[#64748B] text-sm mb-5">{result.correctCount}/{result.totalQuestions} câu được chấm · {formatTime(result.durationSeconds)}</p>
+          {exam.showScoreImmediately === false ? (
+            <>
+              <div className="w-20 h-20 rounded-full mx-auto mb-5 flex items-center justify-center bg-amber-50 text-amber-500 text-3xl">⏳</div>
+              <h1 className="text-2xl font-bold mb-2 text-[#0F172A]">Đã nộp bài thành công!</h1>
+              <p className="text-[#64748B] text-sm mb-5">
+                Giáo viên sẽ công bố điểm sau khi chấm. Bạn đã trả lời {result.totalQuestions} câu hỏi trong {formatTime(result.durationSeconds)}.
+              </p>
+            </>
+          ) : (
+            <>
+              <div className="w-20 h-20 rounded-full mx-auto mb-5 flex items-center justify-center" style={{ background: `${col}15` }}><Trophy size={36} style={{ color: col }} /></div>
+              <h1 className="text-3xl font-bold mb-1" style={{ color: col }}>{result.score}/10</h1>
+              <p className="text-[#64748B] text-sm mb-5">{result.correctCount}/{result.totalQuestions} câu được chấm · {formatTime(result.durationSeconds)}</p>
+            </>
+          )}
           {exam.isGuest ? <p className="text-xs text-[#94A3B8]">Kết quả đã được ghi nhận cho bài thi này.</p> : <Button className="w-full" onClick={() => router.push("/bang-dieu-khien")}>Về trang chủ</Button>}
         </div>
       </div>

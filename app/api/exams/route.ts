@@ -48,6 +48,7 @@ export async function POST(request: NextRequest) {
     : Boolean(body.allowGuestAttempts);
   const maxAttempts = Math.max(1, Number(body.maxAttempts || 1));
   const showAnswers = body.showAnswers === undefined ? true : Boolean(body.showAnswers);
+  const showScoreImmediately = body.showScoreImmediately === undefined ? true : Boolean(body.showScoreImmediately);
   const openAt = body.openAt ? new Date(String(body.openAt)) : null;
   const closeAt = body.closeAt ? new Date(String(body.closeAt)) : null;
   const status = body.status === "draft" ? "draft" : "published";
@@ -75,6 +76,7 @@ export async function POST(request: NextRequest) {
       allowGuestAttempts,
       maxAttempts,
       showAnswers,
+      showScoreImmediately,
       status,
       openAt,
       closeAt,

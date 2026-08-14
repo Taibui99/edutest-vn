@@ -99,6 +99,7 @@ model Exam {
   shuffleAnswers     Boolean  @default(false)
   maxAttempts        Int       @default(1)
   showAnswers        Boolean   @default(true)
+  showScoreImmediately Boolean @default(true)
   openAt             DateTime?
   closeAt            DateTime?
   hidden             Boolean   @default(false)
@@ -164,7 +165,7 @@ model Submission {
   @@index([studentId])
   @@index([examId, studentId])
   @@index([examId])
-  @@index([createdAt])
+  @@index([submittedAt])
 }
 
 model StudyTask {

@@ -76,6 +76,7 @@ export interface InitialExam {
   allowGuestAttempts: boolean;
   maxAttempts: number;
   showAnswers: boolean;
+  showScoreImmediately: boolean;
   openAt: string | null;
   closeAt: string | null;
   status: string;
@@ -93,6 +94,7 @@ export function TaoDeThiEditor({ editId, initialExam }: { editId: string | null;
   const [allowGuest, setAllowGuest] = useState(initialExam?.allowGuestAttempts ?? true);
   const [maxAttempts, setMaxAttempts] = useState(String(initialExam?.maxAttempts ?? 1));
   const [showAnswers, setShowAnswers] = useState(initialExam?.showAnswers ?? true);
+  const [showScore, setShowScore] = useState(initialExam?.showScoreImmediately ?? true);
   const toInput = (iso: string | null) => (iso ? iso.slice(0, 16) : "");
   const [openAt, setOpenAt] = useState(toInput(initialExam?.openAt ?? null));
   const [closeAt, setCloseAt] = useState(toInput(initialExam?.closeAt ?? null));
@@ -130,7 +132,7 @@ export function TaoDeThiEditor({ editId, initialExam }: { editId: string | null;
     if (!stats.valid) { setError("Hãy hoàn thiện tên đề, môn học và các câu hỏi trước khi lưu."); return; }
     setPublishing(true);
     const status = requestedStatus ?? currentStatus;
-    const payload = { title: title.trim(), subject, description: description.trim() || undefined, durationMinutes: Number(duration), shuffleQuestions, shuffleAnswers, allowGuestAttempts: allowGuest, maxAttempts: Number(maxAttempts), showAnswers, openAt: openAt ? new Date(openAt).toISOString() : null, closeAt: closeAt ? new Date(closeAt).toISOString() : null, status, questions };
+    const payload = { title: title.trim(), subject, description: description.trim() || undefined, durationMinutes: Number(duration), shuffleQuestions, shuffleAnswers, allowGuestAttempts: allowGuest, maxAttempts: Number(maxAttempts), showAnswers, showScoreImmediately: showScore, openAt: openAt ? new Date(openAt).toISOString() : null, closeAt: closeAt ? new Date(closeAt).toISOString() : null, status, questions };
     try {
       const res = editId
         ? await fetch(`/api/exams/${editId}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) })
@@ -177,7 +179,7 @@ export function TaoDeThiEditor({ editId, initialExam }: { editId: string | null;
 
           <aside className="flex flex-col gap-5 xl:sticky xl:top-5 xl:self-start">
             <div className="rounded-2xl border border-[var(--surface-border)] bg-[var(--surface-card)] p-5 shadow-sm"><h3 className="mb-4 text-sm font-black">Thông tin đề</h3><div className="flex flex-col gap-4"><Input label="Tên đề thi" value={title} onChange={(e)=>setTitle(e.target.value)} placeholder="VD: Kiểm tra chương 1"/><Select label="Môn học" value={subject} onChange={(e)=>setSubject(e.target.value)} options={SUBJECTS.map((s)=>({value:s,label:s}))} placeholder="Chọn môn học"/><Input label="Mô tả / hướng dẫn" value={description} onChange={(e)=>setDescription(e.target.value)} placeholder="Hướng dẫn ngắn cho học sinh"/><Select label="Thời gian" value={duration} onChange={(e)=>setDuration(e.target.value)} options={DURATION_OPTIONS}/><Input label="Số lần làm tối đa" type="number" min={1} value={maxAttempts} onChange={(e)=>setMaxAttempts(e.target.value)}/></div><div className="mt-4 border-t pt-4 flex flex-col gap-3"><p className="text-xs font-bold text-slate-500">Lịch mở / đóng đề (bỏ trống = luôn mở)</p><label className="flex flex-col gap-1 text-xs text-slate-600">Mở đề<input type="datetime-local" value={openAt} onChange={(e)=>setOpenAt(e.target.value)} className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900"/></label><label className="flex flex-col gap-1 text-xs text-slate-600">Đóng đề<input type="datetime-local" value={closeAt} onChange={(e)=>setCloseAt(e.target.value)} className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900"/></label></div></div>
-            <div className="rounded-2xl border border-[var(--surface-border)] bg-[var(--surface-card)] p-5 shadow-sm"><h3 className="mb-4 text-sm font-black">Cấu hình bài thi</h3><div className="flex flex-col gap-3 text-sm">{[[shuffleQuestions,"Trộn câu hỏi",setShuffleQuestions],[shuffleAnswers,"Trộn đáp án",setShuffleAnswers],[allowGuest,"Cho phép khách làm bài",setAllowGuest],[showAnswers,"Cho xem đáp án sau khi nộp",setShowAnswers]].map(([value,label,setter])=>label && setter ? <label key={String(label)} className="flex items-center justify-between gap-3"><span className="text-slate-600">{String(label)}</span><input type="checkbox" checked={Boolean(value)} onChange={(e)=>(setter as (v: boolean) => void)(e.target.checked)}/></label> : null)}</div><div className="mt-4 border-t pt-4 text-xs text-slate-500"><div className="flex justify-between py-1"><span>Số câu</span><strong>{stats.total}</strong></div><div className="flex justify-between py-1"><span>Lỗi cần sửa</span><strong className={stats.errors?"text-red-500":"text-emerald-600"}>{stats.errors}</strong></div></div></div>
+            <div className="rounded-2xl border border-[var(--surface-border)] bg-[var(--surface-card)] p-5 shadow-sm"><h3 className="mb-4 text-sm font-black">Cấu hình bài thi</h3><div className="flex flex-col gap-3 text-sm">{[[shuffleQuestions,"Trộn câu hỏi",setShuffleQuestions],[shuffleAnswers,"Trộn đáp án",setShuffleAnswers],[allowGuest,"Cho phép khách làm bài",setAllowGuest],[showAnswers,"Cho xem đáp án sau khi nộp",setShowAnswers],[showScore,"Hiển thị điểm ngay sau khi nộp",setShowScore]].map(([value,label,setter])=>label && setter ? <label key={String(label)} className="flex items-center justify-between gap-3"><span className="text-slate-600">{String(label)}</span><input type="checkbox" checked={Boolean(value)} onChange={(e)=>(setter as (v: boolean) => void)(e.target.checked)}/></label> : null)}</div><div className="mt-4 border-t pt-4 text-xs text-slate-500"><div className="flex justify-between py-1"><span>Số câu</span><strong>{stats.total}</strong></div><div className="flex justify-between py-1"><span>Lỗi cần sửa</span><strong className={stats.errors?"text-red-500":"text-emerald-600"}>{stats.errors}</strong></div></div></div>
           </aside>
         </div>
       </div>
