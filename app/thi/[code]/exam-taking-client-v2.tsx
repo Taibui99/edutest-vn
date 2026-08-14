@@ -62,15 +62,12 @@ export function ExamTakingClientV2({ exam, preview = false, backHref }: { exam: 
   const draftKey = `edutest-draft-${exam.id}`;
   const draftRef = useRef({ answers, marked, remaining });
   draftRef.current = { answers, marked, remaining };
-  const lastSavedRef = useRef<number | null>(null);
 
-  const saveDraft = useCallback((force = false) => {
+  const saveDraft = useCallback(() => {
     if (preview) return;
-    const last = lastSavedRef.current;
-    if (!force && last && Date.now() - last < 5000) return;
+    if (Object.keys(draftRef.current.answers).length === 0 && Object.keys(draftRef.current.marked).length === 0) return;
     try {
       localStorage.setItem(draftKey, JSON.stringify({ ...draftRef.current, savedAt: Date.now() }));
-      lastSavedRef.current = Date.now();
       setLastSaved(Date.now());
     } catch {
       /* localStorage unavailable */
@@ -156,8 +153,8 @@ export function ExamTakingClientV2({ exam, preview = false, backHref }: { exam: 
 
   useEffect(() => {
     if (preview) return;
-    const interval = window.setInterval(() => saveDraft(true), 15000);
-    const onHide = () => saveDraft(true);
+    const interval = window.setInterval(() => saveDraft(), 15000);
+    const onHide = () => saveDraft();
     window.addEventListener("pagehide", onHide);
     document.addEventListener("visibilitychange", onHide);
     return () => {
