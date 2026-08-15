@@ -70,7 +70,7 @@ export async function registerAction(
 
   if (!["teacher", "student"].includes(role)) {
     if (role === "admin") {
-      const adminCount = await prisma.user.count({ where: { role: "admin" } });
+      const adminCount = await prisma.user.count({ where: { role: "admin", deletedAt: null } });
       if (adminCount > 0) {
         return { error: "Vai trò không hợp lệ." };
       }
