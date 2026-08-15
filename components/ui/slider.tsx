@@ -5,6 +5,7 @@ import { cn } from "@/lib/cn";
 interface SliderProps {
   value: number;
   onChange: (value: number) => void;
+  onCommit?: (value: number) => void;
   min?: number;
   max?: number;
   step?: number;
@@ -16,6 +17,7 @@ interface SliderProps {
 export function Slider({
   value,
   onChange,
+  onCommit,
   min = 0,
   max = 100,
   step = 1,
@@ -48,6 +50,9 @@ export function Slider({
           step={step}
           value={value}
           onChange={(e) => onChange(Number(e.target.value))}
+          onPointerUp={onCommit ? () => onCommit(value) : undefined}
+          onKeyUp={onCommit ? () => onCommit(value) : undefined}
+          onBlur={onCommit ? () => onCommit(value) : undefined}
           className="ui-range relative"
           aria-label={label}
         />

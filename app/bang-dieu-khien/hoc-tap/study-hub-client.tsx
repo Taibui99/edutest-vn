@@ -2,6 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Spinner } from "@/app/components/spinner";
+import { Checkbox } from "@/components/ui/checkbox";
+import { DateField } from "@/components/ui/date-field";
+import { Slider } from "@/components/ui/slider";
 
 type Task = {
   id: string;
@@ -100,12 +103,7 @@ function ExamCountdown({ initialExamDate }: { initialExamDate: string | null }) 
         <div className="flex flex-wrap items-end gap-3">
           <div>
             <label className="block text-sm font-semibold text-slate-700 mb-1">Ngày thi THPT của bạn</label>
-            <input
-              type="date"
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              className="h-10 rounded-lg border border-slate-200 px-3 text-sm"
-            />
+            <DateField type="date" value={inputValue} onChange={(e) => setInputValue(e.target.value)} className="h-10"/>
           </div>
           <button
             onClick={saveDate}
@@ -209,12 +207,7 @@ function TaskTracker({ initialTasks }: { initialTasks: Task[] }) {
           onChange={(e) => setSubject(e.target.value)}
           className="w-28 h-9 rounded-lg border border-slate-200 px-3 text-sm"
         />
-        <input
-          type="date"
-          value={dueDate}
-          onChange={(e) => setDueDate(e.target.value)}
-          className="h-9 rounded-lg border border-slate-200 px-2 text-sm"
-        />
+        <DateField type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} className="h-9 w-36"/>
         <button
           onClick={addTask}
           disabled={adding || !title.trim()}
@@ -231,12 +224,7 @@ function TaskTracker({ initialTasks }: { initialTasks: Task[] }) {
             key={task.id}
             className={`flex items-center gap-3 rounded-lg p-3 ${task.completed ? "bg-slate-50" : "bg-green-50"}`}
           >
-            <input
-              type="checkbox"
-              checked={task.completed}
-              onChange={(e) => toggleTask(task.id, e.target.checked)}
-              className="h-4 w-4 accent-green-600"
-            />
+            <Checkbox checked={task.completed} onChange={(v) => toggleTask(task.id, v)}/>
             <div className="flex-1 min-w-0">
               <p className={`text-sm font-medium ${task.completed ? "text-slate-400 line-through" : "text-slate-800"}`}>
                 {task.title}
@@ -303,17 +291,7 @@ function SubjectProgressPanel({ initialProgress }: { initialProgress: SubjectPro
                 {progress[subject]}%{savingSubject === subject && <Spinner className="inline-block h-3 w-3 ml-1" />}
               </span>
             </div>
-            <input
-              type="range"
-              min={0}
-              max={100}
-              step={5}
-              value={progress[subject]}
-              onChange={(e) => saveProgress(subject, Number(e.target.value))}
-              onMouseUp={() => commitProgress(subject)}
-              onTouchEnd={() => commitProgress(subject)}
-              className="w-full accent-green-600"
-            />
+            <Slider value={progress[subject]} onChange={(v) => saveProgress(subject, v)} onCommit={() => commitProgress(subject)} min={0} max={100} step={5}/>
           </div>
         ))}
       </div>

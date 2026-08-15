@@ -8,10 +8,11 @@ interface DateFieldProps extends Omit<InputHTMLAttributes<HTMLInputElement>, "ty
   label?: string;
   error?: string;
   hint?: string;
+  type?: "date" | "time" | "datetime-local";
 }
 
 export const DateField = forwardRef<HTMLInputElement, DateFieldProps>(
-  ({ label, error, hint, className, id, ...props }, ref) => {
+  ({ label, error, hint, className, id, type = "datetime-local", ...props }, ref) => {
     const inputId = id || label?.toLowerCase().replace(/\s+/g, "-");
 
     return (
@@ -29,7 +30,7 @@ export const DateField = forwardRef<HTMLInputElement, DateFieldProps>(
           <input
             ref={ref}
             id={inputId}
-            type="datetime-local"
+            type={type}
             className={cn(
               "w-full h-9 rounded-lg border border-[var(--surface-border)] bg-[var(--surface-input)] pl-9 pr-3 text-sm text-[var(--text-primary)]",
               "focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)] focus:border-[var(--primary)]",
