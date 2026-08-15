@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { NotificationBell } from "@/components/ui/notification-bell";
+import { ThemeToggle } from "@/components/theme/theme-provider";
 
 const studentMobileNav = [
   { href: "/bang-dieu-khien",         label: "Home",   icon: <LayoutDashboard size={20} />, exact: true },
@@ -32,6 +33,7 @@ export function MobileTopbar({ user }: { user: { name: string; role: string } })
         <span className="text-[#6C63FF]">Edu</span><span className="text-[#FF6B6B]">Test</span>
       </span>
       <div className="flex items-center gap-2">
+        <ThemeToggle />
         <NotificationBell />
         <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#6C63FF] to-[#FF6B6B] flex items-center justify-center text-white text-xs font-bold">
           {user.name.charAt(0).toUpperCase()}

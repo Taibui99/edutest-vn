@@ -10,12 +10,12 @@ function getInitials(name: string) {
 }
 
 const COLORS = [
-  "bg-blue-500",
-  "bg-teal-500",
-  "bg-violet-500",
-  "bg-orange-500",
-  "bg-rose-500",
-  "bg-emerald-500",
+  "bg-gradient-to-br from-[#6C63FF] to-[#a78bfa]",
+  "bg-gradient-to-br from-[#06D6A0] to-[#4EA8DE]",
+  "bg-gradient-to-br from-[#FF6B6B] to-[#FFB199]",
+  "bg-gradient-to-br from-[#FFD166] to-[#FF9F45]",
+  "bg-gradient-to-br from-[#a78bfa] to-[#6C63FF]",
+  "bg-gradient-to-br from-[#059669] to-[#06D6A0]",
 ];
 
 function getColor(name: string) {

@@ -7,6 +7,7 @@ import {
   Settings, ScrollText, ArrowLeft, ShieldCheck, BarChart3,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { ThemeToggle } from "@/components/theme/theme-provider";
 
 const items = [
   { href: "/admin", label: "Tổng quan", icon: <LayoutDashboard size={17} />, exact: true },
@@ -25,14 +26,17 @@ export function AdminSidebar({ user }: { user: { name: string; email: string; ro
 
   return (
     <>
-      <aside className="hidden lg:flex flex-col w-[230px] shrink-0 border-r border-slate-200 bg-white h-screen sticky top-0 overflow-y-auto">
-        <div className="flex items-center justify-between px-5 h-[60px] border-b border-slate-200 shrink-0">
+      <aside className="hidden lg:flex flex-col w-[230px] shrink-0 border-r border-[var(--surface-border)] bg-[var(--surface-sidebar)] h-screen sticky top-0 overflow-y-auto">
+        <div className="flex items-center justify-between px-5 h-[60px] border-b border-[var(--surface-border)] shrink-0">
           <span className="text-xl font-black tracking-tight">
             <span className="text-[#6C63FF]">Edu</span>
             <span className="text-[#FF6B6B]">Test</span>
-            <span className="text-slate-400 font-semibold text-sm">.vn</span>
+            <span className="text-[var(--text-muted)] font-semibold text-sm">.vn</span>
           </span>
-          <ShieldCheck size={16} className="text-[#6C63FF]" />
+          <div className="flex items-center gap-1.5">
+            <ThemeToggle />
+            <ShieldCheck size={16} className="text-[#6C63FF]" />
+          </div>
         </div>
 
         <div className="px-4 pt-4 pb-1">
@@ -52,20 +56,20 @@ export function AdminSidebar({ user }: { user: { name: string; email: string; ro
                   "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all",
                   active
                     ? "bg-[#EEEFFE] text-[#6C63FF] shadow-sm"
-                    : "text-slate-500 hover:bg-slate-100 hover:text-slate-800",
+                    : "text-[var(--text-secondary)] hover:bg-[var(--gray-100)] hover:text-[var(--text-primary)]",
                 )}
               >
-                <span className={cn("shrink-0", active ? "text-[#6C63FF]" : "text-slate-400")}>{item.icon}</span>
+                <span className={cn("shrink-0", active ? "text-[#6C63FF]" : "text-[var(--text-muted)]")}>{item.icon}</span>
                 {item.label}
               </Link>
             );
           })}
         </nav>
 
-        <div className="p-3 border-t border-slate-200">
+        <div className="p-3 border-t border-[var(--surface-border)]">
           <Link
             href="/bang-dieu-khien"
-            className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-slate-500 hover:bg-slate-100 transition-colors"
+            className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-[var(--text-secondary)] hover:bg-[var(--gray-100)] transition-colors"
           >
             <ArrowLeft size={14} /> Về bảng điều khiển
           </Link>
@@ -74,14 +78,14 @@ export function AdminSidebar({ user }: { user: { name: string; email: string; ro
               {user.name.charAt(0).toUpperCase()}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-semibold text-slate-800 truncate">{user.name}</p>
-              <p className="text-xs text-slate-400 truncate">{user.email}</p>
+              <p className="text-xs font-semibold text-[var(--text-primary)] truncate">{user.name}</p>
+              <p className="text-xs text-[var(--text-muted)] truncate">{user.email}</p>
             </div>
           </div>
         </div>
       </aside>
 
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-slate-200 flex items-stretch h-[60px]">
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-[var(--surface-sidebar)] border-t border-[var(--surface-border)] flex items-stretch h-[60px]">
         {items.slice(0, 6).map((item) => {
           const active = item.exact ? pathname === item.href : pathname.startsWith(item.href);
           return (
@@ -90,7 +94,7 @@ export function AdminSidebar({ user }: { user: { name: string; email: string; ro
               href={item.href}
               className={cn(
                 "flex-1 flex flex-col items-center justify-center gap-0.5 text-[10px] font-semibold",
-                active ? "text-[#6C63FF]" : "text-slate-400",
+                active ? "text-[#6C63FF]" : "text-[var(--text-muted)]",
               )}
             >
               {item.icon}

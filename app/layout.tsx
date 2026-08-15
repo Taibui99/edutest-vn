@@ -3,6 +3,7 @@ import "./globals.css";
 import { auth } from "@/auth";
 import { getSetting } from "@/lib/settings";
 import { MaintenanceGate } from "@/components/maintenance-gate";
+import { ThemeProvider } from "@/components/theme/theme-provider";
 
 export const metadata: Metadata = {
   title: "EduTest.vn — Nền tảng học tập thông minh",
@@ -20,7 +21,14 @@ export default async function RootLayout({
   const maintenance = await getSetting("maintenanceMode", "false");
 
   return (
-    <html lang="vi" className="h-full scroll-smooth antialiased">
+    <html lang="vi" className="h-full scroll-smooth antialiased" suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem("edutest-theme");var d=t==="dark"||t==="light"?t==="dark":window.matchMedia("(prefers-color-scheme: dark)").matches;if(d)document.documentElement.classList.add("dark")}catch(e){}})();`,
+          }}
+        />
+      </head>
       <body className="min-h-full flex flex-col">
         <a
           href="#main-content"
@@ -28,12 +36,14 @@ export default async function RootLayout({
         >
           Bỏ qua điều hướng
         </a>
-        <MaintenanceGate
-          maintenanceOn={maintenance === "true"}
-          isAdmin={session?.user?.role === "admin"}
-        >
-          {children}
-        </MaintenanceGate>
+        <ThemeProvider>
+          <MaintenanceGate
+            maintenanceOn={maintenance === "true"}
+            isAdmin={session?.user?.role === "admin"}
+          >
+            {children}
+          </MaintenanceGate>
+        </ThemeProvider>
       </body>
     </html>
   );

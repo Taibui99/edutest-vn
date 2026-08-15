@@ -3,7 +3,7 @@
 import { forwardRef, type ButtonHTMLAttributes } from "react";
 import { cn } from "@/lib/cn";
 
-type Variant = "primary" | "secondary" | "ghost" | "danger" | "outline" | "coral" | "mint";
+type Variant = "primary" | "secondary" | "ghost" | "danger" | "outline" | "coral" | "mint" | "gradient";
 type Size = "sm" | "md" | "lg";
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -14,13 +14,14 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variantStyles: Record<Variant, string> = {
-  primary:   "bg-[#6C63FF] text-white hover:bg-[#5A52E0] shadow-sm hover:shadow-md disabled:bg-[#C7C4FC] disabled:shadow-none",
-  secondary: "bg-[#06D6A0] text-white hover:bg-[#05BF8E] disabled:bg-[#A8E6D6]",
+  primary:   "bg-[var(--primary)] text-white hover:bg-[var(--primary-hover)] shadow-sm hover:shadow-md disabled:bg-[var(--primary-muted)] disabled:shadow-none",
+  secondary: "bg-[var(--mint)] text-white hover:brightness-95 disabled:opacity-60",
   ghost:     "bg-transparent text-[var(--text-secondary)] hover:bg-[var(--gray-100)] hover:text-[var(--text-primary)]",
-  danger:    "bg-[#FF6B6B] text-white hover:bg-[#E05555] disabled:bg-[#FFC5C5]",
-  outline:   "bg-[var(--surface-card)] border border-[var(--surface-border)] text-[var(--text-secondary)] hover:bg-[var(--gray-100)] hover:border-[#6C63FF]/40",
-  coral:     "bg-[#FFECEC] text-[#FF6B6B] hover:bg-[#FFD9D9]",
-  mint:      "bg-[#E1F5EE] text-[#06D6A0] hover:bg-[#C8EEE1]",
+  danger:    "bg-[var(--danger)] text-white hover:brightness-95 disabled:opacity-60",
+  outline:   "bg-[var(--surface-card)] border border-[var(--surface-border)] text-[var(--text-secondary)] hover:bg-[var(--gray-100)] hover:border-[var(--primary-muted)]",
+  coral:     "bg-[var(--coral-light)] text-[var(--coral)] hover:brightness-95",
+  mint:      "bg-[var(--mint-light)] text-[var(--mint)] hover:brightness-95",
+  gradient:  "bg-[var(--gradient-brand)] text-white shadow-md hover:brightness-105",
 };
 
 const sizeStyles: Record<Size, string> = {

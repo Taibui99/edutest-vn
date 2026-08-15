@@ -9,12 +9,12 @@ interface BadgeProps {
 }
 
 const variantStyles: Record<Variant, string> = {
-  default: "bg-[#F1F5F9] text-[#475569]",
-  primary: "bg-[#EFF6FF] text-[#2563EB]",
-  success: "bg-[#F0FDF4] text-[#16A34A]",
-  warning: "bg-[#FFFBEB] text-[#D97706]",
-  danger: "bg-[#FEF2F2] text-[#DC2626]",
-  secondary: "bg-[#F0FDFA] text-[#0D9488]",
+  default: "bg-[var(--gray-100)] text-[var(--gray-600)]",
+  primary: "bg-[var(--primary-light)] text-[var(--primary)]",
+  success: "bg-[var(--success-light)] text-[var(--success)]",
+  warning: "bg-[var(--warning-light)] text-[#D97706]",
+  danger: "bg-[var(--danger-light)] text-[var(--danger)]",
+  secondary: "bg-[var(--blue-light)] text-[var(--blue)]",
 };
 
 export function Badge({ variant = "default", children, className }: BadgeProps) {

@@ -8,11 +8,11 @@ interface ProgressProps {
 }
 
 const colorStyles = {
-  primary: "bg-[#2563EB]",
-  success: "bg-[#22C55E]",
-  warning: "bg-[#F59E0B]",
-  danger: "bg-[#EF4444]",
-  secondary: "bg-[#14B8A6]",
+  primary: "bg-[var(--primary)]",
+  success: "bg-[var(--success)]",
+  warning: "bg-[var(--warning)]",
+  danger: "bg-[var(--danger)]",
+  secondary: "bg-[var(--blue)]",
 };
 
 const sizeStyles = {
@@ -24,7 +24,7 @@ export function Progress({ value, className, color = "primary", size = "md" }: P
   const clamped = Math.min(100, Math.max(0, value));
 
   return (
-    <div className={cn("w-full bg-[#F1F5F9] rounded-full overflow-hidden", sizeStyles[size], className)}>
+    <div className={cn("w-full bg-[var(--gray-100)] rounded-full overflow-hidden", sizeStyles[size], className)}>
       <div
         className={cn("h-full rounded-full transition-all duration-500", colorStyles[color])}
         style={{ width: `${clamped}%` }}

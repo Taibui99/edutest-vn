@@ -16,9 +16,9 @@ const sizes = {
 export function Logo({ className, href = "/", size = "md" }: LogoProps) {
   const content = (
     <span className={cn("font-bold tracking-tight", sizes[size], className)}>
-      <span className="text-[#2563EB]">Edu</span>
-      <span className="text-[#0F172A]">Test</span>
-      <span className="text-[#14B8A6]">.vn</span>
+      <span className="text-[var(--primary)]">Edu</span>
+      <span className="text-[var(--coral)]">Test</span>
+      <span className="text-[var(--text-muted)] font-semibold text-sm">.vn</span>
     </span>
   );
 

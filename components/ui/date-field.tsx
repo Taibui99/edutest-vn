@@ -1,17 +1,17 @@
 "use client";
 
 import { forwardRef, type InputHTMLAttributes } from "react";
+import { CalendarClock } from "lucide-react";
 import { cn } from "@/lib/cn";
 
-interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
+interface DateFieldProps extends Omit<InputHTMLAttributes<HTMLInputElement>, "type"> {
   label?: string;
   error?: string;
   hint?: string;
-  icon?: React.ReactNode;
 }
 
-export const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ label, error, hint, icon, className, id, ...props }, ref) => {
+export const DateField = forwardRef<HTMLInputElement, DateFieldProps>(
+  ({ label, error, hint, className, id, ...props }, ref) => {
     const inputId = id || label?.toLowerCase().replace(/\s+/g, "-");
 
     return (
@@ -22,22 +22,20 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           </label>
         )}
         <div className="relative">
-          {icon && (
-            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] [&>svg]:w-4 [&>svg]:h-4">
-              {icon}
-            </div>
-          )}
+          <CalendarClock
+            size={15}
+            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]"
+          />
           <input
             ref={ref}
             id={inputId}
+            type="datetime-local"
             className={cn(
-              "w-full h-9 rounded-lg border border-[var(--surface-border)] bg-[var(--surface-input)] px-3 text-sm text-[var(--text-primary)]",
-              "placeholder:text-[var(--text-muted)]",
+              "w-full h-9 rounded-lg border border-[var(--surface-border)] bg-[var(--surface-input)] pl-9 pr-3 text-sm text-[var(--text-primary)]",
               "focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)] focus:border-[var(--primary)]",
-              "disabled:bg-[var(--gray-100)] disabled:cursor-not-allowed disabled:text-[var(--text-muted)]",
+              "disabled:bg-[var(--gray-100)] disabled:cursor-not-allowed",
               "motion-input",
-              error && "border-[var(--danger)] focus:ring-[var(--danger)]/20 focus:border-[var(--danger)]",
-              icon && "pl-9",
+              error && "border-[var(--danger)]",
               className,
             )}
             {...props}
@@ -50,4 +48,4 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
   },
 );
 
-Input.displayName = "Input";
+DateField.displayName = "DateField";

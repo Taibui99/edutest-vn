@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { NotificationBell } from "@/components/ui/notification-bell";
+import { ThemeToggle } from "@/components/theme/theme-provider";
 
 interface NavItem {
   href: string;
@@ -81,7 +82,10 @@ export function Sidebar({ user, logoutAction }: SidebarProps) {
           <span className="text-[#6C63FF]">Edu</span><span className="text-[#FF6B6B]">Test</span>
           <span className="text-[var(--text-muted)] font-semibold text-sm">.vn</span>
         </span>
-        <NotificationBell />
+        <div className="flex items-center gap-1.5">
+          <ThemeToggle />
+          <NotificationBell />
+        </div>
       </div>
 
       {/* Role badge */}
