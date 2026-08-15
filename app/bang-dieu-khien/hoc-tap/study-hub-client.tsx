@@ -502,7 +502,11 @@ function FlashcardPanel({
   );
 
   const startReview = () => {
-    const due = cards.filter((c) => new Date(c.nextReviewAt) <= new Date());
+    const due = cards.filter((c) => new Date(c.nextReviewAt).getTime() <= Date.now() + 60_000);
+    if (due.length === 0) {
+      setMode("list");
+      return;
+    }
     setReviewQueue(due);
     setCurrentIndex(0);
     setFlipped(false);
