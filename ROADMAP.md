@@ -60,6 +60,20 @@
 - [x] **KT-1 Chuyển `prisma db push --accept-data-loss` → `migrate deploy`** — baseline migration `0_init` + fallback db push (commit `8e81377`) — giảm rủi ro production
 - [x] **KT-2 Dọn test data** — soft-delete `testrunner-1786689480719@edutest.vn` qua admin API (commit `8e81377`); guest "Test Guest" giữ lại — không có API xóa guest (chỉ POST) và không truy cập được DB — guest "Test Guest"/"12A1" trên YN5GQZ + tài khoản `testrunner-1786689480719@edutest.vn`
 
+## 🎨 Đại tu UI/UX (kế hoạch G1–G9, đang chạy)
+- [x] **G1 Design System** (commit `2905093`) — token mở rộng (score/shadow/gradient/focus), dark mode toggle (ThemeProvider + script chống FOUC, nhớ localStorage), đại tu button/input/select/badge/progress/avatar/logo theo vars, thêm `NumberInput`/`Checkbox`/`Slider`/`DateField`, toggle ở sidebar/admin/landing/auth/vao-thi — verified live: toggle 2 chiều, admin sidebar dark `#150F35`
+- [x] **G2a Admin panel → brand vars** (commit `97cb114`) — slate/white hex → `var(--surface-*)`/`var(--text-*)` toàn admin (10 file), dark tương thích
+- [x] **G2b Runner → brand vars** (commit `b93f70b`) — thi/*: slate/blue hex → vars, điểm dùng `var(--score-good/mid/bad)`, GIỮ NGUYÊN logic timer/submit/anti-cheat/draft
+- [x] **G2c Auth + vao-thi + score + logo** (commit `bb9c1a0`) — bỏ blue/green → tím brand; 1 bộ màu điểm (`--score-*`, ket-qua dùng cùng giá trị); logo 1 bản (Edu tím + Test coral + gradient icon); landing/footer tokens — verified live: vao-thi nút tím rgb(108,99,255)
+- [ ] **G3 Form controls đẹp** — editor (stepper lần làm, DateField mở/đóng, ô nhập điểm câu hỏi — đang thiếu, checkbox switch), study-hub ngày/slider/checkbox, register/student-list
+- [ ] **G4 Redesign Góc học tập** — banner + streak 🔥, countdown ring, task tracker + empty CTA, flashcard flip 3D + review, AI form, dark mode
+- [ ] **G5 Landing + Auth** — hero mockup, dải số liệu, features icon; auth 2 cột; đăng ký mặc định Học sinh
+- [ ] **G6 Chuyển chế độ HS ↔ GV** — hub 2 thẻ, session mode + API, redirect role, sidebar theo mode, bảo vệ route 2 chiều, admin ↔ người dùng thường, ho-so "Khu vực quản trị"
+- [ ] **G7 Dashboard + "Tiếp tục bài dở"** — stats chuẩn, card tiếp tục bài dở (localStorage), streak nổi bật
+- [ ] **G8a Admin: Tổng quan 1 màn** — metrics + delta, chart, báo cáo chờ, sức khỏe hệ thống, hoạt động gần đây, quick actions
+- [ ] **G8b Admin: Bảng + CSV + confirm** — search/filter/pagination/CSV; modal xác nhận + audit thao tác nguy hiểm; RBAC
+- [ ] **G9 Đóng gói** — Toast system, empty/loading đồng bộ, dọn inline style + 11 lint, ROADMAP, regression E2E
+
 ## ✅ Đã xong (không cần làm lại)
 - Share/QR (§8, §14) — `chia-se-de/[joinCode]`: copy link, mã truy cập, QR + tải QR, native share
 - Re-import / tạo lại đề trong modal import — nút "Thử lại"/"Chọn file khác"
