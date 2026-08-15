@@ -103,25 +103,25 @@ export default function AdminUsers() {
 
   return (
     <div className="p-4 lg:p-8 max-w-6xl mx-auto">
-      <h1 className="text-xl font-black text-slate-800 mb-6 flex items-center gap-2">
+      <h1 className="text-xl font-black text-[var(--text-primary)] mb-6 flex items-center gap-2">
         <Users size={20} className="text-[#6C63FF]" /> Quản lý người dùng
-        <span className="text-xs font-bold text-slate-400">({total} tài khoản)</span>
+        <span className="text-xs font-bold text-[var(--text-muted)]">({total} tài khoản)</span>
       </h1>
 
       <div className="flex flex-wrap gap-2 mb-4">
         <div className="relative flex-1 min-w-[200px]">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
           <input
             value={q}
             onChange={(e) => { setQ(e.target.value); setPage(1); }}
             placeholder="Tìm theo tên / email..."
-            className="w-full rounded-lg border border-slate-200 pl-9 pr-3 py-2 text-sm focus:border-[#6C63FF] focus:outline-none"
+            className="w-full rounded-lg border border-[var(--surface-border)] pl-9 pr-3 py-2 text-sm focus:border-[#6C63FF] focus:outline-none"
           />
         </div>
         <select
           value={role}
           onChange={(e) => { setRole(e.target.value); setPage(1); }}
-          className="rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-[#6C63FF] focus:outline-none"
+          className="rounded-lg border border-[var(--surface-border)] px-3 py-2 text-sm focus:border-[#6C63FF] focus:outline-none"
         >
           <option value="">Tất cả vai trò</option>
           <option value="student">Học sinh</option>
@@ -131,7 +131,7 @@ export default function AdminUsers() {
         <select
           value={status}
           onChange={(e) => { setStatus(e.target.value); setPage(1); }}
-          className="rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-[#6C63FF] focus:outline-none"
+          className="rounded-lg border border-[var(--surface-border)] px-3 py-2 text-sm focus:border-[#6C63FF] focus:outline-none"
         >
           <option value="">Tất cả trạng thái</option>
           <option value="active">Đang hoạt động</option>
@@ -145,15 +145,15 @@ export default function AdminUsers() {
       {loading ? (
         <div className="flex items-center justify-center py-32"><Spinner /></div>
       ) : users.length === 0 ? (
-        <div className="rounded-2xl bg-white border border-slate-200 p-10 text-center text-sm text-slate-400">
+        <div className="rounded-2xl bg-[var(--surface-card)] border border-[var(--surface-border)] p-10 text-center text-sm text-[var(--text-muted)]">
           Không tìm thấy người dùng nào
         </div>
       ) : (
         <>
-          <div className="rounded-2xl bg-white border border-slate-200 overflow-x-auto">
+          <div className="rounded-2xl bg-[var(--surface-card)] border border-[var(--surface-border)] overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-slate-100 text-left text-xs text-slate-400">
+                <tr className="border-b border-[var(--surface-border)] text-left text-xs text-[var(--text-muted)]">
                   <th className="px-4 py-3 font-semibold">Người dùng</th>
                   <th className="px-4 py-3 font-semibold">Vai trò</th>
                   <th className="px-4 py-3 font-semibold">Hoạt động</th>
@@ -161,27 +161,27 @@ export default function AdminUsers() {
                   <th className="px-4 py-3 font-semibold text-right">Hành động</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-50">
+              <tbody className="divide-y divide-[var(--surface-border)]">
                 {users.map((u) => (
-                  <tr key={u.id} className={u.isBlocked ? "bg-red-50/40" : u.deletedAt ? "bg-slate-50 opacity-70" : ""}>
+                  <tr key={u.id} className={u.isBlocked ? "bg-red-50/40" : u.deletedAt ? "bg-[var(--gray-100)] opacity-70" : ""}>
                     <td className="px-4 py-3">
-                      <p className="font-semibold text-slate-800">
+                      <p className="font-semibold text-[var(--text-primary)]">
                         {u.name}
                         {u.isBlocked && <span className="ml-1 text-[10px] font-bold text-red-500 bg-red-100 px-1.5 py-0.5 rounded">ĐÃ KHÓA</span>}
-                        {u.deletedAt && <span className="ml-1 text-[10px] font-bold text-slate-500 bg-slate-200 px-1.5 py-0.5 rounded">ĐÃ XÓA</span>}
+                        {u.deletedAt && <span className="ml-1 text-[10px] font-bold text-[var(--text-secondary)] bg-[var(--gray-200)] px-1.5 py-0.5 rounded">ĐÃ XÓA</span>}
                       </p>
-                      <p className="text-xs text-slate-400">{u.email}{u.school ? ` · ${u.school}${u.grade ? ` ${u.grade}` : ""}` : ""}</p>
+                      <p className="text-xs text-[var(--text-muted)]">{u.email}{u.school ? ` · ${u.school}${u.grade ? ` ${u.grade}` : ""}` : ""}</p>
                     </td>
                     <td className="px-4 py-3">
                       <span className={`text-[11px] font-bold px-2 py-0.5 rounded-lg ${roleBadge(u.role)}`}>
                         {u.role === "admin" ? "Admin" : u.role === "teacher" ? "Giáo viên" : "Học sinh"}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-xs text-slate-500">
+                    <td className="px-4 py-3 text-xs text-[var(--text-secondary)]">
                       {u._count.submissions} bài nộp · {u._count.exams} đề
                       {u.streak > 0 && <span className="ml-1 text-[#D4A017] font-bold">🔥{u.streak}</span>}
                     </td>
-                    <td className="px-4 py-3 text-xs text-slate-400">
+                    <td className="px-4 py-3 text-xs text-[var(--text-muted)]">
                       {u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" }) : "—"}
                     </td>
                     <td className="px-4 py-3">
@@ -200,7 +200,7 @@ export default function AdminUsers() {
                               value={u.role}
                               disabled={busyId === u.id}
                               onChange={(e) => patch(u.id, { role: e.target.value })}
-                              className="rounded-lg border border-slate-200 px-2 py-1 text-xs disabled:opacity-50"
+                              className="rounded-lg border border-[var(--surface-border)] px-2 py-1 text-xs disabled:opacity-50"
                             >
                               <option value="student">HS</option>
                               <option value="teacher">GV</option>
@@ -231,19 +231,19 @@ export default function AdminUsers() {
           </div>
 
           <div className="mt-4 flex items-center justify-between">
-            <p className="text-xs text-slate-400">Trang {page} / {totalPages}</p>
+            <p className="text-xs text-[var(--text-muted)]">Trang {page} / {totalPages}</p>
             <div className="flex gap-1.5">
               <button
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={page <= 1}
-                className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-50 disabled:opacity-40"
+                className="rounded-lg border border-[var(--surface-border)] px-2.5 py-1.5 text-xs font-bold text-[var(--text-secondary)] hover:bg-[var(--gray-100)] disabled:opacity-40"
               >
                 <ChevronLeft size={14} />
               </button>
               <button
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={page >= totalPages}
-                className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-50 disabled:opacity-40"
+                className="rounded-lg border border-[var(--surface-border)] px-2.5 py-1.5 text-xs font-bold text-[var(--text-secondary)] hover:bg-[var(--gray-100)] disabled:opacity-40"
               >
                 <ChevronRight size={14} />
               </button>
@@ -251,7 +251,7 @@ export default function AdminUsers() {
           </div>
         </>
       )}
-      <p className="mt-3 text-[11px] text-slate-400 flex items-center gap-1">
+      <p className="mt-3 text-[11px] text-[var(--text-muted)] flex items-center gap-1">
         <ShieldCheck size={12} /> Chỉ admin được thao tác. Xóa tài khoản là soft-delete (có thể khôi phục), vẫn cần gõ DELETE để xác nhận.
       </p>
     </div>

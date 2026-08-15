@@ -106,7 +106,7 @@ export default function AdminSettings() {
 
   return (
     <div className="p-4 lg:p-8 max-w-3xl mx-auto">
-      <h1 className="text-xl font-black text-slate-800 mb-6 flex items-center gap-2">
+      <h1 className="text-xl font-black text-[var(--text-primary)] mb-6 flex items-center gap-2">
         <Settings size={20} className="text-[#6C63FF]" /> Cài đặt hệ thống
       </h1>
 
@@ -115,7 +115,7 @@ export default function AdminSettings() {
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
-            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-colors ${tab === t.key ? "bg-[#6C63FF] text-white" : "bg-white border border-slate-200 text-slate-500 hover:border-[#6C63FF]/40"}`}
+            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-colors ${tab === t.key ? "bg-[#6C63FF] text-white" : "bg-[var(--surface-card)] border border-[var(--surface-border)] text-[var(--text-secondary)] hover:border-[#6C63FF]/40"}`}
           >
             {t.icon} {t.label}
           </button>
@@ -136,27 +136,27 @@ export default function AdminSettings() {
       ) : (
         <div className="flex flex-col gap-4">
           {FIELDS[tab].map((f) => (
-            <div key={f.key} className="rounded-2xl bg-white border border-slate-200 p-5">
+            <div key={f.key} className="rounded-2xl bg-[var(--surface-card)] border border-[var(--surface-border)] p-5">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <p className="text-sm font-bold text-slate-800">{f.label}</p>
-                  <p className="text-xs text-slate-400 mt-0.5">{f.hint}</p>
+                  <p className="text-sm font-bold text-[var(--text-primary)]">{f.label}</p>
+                  <p className="text-xs text-[var(--text-muted)] mt-0.5">{f.hint}</p>
                 </div>
                 {f.type === "toggle" ? (
                   <button
                     onClick={() => save(f.key, boolValue(f.key) ? "false" : "true")}
                     disabled={saving}
-                    className={`relative w-11 h-6 rounded-full transition-colors shrink-0 disabled:opacity-50 ${boolValue(f.key) ? "bg-[#6C63FF]" : "bg-slate-200"}`}
+                    className={`relative w-11 h-6 rounded-full transition-colors shrink-0 disabled:opacity-50 ${boolValue(f.key) ? "bg-[#6C63FF]" : "bg-[var(--gray-200)]"}`}
                     aria-label={f.label}
                   >
-                    <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${boolValue(f.key) ? "left-[22px]" : "left-0.5"}`} />
+                    <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-[var(--surface-card)] shadow transition-all ${boolValue(f.key) ? "left-[22px]" : "left-0.5"}`} />
                   </button>
                 ) : (
                   <div className="flex gap-2 w-full sm:w-auto">
                     <input
                       value={settings[f.key] ?? ""}
                       onChange={(e) => setSettings((prev) => ({ ...prev, [f.key]: e.target.value }))}
-                      className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-[#6C63FF] focus:outline-none"
+                      className="flex-1 rounded-lg border border-[var(--surface-border)] px-3 py-2 text-sm focus:border-[#6C63FF] focus:outline-none"
                     />
                     <button
                       onClick={() => save(f.key, settings[f.key] ?? "")}
@@ -168,12 +168,12 @@ export default function AdminSettings() {
                   </div>
                 )}
               </div>
-              <div className="mt-3 flex items-center gap-1.5 text-[11px] text-slate-400">
-                <Users size={11} /> Giá trị hiện tại: <span className="font-bold text-slate-600">{f.type === "toggle" ? (boolValue(f.key) ? "Bật" : "Tắt") : (settings[f.key] || "(trống)")}</span>
+              <div className="mt-3 flex items-center gap-1.5 text-[11px] text-[var(--text-muted)]">
+                <Users size={11} /> Giá trị hiện tại: <span className="font-bold text-[var(--text-secondary)]">{f.type === "toggle" ? (boolValue(f.key) ? "Bật" : "Tắt") : (settings[f.key] || "(trống)")}</span>
               </div>
             </div>
           ))}
-          <p className="text-[11px] text-slate-400">
+          <p className="text-[11px] text-[var(--text-muted)]">
             Các giá trị được lưu trong bảng SystemSetting (database). Mọi thay đổi đều được ghi vào nhật ký quản trị.
           </p>
         </div>

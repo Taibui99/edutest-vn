@@ -45,7 +45,7 @@ export default function AdminSystem() {
   return (
     <div className="p-4 lg:p-8 max-w-4xl mx-auto">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-black text-slate-800 flex items-center gap-2">
+        <h1 className="text-xl font-black text-[var(--text-primary)] flex items-center gap-2">
           <Activity size={20} className="text-[#6C63FF]" /> Kiểm tra hệ thống
         </h1>
         <button
@@ -66,15 +66,15 @@ export default function AdminSystem() {
             {checkItems.map((c) => {
               const check = data.checks[c.key];
               return (
-                <div key={c.key} className="rounded-2xl bg-white border border-slate-200 p-5 flex items-center gap-3">
+                <div key={c.key} className="rounded-2xl bg-[var(--surface-card)] border border-[var(--surface-border)] p-5 flex items-center gap-3">
                   {check?.ok ? (
                     <CheckCircle2 size={22} className="text-emerald-500 shrink-0" />
                   ) : (
                     <XCircle size={22} className="text-red-500 shrink-0" />
                   )}
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-slate-800">{c.label}</p>
-                    <p className="text-xs text-slate-400 truncate">{check?.ok ? "Hoạt động bình thường" : (check?.detail ?? "Không có phản hồi")}</p>
+                    <p className="text-sm font-bold text-[var(--text-primary)]">{c.label}</p>
+                    <p className="text-xs text-[var(--text-muted)] truncate">{check?.ok ? "Hoạt động bình thường" : (check?.detail ?? "Không có phản hồi")}</p>
                   </div>
                   <span className={`text-[11px] font-bold px-2 py-0.5 rounded-lg ${check?.ok ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-600"}`}>
                     {check?.ok ? "OK" : "LỖI"}
@@ -84,8 +84,8 @@ export default function AdminSystem() {
             })}
           </div>
 
-          <div className="rounded-2xl bg-white border border-slate-200 p-5 mb-6">
-            <h2 className="text-sm font-black text-slate-800 mb-3">Dữ liệu</h2>
+          <div className="rounded-2xl bg-[var(--surface-card)] border border-[var(--surface-border)] p-5 mb-6">
+            <h2 className="text-sm font-black text-[var(--text-primary)] mb-3">Dữ liệu</h2>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {[
                 { label: "Người dùng", value: data.counts.users },
@@ -93,43 +93,43 @@ export default function AdminSystem() {
                 { label: "Thông báo", value: data.counts.notifications },
                 { label: "Cài đặt", value: data.counts.settings },
               ].map((c) => (
-                <div key={c.label} className="rounded-xl bg-slate-50 p-3">
-                  <p className="text-[11px] font-semibold text-slate-400">{c.label}</p>
-                  <p className="text-xl font-black text-slate-800">{c.value}</p>
+                <div key={c.label} className="rounded-xl bg-[var(--gray-100)] p-3">
+                  <p className="text-[11px] font-semibold text-[var(--text-muted)]">{c.label}</p>
+                  <p className="text-xl font-black text-[var(--text-primary)]">{c.value}</p>
                 </div>
               ))}
             </div>
           </div>
 
-          <div className="rounded-2xl bg-white border border-slate-200 p-5 mb-6">
-            <h2 className="text-sm font-black text-slate-800 mb-3">AI import gần nhất</h2>
+          <div className="rounded-2xl bg-[var(--surface-card)] border border-[var(--surface-border)] p-5 mb-6">
+            <h2 className="text-sm font-black text-[var(--text-primary)] mb-3">AI import gần nhất</h2>
             {data.lastAiImport ? (
               <div className="flex items-center gap-2 text-sm">
                 <span className={`text-[11px] font-bold px-2 py-0.5 rounded-lg ${data.lastAiImport.status === "success" ? "bg-emerald-100 text-emerald-700" : data.lastAiImport.status === "running" ? "bg-blue-100 text-blue-700" : "bg-red-100 text-red-600"}`}>
                   {data.lastAiImport.status === "success" ? "Thành công" : data.lastAiImport.status === "running" ? "Đang chạy" : "Thất bại"}
                 </span>
-                <span className="font-bold text-slate-700">{data.lastAiImport.model ?? "gemini"}</span>
-                <span className="text-slate-400 text-xs">{new Date(data.lastAiImport.createdAt).toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" })}</span>
+                <span className="font-bold text-[var(--text-secondary)]">{data.lastAiImport.model ?? "gemini"}</span>
+                <span className="text-[var(--text-muted)] text-xs">{new Date(data.lastAiImport.createdAt).toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" })}</span>
               </div>
             ) : (
-              <p className="text-sm text-slate-400">Chưa có lượt import nào</p>
+              <p className="text-sm text-[var(--text-muted)]">Chưa có lượt import nào</p>
             )}
           </div>
 
-          <div className="rounded-2xl bg-white border border-slate-200 p-5">
-            <h2 className="text-sm font-black text-slate-800 mb-3">Cấu hình môi trường</h2>
+          <div className="rounded-2xl bg-[var(--surface-card)] border border-[var(--surface-border)] p-5">
+            <h2 className="text-sm font-black text-[var(--text-primary)] mb-3">Cấu hình môi trường</h2>
             <div className="flex flex-col gap-2 text-sm">
-              <div className="flex justify-between"><span className="text-slate-500">AUTH_SECRET</span>
+              <div className="flex justify-between"><span className="text-[var(--text-secondary)]">AUTH_SECRET</span>
                 <span className={`font-bold ${data.env.nextAuthSecretSet ? "text-emerald-600" : "text-red-500"}`}>{data.env.nextAuthSecretSet ? "Đã đặt" : "CHƯA ĐẶT"}</span>
               </div>
-              <div className="flex justify-between"><span className="text-slate-500">GEMINI_API_KEY</span>
+              <div className="flex justify-between"><span className="text-[var(--text-secondary)]">GEMINI_API_KEY</span>
                 <span className={`font-bold ${data.env.geminiKeySet ? "text-emerald-600" : "text-red-500"}`}>{data.env.geminiKeySet ? "Đã đặt" : "CHƯA ĐẶT"}</span>
               </div>
-              <div className="flex justify-between"><span className="text-slate-500">NODE_ENV</span>
-                <span className="font-bold text-slate-700">{data.env.nodeEnv}</span>
+              <div className="flex justify-between"><span className="text-[var(--text-secondary)]">NODE_ENV</span>
+                <span className="font-bold text-[var(--text-secondary)]">{data.env.nodeEnv}</span>
               </div>
-              <div className="flex justify-between"><span className="text-slate-500">Thời gian server</span>
-                <span className="font-bold text-slate-700">{new Date(data.now).toLocaleString("vi-VN")}</span>
+              <div className="flex justify-between"><span className="text-[var(--text-secondary)]">Thời gian server</span>
+                <span className="font-bold text-[var(--text-secondary)]">{new Date(data.now).toLocaleString("vi-VN")}</span>
               </div>
             </div>
           </div>
