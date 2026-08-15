@@ -20,7 +20,7 @@ export default async function Home() {
         <Features />
 
         {/* How it works */}
-        <section id="huong-dan" className="py-20 sm:py-24" style={{ background: "white" }}>
+        <section id="huong-dan" className="py-20 sm:py-24" style={{ background: "var(--surface-card)" }}>
           <div className="mx-auto max-w-4xl px-5 text-center">
             <span className="inline-block text-sm font-bold px-3 py-1 rounded-full mb-3"
               style={{ background: "#FFF8E1", color: "#C49A00" }}>
@@ -37,14 +37,14 @@ export default async function Home() {
                 { step: "3", emoji: "🚀", title: "Làm bài và xem kết quả", desc: "Làm bài trong thời gian quy định, hệ thống chấm và ghi nhận kết quả. Tài khoản EduTest còn hỗ trợ ôn tập và theo dõi tiến độ." },
               ].map((item) => (
                 <div key={item.step} className="relative rounded-2xl p-6 text-left"
-                  style={{ background: "#F8F7FF", border: "1px solid #E8E4FF" }}>
+                  style={{ background: "#F8F7FF", border: "1px solid var(--surface-border)" }}>
                   <span className="absolute -top-3 -left-3 w-7 h-7 rounded-full text-xs font-black text-white flex items-center justify-center"
                     style={{ background: "#6C63FF" }}>
                     {item.step}
                   </span>
                   <div className="text-3xl mb-3">{item.emoji}</div>
                   <h3 className="font-black mb-1.5" style={{ color: "#1A1523" }}>{item.title}</h3>
-                  <p className="text-sm leading-relaxed" style={{ color: "#64748B" }}>{item.desc}</p>
+                  <p className="text-sm leading-relaxed" style={{ color: "var(--text-secondary)" }}>{item.desc}</p>
                 </div>
               ))}
             </div>
@@ -63,7 +63,7 @@ export default async function Home() {
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
               <Link href="/dang-ky"
                 className="w-full sm:w-auto inline-flex h-12 items-center justify-center rounded-2xl px-8 text-base font-black transition-transform hover:scale-105"
-                style={{ background: "white", color: "#6C63FF" }}>
+                style={{ background: "var(--surface-card)", color: "#6C63FF" }}>
                 Đăng ký miễn phí
               </Link>
               <Link href="/vao-thi"

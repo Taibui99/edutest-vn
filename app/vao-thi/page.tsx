@@ -4,6 +4,7 @@ import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Logo } from "@/app/components/logo";
+import { ThemeToggle } from "@/components/theme/theme-provider";
 
 export default function VaoThiPage() {
   const router = useRouter();
@@ -21,21 +22,24 @@ export default function VaoThiPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="border-b border-green-100 bg-white">
+    <div className="min-h-screen bg-[var(--surface-bg)]">
+      <header className="border-b border-[var(--surface-border)] bg-[var(--surface-card)]">
         <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <Logo />
-          <Link href="/bang-dieu-khien" className="text-sm font-medium text-slate-500 hover:text-slate-800">
-            Dashboard
-          </Link>
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <Link href="/bang-dieu-khien" className="text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
+              Dashboard
+            </Link>
+          </div>
         </div>
       </header>
 
       <main className="mx-auto flex max-w-xl flex-col px-4 py-14 sm:px-6">
-        <div className="rounded-2xl border border-green-100 bg-white p-8 shadow-sm">
-          <p className="text-sm font-semibold text-green-600">Vào phòng thi</p>
-          <h1 className="mt-2 text-2xl font-bold text-slate-900">Nhập mã tham gia</h1>
-          <p className="mt-2 text-sm text-slate-600">
+        <div className="rounded-2xl border border-[var(--surface-border)] bg-[var(--surface-card)] p-8 shadow-sm">
+          <p className="text-sm font-semibold text-[var(--primary)]">Vào phòng thi</p>
+          <h1 className="mt-2 text-2xl font-bold text-[var(--text-primary)]">Nhập mã tham gia</h1>
+          <p className="mt-2 text-sm text-[var(--text-secondary)]">
             Giáo viên sẽ cung cấp mã gồm 6 ký tự sau khi xuất bản đề thi.
           </p>
 
@@ -45,11 +49,11 @@ export default function VaoThiPage() {
               onChange={(event) => setCode(event.target.value.toUpperCase())}
               placeholder="VD: ABC123"
               maxLength={8}
-              className="h-14 w-full rounded-xl border border-slate-200 px-4 text-center text-2xl font-bold uppercase tracking-[0.25em] text-slate-900 outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100"
+              className="h-14 w-full rounded-xl border border-[var(--surface-border)] bg-[var(--surface-input)] px-4 text-center text-2xl font-bold uppercase tracking-[0.25em] text-[var(--text-primary)] outline-none focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--focus-ring)]"
             />
             <button
               type="submit"
-              className="h-12 w-full rounded-xl bg-green-600 text-sm font-semibold text-white transition-colors hover:bg-green-700"
+              className="h-12 w-full rounded-xl bg-[var(--primary)] text-sm font-semibold text-white transition-colors hover:bg-[var(--primary-hover)]"
             >
               Bắt đầu làm bài
             </button>

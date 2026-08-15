@@ -15,7 +15,7 @@ export function LoginForm() {
   return (
     <form action={formAction} className="space-y-5">
       {state.error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div className="rounded-lg border border-[var(--danger-light)] bg-[var(--danger-light)] px-4 py-3 text-sm text-[var(--danger)]">
           {state.error}
         </div>
       )}
@@ -23,7 +23,7 @@ export function LoginForm() {
       <div>
         <label
           htmlFor="email"
-          className="block text-sm font-medium text-slate-700"
+          className="block text-sm font-medium text-[var(--text-secondary)]"
         >
           Email
         </label>
@@ -34,14 +34,14 @@ export function LoginForm() {
           autoComplete="email"
           required
           placeholder="ten@email.com"
-          className="mt-1.5 block w-full rounded-lg border border-slate-200 px-4 py-2.5 text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+          className="mt-1.5 block w-full rounded-lg border border-[var(--surface-border)] px-4 py-2.5 text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)]"
         />
       </div>
 
       <div>
         <label
           htmlFor="password"
-          className="block text-sm font-medium text-slate-700"
+          className="block text-sm font-medium text-[var(--text-secondary)]"
         >
           Mật khẩu
         </label>
@@ -53,14 +53,14 @@ export function LoginForm() {
           required
           minLength={6}
           placeholder="••••••••"
-          className="mt-1.5 block w-full rounded-lg border border-slate-200 px-4 py-2.5 text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+          className="mt-1.5 block w-full rounded-lg border border-[var(--surface-border)] px-4 py-2.5 text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)]"
         />
       </div>
 
       <button
         type="submit"
         disabled={isPending}
-        className="flex h-11 w-full items-center justify-center rounded-lg bg-blue-600 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-70"
+        className="flex h-11 w-full items-center justify-center rounded-lg bg-[var(--primary)] text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[var(--primary-hover)] disabled:cursor-not-allowed disabled:opacity-70"
       >
         {isPending ? (
           <span className="flex items-center gap-2">

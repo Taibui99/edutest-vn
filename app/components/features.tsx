@@ -83,7 +83,7 @@ export function Features() {
                 {f.emoji}
               </div>
               <h3 className="font-black mb-1.5" style={{ color: "#1A1523" }}>{f.title}</h3>
-              <p className="text-sm leading-relaxed" style={{ color: "#64748B" }}>{f.desc}</p>
+              <p className="text-sm leading-relaxed" style={{ color: "var(--text-secondary)" }}>{f.desc}</p>
             </div>
           ))}
         </div>
@@ -108,7 +108,7 @@ export function Features() {
                 {f.emoji}
               </div>
               <h3 className="font-black mb-1.5" style={{ color: "#1A1523" }}>{f.title}</h3>
-              <p className="text-sm leading-relaxed" style={{ color: "#64748B" }}>{f.desc}</p>
+              <p className="text-sm leading-relaxed" style={{ color: "var(--text-secondary)" }}>{f.desc}</p>
             </div>
           ))}
         </div>

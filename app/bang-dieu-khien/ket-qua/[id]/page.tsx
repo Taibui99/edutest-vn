@@ -164,7 +164,7 @@ export default function ResultPage({ params }: { params: Promise<{ id: string }>
           </p>
           <div className="flex flex-wrap gap-2">
             {wrongQuestions.slice(0, 6).map((q) => (
-              <span key={q.id} className="text-xs bg-white border border-[#FFD166] text-[#92400E] px-2 py-1 rounded-lg font-semibold">
+              <span key={q.id} className="text-xs bg-[var(--surface-card)] border border-[#FFD166] text-[#92400E] px-2 py-1 rounded-lg font-semibold">
                 Câu {q.order}
               </span>
             ))}

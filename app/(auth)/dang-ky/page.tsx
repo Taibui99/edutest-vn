@@ -19,7 +19,7 @@ export default function RegisterPage() {
           Đã có tài khoản?{" "}
           <Link
             href="/dang-nhap"
-            className="font-semibold text-blue-600 hover:text-blue-700"
+            className="font-semibold text-[var(--primary)] hover:text-[var(--primary-hover)]"
           >
             Đăng nhập
           </Link>

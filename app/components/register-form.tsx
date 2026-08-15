@@ -23,7 +23,7 @@ export function RegisterForm() {
   return (
     <form action={formAction} className="space-y-5">
       {state.error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div className="rounded-lg border border-[var(--danger-light)] bg-[var(--danger-light)] px-4 py-3 text-sm text-[var(--danger)]">
           {state.error}
         </div>
       )}
@@ -31,7 +31,7 @@ export function RegisterForm() {
       <div>
         <label
           htmlFor="fullName"
-          className="block text-sm font-medium text-slate-700"
+          className="block text-sm font-medium text-[var(--text-secondary)]"
         >
           Họ và tên
         </label>
@@ -42,14 +42,14 @@ export function RegisterForm() {
           autoComplete="name"
           required
           placeholder="Nguyễn Văn A"
-          className="mt-1.5 block w-full rounded-lg border border-slate-200 px-4 py-2.5 text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+          className="mt-1.5 block w-full rounded-lg border border-[var(--surface-border)] px-4 py-2.5 text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)]"
         />
       </div>
 
       <div>
         <label
           htmlFor="email"
-          className="block text-sm font-medium text-slate-700"
+          className="block text-sm font-medium text-[var(--text-secondary)]"
         >
           Email
         </label>
@@ -60,14 +60,14 @@ export function RegisterForm() {
           autoComplete="email"
           required
           placeholder="ten@email.com"
-          className="mt-1.5 block w-full rounded-lg border border-slate-200 px-4 py-2.5 text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+          className="mt-1.5 block w-full rounded-lg border border-[var(--surface-border)] px-4 py-2.5 text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)]"
         />
       </div>
 
       <div>
         <label
           htmlFor="role"
-          className="block text-sm font-medium text-slate-700"
+          className="block text-sm font-medium text-[var(--text-secondary)]"
         >
           Vai trò
         </label>
@@ -76,7 +76,7 @@ export function RegisterForm() {
           name="role"
           required
           defaultValue=""
-          className="mt-1.5 block w-full rounded-lg border border-slate-200 px-4 py-2.5 text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+          className="mt-1.5 block w-full rounded-lg border border-[var(--surface-border)] px-4 py-2.5 text-[var(--text-primary)] focus:border-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)]"
         >
           <option value="" disabled>
             Chọn vai trò
@@ -90,7 +90,7 @@ export function RegisterForm() {
       <div>
         <label
           htmlFor="password"
-          className="block text-sm font-medium text-slate-700"
+          className="block text-sm font-medium text-[var(--text-secondary)]"
         >
           Mật khẩu
         </label>
@@ -102,14 +102,14 @@ export function RegisterForm() {
           required
           minLength={6}
           placeholder="Tối thiểu 6 ký tự"
-          className="mt-1.5 block w-full rounded-lg border border-slate-200 px-4 py-2.5 text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+          className="mt-1.5 block w-full rounded-lg border border-[var(--surface-border)] px-4 py-2.5 text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)]"
         />
       </div>
 
       <div>
         <label
           htmlFor="confirmPassword"
-          className="block text-sm font-medium text-slate-700"
+          className="block text-sm font-medium text-[var(--text-secondary)]"
         >
           Xác nhận mật khẩu
         </label>
@@ -121,7 +121,7 @@ export function RegisterForm() {
           required
           minLength={6}
           placeholder="Nhập lại mật khẩu"
-          className="mt-1.5 block w-full rounded-lg border border-slate-200 px-4 py-2.5 text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+          className="mt-1.5 block w-full rounded-lg border border-[var(--surface-border)] px-4 py-2.5 text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)]"
         />
       </div>
 
@@ -130,15 +130,15 @@ export function RegisterForm() {
           type="checkbox"
           name="terms"
           required
-          className="mt-0.5 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+          className="mt-0.5 h-4 w-4 rounded border-[var(--surface-border-strong)] text-[var(--primary)] focus:ring-blue-500"
         />
-        <span className="text-sm text-slate-600">
+        <span className="text-sm text-[var(--text-secondary)]">
           Tôi đồng ý với{" "}
-          <a href="#" className="font-medium text-blue-600 hover:text-blue-700">
+          <a href="#" className="font-medium text-[var(--primary)] hover:text-[var(--primary-hover)]">
             Điều khoản sử dụng
           </a>{" "}
           và{" "}
-          <a href="#" className="font-medium text-blue-600 hover:text-blue-700">
+          <a href="#" className="font-medium text-[var(--primary)] hover:text-[var(--primary-hover)]">
             Chính sách bảo mật
           </a>
         </span>
@@ -147,7 +147,7 @@ export function RegisterForm() {
       <button
         type="submit"
         disabled={isPending}
-        className="flex h-11 w-full items-center justify-center rounded-lg bg-blue-600 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-70"
+        className="flex h-11 w-full items-center justify-center rounded-lg bg-[var(--primary)] text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[var(--primary-hover)] disabled:cursor-not-allowed disabled:opacity-70"
       >
         {isPending ? (
           <span className="flex items-center gap-2">

@@ -21,7 +21,7 @@ export async function Hero() {
           và theo dõi kết quả dễ dàng
         </h1>
 
-        <p className="text-lg sm:text-xl max-w-2xl mx-auto mb-10" style={{ color: "#64748B", lineHeight: 1.7 }}>
+        <p className="text-lg sm:text-xl max-w-2xl mx-auto mb-10" style={{ color: "var(--text-secondary)", lineHeight: 1.7 }}>
           EduTest giúp giáo viên tạo và giao đề, học sinh làm bài ngay cả khi chưa có tài khoản, đồng thời hỗ trợ ôn tập và theo dõi tiến độ học tập.
         </p>
 
@@ -35,14 +35,14 @@ export async function Hero() {
               Bắt đầu miễn phí
             </Link>
           )}
-          <Link href="/vao-thi" className="w-full sm:w-auto inline-flex h-12 items-center justify-center rounded-2xl px-8 text-base font-bold transition-colors" style={{ border: "2px solid #E0DCFC", color: "#6C63FF", background: "white" }}>
+          <Link href="/vao-thi" className="w-full sm:w-auto inline-flex h-12 items-center justify-center rounded-2xl px-8 text-base font-bold transition-colors" style={{ border: "2px solid #E0DCFC", color: "#6C63FF", background: "var(--surface-card)" }}>
             Vào thi bằng mã →
           </Link>
         </div>
 
         <div className="flex flex-wrap justify-center gap-2 mt-10">
           {["📝 Tạo đề thi", "🔗 Giao đề bằng link hoặc mã", "👻 Thi không cần tài khoản", "🤖 AI Study Coach", "🏫 Quản lý lớp học", "📊 Thống kê kết quả"].map((f) => (
-            <span key={f} className="text-sm font-semibold px-3 py-1.5 rounded-xl" style={{ background: "white", color: "#64748B", border: "1px solid #E8E4FF" }}>
+            <span key={f} className="text-sm font-semibold px-3 py-1.5 rounded-xl" style={{ background: "var(--surface-card)", color: "var(--text-secondary)", border: "1px solid var(--surface-border)" }}>
               {f}
             </span>
           ))}

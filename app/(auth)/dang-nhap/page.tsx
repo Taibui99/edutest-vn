@@ -18,14 +18,14 @@ export default function LoginPage() {
           Chưa có tài khoản?{" "}
           <Link
             href="/dang-ky"
-            className="font-semibold text-blue-600 hover:text-blue-700"
+            className="font-semibold text-[var(--primary)] hover:text-[var(--primary-hover)]"
           >
             Đăng ký ngay
           </Link>
           {" · "}
           <Link
             href="/quen-mat-khau"
-            className="font-semibold text-blue-600 hover:text-blue-700"
+            className="font-semibold text-[var(--primary)] hover:text-[var(--primary-hover)]"
           >
             Quên mật khẩu?
           </Link>

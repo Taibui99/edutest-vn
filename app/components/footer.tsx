@@ -9,19 +9,19 @@ export function Footer() {
             <span className="text-lg font-black">
               <span style={{ color: "#6C63FF" }}>Edu</span>
               <span style={{ color: "#FF6B6B" }}>Test</span>
-              <span style={{ color: "#94A3B8", fontWeight: 600, fontSize: "0.85em" }}>.vn</span>
+              <span style={{ color: "var(--text-muted)", fontWeight: 600, fontSize: "0.85em" }}>.vn</span>
             </span>
-            <p className="text-sm mt-1" style={{ color: "#64748B" }}>
+            <p className="text-sm mt-1" style={{ color: "var(--text-secondary)" }}>
               Dự án cá nhân — xây dựng để học tốt hơn 🎯
             </p>
           </div>
-          <div className="flex items-center gap-5 text-sm" style={{ color: "#94A3B8" }}>
+          <div className="flex items-center gap-5 text-sm" style={{ color: "var(--text-muted)" }}>
             <Link href="/dang-ky" className="hover:text-[#6C63FF] transition-colors font-medium">Đăng ký</Link>
             <Link href="/dang-nhap" className="hover:text-[#6C63FF] transition-colors font-medium">Đăng nhập</Link>
             <Link href="/vao-thi" className="hover:text-[#6C63FF] transition-colors font-medium">Vào thi</Link>
           </div>
         </div>
-        <div className="mt-6 pt-6 text-center text-xs" style={{ borderTop: "1px solid #D4CFFC", color: "#94A3B8" }}>
+        <div className="mt-6 pt-6 text-center text-xs" style={{ borderTop: "1px solid var(--surface-border-strong)", color: "var(--text-muted)" }}>
           © {new Date().getFullYear()} EduTest.vn — Made with ❤️ for học sinh Việt Nam
         </div>
       </div>
