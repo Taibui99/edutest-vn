@@ -19,6 +19,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     name: session.user.name ?? "User",
     email: session.user.email ?? "",
     role: session.user.role ?? "student",
+    mode: session.user.mode ?? (session.user.role === "admin" ? "admin" : session.user.role) ?? "student",
   };
 
   return (

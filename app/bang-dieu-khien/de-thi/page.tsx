@@ -17,7 +17,7 @@ export default async function ExamListPage({ searchParams }: { searchParams: Pro
   const session = await auth();
   if (!session?.user) redirect("/dang-nhap");
 
-  const isTeacher = session.user.role === "teacher" || session.user.role === "admin";
+  const isTeacher = session.user.mode !== "student";
 
   if (isTeacher) {
     const { q, subject, status } = await searchParams;

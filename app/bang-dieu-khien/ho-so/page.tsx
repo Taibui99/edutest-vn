@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { User, Mail, School, BookOpen, Lock, CheckCircle2, AlertCircle, Camera, Trash2 } from "lucide-react";
+import { User, Mail, School, BookOpen, Lock, CheckCircle2, AlertCircle, Camera, Trash2, ShieldCheck, ArrowRight } from "lucide-react";
+import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -288,6 +289,21 @@ export default function ProfilePage() {
           </Button>
         </div>
       </Card>
+
+      {profile.role === "admin" && (
+        <Link href="/admin">
+          <div className="flex items-center gap-4 p-5 bg-gradient-to-r from-[#EEEFFE] to-[#F6F5FF] dark:from-[#1A1740] dark:to-[#241F5C] rounded-2xl border border-[#6C63FF]/30 hover:border-[#6C63FF] transition-all cursor-pointer">
+            <span className="w-10 h-10 rounded-xl bg-[#6C63FF] text-white flex items-center justify-center shrink-0">
+              <ShieldCheck size={18} />
+            </span>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-black text-[var(--text-primary)]">Khu vực quản trị</p>
+              <p className="text-xs text-[var(--text-muted)]">Quản lý người dùng, đề thi, báo cáo hệ thống</p>
+            </div>
+            <ArrowRight size={16} className="text-[#6C63FF] shrink-0" />
+          </div>
+        </Link>
+      )}
     </div>
   );
 }

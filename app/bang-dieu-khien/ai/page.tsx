@@ -77,7 +77,7 @@ export default function AICoachPage() {
       .then((s) => {
         if (cancelled) return;
         const user = s?.user;
-        if (user?.role) setRole(user.role);
+        if (user?.mode) setRole(user.mode === "student" ? "student" : "teacher");
         if (user?.id) {
           const key = `${STORAGE_PREFIX}${user.id}`;
           setStorageKey(key);

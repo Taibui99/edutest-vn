@@ -15,7 +15,7 @@ export default async function TaoDeThiPage({ searchParams }: { searchParams: Pro
 
   if (edit) {
     const session = await auth();
-    if (session?.user?.role === "teacher") {
+    if (session?.user?.mode === "teacher" || session?.user?.mode === "admin") {
       const exam = await prisma.exam.findFirst({
         where: { id: edit, teacherId: session.user.id },
         select: {

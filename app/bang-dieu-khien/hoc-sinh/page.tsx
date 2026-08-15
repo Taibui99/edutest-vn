@@ -12,7 +12,7 @@ export const metadata: Metadata = { title: "Học sinh — EduTest" };
 export default async function StudentsPage() {
   const session = await auth();
   if (!session?.user) redirect("/dang-nhap");
-  if (session.user.role !== "teacher") redirect("/bang-dieu-khien");
+  if (session.user.mode !== "teacher") redirect("/bang-dieu-khien");
 
   const classrooms = await prisma.classroom.findMany({
     where: { teacherId: session.user.id },

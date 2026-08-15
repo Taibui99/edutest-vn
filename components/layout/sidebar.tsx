@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, BookOpen, FileText, Sparkles, Users,
-  User, Plus, Library, BarChart3, GraduationCap, LogOut, TrendingUp, ShieldCheck,
+  User, Plus, Library, BarChart3, GraduationCap, LogOut, TrendingUp, ShieldCheck, Repeat,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { NotificationBell } from "@/components/ui/notification-bell";
@@ -39,7 +39,7 @@ const teacherNav: NavItem[] = [
 ];
 
 interface SidebarProps {
-  user: { name: string; email: string; role: string };
+  user: { name: string; email: string; role: string; mode: string };
   logoutAction: () => Promise<void>;
 }
 
@@ -70,8 +70,8 @@ function NavLink({ item, pathname }: { item: NavItem; pathname: string }) {
 
 export function Sidebar({ user, logoutAction }: SidebarProps) {
   const pathname = usePathname();
-  const isTeacher = user.role === "teacher" || user.role === "admin";
-  const nav = isTeacher ? teacherNav : studentNav;
+  const mode = user.mode === "student" ? "student" : "teacher";
+  const nav = mode === "student" ? studentNav : teacherNav;
   const isAdmin = user.role === "admin";
 
   return (
@@ -88,14 +88,23 @@ export function Sidebar({ user, logoutAction }: SidebarProps) {
         </div>
       </div>
 
-      {/* Role badge */}
+      {/* Role badge + switch */}
       <div className="px-4 pt-4 pb-1">
-        <div className={cn(
-          "text-xs font-bold px-2.5 py-1.5 rounded-lg inline-flex items-center gap-1.5",
-          isTeacher ? "bg-[#E8F4FD] text-[#4EA8DE]" : "bg-[#E1F5EE] text-[#06D6A0]"
-        )}>
-          {isTeacher ? <GraduationCap size={11} /> : <BookOpen size={11} />}
-          {isTeacher ? "Giáo viên" : "Học sinh"}
+        <div className="flex items-center gap-1.5">
+          <div className={cn(
+            "text-xs font-bold px-2.5 py-1.5 rounded-lg inline-flex items-center gap-1.5",
+            mode === "teacher" ? "bg-[#E8F4FD] text-[#4EA8DE]" : "bg-[#E1F5EE] text-[#06D6A0]"
+          )}>
+            {mode === "teacher" ? <GraduationCap size={11} /> : <BookOpen size={11} />}
+            {mode === "teacher" ? "Giáo viên" : "Học sinh"}
+          </div>
+          <Link
+            href="/bang-dieu-khien"
+            className="text-[10px] font-bold text-[var(--text-muted)] hover:text-[#6C63FF] transition-colors inline-flex items-center gap-1 px-2 py-1.5 rounded-lg hover:bg-[var(--gray-100)]"
+            aria-label="Đổi chế độ"
+          >
+            <Repeat size={11} /> Đổi chế độ
+          </Link>
         </div>
       </div>
 

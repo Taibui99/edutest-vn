@@ -26,13 +26,20 @@ const teacherMobileNav = [
   { href: "/bang-dieu-khien/thong-ke",   label: "More",      icon: <MoreHorizontal size={20} /> },
 ];
 
-export function MobileTopbar({ user }: { user: { name: string; role: string } }) {
+export function MobileTopbar({ user }: { user: { name: string; role: string; mode: string } }) {
+  const mode = user.mode === "student" ? "student" : "teacher";
   return (
     <header className="lg:hidden flex items-center justify-between px-4 h-14 bg-[var(--surface-sidebar)] border-b border-[var(--surface-border)] sticky top-0 z-40">
       <span className="text-lg font-black tracking-tight">
         <span className="text-[#6C63FF]">Edu</span><span className="text-[#FF6B6B]">Test</span>
       </span>
       <div className="flex items-center gap-2">
+        <span className={cn(
+          "text-[10px] font-bold px-2 py-1 rounded-full",
+          mode === "teacher" ? "bg-[#E8F4FD] text-[#4EA8DE]" : "bg-[#E1F5EE] text-[#06D6A0]"
+        )}>
+          {mode === "teacher" ? "Giáo viên" : "Học sinh"}
+        </span>
         <ThemeToggle />
         <NotificationBell />
         <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#6C63FF] to-[#FF6B6B] flex items-center justify-center text-white text-xs font-bold">
@@ -43,9 +50,9 @@ export function MobileTopbar({ user }: { user: { name: string; role: string } })
   );
 }
 
-export function MobileBottomNav({ user }: { user: { name: string; role: string } }) {
+export function MobileBottomNav({ user }: { user: { name: string; role: string; mode: string } }) {
   const pathname = usePathname();
-  const nav = user.role === "teacher" || user.role === "admin" ? teacherMobileNav : studentMobileNav;
+  const nav = user.mode === "student" ? studentMobileNav : teacherMobileNav;
 
   return (
     <nav

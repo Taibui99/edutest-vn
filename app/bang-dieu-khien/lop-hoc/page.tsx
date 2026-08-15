@@ -47,10 +47,15 @@ export default function ClassroomsPage() {
       .catch(() => {})
       .finally(() => setLoading(false));
 
-    // Get role from session
+    // Get mode from session
     fetch("/api/auth/session")
       .then((r) => r.json())
-      .then((s) => { if (s?.user?.role) setRole(s.user.role); })
+      .then((s) => {
+        if (s?.user?.mode) {
+          const m = s.user.mode;
+          setRole(m === "student" ? "student" : "teacher");
+        }
+      })
       .catch(() => {});
   }, []);
 

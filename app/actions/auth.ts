@@ -2,7 +2,10 @@
 
 import bcrypt from "bcryptjs";
 import { AuthError } from "next-auth";
-import { signIn, signOut } from "@/auth";
+import { signIn, signOut, auth } from "@/auth";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
+import { encode, getToken } from "next-auth/jwt";
 import { prisma } from "@/lib/prisma";
 import { logAudit } from "@/lib/audit";
 import { getSetting } from "@/lib/settings";
@@ -122,4 +125,65 @@ export async function registerAction(
 
 export async function logoutAction() {
   await signOut({ redirectTo: "/" });
+}
+
+export async function switchModeAction(formData: FormData) {
+  const target = String(formData.get("mode") ?? "");
+  const redirectTo = String(formData.get("redirectTo") ?? "");
+
+  const session = await auth();
+  if (!session?.user) return;
+
+  const role = session.user.role;
+  const allowedModes = role === "admin"
+    ? ["student", "teacher", "admin"]
+    : ["student", "teacher"];
+  if (!allowedModes.includes(target)) return;
+  if (target === session.user.mode) {
+    if (redirectTo.startsWith("/bang-dieu-khien") || redirectTo.startsWith("/admin")) {
+      redirect(redirectTo);
+    }
+    return;
+  }
+
+  const cookieStore = await cookies();
+  const cookieName = cookieStore
+    .getAll()
+    .map((c) => c.name)
+    .find((n) => n.endsWith("session-token"));
+  if (!cookieName) return;
+
+  const secret = process.env.AUTH_SECRET;
+  if (!secret) return;
+
+  const currentToken = await getToken({
+    req: { headers: { cookie: cookieStore.toString() } },
+    secret,
+    salt: cookieName,
+  });
+  if (!currentToken) return;
+
+  const newToken = await encode({
+    token: { ...currentToken, mode: target },
+    secret,
+    salt: cookieName,
+    maxAge: 60 * 60 * 24 * 30,
+  });
+
+  cookieStore.set(cookieName, newToken, {
+    httpOnly: true,
+    secure: cookieName.startsWith("__Secure"),
+    sameSite: "lax",
+    path: "/",
+    maxAge: 60 * 60 * 24 * 30,
+  });
+
+  await logAudit({
+    type: "user.switchMode",
+    message: `${session.user.name ?? session.user.email} chuyển chế độ sang ${target}`,
+  });
+
+  if (redirectTo.startsWith("/bang-dieu-khien") || redirectTo.startsWith("/admin")) {
+    redirect(redirectTo);
+  }
 }

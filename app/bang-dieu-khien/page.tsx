@@ -6,12 +6,14 @@ import { prisma } from "@/lib/prisma";
 import {
   BookOpen, FileText, Trophy, Plus, Zap, ArrowRight,
   CheckCircle2, AlertCircle, Target, Flame, Clock,
-  BarChart3, Sparkles, CheckSquare,
+  BarChart3, Sparkles, CheckSquare, GraduationCap, ShieldCheck, Check,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { getSubjectColor } from "@/lib/subject";
+import { cn } from "@/lib/cn";
+import { switchModeAction } from "@/app/actions/auth";
 
 export const metadata: Metadata = { title: "Tổng quan — EduTest" };
 
@@ -560,6 +562,76 @@ async function TeacherDashboard({ userId, name }: { userId: string; name: string
   );
 }
 
+/* ─────────────────────────────────────────── Mode switcher ─── */
+function ModeSwitcher({ mode, role }: { mode: string; role: string }) {
+  const cards = [
+    {
+      value: "student",
+      label: "Học sinh",
+      desc: "Học tập, ôn thi, theo dõi tiến độ",
+      icon: <BookOpen size={20} />,
+    },
+    {
+      value: "teacher",
+      label: "Giáo viên",
+      desc: "Tạo đề, quản lý lớp học, chấm điểm",
+      icon: <GraduationCap size={20} />,
+    },
+    ...(role === "admin"
+      ? [{
+          value: "admin",
+          label: "Quản trị",
+          desc: "Quản trị hệ thống EduTest",
+          icon: <ShieldCheck size={20} />,
+        }]
+      : []),
+  ];
+
+  return (
+    <div className="mb-6">
+      <h2 className="text-xs font-bold uppercase tracking-wide text-[var(--text-muted)] mb-2.5">
+        Chế độ làm việc
+      </h2>
+      <div className={cn("grid gap-3", cards.length === 3 ? "grid-cols-1 sm:grid-cols-3" : "grid-cols-1 sm:grid-cols-2")}>
+        {cards.map((card) => {
+          const active = mode === card.value;
+          return (
+            <form key={card.value} action={switchModeAction}>
+              <input type="hidden" name="mode" value={card.value} />
+              <button
+                type="submit"
+                aria-label={`Chuyển sang chế độ ${card.label}`}
+                className={cn(
+                  "w-full text-left rounded-2xl border p-4 transition-all cursor-pointer",
+                  active
+                    ? "border-[#6C63FF] bg-[#EEEFFE] shadow-sm ring-2 ring-[#6C63FF]/20"
+                    : "border-[var(--surface-border)] bg-[var(--surface-card)] hover:border-[#6C63FF]/50 hover:shadow-sm",
+                )}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <span className={cn(
+                    "w-10 h-10 rounded-xl flex items-center justify-center shrink-0",
+                    active ? "bg-[#6C63FF] text-white" : "bg-[#EEEFFE] text-[#6C63FF]",
+                  )}>
+                    {card.icon}
+                  </span>
+                  {active && (
+                    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-[#6C63FF] bg-white/70 dark:bg-white/10 rounded-full px-2 py-0.5">
+                      <Check size={12} /> Đang dùng
+                    </span>
+                  )}
+                </div>
+                <p className="mt-3 text-sm font-black text-[var(--text-primary)]">{card.label}</p>
+                <p className="mt-0.5 text-xs text-[var(--text-muted)] leading-relaxed">{card.desc}</p>
+              </button>
+            </form>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 /* ─────────────────────────────────────────── Page ─── */
 export default async function DashboardPage({
   searchParams,
@@ -570,7 +642,9 @@ export default async function DashboardPage({
   if (!session?.user) redirect("/dang-nhap");
 
   const params = await searchParams;
-  const isTeacher = session.user.role === "teacher";
+  const mode = session.user.mode ?? (session.user.role === "admin" ? "admin" : session.user.role);
+  if (mode === "admin") redirect("/admin");
+  const isTeacher = mode === "teacher";
   const userId = session.user.id!;
   const name = session.user.name ?? "Bạn";
 
@@ -588,6 +662,9 @@ export default async function DashboardPage({
           </div>
         </div>
       )}
+      <div className="p-4 lg:p-8 max-w-5xl mx-auto">
+        <ModeSwitcher mode={mode} role={session.user.role} />
+      </div>
       {isTeacher ? (
         <TeacherDashboard userId={userId} name={name} />
       ) : (

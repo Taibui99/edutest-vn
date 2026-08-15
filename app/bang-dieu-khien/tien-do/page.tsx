@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 export default async function TienDoPage() {
   const session = await auth();
   if (!session?.user) redirect("/dang-nhap");
-  if (session.user.role !== "student") redirect("/bang-dieu-khien");
+  if (session.user.mode !== "student") redirect("/bang-dieu-khien");
 
   const [user, submissions, flashcardCount] = await Promise.all([
     prisma.user.findUnique({

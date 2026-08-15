@@ -70,7 +70,7 @@ export default function ClassroomDetailPage({ params }: { params: Promise<{ id: 
     ])
       .then(([cls, session]) => {
         setClassroom(cls);
-        if (session?.user) setIsTeacher(session.user.role === "teacher");
+        if (session?.user) setIsTeacher(session.user.mode !== "student");
       })
       .catch(() => {})
       .finally(() => setLoading(false));
