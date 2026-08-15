@@ -128,8 +128,20 @@ export async function logoutAction() {
 }
 
 export async function switchModeAction(formData: FormData) {
-  const target = String(formData.get("mode") ?? "");
-  const redirectTo = String(formData.get("redirectTo") ?? "");
+  const readValue = (name: string): string => {
+    const direct = formData.get(name);
+    if (typeof direct === "string") return direct;
+    for (const key of formData.keys()) {
+      if (key.endsWith(`_${name}`)) {
+        const v = formData.get(key);
+        if (typeof v === "string") return v;
+      }
+    }
+    return "";
+  };
+
+  const target = readValue("mode");
+  const redirectTo = readValue("redirectTo");
 
   const session = await auth();
   if (!session?.user) return;
