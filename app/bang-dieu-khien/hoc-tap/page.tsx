@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { ArrowLeft, CalendarDays, CheckSquare, Flame, Layers } from "lucide-react";
 import { auth } from "@/auth";
 import { Logo } from "@/app/components/logo";
+import { ThemeToggle } from "@/components/theme/theme-provider";
 import { prisma } from "@/lib/prisma";
 import { StudyHubClient } from "./study-hub-client";
 
@@ -32,25 +34,59 @@ export default async function StudyHubPage() {
   type TaskType = typeof tasks[0];
   type ProgressType = typeof subjectProgress[0];
   const dueCards = allCards.filter((c: CardType) => c.nextReviewAt <= new Date());
+  const pendingTasks = tasks.filter((t) => !t.completed).length;
+
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? "Chào buổi sáng" : hour < 18 ? "Chào buổi chiều" : "Chào buổi tối";
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="border-b border-green-100 bg-white sticky top-0 z-10">
+    <div className="min-h-screen bg-[var(--surface-bg)]">
+      <header className="sticky top-0 z-10 border-b border-[var(--surface-border)] bg-[var(--surface-card)]">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <Logo />
-          <Link href="/bang-dieu-khien" className="text-sm font-medium text-slate-500 hover:text-slate-800">
-            ← Bảng điều khiển
-          </Link>
+          <div className="flex items-center gap-3">
+            <ThemeToggle />
+            <Link
+              href="/bang-dieu-khien"
+              className="flex items-center gap-1.5 text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Bảng điều khiển
+            </Link>
+          </div>
         </div>
       </header>
 
       <main className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
-        <div className="rounded-2xl bg-gradient-to-r from-green-500 to-green-600 p-8 text-white mb-8">
-          <p className="text-sm font-medium opacity-80 mb-1">🎯 Góc học tập cá nhân</p>
-          <h1 className="text-3xl font-bold">Chuẩn bị cho kỳ thi THPT</h1>
-          <p className="mt-2 opacity-80 text-sm">
-            Đếm ngược, việc cần làm, flashcard ôn tập và tiến độ từng môn — tất cả trong 1 nơi.
-          </p>
+        <div className="relative overflow-hidden rounded-3xl bg-[var(--gradient-brand)] p-8 text-white shadow-lg mb-8 motion-card">
+          <div className="absolute -top-16 -right-16 h-56 w-56 rounded-full bg-white/10" />
+          <div className="absolute -bottom-24 right-32 h-64 w-64 rounded-full bg-white/5" />
+          <div className="relative">
+            <p className="flex items-center gap-2 text-sm font-medium text-white/80">
+              <CalendarDays className="h-4 w-4" />
+              Góc học tập cá nhân
+            </p>
+            <h1 className="mt-1 text-3xl font-extrabold">
+              {greeting}, {user?.name?.split(" ").slice(-1)[0] || "bạn"}!
+            </h1>
+            <p className="mt-2 max-w-xl text-sm text-white/80">
+              Đếm ngược, việc cần làm, flashcard ôn tập và tiến độ từng môn — tất cả trong 1 nơi.
+            </p>
+            <div className="mt-5 flex flex-wrap gap-3">
+              <span className="flex items-center gap-1.5 rounded-xl bg-white/15 px-3 py-1.5 text-xs font-bold backdrop-blur">
+                <Flame className="h-3.5 w-3.5" />
+                {user?.streak ?? 0} ngày streak
+              </span>
+              <span className="flex items-center gap-1.5 rounded-xl bg-white/15 px-3 py-1.5 text-xs font-bold backdrop-blur">
+                <Layers className="h-3.5 w-3.5" />
+                {dueCards.length} thẻ đến hạn
+              </span>
+              <span className="flex items-center gap-1.5 rounded-xl bg-white/15 px-3 py-1.5 text-xs font-bold backdrop-blur">
+                <CheckSquare className="h-3.5 w-3.5" />
+                {pendingTasks} việc chưa xong
+              </span>
+            </div>
+          </div>
         </div>
 
         <StudyHubClient
@@ -67,6 +103,7 @@ export default async function StudyHubPage() {
           }))}
           initialDueCount={dueCards.length}
           initialProgress={subjectProgress.map((p: ProgressType) => ({ subject: p.subject, progress: p.progress }))}
+          initialStreak={user?.streak ?? 0}
         />
       </main>
     </div>

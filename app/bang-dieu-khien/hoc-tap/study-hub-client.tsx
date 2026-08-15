@@ -1,10 +1,30 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { Spinner } from "@/app/components/spinner";
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  BarChart3,
+  CalendarDays,
+  CheckCircle2,
+  CheckSquare,
+  Flame,
+  Layers,
+  Pencil,
+  Plus,
+  RotateCcw,
+  Smile,
+  Sparkles,
+  Target,
+  Trash2,
+  X,
+} from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DateField } from "@/components/ui/date-field";
 import { Slider } from "@/components/ui/slider";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { EmptyState } from "@/components/ui/empty-state";
 
 type Task = {
   id: string;
@@ -38,16 +58,21 @@ export function StudyHubClient({
   initialCards,
   initialDueCount,
   initialProgress,
+  initialStreak,
 }: {
   initialExamDate: string | null;
   initialTasks: Task[];
   initialCards: Card[];
   initialDueCount: number;
   initialProgress: SubjectProgress[];
+  initialStreak: number;
 }) {
   return (
-    <div className="space-y-8">
-      <ExamCountdown initialExamDate={initialExamDate} />
+    <div className="space-y-6">
+      <div className="grid gap-6 lg:grid-cols-2">
+        <ExamCountdown initialExamDate={initialExamDate} />
+        <StreakCard streak={initialStreak} />
+      </div>
       <div className="grid gap-6 lg:grid-cols-2 motion-enter-stagger">
         <TaskTracker initialTasks={initialTasks} />
         <SubjectProgressPanel initialProgress={initialProgress} />
@@ -58,7 +83,7 @@ export function StudyHubClient({
 }
 
 // ============================================================
-// ĐẾM NGƯỢC NGÀY THI
+// ĐẾM NGƯỢC NGÀY THI (ring)
 // ============================================================
 function ExamCountdown({ initialExamDate }: { initialExamDate: string | null }) {
   const [examDate, setExamDate] = useState(initialExamDate);
@@ -97,43 +122,118 @@ function ExamCountdown({ initialExamDate }: { initialExamDate: string | null }) 
     }
   };
 
+  const pct = daysLeft === null ? 0 : Math.min(100, Math.round((daysLeft / 365) * 100));
+  const R = 52;
+  const C = 2 * Math.PI * R;
+
   return (
-    <div className="rounded-xl border border-slate-100 bg-white p-6 shadow-sm">
+    <Card padding="lg">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Target className="h-4 w-4 text-[var(--primary)]" />
+          Ngày thi THPT
+        </CardTitle>
+      </CardHeader>
+
       {editing ? (
-        <div className="flex flex-wrap items-end gap-3">
-          <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-1">Ngày thi THPT của bạn</label>
-            <DateField type="date" value={inputValue} onChange={(e) => setInputValue(e.target.value)} className="h-10"/>
+        <div className="space-y-3">
+          <DateField type="date" value={inputValue} onChange={(e) => setInputValue(e.target.value)} className="h-10" />
+          <div className="flex gap-2">
+<Button size="md" loading={saving} disabled={!inputValue} onClick={saveDate}>
+            Lưu ngày thi
+          </Button>
           </div>
-          <button
-            onClick={saveDate}
-            disabled={saving || !inputValue}
-            className="inline-flex h-10 items-center gap-2 rounded-lg bg-green-600 px-4 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-50"
-          >
-            {saving && <Spinner className="h-4 w-4" />}
-            Lưu
-          </button>
         </div>
       ) : (
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <p className="text-sm text-slate-500">Còn lại đến ngày thi THPT</p>
-            <p className="text-4xl font-bold text-green-600">
-              {daysLeft} <span className="text-lg font-medium text-slate-500">ngày</span>
-            </p>
-            <p className="text-xs text-slate-400 mt-1">
-              {examDate && new Date(examDate).toLocaleDateString("vi-VN")}
-            </p>
+        <div className="flex items-center gap-6">
+          <div className="relative h-32 w-32 shrink-0">
+            <svg viewBox="0 0 120 120" className="h-full w-full -rotate-90">
+              <circle cx="60" cy="60" r={R} fill="none" stroke="var(--surface-border)" strokeWidth="10" />
+              <circle
+                cx="60"
+                cy="60"
+                r={R}
+                fill="none"
+                stroke="url(#countdownGradient)"
+                strokeWidth="10"
+                strokeLinecap="round"
+                strokeDasharray={C}
+                strokeDashoffset={C - (C * pct) / 100}
+                style={{ transition: "stroke-dashoffset 0.6s ease" }}
+              />
+              <defs>
+                <linearGradient id="countdownGradient" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stopColor="#6C63FF" />
+                  <stop offset="100%" stopColor="#06D6A0" />
+                </linearGradient>
+              </defs>
+            </svg>
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              <span className="text-3xl font-extrabold text-[var(--text-primary)]">{daysLeft}</span>
+              <span className="text-xs font-medium text-[var(--text-muted)]">ngày</span>
+            </div>
           </div>
-          <button
-            onClick={() => setEditing(true)}
-            className="text-sm font-semibold text-green-700 hover:text-green-800"
-          >
-            Đổi ngày
-          </button>
+          <div className="min-w-0">
+            <p className="text-sm text-[var(--text-secondary)]">Còn lại đến ngày thi THPT</p>
+            <p className="mt-1 flex items-center gap-1.5 text-sm font-semibold text-[var(--text-primary)]">
+              <CalendarDays className="h-4 w-4 text-[var(--primary)]" />
+              {examDate && new Date(examDate).toLocaleDateString("vi-VN", { weekday: "long", day: "2-digit", month: "2-digit", year: "numeric" })}
+            </p>
+            <p className="mt-1 text-xs text-[var(--text-muted)]">
+              {pct > 0 ? `Đã dùng ${100 - pct}% quỹ thời gian 1 năm` : "Chưa đặt ngày thi"}
+            </p>
+            <Button variant="outline" size="sm" className="mt-3" onClick={() => setEditing(true)} icon={<Pencil className="h-3.5 w-3.5" />}>
+              Đổi ngày
+            </Button>
+          </div>
         </div>
       )}
-    </div>
+    </Card>
+  );
+}
+
+// ============================================================
+// STREAK
+// ============================================================
+function StreakCard({ streak }: { streak: number }) {
+  const [count, setCount] = useState(streak);
+  const [saving, setSaving] = useState(false);
+
+  const ping = async () => {
+    setSaving(true);
+    try {
+      const res = await fetch("/api/study/streak", { method: "POST" });
+      const data = await res.json();
+      if (res.ok && typeof data.streak === "number") setCount(data.streak);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Card padding="lg" className="relative overflow-hidden">
+      <div
+        className="absolute inset-0 opacity-60 dark:opacity-30"
+        style={{ background: "linear-gradient(135deg, var(--coral-light), var(--warning-light))" }}
+      />
+      <div className="relative flex h-full items-center justify-between gap-4">
+        <div>
+          <CardTitle className="flex items-center gap-2">
+            <Flame className="h-4 w-4 text-[var(--coral)]" />
+            Chuỗi ngày học
+          </CardTitle>
+          <p className="mt-2 text-4xl font-extrabold text-[var(--text-primary)]">
+            {count} <span className="text-base font-semibold text-[var(--text-secondary)]">ngày liên tiếp</span>
+          </p>
+          <p className="mt-1 text-xs text-[var(--text-muted)]">
+            Học đều mỗi ngày để giữ lửa, hôm nay đã học chưa?
+          </p>
+        </div>
+        <Button variant="coral" loading={saving} onClick={ping} icon={<Flame className="h-4 w-4" />}>
+          Điểm danh hôm nay
+        </Button>
+      </div>
+    </Card>
   );
 }
 
@@ -146,6 +246,7 @@ function TaskTracker({ initialTasks }: { initialTasks: Task[] }) {
   const [subject, setSubject] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [adding, setAdding] = useState(false);
+  const titleRef = useRef<HTMLInputElement>(null);
 
   const addTask = async () => {
     if (!title.trim()) return;
@@ -183,70 +284,93 @@ function TaskTracker({ initialTasks }: { initialTasks: Task[] }) {
   };
 
   const pendingCount = tasks.filter((t) => !t.completed).length;
+  const doneCount = tasks.length - pendingCount;
 
   return (
-    <div className="rounded-xl border border-slate-100 bg-white p-6 shadow-sm">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="font-semibold text-slate-800">✅ Việc cần làm</h3>
-        <span className="text-xs text-slate-500">{pendingCount} việc chưa xong</span>
-      </div>
+    <Card padding="lg">
+      <CardHeader className="flex flex-wrap items-center justify-between gap-2">
+        <CardTitle className="flex items-center gap-2">
+          <CheckSquare className="h-4 w-4 text-[var(--primary)]" />
+          Việc cần làm
+        </CardTitle>
+        <div className="flex gap-1.5">
+          <Badge variant="primary">{pendingCount} chưa xong</Badge>
+          {doneCount > 0 && <Badge variant="success">{doneCount} xong</Badge>}
+        </div>
+      </CardHeader>
 
-      <div className="flex flex-wrap gap-2 mb-4">
-        <input
+      <div className="mb-4 grid gap-2 sm:grid-cols-[1fr_auto_auto_auto]">
+        <Input
+          ref={titleRef}
           type="text"
           placeholder="Thêm việc cần làm..."
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && addTask()}
-          className="flex-1 min-w-[140px] h-9 rounded-lg border border-slate-200 px-3 text-sm"
         />
-        <input
+        <Input
           type="text"
           placeholder="Môn (tuỳ chọn)"
           value={subject}
           onChange={(e) => setSubject(e.target.value)}
-          className="w-28 h-9 rounded-lg border border-slate-200 px-3 text-sm"
+          className="w-28"
         />
-        <DateField type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} className="h-9 w-36"/>
-        <button
-          onClick={addTask}
-          disabled={adding || !title.trim()}
-          className="inline-flex h-9 items-center gap-1 rounded-lg bg-green-600 px-3 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-50"
-        >
-          {adding && <Spinner className="h-3.5 w-3.5" />}
+        <DateField type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} className="w-36 h-9" />
+        <Button onClick={addTask} loading={adding} disabled={!title.trim()} icon={<Plus className="h-4 w-4" />}>
           Thêm
-        </button>
+        </Button>
       </div>
 
       <div className="space-y-2 max-h-80 overflow-y-auto">
         {tasks.map((task) => (
           <div
             key={task.id}
-            className={`flex items-center gap-3 rounded-lg p-3 ${task.completed ? "bg-slate-50" : "bg-green-50"}`}
+            className={`flex items-center gap-3 rounded-xl border p-3 transition-colors ${
+              task.completed
+                ? "border-[var(--surface-border)] bg-[var(--gray-100)]"
+                : "border-[var(--primary-muted)] bg-[var(--primary-light)]/40 dark:bg-[var(--primary-light)]/15"
+            }`}
           >
-            <Checkbox checked={task.completed} onChange={(v) => toggleTask(task.id, v)}/>
+            <Checkbox checked={task.completed} onChange={(v) => toggleTask(task.id, v)} />
             <div className="flex-1 min-w-0">
-              <p className={`text-sm font-medium ${task.completed ? "text-slate-400 line-through" : "text-slate-800"}`}>
+              <p className={`text-sm font-medium ${task.completed ? "text-[var(--text-muted)] line-through" : "text-[var(--text-primary)]"}`}>
                 {task.title}
               </p>
               {(task.subject || task.dueDate) && (
-                <p className="text-xs text-slate-500">
-                  {task.subject}
-                  {task.subject && task.dueDate && " · "}
-                  {task.dueDate && `Hạn: ${new Date(task.dueDate).toLocaleDateString("vi-VN")}`}
+                <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-[var(--text-muted)]">
+                  {task.subject && <Badge variant="secondary">{task.subject}</Badge>}
+                  {task.dueDate && (
+                    <span className="inline-flex items-center gap-1">
+                      <CalendarDays className="h-3 w-3" />
+                      {new Date(task.dueDate).toLocaleDateString("vi-VN")}
+                    </span>
+                  )}
                 </p>
               )}
             </div>
-            <button onClick={() => deleteTask(task.id)} className="text-slate-400 hover:text-red-500 text-sm">
-              ✕
+            <button
+              onClick={() => deleteTask(task.id)}
+              aria-label="Xoá việc"
+              className="rounded-lg p-1.5 text-[var(--text-muted)] hover:bg-[var(--danger-light)] hover:text-[var(--danger)] transition-colors"
+            >
+              <Trash2 className="h-4 w-4" />
             </button>
           </div>
         ))}
         {tasks.length === 0 && (
-          <div className="text-sm text-slate-400 text-center py-6">Chưa có việc gì cả, thêm việc đầu tiên đi!</div>
+          <EmptyState
+            icon={<CheckCircle2 />}
+            title="Chưa có việc gì"
+            description="Thêm việc đầu tiên để bắt đầu lên kế hoạch ôn thi hiệu quả."
+            action={
+              <Button variant="outline" size="sm" onClick={() => titleRef.current?.focus()} icon={<Plus className="h-3.5 w-3.5" />}>
+                Thêm việc đầu tiên
+              </Button>
+            }
+          />
         )}
       </div>
-    </div>
+    </Card>
   );
 }
 
@@ -280,22 +404,34 @@ function SubjectProgressPanel({ initialProgress }: { initialProgress: SubjectPro
   };
 
   return (
-    <div className="rounded-xl border border-slate-100 bg-white p-6 shadow-sm">
-      <h3 className="font-semibold text-slate-800 mb-4">📈 Tiến độ ôn tập (khối A01)</h3>
-      <div className="space-y-4">
+    <Card padding="lg">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <BarChart3 className="h-4 w-4 text-[var(--primary)]" />
+          Tiến độ ôn tập (khối A01)
+        </CardTitle>
+      </CardHeader>
+      <div className="space-y-5">
         {A01_SUBJECTS.map((subject) => (
           <div key={subject}>
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-sm font-medium text-slate-700">{subject}</span>
-              <span className="text-sm font-semibold text-green-600">
-                {progress[subject]}%{savingSubject === subject && <Spinner className="inline-block h-3 w-3 ml-1" />}
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-sm font-medium text-[var(--text-secondary)]">{subject}</span>
+              <span className="flex items-center gap-1.5 text-sm font-bold text-[var(--primary)]">
+                {progress[subject]}%
               </span>
             </div>
-            <Slider value={progress[subject]} onChange={(v) => saveProgress(subject, v)} onCommit={() => commitProgress(subject)} min={0} max={100} step={5}/>
+            <Slider
+              value={progress[subject]}
+              onChange={(v) => saveProgress(subject, v)}
+              onCommit={() => commitProgress(subject)}
+              min={0}
+              max={100}
+              step={5}
+            />
           </div>
         ))}
       </div>
-    </div>
+    </Card>
   );
 }
 
@@ -448,185 +584,166 @@ function FlashcardPanel({
     }
   };
 
+  const reviewCard = reviewQueue[currentIndex];
+
   return (
-    <div className="rounded-xl border border-slate-100 bg-white p-6 shadow-sm">
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-        <h3 className="font-semibold text-slate-800">🗂️ Flashcard ôn tập</h3>
-        <div className="flex gap-2">
+    <Card padding="lg">
+      <CardHeader className="flex flex-wrap items-center justify-between gap-3">
+        <CardTitle className="flex items-center gap-2">
+          <Layers className="h-4 w-4 text-[var(--primary)]" />
+          Flashcard ôn tập
+          {dueCount > 0 && <Badge variant="danger">{dueCount} đến hạn</Badge>}
+        </CardTitle>
+        <div className="flex flex-wrap gap-2">
           {mode !== "add" && mode !== "ai" && (
-            <button
-              onClick={() => setMode("ai")}
-              className="inline-flex h-9 items-center rounded-lg border border-purple-200 px-3 text-sm font-semibold text-purple-700 hover:bg-purple-50"
-            >
-              ✨ Tạo bằng AI
-            </button>
+            <Button variant="outline" size="sm" onClick={() => setMode("ai")} icon={<Sparkles className="h-3.5 w-3.5" />} className="border-[var(--primary-muted)] text-[var(--primary)] hover:bg-[var(--primary-light)]">
+              Tạo bằng AI
+            </Button>
           )}
           {mode !== "add" && mode !== "ai" && (
-            <button
-              onClick={startAdd}
-              className="inline-flex h-9 items-center rounded-lg border border-green-200 px-3 text-sm font-semibold text-green-700 hover:bg-green-50"
-            >
-              + Thêm thẻ
-            </button>
+            <Button variant="outline" size="sm" onClick={startAdd} icon={<Plus className="h-3.5 w-3.5" />}>
+              Thêm thẻ
+            </Button>
           )}
           {mode !== "review" && dueCount > 0 && (
-            <button
-              onClick={startReview}
-              className="inline-flex h-9 items-center rounded-lg bg-green-600 px-4 text-sm font-semibold text-white hover:bg-green-700"
-            >
-              Ôn ngay ({dueCount} thẻ đến hạn)
-            </button>
+            <Button variant="gradient" size="sm" onClick={startReview}>
+              Ôn ngay ({dueCount} thẻ)
+            </Button>
           )}
         </div>
-      </div>
+      </CardHeader>
 
       {mode === "add" && (
-        <div className="space-y-3 rounded-lg border border-slate-100 bg-slate-50 p-4 mb-4">
+        <div className="mb-4 space-y-3 rounded-2xl border border-[var(--surface-border)] bg-[var(--surface-hover)] p-4">
           <div className="flex items-center justify-between">
-            <p className="text-sm font-semibold text-slate-700">
+            <p className="text-sm font-bold text-[var(--text-primary)]">
               {editing ? "Sửa thẻ" : "Thêm thẻ mới"}
             </p>
             {editing && (
-              <button
-                onClick={() => { resetForm(); setMode("list"); }}
-                className="text-xs font-semibold text-slate-500 hover:text-red-500"
-              >
+              <Button variant="ghost" size="sm" onClick={() => { resetForm(); setMode("list"); }}>
                 Huỷ sửa
-              </button>
+              </Button>
             )}
           </div>
-          <div className="grid sm:grid-cols-2 gap-3">
-            <input
-              type="text"
-              placeholder="Môn học"
-              value={newSubject}
-              onChange={(e) => setNewSubject(e.target.value)}
-              className="w-full h-9 rounded-lg border border-slate-200 px-3 text-sm"
-            />
-            <input
-              type="text"
-              placeholder="Bộ thẻ (VD: Chương 1, Từ vựng...)"
-              value={newDeck}
-              onChange={(e) => setNewDeck(e.target.value)}
-              className="w-full h-9 rounded-lg border border-slate-200 px-3 text-sm"
-            />
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Input type="text" placeholder="Môn học" value={newSubject} onChange={(e) => setNewSubject(e.target.value)} />
+            <Input type="text" placeholder="Bộ thẻ (VD: Chương 1, Từ vựng...)" value={newDeck} onChange={(e) => setNewDeck(e.target.value)} />
           </div>
-          <textarea
+          <Input
+            type="text"
             placeholder="Mặt trước (câu hỏi)"
             value={newFront}
             onChange={(e) => setNewFront(e.target.value)}
-            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-            rows={2}
           />
-          <textarea
+          <Input
+            type="text"
             placeholder="Mặt sau (đáp án)"
             value={newBack}
             onChange={(e) => setNewBack(e.target.value)}
-            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-            rows={2}
           />
           <div className="flex gap-2">
-            <button
-              onClick={saveCard}
-              disabled={addingCard}
-              className="inline-flex h-9 items-center gap-2 rounded-lg bg-green-600 px-4 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-50"
-            >
-              {addingCard && <Spinner className="h-3.5 w-3.5" />}
+            <Button onClick={saveCard} loading={addingCard} disabled={!newSubject.trim() || !newFront.trim() || !newBack.trim()}>
               {editing ? "Lưu thay đổi" : "Lưu thẻ"}
-            </button>
-            <button
-              onClick={() => { resetForm(); setMode("list"); }}
-              className="inline-flex h-9 items-center rounded-lg border border-slate-200 px-4 text-sm font-semibold text-slate-600 hover:bg-slate-100"
-            >
+            </Button>
+            <Button variant="outline" onClick={() => { resetForm(); setMode("list"); }}>
               Huỷ
-            </button>
+            </Button>
           </div>
         </div>
       )}
 
       {mode === "ai" && (
-        <div className="space-y-3 rounded-lg border border-purple-100 bg-purple-50 p-4 mb-4">
+        <div className="mb-4 space-y-3 rounded-2xl border border-[var(--primary-muted)] bg-[var(--primary-light)]/40 p-4 dark:bg-[var(--primary-light)]/15">
           <div className="flex items-center justify-between">
-            <p className="text-sm font-semibold text-purple-800">✨ Tạo thẻ học bằng AI</p>
-            <button
-              onClick={() => { setAiError(""); setMode("list"); }}
-              className="text-xs font-semibold text-slate-500 hover:text-red-500"
-            >
+            <p className="flex items-center gap-2 text-sm font-bold text-[var(--primary)]">
+              <Sparkles className="h-4 w-4" />
+              Tạo thẻ học bằng AI
+            </p>
+            <Button variant="ghost" size="sm" onClick={() => { setAiError(""); setMode("list"); }}>
               Đóng
-            </button>
+            </Button>
           </div>
-          <div className="grid sm:grid-cols-2 gap-3">
-            <input
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Input
               type="text"
               placeholder="Môn học (bắt buộc)"
               value={aiSubject}
               onChange={(e) => setAiSubject(e.target.value)}
-              className="w-full h-9 rounded-lg border border-slate-200 px-3 text-sm"
             />
-            <input
+            <Input
               type="text"
               placeholder="Chủ đề (VD: Từ vựng Unit 1, Định luật Newton...)"
               value={aiTopic}
               onChange={(e) => setAiTopic(e.target.value)}
-              className="w-full h-9 rounded-lg border border-slate-200 px-3 text-sm"
             />
           </div>
-          {aiError && <p className="text-xs font-semibold text-red-600">{aiError}</p>}
+          {aiError && <p className="text-xs font-semibold text-[var(--danger)]">{aiError}</p>}
           <div className="flex gap-2">
-            <button
-              onClick={generateCards}
-              disabled={generating}
-              className="inline-flex h-9 items-center gap-2 rounded-lg bg-purple-600 px-4 text-sm font-semibold text-white hover:bg-purple-700 disabled:opacity-50"
-            >
-              {generating && <Spinner className="h-3.5 w-3.5" />}
+            <Button variant="gradient" onClick={generateCards} loading={generating} icon={<Sparkles className="h-4 w-4" />}>
               {generating ? "AI đang tạo..." : "Tạo thẻ"}
-            </button>
-            <button
-              onClick={() => { setAiError(""); setMode("list"); }}
-              className="inline-flex h-9 items-center rounded-lg border border-slate-200 px-4 text-sm font-semibold text-slate-600 hover:bg-slate-100"
-            >
+            </Button>
+            <Button variant="outline" onClick={() => { setAiError(""); setMode("list"); }}>
               Huỷ
-            </button>
+            </Button>
           </div>
-          <p className="text-xs text-slate-400">AI tạo tối đa 8 thẻ cho chủ đề bạn nhập. Kiểm tra lại nội dung trước khi học.</p>
+          <p className="text-xs text-[var(--text-muted)]">AI tạo tối đa 8 thẻ cho chủ đề bạn nhập. Kiểm tra lại nội dung trước khi học.</p>
         </div>
       )}
 
-      {mode === "review" && reviewQueue[currentIndex] && (
+      {mode === "review" && reviewCard && (
         <div className="flex flex-col items-center py-6">
-          <p className="text-xs text-slate-400 mb-2">
-            Thẻ {currentIndex + 1}/{reviewQueue.length} · {reviewQueue[currentIndex].subject}
-          </p>
-          <div
-            onClick={() => setFlipped(!flipped)}
-            className="w-full max-w-md min-h-[160px] flex items-center justify-center rounded-xl border-2 border-green-200 bg-green-50 p-6 text-center cursor-pointer"
-          >
-            <p className="text-lg font-medium text-slate-800">
-              {flipped ? reviewQueue[currentIndex].back : reviewQueue[currentIndex].front}
-            </p>
+          <div className="flex items-center gap-2 text-xs text-[var(--text-muted)] mb-4">
+            <Badge variant="primary">{reviewCard.subject}</Badge>
+            <span>Thẻ {currentIndex + 1}/{reviewQueue.length}</span>
           </div>
-          <p className="text-xs text-slate-400 mt-2">Bấm vào thẻ để {flipped ? "xem lại câu hỏi" : "xem đáp án"}</p>
+
+          <div className="w-full max-w-md" style={{ perspective: "1200px" }}>
+            <div
+              onClick={() => setFlipped(!flipped)}
+              className="relative h-56 w-full cursor-pointer"
+              style={{ transformStyle: "preserve-3d", transition: "transform 0.55s cubic-bezier(0.4, 0.2, 0.2, 1)", transform: flipped ? "rotateY(180deg)" : "rotateY(0deg)" }}
+            >
+              <div
+                className="absolute inset-0 flex items-center justify-center rounded-2xl border-2 p-6 text-center"
+                style={{
+                  backfaceVisibility: "hidden",
+                  WebkitBackfaceVisibility: "hidden",
+                  background: "linear-gradient(135deg, var(--primary-light), var(--surface-hover))",
+                  borderColor: "var(--primary-muted)",
+                }}
+              >
+                <p className="text-lg font-semibold text-[var(--text-primary)]">{reviewCard.front}</p>
+              </div>
+              <div
+                className="absolute inset-0 flex items-center justify-center rounded-2xl border-2 p-6 text-center"
+                style={{
+                  backfaceVisibility: "hidden",
+                  WebkitBackfaceVisibility: "hidden",
+                  transform: "rotateY(180deg)",
+                  background: "linear-gradient(135deg, var(--mint-light), var(--surface-hover))",
+                  borderColor: "var(--mint)",
+                }}
+              >
+                <p className="text-lg font-semibold text-[var(--text-primary)]">{reviewCard.back}</p>
+              </div>
+            </div>
+          </div>
+
+          <p className="mt-3 text-xs text-[var(--text-muted)]">
+            Bấm vào thẻ để {flipped ? "xem lại câu hỏi" : "xem đáp án"}
+          </p>
 
           {flipped && (
-            <div className="flex gap-3 mt-5">
-              <button
-                onClick={() => submitReview(1)}
-                className="rounded-lg bg-red-100 px-5 py-2 text-sm font-semibold text-red-700 hover:bg-red-200"
-              >
-                😵 Quên
-              </button>
-              <button
-                onClick={() => submitReview(3)}
-                className="rounded-lg bg-amber-100 px-5 py-2 text-sm font-semibold text-amber-700 hover:bg-amber-200"
-              >
-                🤔 Khó
-              </button>
-              <button
-                onClick={() => submitReview(5)}
-                className="rounded-lg bg-green-100 px-5 py-2 text-sm font-semibold text-green-700 hover:bg-green-200"
-              >
-                😄 Dễ
-              </button>
+            <div className="mt-5 flex flex-wrap justify-center gap-3">
+              <Button variant="coral" onClick={() => submitReview(1)} icon={<X className="h-4 w-4" />}>
+                Quên
+              </Button>
+              <Button variant="outline" onClick={() => submitReview(3)} icon={<RotateCcw className="h-4 w-4" />}>
+                Khó
+              </Button>
+              <Button variant="mint" onClick={() => submitReview(5)} icon={<Smile className="h-4 w-4" />}>
+                Dễ
+              </Button>
             </div>
           )}
         </div>
@@ -635,12 +752,16 @@ function FlashcardPanel({
       {mode === "list" && (
         <>
           {decks.length > 1 && (
-            <div className="flex gap-2 mb-3 flex-wrap">
+            <div className="mb-3 flex flex-wrap gap-2">
               {decks.map((d) => (
                 <button
                   key={d}
                   onClick={() => setDeckFilter(d)}
-                  className={`rounded-lg px-3 py-1 text-xs font-semibold transition-colors ${deckFilter === d ? "bg-green-600 text-white" : "bg-slate-100 text-slate-500 hover:bg-slate-200"}`}
+                  className={`rounded-lg px-3 py-1 text-xs font-semibold transition-colors ${
+                    deckFilter === d
+                      ? "bg-[var(--gradient-brand)] text-white shadow-sm"
+                      : "bg-[var(--gray-100)] text-[var(--text-muted)] hover:bg-[var(--gray-200)]"
+                  }`}
                 >
                   {d}
                 </button>
@@ -649,43 +770,58 @@ function FlashcardPanel({
           )}
           <div className="grid gap-3 sm:grid-cols-2">
             {visibleCards.map((card) => (
-              <div key={card.id} className="rounded-lg border border-slate-100 bg-slate-50 p-3">
+              <div key={card.id} className="group rounded-xl border border-[var(--surface-border)] bg-[var(--surface-hover)] p-3 transition-colors hover:border-[var(--primary-muted)]">
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex flex-wrap gap-1.5">
-                    <span className="text-xs font-semibold text-green-600">{card.subject}</span>
-                    {card.deck && card.deck !== "Mặc định" && (
-                      <span className="text-[10px] font-bold bg-green-100 text-green-700 px-1.5 py-0.5 rounded">{card.deck}</span>
-                    )}
+                    <Badge variant="primary">{card.subject}</Badge>
+                    {card.deck && card.deck !== "Mặc định" && <Badge>{card.deck}</Badge>}
                   </div>
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-0.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                     <button
                       onClick={() => startEdit(card)}
                       aria-label="Sửa thẻ"
-                      className="text-slate-400 hover:text-green-600 text-xs font-semibold"
+                      className="rounded-lg p-1.5 text-[var(--text-muted)] hover:bg-[var(--primary-light)] hover:text-[var(--primary)] transition-colors"
                     >
-                      Sửa
+                      <Pencil className="h-3.5 w-3.5" />
                     </button>
-                    <button onClick={() => deleteCard(card.id)} aria-label="Xoá thẻ" className="text-slate-400 hover:text-red-500 text-xs">
-                      ✕
+                    <button
+                      onClick={() => deleteCard(card.id)}
+                      aria-label="Xoá thẻ"
+                      className="rounded-lg p-1.5 text-[var(--text-muted)] hover:bg-[var(--danger-light)] hover:text-[var(--danger)] transition-colors"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
                     </button>
                   </div>
                 </div>
-                <p className="mt-1 text-sm font-medium text-slate-800 line-clamp-2">{card.front}</p>
-                <p className="mt-1 text-xs text-slate-500">
+                <p className="mt-2 text-sm font-semibold text-[var(--text-primary)] line-clamp-2">{card.front}</p>
+                <p className="mt-1.5 flex items-center gap-1 text-xs text-[var(--text-muted)]">
+                  <RotateCcw className="h-3 w-3" />
                   Ôn lại: {new Date(card.nextReviewAt).toLocaleDateString("vi-VN")}
                 </p>
               </div>
             ))}
             {visibleCards.length === 0 && (
-              <div className="col-span-2 text-sm text-slate-400 text-center py-6">
-                {deckFilter === "Tất cả"
-                  ? "Chưa có thẻ nào, bấm \"+ Thêm thẻ\" để tạo thẻ đầu tiên."
-                  : "Bộ thẻ này chưa có thẻ nào."}
+              <div className="col-span-2">
+                <EmptyState
+                  icon={<Layers />}
+                  title={deckFilter === "Tất cả" ? "Chưa có thẻ nào" : "Bộ thẻ này chưa có thẻ nào"}
+                  description="Tạo thẻ học để ôn tập thông minh theo thuật toán SM-2, hoặc để AI soạn giúp bạn."
+                  action={
+                    <div className="flex gap-2">
+                      <Button size="sm" onClick={startAdd} icon={<Plus className="h-3.5 w-3.5" />}>
+                        Thêm thẻ
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => setMode("ai")} icon={<Sparkles className="h-3.5 w-3.5" />}>
+                        Tạo bằng AI
+                      </Button>
+                    </div>
+                  }
+                />
               </div>
             )}
           </div>
         </>
       )}
-    </div>
+    </Card>
   );
 }
