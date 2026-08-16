@@ -14,6 +14,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { getSubjectColor } from "@/lib/subject";
 import { cn } from "@/lib/cn";
 import { switchModeAction } from "@/app/actions/auth";
+import { ContinueDraftCard } from "./continue-draft";
 
 export const metadata: Metadata = { title: "Tổng quan — EduTest" };
 
@@ -43,12 +44,17 @@ function scoreBg(score: number) {
 
 /* ─────────────────────────────────────────── Student ─── */
 async function StudentDashboard({ userId, name }: { userId: string; name: string }) {
-  const [submissions, tasks, dueCards, allCards, subjectProgress, userRecord] = await Promise.all([
+  const [submissions, allSubs, tasks, dueCards, allCards, subjectProgress, userRecord] = await Promise.all([
     prisma.submission.findMany({
       where: { studentId: userId },
       include: { exam: { select: { title: true, subject: true } } },
       orderBy: { submittedAt: "desc" },
       take: 5,
+    }),
+    prisma.submission.aggregate({
+      where: { studentId: userId },
+      _count: { _all: true },
+      _avg: { score: true },
     }),
     prisma.studyTask.findMany({
       where: { studentId: userId, completed: false },
@@ -60,17 +66,16 @@ async function StudentDashboard({ userId, name }: { userId: string; name: string
     }),
     prisma.flashcard.count({ where: { studentId: userId } }),
     prisma.subjectProgress.findMany({ where: { studentId: userId } }),
-    prisma.user.findUnique({ where: { id: userId }, select: { examDate: true } }),
+    prisma.user.findUnique({ where: { id: userId }, select: { examDate: true, streak: true } }),
   ]);
 
   type SubType = typeof submissions[0];
   type TaskType = typeof tasks[0];
   type ProgressType = typeof subjectProgress[0];
 
-  const avgScore =
-    submissions.length > 0
-      ? submissions.reduce((s: number, sub: SubType) => s + sub.score, 0) / submissions.length
-      : 0;
+  const totalSubmissions = allSubs._count._all;
+  const avgScore = allSubs._avg.score ?? 0;
+  const streak = userRecord?.streak ?? 0;
   const daysLeft = userRecord?.examDate ? getDaysUntil(userRecord.examDate) : null;
   const progressPct = daysLeft != null
     ? Math.max(5, Math.min(95, 100 - (daysLeft / 365) * 100))
@@ -107,9 +112,19 @@ async function StudentDashboard({ userId, name }: { userId: string; name: string
               </Link>
             )}
           </div>
-          <div className="shrink-0 text-5xl select-none hidden sm:block">🎯</div>
+          <div className="flex shrink-0 flex-col items-end gap-2">
+            <div className="inline-flex items-center gap-1.5 rounded-2xl bg-white/15 px-4 py-2 backdrop-blur-sm">
+              <Flame size={18} className="text-[#FFD166]" fill="currentColor" />
+              <span className="text-lg font-black text-white">{streak}</span>
+              <span className="text-xs font-semibold text-white/80">ngày liên tiếp</span>
+            </div>
+            <div className="shrink-0 text-4xl select-none hidden sm:block">🎯</div>
+          </div>
         </div>
       </div>
+
+      {/* ── Continue drafts */}
+      <ContinueDraftCard />
 
       {/* ── 4 stat pills */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
@@ -118,7 +133,7 @@ async function StudentDashboard({ userId, name }: { userId: string; name: string
             <FileText size={14} className="text-[#6C63FF]" />
             <span className="text-xs font-bold text-[#6C63FF]">Bài đã làm</span>
           </div>
-          <p className="text-2xl font-black text-[#1A1740]">{submissions.length}</p>
+          <p className="text-2xl font-black text-[#1A1740]">{totalSubmissions}</p>
         </div>
         <div className="bg-[#FFF8E1] rounded-2xl p-4">
           <div className="flex items-center gap-2 mb-1">

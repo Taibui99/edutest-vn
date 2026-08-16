@@ -91,8 +91,8 @@ export function ExamTakingClientV2({ exam, preview = false, backHref }: { exam: 
   const totalQuestions = exam.questions.length;
 
   const draftKey = `edutest-draft-${exam.id}`;
-  const draftRef = useRef({ answers, marked, remaining, shuffle: null as number[] | null, optionShuffle: {} as Record<string, number[]> });
-  draftRef.current = { answers, marked, remaining, shuffle: questionOrder, optionShuffle: optionShuffleRef.current };
+  const draftRef = useRef({ answers, marked, remaining, shuffle: null as number[] | null, optionShuffle: {} as Record<string, number[]>, meta: null as null | { title: string; joinCode: string; subject: string; totalQuestions: number } });
+  draftRef.current = { answers, marked, remaining, shuffle: questionOrder, optionShuffle: optionShuffleRef.current, meta: { title: exam.title, joinCode: exam.joinCode, subject: exam.subject, totalQuestions: exam.questions.length } };
   const submittedRef = useRef(false);
 
   const saveDraft = useCallback(() => {
