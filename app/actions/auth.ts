@@ -5,7 +5,7 @@ import { AuthError } from "next-auth";
 import { signIn, signOut, auth } from "@/auth";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { encode, getToken, decode } from "next-auth/jwt";
+import { encode, decode } from "next-auth/jwt";
 import { prisma } from "@/lib/prisma";
 import { logAudit } from "@/lib/audit";
 import { getSetting } from "@/lib/settings";
@@ -171,24 +171,16 @@ export async function switchModeAction(formData: FormData) {
   const secret = process.env.AUTH_SECRET;
   if (!secret) return debug("4");
 
-  const currentToken = await getToken({
-    req: { headers: { cookie: cookieStore.toString() } },
-    secret,
-    salt: cookieName,
-  });
-  if (!currentToken) {
-    const allCookies = cookieStore.getAll().map((c) => c.name).join(",");
-    let decErr = "none";
-    const raw = cookieStore.get(cookieName)?.value;
-    if (raw) {
-      try {
-        await decode({ token: raw, secret, salt: cookieName });
-      } catch (e) {
-        decErr = String(e instanceof Error ? e.message : e).slice(0, 200);
-      }
-    }
-    return debug("5|" + allCookies + "|" + decErr);
+  const currentTokenRaw = cookieStore.get(cookieName)?.value;
+  if (!currentTokenRaw) return debug("5");
+
+  let currentToken: Record<string, unknown> | null = null;
+  try {
+    currentToken = await decode({ token: currentTokenRaw, secret, salt: cookieName });
+  } catch (e) {
+    return debug("5|" + String(e instanceof Error ? e.message : e).slice(0, 120));
   }
+  if (!currentToken) return debug("5");
 
   const newToken = await encode({
     token: { ...currentToken, mode: target },
