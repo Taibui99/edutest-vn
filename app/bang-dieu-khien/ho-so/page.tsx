@@ -23,7 +23,7 @@ interface Profile {
 function Alert({ type, msg }: { type: "success" | "error"; msg: string }) {
   return (
     <div className={`flex items-center gap-2 p-3 rounded-xl text-sm font-medium ${
-      type === "success" ? "bg-[var(--mint-light)] text-[#064E3B]" : "bg-[var(--coral-light)] text-[#7F1D1D]"
+      type === "success" ? "bg-[var(--mint-light)] text-[var(--success)]" : "bg-[var(--coral-light)] text-[var(--danger)]"
     }`}>
       {type === "success" ? <CheckCircle2 size={15} /> : <AlertCircle size={15} />}
       {msg}

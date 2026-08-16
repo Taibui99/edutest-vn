@@ -35,10 +35,10 @@ export async function Header() {
             </div>
           ) : (
             <div className="flex items-center gap-2">
-              <Link href="/dang-nhap" className="h-9 px-4 rounded-xl text-sm font-semibold" style={{ color: "var(--primary)" }}>
+              <Link href="/dang-nhap" className="inline-flex h-9 items-center px-4 rounded-xl text-sm font-semibold" style={{ color: "var(--primary)" }}>
                 Đăng nhập
               </Link>
-              <Link href="/dang-ky" className="h-9 px-5 rounded-xl text-sm font-black text-white" style={{ background: "var(--gradient-brand)" }}>
+              <Link href="/dang-ky" className="inline-flex h-9 items-center px-5 rounded-xl text-sm font-black text-white" style={{ background: "var(--gradient-brand)" }}>
                 Đăng ký
               </Link>
             </div>

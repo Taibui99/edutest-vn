@@ -45,8 +45,8 @@ export default async function ExamListPage({ searchParams }: { searchParams: Pro
       <div className="p-5 lg:p-8 max-w-5xl mx-auto animate-fade-in">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-xl font-bold text-[#0F172A]">Đề thi</h1>
-            <p className="text-sm text-[#64748B] mt-0.5">{exams.length} đề thi đã tạo</p>
+            <h1 className="text-xl font-bold text-[var(--text-primary)]">Đề thi</h1>
+            <p className="text-sm text-[var(--text-secondary)] mt-0.5">{exams.length} đề thi đã tạo</p>
           </div>
           <Link href="/bang-dieu-khien/tao-de-thi">
             <Button icon={<Plus size={16} />}>Tạo đề mới</Button>
@@ -96,7 +96,7 @@ export default async function ExamListPage({ searchParams }: { searchParams: Pro
                     <div className="p-4">
                       <div className="flex items-start justify-between gap-2 mb-3">
                         <div className="min-w-0">
-                          <p className="font-semibold text-[#0F172A] truncate">{exam.title}</p>
+                          <p className="font-semibold text-[var(--text-primary)] truncate">{exam.title}</p>
                           <div className="flex items-center gap-2 mt-1">
                             <span className="text-xs px-2 py-0.5 rounded-md font-medium" style={{ background: c.bg, color: c.text }}>
                               {exam.subject}
@@ -110,7 +110,7 @@ export default async function ExamListPage({ searchParams }: { searchParams: Pro
                           </span>
                         )}
                       </div>
-                      <div className="flex items-center gap-4 text-xs text-[#64748B]">
+                      <div className="flex items-center gap-4 text-xs text-[var(--text-secondary)]">
                         <span className="flex items-center gap-1"><FileText size={12} /> {exam._count.questions} câu</span>
                         <span className="flex items-center gap-1"><Clock size={12} /> {exam.durationMinutes} phút</span>
                         <span className="flex items-center gap-1"><Users size={12} /> {exam._count.submissions} bài nộp</span>
@@ -122,8 +122,8 @@ export default async function ExamListPage({ searchParams }: { searchParams: Pro
                       )}
                       {avgScore !== null && (
                         <div className="mt-3 pt-3 border-t border-[#F1F5F9] flex items-center justify-between">
-                          <span className="text-xs text-[#94A3B8]">Điểm trung bình</span>
-                          <span className="text-sm font-bold text-[#2563EB]">{avgScore.toFixed(1)}/10</span>
+                          <span className="text-xs text-[var(--text-muted)]">Điểm trung bình</span>
+                          <span className="text-sm font-bold text-[var(--primary)]">{avgScore.toFixed(1)}/10</span>
                         </div>
                       )}
                     </div>
@@ -148,8 +148,8 @@ export default async function ExamListPage({ searchParams }: { searchParams: Pro
     <div className="p-5 lg:p-8 max-w-5xl mx-auto animate-fade-in">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-xl font-bold text-[#0F172A]">Đề thi của tôi</h1>
-          <p className="text-sm text-[#64748B] mt-0.5">{submissions.length} bài đã làm</p>
+          <h1 className="text-xl font-bold text-[var(--text-primary)]">Đề thi của tôi</h1>
+          <p className="text-sm text-[var(--text-secondary)] mt-0.5">{submissions.length} bài đã làm</p>
         </div>
         <Link href="/vao-thi">
           <Button icon={<Plus size={16} />}>Vào thi bằng mã</Button>
@@ -178,15 +178,15 @@ export default async function ExamListPage({ searchParams }: { searchParams: Pro
                   <div className="w-1.5 self-stretch" style={{ background: c.text }} />
                   <div className="flex-1 p-4 flex items-center gap-4">
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium text-[#0F172A] truncate">{sub.exam.title}</p>
-                      <p className="text-xs text-[#94A3B8] mt-0.5">
+                      <p className="font-medium text-[var(--text-primary)] truncate">{sub.exam.title}</p>
+                      <p className="text-xs text-[var(--text-muted)] mt-0.5">
                         {sub.exam.subject} · {new Date(sub.submittedAt).toLocaleDateString("vi-VN")}
                         · {Math.floor(sub.durationSeconds / 60)}:{String(sub.durationSeconds % 60).padStart(2, "0")} phút làm bài
                       </p>
                     </div>
                     <div className="text-right shrink-0">
                       <p className="text-xl font-bold" style={{ color: scoreCol }}>{scoreVal}/10</p>
-                      <p className="text-xs text-[#94A3B8]">{sub.correctCount}/{sub.totalQuestions} đúng</p>
+                      <p className="text-xs text-[var(--text-muted)]">{sub.correctCount}/{sub.totalQuestions} đúng</p>
                     </div>
                   </div>
                 </div>

@@ -70,7 +70,7 @@ function renderAnswer(q: SubQuestion, selected: AnswerValue | undefined) {
   if (q.type === "essay" && typeof selected === "string") {
     return selected.trim() ? <span className="whitespace-pre-wrap line-clamp-3">“{selected}”</span> : null;
   }
-  return <span className="text-slate-400">(dữ liệu không khớp)</span>;
+  return <span className="text-[var(--text-muted)]">(dữ liệu không khớp)</span>;
 }
 
 function renderCorrect(q: SubQuestion) {
@@ -244,7 +244,7 @@ export function SubmissionsPanel({ subs, questions }: { subs: SubRow[]; question
                                     {renderAnswer(q, selected)}
                                   </>
                                 ) : (
-                                  <span className="text-slate-400">Chưa trả lời</span>
+                                  <span className="text-[var(--text-muted)]">Chưa trả lời</span>
                                 )}
                               </div>
                               {answered && !auto && (

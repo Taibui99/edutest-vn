@@ -76,8 +76,8 @@ export default async function StudentsPage() {
   return (
     <div className="p-5 lg:p-8 max-w-5xl mx-auto animate-fade-in">
       <div className="mb-6">
-        <h1 className="text-xl font-bold text-[#0F172A]">Học sinh</h1>
-        <p className="text-sm text-[#64748B] mt-0.5">{students.length} học sinh trong các lớp của bạn</p>
+        <h1 className="text-xl font-bold text-[var(--text-primary)]">Học sinh</h1>
+        <p className="text-sm text-[var(--text-secondary)] mt-0.5">{students.length} học sinh trong các lớp của bạn</p>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
@@ -89,7 +89,7 @@ export default async function StudentsPage() {
         ].map((stat) => (
           <Card key={stat.label} className="px-5 py-4">
             <div className="flex items-center gap-2 text-xs font-semibold" style={{ color: stat.color }}>{stat.icon}{stat.label}</div>
-            <p className="mt-1 text-2xl font-black text-[#0F172A]">{stat.value}</p>
+            <p className="mt-1 text-2xl font-black text-[var(--text-primary)]">{stat.value}</p>
           </Card>
         ))}
       </div>
