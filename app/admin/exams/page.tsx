@@ -2,8 +2,10 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import { FileText, Search, Eye, EyeOff, RotateCcw, Flag, ChevronLeft, ChevronRight } from "lucide-react";
+import { FileText, Search, Eye, EyeOff, RotateCcw, Flag, ChevronLeft, ChevronRight, Download } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
+import { ConfirmDialog } from "@/components/confirm-dialog";
+import { exportCsv } from "@/lib/csv";
 import { getSubjectColor } from "@/lib/subject";
 
 interface AdminExam {
@@ -30,6 +32,7 @@ export default function AdminExams() {
   const [deleted, setDeleted] = useState(false);
   const [page, setPage] = useState(1);
   const [busyId, setBusyId] = useState("");
+  const [deleting, setDeleting] = useState<AdminExam | null>(null);
 
   const load = useCallback(async (query = q, s = status, d = deleted, p = page) => {
     setLoading(true);
@@ -74,7 +77,6 @@ export default function AdminExams() {
   };
 
   const remove = async (e: AdminExam) => {
-    if (!confirm(`Xóa đề "${e.title}"? Hành động là soft-delete và có thể khôi phục.`)) return;
     setBusyId(e.id);
     const res = await fetch("/api/admin/exams", {
       method: "DELETE",
@@ -87,7 +89,27 @@ export default function AdminExams() {
       return;
     }
     load(q, status, deleted, page);
+    setDeleting(null);
   };
+
+  const exportRows = () =>
+    exportCsv(
+      "de-thi.csv",
+      ["Tiêu đề", "Môn", "Trạng thái", "Ẩn", "Mã", "Giáo viên", "Email", "Câu hỏi", "Bài nộp", "Báo cáo", "Ngày tạo"],
+      exams.map((e) => [
+        e.title,
+        e.subject,
+        e.status === "published" ? "đang mở" : "bản nháp",
+        e.hidden ? "có" : "không",
+        e.joinCode,
+        e.teacher.name,
+        e.teacher.email,
+        e._count.questions,
+        e._count.submissions,
+        e._count.reports,
+        new Date(e.createdAt).toLocaleString("vi-VN"),
+      ]),
+    );
 
   return (
     <div className="p-4 lg:p-8 max-w-6xl mx-auto">
@@ -120,6 +142,13 @@ export default function AdminExams() {
           className={`rounded-lg px-3 py-2 text-xs font-bold border ${deleted ? "bg-[var(--gray-800)] text-white border-[var(--gray-800)]" : "bg-[var(--surface-card)] border-[var(--surface-border)] text-[var(--text-secondary)]"}`}
         >
           {deleted ? "Đã xóa" : "Đã xóa"}
+        </button>
+        <button
+          onClick={exportRows}
+          disabled={exams.length === 0}
+          className="inline-flex items-center gap-1 rounded-lg border border-[var(--surface-border)] px-3 py-2 text-xs font-bold text-[var(--text-secondary)] hover:bg-[var(--gray-100)] disabled:opacity-40"
+        >
+          <Download size={13} /> CSV
         </button>
       </div>
 
@@ -205,7 +234,7 @@ export default function AdminExams() {
                               </button>
                               <button
                                 disabled={busyId === e.id}
-                                onClick={() => remove(e)}
+                                onClick={() => setDeleting(e)}
                                 className="rounded-lg bg-red-100 px-2.5 py-1 text-xs font-bold text-red-600 hover:bg-red-200 disabled:opacity-50"
                               >
                                 Xóa
@@ -242,6 +271,18 @@ export default function AdminExams() {
           </div>
         </>
       )}
+
+      <ConfirmDialog
+        open={deleting !== null}
+        title="Xóa đề thi"
+        message={deleting ? `Xóa đề "${deleting.title}"? Hành động là soft-delete và có thể khôi phục.` : ""}
+        danger
+        requireText="DELETE"
+        confirmLabel="Xóa"
+        onConfirm={() => deleting && remove(deleting)}
+        onCancel={() => setDeleting(null)}
+        busy={busyId === (deleting?.id ?? "")}
+      />
     </div>
   );
 }

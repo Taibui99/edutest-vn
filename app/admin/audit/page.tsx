@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { ScrollText, Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { ScrollText, Search, ChevronLeft, ChevronRight, Download } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
+import { exportCsv } from "@/lib/csv";
 
 interface AuditLog {
   id: string;
@@ -38,6 +39,20 @@ export default function AdminAudit() {
 
   useEffect(() => { load(filter, q, page); }, [load]);
 
+  const exportRows = () =>
+    exportCsv(
+      "nhat-ky.csv",
+      ["Loại", "Nội dung", "Người thực hiện", "Email", "Metadata", "Thời gian"],
+      logs.map((l) => [
+        l.type,
+        l.message,
+        l.actor?.name ?? "Hệ thống",
+        l.actor?.email ?? "",
+        l.meta ? JSON.stringify(l.meta) : "",
+        new Date(l.createdAt).toLocaleString("vi-VN"),
+      ]),
+    );
+
   return (
     <div className="p-4 lg:p-8 max-w-5xl mx-auto">
       <h1 className="text-xl font-black text-[var(--text-primary)] mb-6 flex items-center gap-2">
@@ -70,6 +85,13 @@ export default function AdminAudit() {
             {t.type} ({t._count._all})
           </button>
         ))}
+        <button
+          onClick={exportRows}
+          disabled={logs.length === 0}
+          className="inline-flex items-center gap-1 rounded-lg border border-[var(--surface-border)] px-3 py-1.5 text-xs font-bold text-[var(--text-secondary)] hover:bg-[var(--gray-100)] disabled:opacity-40"
+        >
+          <Download size={13} /> CSV
+        </button>
       </div>
 
       {error && <p className="mb-3 text-sm text-red-500">{error}</p>}

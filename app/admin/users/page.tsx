@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { Users, Search, ShieldCheck, RotateCcw, ChevronLeft, ChevronRight } from "lucide-react";
+import { Users, Search, ShieldCheck, RotateCcw, ChevronLeft, ChevronRight, Download } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
+import { ConfirmDialog } from "@/components/confirm-dialog";
+import { exportCsv } from "@/lib/csv";
 
 interface AdminUser {
   id: string;
@@ -30,6 +32,7 @@ export default function AdminUsers() {
   const [page, setPage] = useState(1);
   const [error, setError] = useState("");
   const [busyId, setBusyId] = useState("");
+  const [deleting, setDeleting] = useState<AdminUser | null>(null);
 
   const load = useCallback(async (query = q, r = role, s = status, p = page) => {
     setLoading(true);
@@ -74,8 +77,6 @@ export default function AdminUsers() {
   };
 
   const remove = async (u: AdminUser) => {
-    const typed = prompt(`Xóa tài khoản ${u.name} (${u.email})? Gõ DELETE để xác nhận:`);
-    if (typed !== "DELETE") return;
     setBusyId(u.id);
     try {
       const res = await fetch("/api/admin/users", {
@@ -91,8 +92,28 @@ export default function AdminUsers() {
       load(q, role, status, page);
     } finally {
       setBusyId("");
+      setDeleting(null);
     }
   };
+
+  const exportRows = () =>
+    exportCsv(
+      "nguoi-dung.csv",
+      ["Tên", "Email", "Vai trò", "Trạng thái", "Trường", "Khối", "Streak", "Bài nộp", "Đề tạo", "Đăng nhập cuối", "Ngày tạo"],
+      users.map((u) => [
+        u.name,
+        u.email,
+        u.role,
+        u.deletedAt ? "đã xóa" : u.isBlocked ? "đã khóa" : "hoạt động",
+        u.school ?? "",
+        u.grade ?? "",
+        u.streak,
+        u._count.submissions,
+        u._count.exams,
+        u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleString("vi-VN") : "",
+        new Date(u.createdAt).toLocaleString("vi-VN"),
+      ]),
+    );
 
   const roleBadge = (r: string) =>
     r === "admin"
@@ -138,6 +159,13 @@ export default function AdminUsers() {
           <option value="blocked">Đã khóa</option>
           <option value="deleted">Đã xóa</option>
         </select>
+        <button
+          onClick={exportRows}
+          disabled={users.length === 0}
+          className="inline-flex items-center gap-1 rounded-lg border border-[var(--surface-border)] px-3 py-2 text-xs font-bold text-[var(--text-secondary)] hover:bg-[var(--gray-100)] disabled:opacity-40"
+        >
+          <Download size={13} /> CSV
+        </button>
       </div>
 
       {error && <p className="mb-3 text-sm text-red-500">{error}</p>}
@@ -215,7 +243,7 @@ export default function AdminUsers() {
                             </button>
                             <button
                               disabled={busyId === u.id}
-                              onClick={() => remove(u)}
+                              onClick={() => setDeleting(u)}
                               className="rounded-lg bg-red-100 px-2.5 py-1 text-xs font-bold text-red-600 hover:bg-red-200 disabled:opacity-50"
                             >
                               Xóa
@@ -254,6 +282,18 @@ export default function AdminUsers() {
       <p className="mt-3 text-[11px] text-[var(--text-muted)] flex items-center gap-1">
         <ShieldCheck size={12} /> Chỉ admin được thao tác. Xóa tài khoản là soft-delete (có thể khôi phục), vẫn cần gõ DELETE để xác nhận.
       </p>
+
+      <ConfirmDialog
+        open={deleting !== null}
+        title="Xóa tài khoản"
+        message={deleting ? `Xóa tài khoản ${deleting.name} (${deleting.email})? Soft-delete, có thể khôi phục sau.` : ""}
+        danger
+        requireText="DELETE"
+        confirmLabel="Xóa"
+        onConfirm={() => deleting && remove(deleting)}
+        onCancel={() => setDeleting(null)}
+        busy={busyId === (deleting?.id ?? "")}
+      />
     </div>
   );
 }

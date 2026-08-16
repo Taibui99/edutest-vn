@@ -12,21 +12,37 @@ export async function GET(req: NextRequest) {
   }
 
   const status = req.nextUrl.searchParams.get("status") ?? "";
-  const reports = await prisma.report.findMany({
-    where: {
-      deletedAt: null,
-      ...(status ? { status } : {}),
-    },
-    orderBy: { createdAt: "desc" },
-    take: 200,
-    include: {
-      reporter: { select: { name: true, email: true } },
-      handledBy: { select: { name: true, email: true } },
-      exam: { select: { title: true, subject: true } },
-    },
-  });
+  const q = (req.nextUrl.searchParams.get("q") ?? "").trim();
+  const page = Math.max(1, Number(req.nextUrl.searchParams.get("page") ?? 1) || 1);
+  const pageSize = 20;
 
-  return NextResponse.json({ reports });
+  const where: Record<string, unknown> = { deletedAt: null };
+  if (status) where.status = status;
+  if (q) {
+    where.OR = [
+      { type: { contains: q, mode: "insensitive" } },
+      { description: { contains: q, mode: "insensitive" } },
+      { reporter: { name: { contains: q, mode: "insensitive" } } },
+      { exam: { title: { contains: q, mode: "insensitive" } } },
+    ];
+  }
+
+  const [total, reports] = await Promise.all([
+    prisma.report.count({ where }),
+    prisma.report.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+      include: {
+        reporter: { select: { name: true, email: true } },
+        handledBy: { select: { name: true, email: true } },
+        exam: { select: { title: true, subject: true } },
+      },
+    }),
+  ]);
+
+  return NextResponse.json({ reports, total, page, pageSize, totalPages: Math.max(1, Math.ceil(total / pageSize)) });
 }
 
 export async function PATCH(req: NextRequest) {
