@@ -18,7 +18,7 @@ interface ModeSwitchButtonProps {
 
 function LoadingScreen({ label }: { label: string }) {
   return (
-    <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center gap-6 bg-[var(--surface-page)]">
+    <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center gap-6 bg-[var(--surface-page)]/80 backdrop-blur-md">
       <div className="relative">
         <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-[var(--primary)] to-[var(--coral)] flex items-center justify-center shadow-lg shadow-[var(--primary)]/20">
           <span className="text-2xl font-black text-white">
