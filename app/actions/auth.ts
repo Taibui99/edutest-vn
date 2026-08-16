@@ -142,23 +142,21 @@ export async function switchModeAction(formData: FormData) {
 
   const target = readValue("mode");
   const redirectTo = readValue("redirectTo");
-  const debug = (stage: string) => {
-    if (redirectTo.startsWith("/bang-dieu-khien") || redirectTo.startsWith("/admin")) {
-      redirect(redirectTo + (redirectTo.includes("?") ? "&" : "?") + "sw=" + stage);
-    }
-    return;
-  };
 
   const session = await auth();
-  if (!session?.user) return debug("0");
+  if (!session?.user) return;
 
   const role = session.user.role;
   const allowedModes = role === "admin"
     ? ["student", "teacher", "admin"]
     : ["student", "teacher"];
-  if (!allowedModes.includes(target)) return debug("1");
+  if (!allowedModes.includes(target)) return;
+
   if (target === session.user.mode) {
-    return debug("2");
+    if (redirectTo.startsWith("/bang-dieu-khien") || redirectTo.startsWith("/admin")) {
+      redirect(redirectTo);
+    }
+    return;
   }
 
   const cookieStore = await cookies();
@@ -166,21 +164,21 @@ export async function switchModeAction(formData: FormData) {
     .getAll()
     .map((c) => c.name)
     .find((n) => n.endsWith("session-token"));
-  if (!cookieName) return debug("3");
+  if (!cookieName) return;
 
   const secret = process.env.AUTH_SECRET;
-  if (!secret) return debug("4");
+  if (!secret) return;
 
-  const currentTokenRaw = cookieStore.get(cookieName)?.value;
-  if (!currentTokenRaw) return debug("5");
+  const raw = cookieStore.get(cookieName)?.value;
+  if (!raw) return;
 
   let currentToken: Record<string, unknown> | null = null;
   try {
-    currentToken = await decode({ token: currentTokenRaw, secret, salt: cookieName });
-  } catch (e) {
-    return debug("5|" + String(e instanceof Error ? e.message : e).slice(0, 120));
+    currentToken = await decode({ token: raw, secret, salt: cookieName });
+  } catch {
+    return;
   }
-  if (!currentToken) return debug("5");
+  if (!currentToken) return;
 
   const newToken = await encode({
     token: { ...currentToken, mode: target },
@@ -202,5 +200,7 @@ export async function switchModeAction(formData: FormData) {
     message: `${session.user.name ?? session.user.email} chuyển chế độ sang ${target}`,
   });
 
-  return debug("6");
+  if (redirectTo.startsWith("/bang-dieu-khien") || redirectTo.startsWith("/admin")) {
+    redirect(redirectTo);
+  }
 }
