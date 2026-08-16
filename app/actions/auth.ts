@@ -5,7 +5,7 @@ import { AuthError } from "next-auth";
 import { signIn, signOut, auth } from "@/auth";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { encode, getToken } from "next-auth/jwt";
+import { encode, getToken, decode } from "next-auth/jwt";
 import { prisma } from "@/lib/prisma";
 import { logAudit } from "@/lib/audit";
 import { getSetting } from "@/lib/settings";
@@ -176,7 +176,19 @@ export async function switchModeAction(formData: FormData) {
     secret,
     salt: cookieName,
   });
-  if (!currentToken) return debug("5");
+  if (!currentToken) {
+    const allCookies = cookieStore.getAll().map((c) => c.name).join(",");
+    let decErr = "none";
+    const raw = cookieStore.get(cookieName)?.value;
+    if (raw) {
+      try {
+        await decode({ token: raw, secret, salt: cookieName });
+      } catch (e) {
+        decErr = String(e instanceof Error ? e.message : e).slice(0, 200);
+      }
+    }
+    return debug("5|" + allCookies + "|" + decErr);
+  }
 
   const newToken = await encode({
     token: { ...currentToken, mode: target },
