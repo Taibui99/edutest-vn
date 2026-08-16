@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { ThemeToggle } from "@/components/theme/theme-provider";
-import { switchModeAction } from "@/app/actions/auth";
+import { ModeSwitchButton } from "@/components/mode-switch";
 
 const items = [
   { href: "/admin", label: "Tổng quan", icon: <LayoutDashboard size={17} />, exact: true },
@@ -72,28 +72,24 @@ export function AdminSidebar({ user }: { user: { name: string; email: string; ro
             Về bảng điều khiển
           </p>
           <div className="flex gap-1.5 px-1">
-            <form action={switchModeAction} className="flex-1">
-              <input type="hidden" name="mode" value="student" />
-              <input type="hidden" name="redirectTo" value="/bang-dieu-khien" />
-              <button
-                type="submit"
-                className="w-full flex items-center justify-center gap-1.5 px-2 py-2 rounded-xl text-xs font-bold text-[#06D6A0] bg-[#E1F5EE] hover:bg-[#D2F0E3] transition-colors cursor-pointer"
-                aria-label="Chuyển sang chế độ Học sinh"
-              >
-                <BookOpen size={13} /> Học sinh
-              </button>
-            </form>
-            <form action={switchModeAction} className="flex-1">
-              <input type="hidden" name="mode" value="teacher" />
-              <input type="hidden" name="redirectTo" value="/bang-dieu-khien" />
-              <button
-                type="submit"
-                className="w-full flex items-center justify-center gap-1.5 px-2 py-2 rounded-xl text-xs font-bold text-[#4EA8DE] bg-[#E8F4FD] hover:bg-[#D8EDFB] transition-colors cursor-pointer"
-                aria-label="Chuyển sang chế độ Giáo viên"
-              >
-                <GraduationCap size={13} /> Giáo viên
-              </button>
-            </form>
+            <ModeSwitchButton
+              mode="student"
+              redirectTo="/bang-dieu-khien"
+              label="Học sinh"
+              active={false}
+              className="flex-1 flex items-center justify-center gap-1.5 px-2 py-2 rounded-xl text-xs font-bold text-[#06D6A0] bg-[#E1F5EE] hover:bg-[#D2F0E3] transition-colors cursor-pointer"
+            >
+              <BookOpen size={13} /> Học sinh
+            </ModeSwitchButton>
+            <ModeSwitchButton
+              mode="teacher"
+              redirectTo="/bang-dieu-khien"
+              label="Giáo viên"
+              active={false}
+              className="flex-1 flex items-center justify-center gap-1.5 px-2 py-2 rounded-xl text-xs font-bold text-[#4EA8DE] bg-[#E8F4FD] hover:bg-[#D8EDFB] transition-colors cursor-pointer"
+            >
+              <GraduationCap size={13} /> Giáo viên
+            </ModeSwitchButton>
           </div>
           <div className="flex items-center gap-3 px-2 py-2 mt-2">
             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#6C63FF] to-[#FF6B6B] flex items-center justify-center text-white text-xs font-bold shrink-0">

@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { getSubjectColor } from "@/lib/subject";
 import { cn } from "@/lib/cn";
-import { switchModeAction } from "@/app/actions/auth";
+import { ModeSwitchButton } from "@/components/mode-switch";
 import { ContinueDraftCard } from "./continue-draft";
 
 export const metadata: Metadata = { title: "Tổng quan — EduTest" };
@@ -611,36 +611,36 @@ function ModeSwitcher({ mode, role }: { mode: string; role: string }) {
         {cards.map((card) => {
           const active = mode === card.value;
           return (
-            <form key={card.value} action={switchModeAction}>
-              <input type="hidden" name="mode" value={card.value} />
-              <input type="hidden" name="redirectTo" value="/bang-dieu-khien" />
-              <button
-                type="submit"
-                aria-label={`Chuyển sang chế độ ${card.label}`}
-                className={cn(
-                  "w-full text-left rounded-2xl border p-4 transition-all cursor-pointer",
-                  active
-                    ? "border-[#6C63FF] bg-[#EEEFFE] shadow-sm ring-2 ring-[#6C63FF]/20"
-                    : "border-[var(--surface-border)] bg-[var(--surface-card)] hover:border-[#6C63FF]/50 hover:shadow-sm",
-                )}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <span className={cn(
-                    "w-10 h-10 rounded-xl flex items-center justify-center shrink-0",
-                    active ? "bg-[#6C63FF] text-white" : "bg-[#EEEFFE] text-[#6C63FF]",
-                  )}>
-                    {card.icon}
+            <ModeSwitchButton
+              key={card.value}
+              mode={card.value as "student" | "teacher" | "admin"}
+              redirectTo="/bang-dieu-khien"
+              label={card.label}
+              active={active}
+              confirmMessage={`Bạn đang ở chế độ ${mode === "student" ? "Học sinh" : mode === "teacher" ? "Giáo viên" : "Quản trị"}. Chuyển sang chế độ ${card.label} ngay bây giờ?`}
+              className={cn(
+                "w-full text-left rounded-2xl border p-4 transition-all cursor-pointer",
+                active
+                  ? "border-[#6C63FF] bg-[#EEEFFE] shadow-sm ring-2 ring-[#6C63FF]/20"
+                  : "border-[var(--surface-border)] bg-[var(--surface-card)] hover:border-[#6C63FF]/50 hover:shadow-sm",
+              )}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <span className={cn(
+                  "w-10 h-10 rounded-xl flex items-center justify-center shrink-0",
+                  active ? "bg-[#6C63FF] text-white" : "bg-[#EEEFFE] text-[#6C63FF]",
+                )}>
+                  {card.icon}
+                </span>
+                {active && (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-bold text-[#6C63FF] bg-white/70 dark:bg-white/10 rounded-full px-2 py-0.5">
+                    <Check size={12} /> Đang dùng
                   </span>
-                  {active && (
-                    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-[#6C63FF] bg-white/70 dark:bg-white/10 rounded-full px-2 py-0.5">
-                      <Check size={12} /> Đang dùng
-                    </span>
-                  )}
-                </div>
-                <p className="mt-3 text-sm font-black text-[var(--text-primary)]">{card.label}</p>
-                <p className="mt-0.5 text-xs text-[var(--text-muted)] leading-relaxed">{card.desc}</p>
-              </button>
-            </form>
+                )}
+              </div>
+              <p className="mt-3 text-sm font-black text-[var(--text-primary)]">{card.label}</p>
+              <p className="mt-0.5 text-xs text-[var(--text-muted)] leading-relaxed">{card.desc}</p>
+            </ModeSwitchButton>
           );
         })}
       </div>
