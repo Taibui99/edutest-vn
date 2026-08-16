@@ -55,6 +55,7 @@
 ## 📌 Mục nhỏ trong roadmap
 - [x] **Nhỏ-1 Cảnh báo mất mạng** (commit `d615da1`) trong runner (`navigator.onLine`)
 - [x] **Nhỏ-2 Setting "Hiển thị điểm ngay sau khi nộp"** (commit `781eb88`) — thêm field + tôn trọng khi hiện kết quả
+- [x] **Nhỏ-3 Đổi chế độ có confirm + loading** (commit `9cc071d`) — component `ModeSwitchButton` dùng chung (dashboard ModeSwitcher + admin sidebar): click → ConfirmDialog hỏi "Chuyển sang chế độ X?" → xác nhận → overlay spinner, hủy thì đóng dialog — thay form submit im lặng; verified live: dialog hiện/đóng/hủy, spinner khi chuyển, mode đổi thành công
 
 ## ⚙️ Kỹ thuật
 - [x] **KT-1 Chuyển `prisma db push --accept-data-loss` → `migrate deploy`** — baseline migration `0_init` + fallback db push (commit `8e81377`) — giảm rủi ro production
