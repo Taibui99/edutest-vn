@@ -598,6 +598,7 @@ function ModeSwitcher({ mode, role }: { mode: string; role: string }) {
           return (
             <form key={card.value} action={switchModeAction}>
               <input type="hidden" name="mode" value={card.value} />
+              <input type="hidden" name="redirectTo" value="/bang-dieu-khien" />
               <button
                 type="submit"
                 aria-label={`Chuyển sang chế độ ${card.label}`}
