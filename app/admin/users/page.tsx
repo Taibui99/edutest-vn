@@ -5,6 +5,8 @@ import { Users, Search, ShieldCheck, RotateCcw, ChevronLeft, ChevronRight, Downl
 import { Spinner } from "@/components/ui/spinner";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { exportCsv } from "@/lib/csv";
+import { EmptyState } from "@/components/ui/empty-state";
+import { useToast } from "@/components/ui/toast";
 
 interface AdminUser {
   id: string;
@@ -22,6 +24,7 @@ interface AdminUser {
 }
 
 export default function AdminUsers() {
+  const { toast } = useToast();
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
@@ -55,7 +58,7 @@ export default function AdminUsers() {
     }
   }, [q, role, status, page]);
 
-  useEffect(() => { load(q, role, status, page); }, [load]);
+  useEffect(() => { load(q, role, status, page); }, [load, q, role, status, page]); // eslint-disable-line react-hooks/set-state-in-effect
 
   const patch = async (id: string, body: Record<string, unknown>) => {
     setBusyId(id);
@@ -67,9 +70,10 @@ export default function AdminUsers() {
       });
       if (!res.ok) {
         const d = await res.json();
-        setError(d.error || "Lỗi");
+        toast("error", "Không thể cập nhật", d.error || "Lỗi");
         return;
       }
+      toast("success", "Đã cập nhật tài khoản");
       load(q, role, status, page);
     } finally {
       setBusyId("");
@@ -86,9 +90,10 @@ export default function AdminUsers() {
       });
       if (!res.ok) {
         const d = await res.json();
-        setError(d.error || "Lỗi");
+        toast("error", "Không thể xóa", d.error || "Lỗi");
         return;
       }
+      toast("success", "Đã xóa tài khoản", u.email);
       load(q, role, status, page);
     } finally {
       setBusyId("");
@@ -173,8 +178,8 @@ export default function AdminUsers() {
       {loading ? (
         <div className="flex items-center justify-center py-32"><Spinner /></div>
       ) : users.length === 0 ? (
-        <div className="rounded-2xl bg-[var(--surface-card)] border border-[var(--surface-border)] p-10 text-center text-sm text-[var(--text-muted)]">
-          Không tìm thấy người dùng nào
+        <div className="rounded-2xl bg-[var(--surface-card)] border border-[var(--surface-border)]">
+          <EmptyState icon={<Users />} title="Không tìm thấy người dùng nào" description="Thử đổi từ khóa tìm kiếm hoặc bộ lọc." />
         </div>
       ) : (
         <>

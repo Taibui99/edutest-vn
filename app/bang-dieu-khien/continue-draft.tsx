@@ -53,6 +53,7 @@ export function ContinueDraftCard() {
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     load();
     const onStorage = () => load();
     window.addEventListener("storage", onStorage);

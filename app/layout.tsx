@@ -4,6 +4,7 @@ import { auth } from "@/auth";
 import { getSetting } from "@/lib/settings";
 import { MaintenanceGate } from "@/components/maintenance-gate";
 import { ThemeProvider } from "@/components/theme/theme-provider";
+import { ToastProvider } from "@/components/ui/toast";
 
 export const metadata: Metadata = {
   title: "EduTest.vn — Nền tảng học tập thông minh",
@@ -37,12 +38,14 @@ export default async function RootLayout({
           Bỏ qua điều hướng
         </a>
         <ThemeProvider>
-          <MaintenanceGate
-            maintenanceOn={maintenance === "true"}
-            isAdmin={session?.user?.role === "admin"}
-          >
-            {children}
-          </MaintenanceGate>
+          <ToastProvider>
+            <MaintenanceGate
+              maintenanceOn={maintenance === "true"}
+              isAdmin={session?.user?.role === "admin"}
+            >
+              {children}
+            </MaintenanceGate>
+          </ToastProvider>
         </ThemeProvider>
       </body>
     </html>

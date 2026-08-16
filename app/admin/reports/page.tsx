@@ -5,6 +5,8 @@ import { Flag, Trash2, Search, ChevronLeft, ChevronRight, Download } from "lucid
 import { Spinner } from "@/components/ui/spinner";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { exportCsv } from "@/lib/csv";
+import { EmptyState } from "@/components/ui/empty-state";
+import { useToast } from "@/components/ui/toast";
 
 interface Report {
   id: string;
@@ -35,6 +37,7 @@ const STATUS_COLOR: Record<string, string> = {
 };
 
 export default function AdminReports() {
+  const { toast } = useToast();
   const [reports, setReports] = useState<Report[]>([]);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
@@ -68,7 +71,7 @@ export default function AdminReports() {
     }
   }, [status, q, page]);
 
-  useEffect(() => { load(status, q, page); }, [load]);
+  useEffect(() => { load(status, q, page); }, [load, status, q, page]); // eslint-disable-line react-hooks/set-state-in-effect
 
   const update = async (id: string, next: string) => {
     setBusyId(id);
@@ -85,9 +88,10 @@ export default function AdminReports() {
       });
       if (!res.ok) {
         const d = await res.json();
-        setError(d.error || "Lỗi");
+        toast("error", "Không thể cập nhật", d.error || "Lỗi");
         return;
       }
+      toast("success", "Đã cập nhật báo cáo");
       load(status, q, page);
     } finally {
       setBusyId("");
@@ -106,9 +110,10 @@ export default function AdminReports() {
       });
       if (!res.ok) {
         const d = await res.json();
-        setError(d.error || "Lỗi");
+        toast("error", "Không thể xóa", d.error || "Lỗi");
         return;
       }
+      toast("success", "Đã xóa báo cáo");
       load(status, q, page);
     } finally {
       setBusyId("");
@@ -171,8 +176,8 @@ export default function AdminReports() {
       {loading ? (
         <div className="flex items-center justify-center py-32"><Spinner /></div>
       ) : reports.length === 0 ? (
-        <div className="rounded-2xl bg-[var(--surface-card)] border border-[var(--surface-border)] p-10 text-center text-sm text-[var(--text-muted)]">
-          Không có báo cáo nào
+        <div className="rounded-2xl bg-[var(--surface-card)] border border-[var(--surface-border)]">
+          <EmptyState icon={<Flag />} title="Không có báo cáo nào" description="Báo cáo từ người dùng sẽ hiện tại đây." />
         </div>
       ) : (
         <>

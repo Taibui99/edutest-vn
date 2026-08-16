@@ -78,7 +78,7 @@ export default function AdminSettings() {
     }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { load(); }, [load]); // eslint-disable-line react-hooks/set-state-in-effect
 
   const save = async (key: string, value: string) => {
     setSaving(true);

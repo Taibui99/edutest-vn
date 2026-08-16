@@ -91,12 +91,16 @@ export function ExamTakingClientV2({ exam, preview = false, backHref }: { exam: 
   const totalQuestions = exam.questions.length;
 
   const draftKey = `edutest-draft-${exam.id}`;
-  const draftRef = useRef({ answers, marked, remaining, shuffle: null as number[] | null, optionShuffle: {} as Record<string, number[]>, meta: null as null | { title: string; joinCode: string; subject: string; totalQuestions: number } });
-  draftRef.current = { answers, marked, remaining, shuffle: questionOrder, optionShuffle: optionShuffleRef.current, meta: { title: exam.title, joinCode: exam.joinCode, subject: exam.subject, totalQuestions: exam.questions.length } };
+  const draftRef = useRef<{ answers: Record<string, unknown>; marked: Record<string, boolean>; remaining: number; shuffle: number[] | null; optionShuffle: Record<string, number[]>; meta: null | { title: string; joinCode: string; subject: string; totalQuestions: number } } | null>(null);
   const submittedRef = useRef(false);
+
+  useEffect(() => {
+    draftRef.current = { answers, marked, remaining, shuffle: questionOrder, optionShuffle: optionShuffleRef.current, meta: { title: exam.title, joinCode: exam.joinCode, subject: exam.subject, totalQuestions: exam.questions.length } };
+  }, [answers, marked, remaining, questionOrder, optionShuffleRef, exam.title, exam.joinCode, exam.subject, exam.questions.length]);
 
   const saveDraft = useCallback(() => {
     if (preview || submittedRef.current) return;
+    if (!draftRef.current) return;
     if (Object.keys(draftRef.current.answers).length === 0 && Object.keys(draftRef.current.marked).length === 0) return;
     try {
       localStorage.setItem(draftKey, JSON.stringify({ ...draftRef.current, savedAt: Date.now() }));
@@ -160,7 +164,7 @@ export function ExamTakingClientV2({ exam, preview = false, backHref }: { exam: 
 
   useEffect(() => {
     if (preview) {
-      setQuestionOrder(Array.from({ length: exam.questions.length }, (_, i) => i));
+      setQuestionOrder(Array.from({ length: exam.questions.length }, (_, i) => i)); // eslint-disable-line react-hooks/set-state-in-effect
       return;
     }
     const identity = Array.from({ length: exam.questions.length }, (_, i) => i);
@@ -199,7 +203,7 @@ export function ExamTakingClientV2({ exam, preview = false, backHref }: { exam: 
     if (preview) return;
     const t = window.setTimeout(() => saveDraft(), 600);
     return () => window.clearTimeout(t);
-  }, [answers, marked, saveDraft]);
+  }, [answers, marked, saveDraft]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (preview) return;
@@ -236,7 +240,6 @@ export function ExamTakingClientV2({ exam, preview = false, backHref }: { exam: 
       document.removeEventListener("visibilitychange", onVis);
       window.removeEventListener("blur", onBlur);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [preview, result, submitExam]);
 
   const leaveExam = () => router.push(backHref);
@@ -322,7 +325,8 @@ export function ExamTakingClientV2({ exam, preview = false, backHref }: { exam: 
           </div>
             <p className="text-base font-medium leading-relaxed text-[var(--text-primary)] mb-5">{question?.text}</p>
 
-            {question?.type === "mcq" && <div className="flex flex-col gap-2">{(() => { const perm = optionShuffleRef.current[question.id] || Array.from({ length: question.options.length }, (_, i) => i); return question.options.map((_, displayIndex) => { const origIndex = perm[displayIndex]; const letter = String.fromCharCode(65 + displayIndex); const selected = typeof currentAnswer === "string" && (currentAnswer.charCodeAt(0) - 65) === origIndex; return <button key={displayIndex} onClick={() => setMcqAnswer(String.fromCharCode(65 + origIndex))} className={cn("flex items-center gap-3 rounded-xl border p-4 text-left text-sm transition", selected ? "border-[var(--primary)] bg-[var(--primary-light)] text-[var(--primary)] font-semibold" : "border-[var(--surface-border)] hover:bg-[var(--gray-100)]")}><span className={cn("w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0", selected ? "bg-[var(--primary)] text-white" : "bg-[var(--gray-100)] text-[var(--text-secondary)]")}>{letter}</span>{question.options[origIndex]}</button>; }); })()}</div>}
+            {question?.type === "mcq" && <div className="flex flex-col gap-2">{(() => { const perm = optionShuffleRef.current[question.id] || Array.from({ length: question.options.length }, (_, i) => i); // eslint-disable-line react-hooks/refs
+ return question.options.map((_, displayIndex) => { const origIndex = perm[displayIndex]; const letter = String.fromCharCode(65 + displayIndex); const selected = typeof currentAnswer === "string" && (currentAnswer.charCodeAt(0) - 65) === origIndex; return <button key={displayIndex} onClick={() => setMcqAnswer(String.fromCharCode(65 + origIndex))} className={cn("flex items-center gap-3 rounded-xl border p-4 text-left text-sm transition", selected ? "border-[var(--primary)] bg-[var(--primary-light)] text-[var(--primary)] font-semibold" : "border-[var(--surface-border)] hover:bg-[var(--gray-100)]")}><span className={cn("w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0", selected ? "bg-[var(--primary)] text-white" : "bg-[var(--gray-100)] text-[var(--text-secondary)]")}>{letter}</span>{question.options[origIndex]}</button>; }); })()}</div>}
 
             {question?.type === "true_false" && <div className="flex flex-col gap-3">{(question.grading?.statements || []).map((statement, index) => { const values = (typeof currentAnswer === "object" ? currentAnswer : {}) as Record<string, boolean>; const selected = values[String(index)]; return <div key={index} className="rounded-xl border border-[var(--surface-border)] p-4"><p className="text-sm text-[var(--text-primary)] mb-3"><span className="font-bold mr-2">{String.fromCharCode(97 + index)}.</span>{statement.text}</p><div className="flex gap-2"><button onClick={() => setTrueFalse(index, true)} className={cn("flex-1 rounded-lg border py-2 text-sm font-semibold", selected === true ? "border-[var(--success)] bg-[var(--success-light)] text-[var(--success)]" : "border-[var(--surface-border)]")}>Đúng</button><button onClick={() => setTrueFalse(index, false)} className={cn("flex-1 rounded-lg border py-2 text-sm font-semibold", selected === false ? "border-red-500 bg-[var(--danger-light)] text-[var(--danger)]" : "border-[var(--surface-border)]")}>Sai</button></div></div>;})}</div>}
 

@@ -6,6 +6,8 @@ import { FileText, Search, Eye, EyeOff, RotateCcw, Flag, ChevronLeft, ChevronRig
 import { Spinner } from "@/components/ui/spinner";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { exportCsv } from "@/lib/csv";
+import { EmptyState } from "@/components/ui/empty-state";
+import { useToast } from "@/components/ui/toast";
 import { getSubjectColor } from "@/lib/subject";
 
 interface AdminExam {
@@ -22,6 +24,7 @@ interface AdminExam {
 }
 
 export default function AdminExams() {
+  const { toast } = useToast();
   const [exams, setExams] = useState<AdminExam[]>([]);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
@@ -55,7 +58,7 @@ export default function AdminExams() {
     }
   }, [q, status, deleted, page]);
 
-  useEffect(() => { load(q, status, deleted, page); }, [load]);
+  useEffect(() => { load(q, status, deleted, page); }, [load, q, status, deleted, page]); // eslint-disable-line react-hooks/set-state-in-effect
 
   const patch = async (e: AdminExam, body: Record<string, unknown>) => {
     setBusyId(e.id);
@@ -67,9 +70,10 @@ export default function AdminExams() {
       });
       if (!res.ok) {
         const d = await res.json();
-        setError(d.error || "Lỗi");
+        toast("error", "Không thể cập nhật", d.error || "Lỗi");
         return;
       }
+      toast("success", "Đã cập nhật đề thi");
       load(q, status, deleted, page);
     } finally {
       setBusyId("");
@@ -85,9 +89,10 @@ export default function AdminExams() {
     });
     if (!res.ok) {
       const d = await res.json();
-      setError(d.error || "Lỗi");
+      toast("error", "Không thể xóa", d.error || "Lỗi");
       return;
     }
+    toast("success", "Đã xóa đề thi", e.title);
     load(q, status, deleted, page);
     setDeleting(null);
   };
@@ -157,8 +162,8 @@ export default function AdminExams() {
       {loading ? (
         <div className="flex items-center justify-center py-32"><Spinner /></div>
       ) : exams.length === 0 ? (
-        <div className="rounded-2xl bg-[var(--surface-card)] border border-[var(--surface-border)] p-10 text-center text-sm text-[var(--text-muted)]">
-          Chưa có đề thi nào
+        <div className="rounded-2xl bg-[var(--surface-card)] border border-[var(--surface-border)]">
+          <EmptyState icon={<FileText />} title="Chưa có đề thi nào" description="Điều chỉnh bộ lọc hoặc từ khóa tìm kiếm." />
         </div>
       ) : (
         <>

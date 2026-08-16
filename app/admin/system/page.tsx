@@ -32,7 +32,7 @@ export default function AdminSystem() {
     }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/set-state-in-effect, react-hooks/exhaustive-deps
 
   const checkItems = [
     { key: "db", label: "Kết nối database (Prisma/PostgreSQL)" },

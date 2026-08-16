@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { User, Mail, School, BookOpen, Lock, CheckCircle2, AlertCircle, Camera, Trash2, ShieldCheck, ArrowRight } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -153,9 +154,12 @@ export default function ProfilePage() {
       <div className="flex items-center gap-4 mb-6 p-5 bg-[var(--surface-card)] rounded-2xl border border-[var(--surface-border)]">
         <div className="relative shrink-0">
           {profile.avatarUrl ? (
-            <img
+            <Image
               src={profile.avatarUrl}
               alt={`Ảnh đại diện của ${profile.name}`}
+              width={64}
+              height={64}
+              unoptimized
               className="w-16 h-16 rounded-2xl object-cover border border-[var(--surface-border)]"
             />
           ) : (

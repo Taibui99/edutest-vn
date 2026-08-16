@@ -23,7 +23,8 @@ import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { Input } from "@/components/ui/input";                     
+import { Spinner } from "@/components/ui/spinner";
 import { EmptyState } from "@/components/ui/empty-state";
 
 type Task = {
@@ -418,6 +419,7 @@ function SubjectProgressPanel({ initialProgress }: { initialProgress: SubjectPro
               <span className="text-sm font-medium text-[var(--text-secondary)]">{subject}</span>
               <span className="flex items-center gap-1.5 text-sm font-bold text-[var(--primary)]">
                 {progress[subject]}%
+                {savingSubject === subject && <Spinner className="h-3 w-3" />}
               </span>
             </div>
             <Slider

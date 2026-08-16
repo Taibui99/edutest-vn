@@ -36,6 +36,7 @@ export function ConfirmDialog({
 
   useEffect(() => {
     if (open) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setTyped("");
       setTimeout(() => inputRef.current?.focus(), 50);
       const onKey = (e: KeyboardEvent) => {

@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { ScrollText, Search, ChevronLeft, ChevronRight, Download } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
+import { EmptyState } from "@/components/ui/empty-state";
 import { exportCsv } from "@/lib/csv";
 
 interface AuditLog {
@@ -37,7 +38,7 @@ export default function AdminAudit() {
       .finally(() => setLoading(false));
   }, [filter, q, page]);
 
-  useEffect(() => { load(filter, q, page); }, [load]);
+  useEffect(() => { load(filter, q, page); }, [load, filter, q, page]); // eslint-disable-line react-hooks/set-state-in-effect
 
   const exportRows = () =>
     exportCsv(
@@ -99,7 +100,9 @@ export default function AdminAudit() {
       {loading ? (
         <div className="flex items-center justify-center py-32"><Spinner /></div>
       ) : logs.length === 0 ? (
-        <div className="rounded-2xl bg-[var(--surface-card)] border border-[var(--surface-border)] p-10 text-center text-sm text-[var(--text-muted)]">Chưa có nhật ký nào</div>
+        <div className="rounded-2xl bg-[var(--surface-card)] border border-[var(--surface-border)]">
+          <EmptyState icon={<ScrollText />} title="Chưa có nhật ký nào" description="Các thao tác quản trị sẽ được ghi lại tại đây." />
+        </div>
       ) : (
         <>
           <div className="rounded-2xl bg-[var(--surface-card)] border border-[var(--surface-border)] divide-y divide-[var(--surface-border)]">

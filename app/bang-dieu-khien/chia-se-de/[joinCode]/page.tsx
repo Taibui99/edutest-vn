@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Image from "next/image";
 import { ArrowLeft, Check, Copy, Download, ExternalLink, QrCode, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -93,7 +94,7 @@ export default function ShareExamPage() {
 
           <div className="grid gap-7 p-6 lg:grid-cols-[280px_1fr] lg:p-8">
             <div className="mx-auto w-full max-w-[280px] rounded-2xl border border-[var(--surface-border)] bg-white p-3 shadow-sm">
-              <img src={data.qrUrl} alt={`QR tham gia ${data.exam.title}`} className="block aspect-square w-full" />
+              <Image src={data.qrUrl} alt={`QR tham gia ${data.exam.title}`} width={280} height={280} unoptimized className="block aspect-square w-full" />
             </div>
 
             <div className="flex min-w-0 flex-col justify-center">
