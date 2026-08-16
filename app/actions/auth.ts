@@ -142,20 +142,23 @@ export async function switchModeAction(formData: FormData) {
 
   const target = readValue("mode");
   const redirectTo = readValue("redirectTo");
+  const debug = (stage: string) => {
+    if (redirectTo.startsWith("/bang-dieu-khien") || redirectTo.startsWith("/admin")) {
+      redirect(redirectTo + (redirectTo.includes("?") ? "&" : "?") + "sw=" + stage);
+    }
+    return;
+  };
 
   const session = await auth();
-  if (!session?.user) return;
+  if (!session?.user) return debug("0");
 
   const role = session.user.role;
   const allowedModes = role === "admin"
     ? ["student", "teacher", "admin"]
     : ["student", "teacher"];
-  if (!allowedModes.includes(target)) return;
+  if (!allowedModes.includes(target)) return debug("1");
   if (target === session.user.mode) {
-    if (redirectTo.startsWith("/bang-dieu-khien") || redirectTo.startsWith("/admin")) {
-      redirect(redirectTo);
-    }
-    return;
+    return debug("2");
   }
 
   const cookieStore = await cookies();
@@ -163,17 +166,17 @@ export async function switchModeAction(formData: FormData) {
     .getAll()
     .map((c) => c.name)
     .find((n) => n.endsWith("session-token"));
-  if (!cookieName) return;
+  if (!cookieName) return debug("3");
 
   const secret = process.env.AUTH_SECRET;
-  if (!secret) return;
+  if (!secret) return debug("4");
 
   const currentToken = await getToken({
     req: { headers: { cookie: cookieStore.toString() } },
     secret,
     salt: cookieName,
   });
-  if (!currentToken) return;
+  if (!currentToken) return debug("5");
 
   const newToken = await encode({
     token: { ...currentToken, mode: target },
@@ -195,7 +198,5 @@ export async function switchModeAction(formData: FormData) {
     message: `${session.user.name ?? session.user.email} chuyển chế độ sang ${target}`,
   });
 
-  if (redirectTo.startsWith("/bang-dieu-khien") || redirectTo.startsWith("/admin")) {
-    redirect(redirectTo);
-  }
+  return debug("6");
 }
