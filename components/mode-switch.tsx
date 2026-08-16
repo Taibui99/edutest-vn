@@ -3,7 +3,6 @@
 import { useState, useTransition } from "react";
 import { switchModeAction } from "@/app/actions/auth";
 import { ConfirmDialog } from "@/components/confirm-dialog";
-import { Spinner } from "@/components/ui/spinner";
 
 type ModeValue = "student" | "teacher" | "admin";
 
@@ -15,6 +14,28 @@ interface ModeSwitchButtonProps {
   children: React.ReactNode;
   className?: string;
   confirmMessage?: string;
+}
+
+function LoadingScreen({ label }: { label: string }) {
+  return (
+    <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center gap-6 bg-[var(--surface-page)]">
+      <div className="relative">
+        <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-[var(--primary)] to-[var(--coral)] flex items-center justify-center shadow-lg shadow-[var(--primary)]/20">
+          <span className="text-2xl font-black text-white">
+            <span className="text-white/80">E</span>u
+          </span>
+        </div>
+        <span className="absolute -inset-2 rounded-[2rem] border-2 border-transparent border-t-[var(--primary)] animate-spin" />
+      </div>
+      <div className="text-center">
+        <p className="text-lg font-black text-[var(--text-primary)]">Đang chuyển sang chế độ {label}...</p>
+        <p className="mt-1 text-sm text-[var(--text-muted)]">Vui lòng đợi trong giây lát</p>
+      </div>
+      <div className="h-1 w-48 overflow-hidden rounded-full bg-[var(--gray-200)]">
+        <div className="h-full w-1/2 rounded-full bg-[var(--primary)] animate-indeterminate" />
+      </div>
+    </div>
+  );
 }
 
 export function ModeSwitchButton({
@@ -62,15 +83,10 @@ export function ModeSwitchButton({
         aria-label={`Chuyển sang chế độ ${label}`}
         className={className}
       >
-        <span className="relative block w-full">
-          {switching && (
-            <span className="absolute inset-0 z-10 grid place-items-center rounded-[inherit] bg-white/70 dark:bg-black/40 backdrop-blur-[1px]">
-              <Spinner size="md" color="primary" />
-            </span>
-          )}
-          {children}
-        </span>
+        {children}
       </button>
+
+      {switching && <LoadingScreen label={label} />}
 
       <ConfirmDialog
         open={confirming}

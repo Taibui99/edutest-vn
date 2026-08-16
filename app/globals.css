@@ -96,12 +96,14 @@ body { background: var(--surface-bg); color: var(--text-primary); margin: 0; }
 @keyframes popIn { 0% { transform: scale(.92); opacity: 0; } 70% { transform: scale(1.035); opacity: 1; } 100% { transform: scale(1); } }
 @keyframes pulseSoft { 0%,100% { transform: scale(1); } 50% { transform: scale(1.02); } }
 @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+@keyframes indeterminate { 0% { transform: translateX(-100%); } 50% { transform: translateX(100%); } 100% { transform: translateX(300%); } }
 
 .animate-fade-in { animation: fadeIn var(--motion-base) var(--ease-smooth); }
 .animate-slide-in { animation: slideIn var(--motion-base) var(--ease-smooth); }
 .animate-bounce-in { animation: bounceIn var(--motion-slow) var(--ease-spring); }
 .animate-pop-in { animation: popIn var(--motion-slow) var(--ease-spring); }
 .animate-pulse-soft { animation: pulseSoft 1.8s var(--ease-smooth) infinite; }
+.animate-indeterminate { animation: indeterminate 1.4s var(--ease-smooth) infinite; }
 
 .motion-button,
 .motion-card,
