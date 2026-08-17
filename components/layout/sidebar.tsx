@@ -9,6 +9,7 @@ import {
 import { cn } from "@/lib/cn";
 import { NotificationBell } from "@/components/ui/notification-bell";
 import { ThemeToggle } from "@/components/theme/theme-provider";
+import { ModeSwitchButton } from "@/components/mode-switch";
 
 interface NavItem {
   href: string;
@@ -98,13 +99,15 @@ export function Sidebar({ user, logoutAction }: SidebarProps) {
             {mode === "teacher" ? <GraduationCap size={11} /> : <BookOpen size={11} />}
             {mode === "teacher" ? "Giáo viên" : "Học sinh"}
           </div>
-          <Link
-            href="/bang-dieu-khien"
-            className="text-[10px] font-bold text-[var(--text-muted)] hover:text-[#6C63FF] transition-colors inline-flex items-center gap-1 px-2 py-1.5 rounded-lg hover:bg-[var(--gray-100)]"
-            aria-label="Đổi chế độ"
+          <ModeSwitchButton
+            mode={mode === "student" ? "teacher" : "student"}
+            redirectTo="/bang-dieu-khien"
+            label={mode === "student" ? "Giáo viên" : "Học sinh"}
+            active={false}
+            className="text-[10px] font-bold text-[var(--text-muted)] hover:text-[#6C63FF] transition-colors inline-flex items-center gap-1 px-2 py-1.5 rounded-lg hover:bg-[var(--gray-100)] cursor-pointer"
           >
             <Repeat size={11} /> Đổi chế độ
-          </Link>
+          </ModeSwitchButton>
         </div>
       </div>
 
