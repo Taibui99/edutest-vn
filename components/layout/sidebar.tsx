@@ -55,16 +55,16 @@ function NavLink({ item, pathname }: { item: NavItem; pathname: string }) {
       className={cn(
         "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-700 font-semibold transition-all",
         active
-          ? "bg-[#EEEFFE] text-[#6C63FF] shadow-sm"
+          ? "bg-[#CCFBF1] text-[#0F766E] shadow-sm"
           : "text-[var(--text-secondary)] hover:bg-[var(--gray-100)] hover:text-[var(--text-primary)]",
       )}
       aria-current={active ? "page" : undefined}
     >
-      <span className={cn("shrink-0 transition-colors", active ? "text-[#6C63FF]" : "text-[var(--text-muted)]")}>
+      <span className={cn("shrink-0 transition-colors", active ? "text-[#0F766E]" : "text-[var(--text-muted)]")}>
         {item.icon}
       </span>
       <span className="whitespace-nowrap">{item.label}</span>
-      {active && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-[#6C63FF]" />}
+      {active && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-[#0F766E]" />}
     </Link>
   );
 }
@@ -80,7 +80,7 @@ export function Sidebar({ user, logoutAction }: SidebarProps) {
       {/* Logo */}
       <div className="flex items-center justify-between px-5 h-[60px] border-b border-[var(--surface-border)] shrink-0">
         <span className="text-xl font-black tracking-tight">
-          <span className="text-[#6C63FF]">Edu</span><span className="text-[#FF6B6B]">Test</span>
+          <span className="text-[#0F766E]">Edu</span><span className="text-[#F97316]">Test</span>
           <span className="text-[var(--text-muted)] font-semibold text-sm">.vn</span>
         </span>
         <div className="flex items-center gap-1.5">
@@ -94,7 +94,7 @@ export function Sidebar({ user, logoutAction }: SidebarProps) {
         <div className="flex items-center gap-1.5">
           <div className={cn(
             "text-xs font-bold px-2.5 py-1.5 rounded-lg inline-flex items-center gap-1.5",
-            mode === "teacher" ? "bg-[#E8F4FD] text-[#4EA8DE]" : "bg-[#E1F5EE] text-[#06D6A0]"
+            mode === "teacher" ? "bg-[#E8F4FD] text-[#0284C7]" : "bg-[#E1F5EE] text-[#06D6A0]"
           )}>
             {mode === "teacher" ? <GraduationCap size={11} /> : <BookOpen size={11} />}
             {mode === "teacher" ? "Giáo viên" : "Học sinh"}
@@ -104,7 +104,7 @@ export function Sidebar({ user, logoutAction }: SidebarProps) {
             redirectTo="/bang-dieu-khien"
             label={mode === "student" ? "Giáo viên" : "Học sinh"}
             active={false}
-            className="text-[10px] font-bold text-[var(--text-muted)] hover:text-[#6C63FF] transition-colors inline-flex items-center gap-1 px-2 py-1.5 rounded-lg hover:bg-[var(--gray-100)] cursor-pointer"
+            className="text-[10px] font-bold text-[var(--text-muted)] hover:text-[#0F766E] transition-colors inline-flex items-center gap-1 px-2 py-1.5 rounded-lg hover:bg-[var(--gray-100)] cursor-pointer"
           >
             <Repeat size={11} /> Đổi chế độ
           </ModeSwitchButton>
@@ -127,7 +127,7 @@ export function Sidebar({ user, logoutAction }: SidebarProps) {
       {/* User + logout */}
       <div className="p-3 border-t border-[var(--surface-border)]">
         <div className="flex items-center gap-3 px-2 py-2 rounded-xl hover:bg-[var(--gray-100)] transition-colors">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#6C63FF] to-[#FF6B6B] flex items-center justify-center text-white text-xs font-bold shrink-0">
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#0F766E] to-[#F97316] flex items-center justify-center text-white text-xs font-bold shrink-0">
             {user.name.charAt(0).toUpperCase()}
           </div>
           <div className="flex-1 min-w-0">
@@ -135,7 +135,7 @@ export function Sidebar({ user, logoutAction }: SidebarProps) {
             <p className="text-xs text-[var(--text-muted)] truncate">{user.email}</p>
           </div>
           <form action={logoutAction}>
-            <button type="submit" className="text-[var(--text-muted)] hover:text-[#FF6B6B] transition-colors" aria-label="Đăng xuất">
+            <button type="submit" className="text-[var(--text-muted)] hover:text-[#F97316] transition-colors" aria-label="Đăng xuất">
               <LogOut size={15} />
             </button>
           </form>

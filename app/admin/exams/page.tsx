@@ -119,7 +119,7 @@ export default function AdminExams() {
   return (
     <div className="p-4 lg:p-8 max-w-6xl mx-auto">
       <h1 className="text-xl font-black text-[var(--text-primary)] mb-6 flex items-center gap-2">
-        <FileText size={20} className="text-[#6C63FF]" /> Đề thi toàn hệ thống
+        <FileText size={20} className="text-[#0F766E]" /> Đề thi toàn hệ thống
         <span className="text-xs font-bold text-[var(--text-muted)]">({total} đề)</span>
       </h1>
 
@@ -130,13 +130,13 @@ export default function AdminExams() {
             value={q}
             onChange={(e) => { setQ(e.target.value); setPage(1); }}
             placeholder="Tìm theo tên đề..."
-            className="w-full rounded-lg border border-[var(--surface-border)] pl-9 pr-3 py-2 text-sm focus:border-[#6C63FF] focus:outline-none"
+            className="w-full rounded-lg border border-[var(--surface-border)] pl-9 pr-3 py-2 text-sm focus:border-[#0F766E] focus:outline-none"
           />
         </div>
         <select
           value={status}
           onChange={(e) => { setStatus(e.target.value); setPage(1); }}
-          className="rounded-lg border border-[var(--surface-border)] px-3 py-2 text-sm focus:border-[#6C63FF] focus:outline-none"
+          className="rounded-lg border border-[var(--surface-border)] px-3 py-2 text-sm focus:border-[#0F766E] focus:outline-none"
         >
           <option value="">Tất cả trạng thái</option>
           <option value="published">Đang mở</option>
@@ -226,7 +226,7 @@ export default function AdminExams() {
                             <>
                               <Link
                                 href={`/bang-dieu-khien/de-thi/${e.id}`}
-                                className="rounded-lg bg-[#EEEFFE] px-2.5 py-1 text-xs font-bold text-[#6C63FF] hover:bg-[#E2E3FD]"
+                                className="rounded-lg bg-[#CCFBF1] px-2.5 py-1 text-xs font-bold text-[#0F766E] hover:bg-[#D5F2EC]"
                               >
                                 Xem
                               </Link>

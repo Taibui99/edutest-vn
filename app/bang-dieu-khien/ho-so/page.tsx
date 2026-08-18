@@ -191,7 +191,7 @@ export default function ProfilePage() {
           <h2 className="font-black text-[var(--text-primary)] text-lg truncate">{profile.name}</h2>
           <p className="text-sm text-[var(--text-muted)] truncate">{profile.email}</p>
           <span className={`inline-block mt-1 text-xs font-bold px-2.5 py-0.5 rounded-full ${
-            profile.role === "teacher" ? "bg-[#E8F4FD] text-[#4EA8DE]" : "bg-[#E1F5EE] text-[#06D6A0]"
+            profile.role === "teacher" ? "bg-[#E8F4FD] text-[#0284C7]" : "bg-[#E1F5EE] text-[#06D6A0]"
           }`}>
             {profile.role === "teacher" ? "Giáo viên" : "Học sinh"}
           </span>
@@ -296,15 +296,15 @@ export default function ProfilePage() {
 
       {profile.role === "admin" && (
         <Link href="/admin">
-          <div className="flex items-center gap-4 p-5 bg-gradient-to-r from-[#EEEFFE] to-[#F6F5FF] dark:from-[#1A1740] dark:to-[#241F5C] rounded-2xl border border-[#6C63FF]/30 hover:border-[#6C63FF] transition-all cursor-pointer">
-            <span className="w-10 h-10 rounded-xl bg-[#6C63FF] text-white flex items-center justify-center shrink-0">
+          <div className="flex items-center gap-4 p-5 bg-gradient-to-r from-[#CCFBF1] to-[#E6F7F3] dark:from-[#1E3230] dark:to-[#21383A] rounded-2xl border border-[#0F766E]/30 hover:border-[#0F766E] transition-all cursor-pointer">
+            <span className="w-10 h-10 rounded-xl bg-[#0F766E] text-white flex items-center justify-center shrink-0">
               <ShieldCheck size={18} />
             </span>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-black text-[var(--text-primary)]">Khu vực quản trị</p>
               <p className="text-xs text-[var(--text-muted)]">Quản lý người dùng, đề thi, báo cáo hệ thống</p>
             </div>
-            <ArrowRight size={16} className="text-[#6C63FF] shrink-0" />
+            <ArrowRight size={16} className="text-[#0F766E] shrink-0" />
           </div>
         </Link>
       )}

@@ -152,10 +152,10 @@ export default async function ExamDetailPage({ params }: { params: Promise<{ id:
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         {[
-          { label: "Bài nộp", value: subs.length, color: "bg-[#EEEFFE] dark:bg-[#241F5E] text-[#6C63FF]" },
+          { label: "Bài nộp", value: subs.length, color: "bg-[#CCFBF1] dark:bg-[#134E4A] text-[#0F766E]" },
           { label: "Điểm TB", value: avgScore !== null ? avgScore.toFixed(1) : "—", color: "bg-[#FFF8E1] dark:bg-[#2B2410] text-[#D4A017]" },
           { label: "Điểm cao nhất", value: highest !== null ? highest.toFixed(1) : "—", color: "bg-[#E1F5EE] dark:bg-[#0A2A20] text-[#06D6A0]" },
-          { label: "Tỉ lệ đậu", value: subs.length > 0 ? `${Math.round((passCount / subs.length) * 100)}%` : "—", color: "bg-[#E8F4FD] dark:bg-[#0D2A3E] text-[#4EA8DE]" },
+          { label: "Tỉ lệ đậu", value: subs.length > 0 ? `${Math.round((passCount / subs.length) * 100)}%` : "—", color: "bg-[#E8F4FD] dark:bg-[#0D2A3E] text-[#0284C7]" },
         ].map(({ label, value, color }) => (
           <div key={label} className={`rounded-2xl p-4 ${color.split(" ").slice(0, 2).join(" ")}`}>
             <p className={`text-xs font-bold mb-1 ${color.split(" ").slice(-1)[0]}`}>{label}</p>
@@ -189,7 +189,7 @@ export default async function ExamDetailPage({ params }: { params: Promise<{ id:
                         className="h-full rounded-full transition-all"
                         style={{
                           width: `${(dist[i] / maxDist) * 100}%`,
-                          background: ["#FF6B6B","#FFD166","#06D6A0","#4EA8DE","#6C63FF"][i]
+                          background: ["#F97316","#FFD166","#06D6A0","#0284C7","#0F766E"][i]
                         }}
                       />
                     </div>
@@ -220,7 +220,7 @@ export default async function ExamDetailPage({ params }: { params: Promise<{ id:
                           {question.text}
                         </p>
                         {pct !== null && (
-                          <span className={`shrink-0 text-xs font-black ${pct >= 70 ? "text-[#06D6A0]" : pct >= 40 ? "text-[#D4A017]" : "text-[#FF6B6B]"}`}>
+                          <span className={`shrink-0 text-xs font-black ${pct >= 70 ? "text-[#06D6A0]" : pct >= 40 ? "text-[#D4A017]" : "text-[#F97316]"}`}>
                             {pct}%
                           </span>
                         )}
@@ -230,7 +230,7 @@ export default async function ExamDetailPage({ params }: { params: Promise<{ id:
                           className="h-full rounded-full transition-all"
                           style={{
                             width: `${pct ?? 0}%`,
-                            background: pct === null ? "#CBD5E1" : pct >= 70 ? "#06D6A0" : pct >= 40 ? "#D4A017" : "#FF6B6B",
+                            background: pct === null ? "#CBD5E1" : pct >= 70 ? "#06D6A0" : pct >= 40 ? "#D4A017" : "#F97316",
                           }}
                         />
                       </div>
@@ -252,9 +252,9 @@ export default async function ExamDetailPage({ params }: { params: Promise<{ id:
                 <p className="text-xs text-[#06D6A0] font-bold">Đậu (≥ 5)</p>
               </div>
               <div className="rounded-xl bg-[#FFECEC] p-3 text-center dark:bg-[#2B1616]">
-                <XCircle size={16} className="text-[#FF6B6B] mx-auto mb-1" />
+                <XCircle size={16} className="text-[#F97316] mx-auto mb-1" />
                 <p className="text-lg font-black text-[var(--text-primary)]">{subs.length - passCount}</p>
-                <p className="text-xs text-[#FF6B6B] font-bold">Rớt (&lt; 5)</p>
+                <p className="text-xs text-[#F97316] font-bold">Rớt (&lt; 5)</p>
               </div>
             </div>
           )}

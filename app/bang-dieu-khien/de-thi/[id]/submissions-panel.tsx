@@ -41,7 +41,7 @@ const SORT_OPTIONS: { key: SortKey; label: string }[] = [
 function scoreColor(score: number) {
   if (score >= 8) return { text: "#06D6A0", bg: "#E1F5EE" };
   if (score >= 6.5) return { text: "#D4A017", bg: "#FFF8E1" };
-  return { text: "#FF6B6B", bg: "#FFECEC" };
+  return { text: "#F97316", bg: "#FFECEC" };
 }
 
 function renderAnswer(q: SubQuestion, selected: AnswerValue | undefined) {
@@ -228,7 +228,7 @@ export function SubmissionsPanel({ subs, questions }: { subs: SubRow[]; question
                       const auto = isAutoGraded(q);
                       const answered = selected !== undefined && selected !== null;
                       const Icon = !answered ? MinusCircle : correct ? CheckCircle2 : XCircle;
-                      const iconColor = !answered ? "#94A3B8" : correct ? "#06D6A0" : "#FF6B6B";
+                      const iconColor = !answered ? "#94A3B8" : correct ? "#06D6A0" : "#F97316";
                       return (
                         <div key={q.id} className="rounded-xl border border-[var(--surface-border)] bg-[var(--surface-card)] p-3">
                           <div className="flex items-start gap-2.5">
@@ -261,7 +261,7 @@ export function SubmissionsPanel({ subs, questions }: { subs: SubRow[]; question
                               className="shrink-0 text-[11px] font-black px-2 py-0.5 rounded-md"
                               style={{
                                 background: !answered ? "#F1F5F9" : correct ? "#E1F5EE" : "#FFECEC",
-                                color: !answered ? "#64748B" : correct ? "#06D6A0" : "#FF6B6B",
+                                color: !answered ? "#64748B" : correct ? "#06D6A0" : "#F97316",
                               }}
                             >
                               {!answered ? "Bỏ trống" : correct ? "Đúng" : "Sai"}

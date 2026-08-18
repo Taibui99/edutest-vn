@@ -43,12 +43,12 @@ function LineChart({ data }: { data: { label: string; score: number }[] }) {
           <text x={0} y={y(g) + 3} fontSize="9" fill="var(--text-muted)">{g}</text>
         </g>
       ))}
-      <path d={path} fill="none" stroke="#6C63FF" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d={path} fill="none" stroke="#0F766E" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
       {data.map((d, i) => (
         <g key={d.label + i}>
-          <circle cx={x(i)} cy={y(d.score)} r="4" fill="#6C63FF" stroke="white" strokeWidth="2" />
+          <circle cx={x(i)} cy={y(d.score)} r="4" fill="#0F766E" stroke="white" strokeWidth="2" />
           <text x={x(i)} y={H - 8} fontSize="9" fill="var(--text-muted)" textAnchor="middle">{d.label}</text>
-          <text x={x(i)} y={y(d.score) - 9} fontSize="9" fontWeight="bold" fill="#6C63FF" textAnchor="middle">{d.score.toFixed(1)}</text>
+          <text x={x(i)} y={y(d.score) - 9} fontSize="9" fontWeight="bold" fill="#0F766E" textAnchor="middle">{d.score.toFixed(1)}</text>
         </g>
       ))}
     </svg>
@@ -91,7 +91,7 @@ export function ProgressClient({ streak, lastStudyDate, flashcardCount, submissi
   return (
     <div className="p-4 lg:p-8 max-w-5xl mx-auto animate-fade-in">
       <h1 className="text-xl font-black text-[var(--text-primary)] mb-6 flex items-center gap-2">
-        <TrendingUp size={20} className="text-[#6C63FF]" /> Tiến độ học tập
+        <TrendingUp size={20} className="text-[#0F766E]" /> Tiến độ học tập
       </h1>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
@@ -102,10 +102,10 @@ export function ProgressClient({ streak, lastStudyDate, flashcardCount, submissi
           { label: "Flashcard", value: flashcardCount, icon: <Layers size={14} />, color: "c4" },
         ].map(({ label, value, icon, color, dim }) => (
           <div key={label} className={`rounded-2xl p-4 ${dim ? "opacity-50" : ""} ${
-            color === "c1" ? "bg-[#FFF8E1] dark:bg-[#2B2410]" : color === "c2" ? "bg-[#EEEFFE] dark:bg-[#241F5E]" : color === "c3" ? "bg-[#E8F4FD] dark:bg-[#0D2A3E]" : "bg-[#E1F5EE] dark:bg-[#0A2A20]"
+            color === "c1" ? "bg-[#FFF8E1] dark:bg-[#2B2410]" : color === "c2" ? "bg-[#CCFBF1] dark:bg-[#134E4A]" : color === "c3" ? "bg-[#E8F4FD] dark:bg-[#0D2A3E]" : "bg-[#E1F5EE] dark:bg-[#0A2A20]"
           }`}>
             <div className={`flex items-center gap-2 mb-1 ${
-              color === "c1" ? "text-[#D4A017]" : color === "c2" ? "text-[#6C63FF]" : color === "c3" ? "text-[#4EA8DE]" : "text-[#06D6A0]"
+              color === "c1" ? "text-[#D4A017]" : color === "c2" ? "text-[#0F766E]" : color === "c3" ? "text-[#0284C7]" : "text-[#06D6A0]"
             }`}>
               {icon}
               <span className="text-xs font-bold">{label}</span>
@@ -138,7 +138,7 @@ export function ProgressClient({ streak, lastStudyDate, flashcardCount, submissi
                       <p className="text-sm font-semibold text-[var(--text-primary)]">{subject}</p>
                       <p className="text-xs text-[var(--text-muted)]">{count} bài · cao nhất {best.toFixed(1)}</p>
                     </div>
-                    <span className="text-sm font-black" style={{ color: avg >= 8 ? "#06D6A0" : avg >= 6.5 ? "#D4A017" : "#FF6B6B" }}>
+                    <span className="text-sm font-black" style={{ color: avg >= 8 ? "#06D6A0" : avg >= 6.5 ? "#D4A017" : "#F97316" }}>
                       {avg.toFixed(1)}
                     </span>
                   </div>
@@ -166,7 +166,7 @@ export function ProgressClient({ streak, lastStudyDate, flashcardCount, submissi
                       {s.subject} · {new Date(s.submittedAt).toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" })}
                     </p>
                   </div>
-                  <span className={`text-sm font-black ${s.score >= 8 ? "text-[#06D6A0]" : s.score >= 6.5 ? "text-[#D4A017]" : "text-[#FF6B6B]"}`}>
+                  <span className={`text-sm font-black ${s.score >= 8 ? "text-[#06D6A0]" : s.score >= 6.5 ? "text-[#D4A017]" : "text-[#F97316]"}`}>
                     {s.score.toFixed(1)}
                   </span>
                 </div>

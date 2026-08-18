@@ -161,7 +161,7 @@ export default function ClassroomDetailPage({ params }: { params: Promise<{ id: 
         <ArrowLeft size={15} /> Lớp học
       </Link>
 
-      <div className="rounded-2xl bg-gradient-to-r from-[var(--primary)] to-[#a78bfa] p-5 mb-6 relative overflow-hidden">
+      <div className="rounded-2xl bg-gradient-to-r from-[var(--primary)] to-[#5EEAD4] p-5 mb-6 relative overflow-hidden">
         <div className="absolute -top-6 -right-6 w-32 h-32 rounded-full bg-white/10" />
         <div className="relative flex items-start justify-between gap-4">
           <div>
@@ -185,7 +185,7 @@ export default function ClassroomDetailPage({ params }: { params: Promise<{ id: 
 
       <div className="flex gap-1 p-1 bg-[var(--gray-100)] rounded-xl mb-5 w-fit">
         {(["members", "exams"] as Tab[]).map((t) => (
-          <button key={t} onClick={() => setTab(t)} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${tab === t ? "bg-white text-[var(--text-primary)] shadow-sm dark:bg-[#241F5E]" : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"}`}>
+          <button key={t} onClick={() => setTab(t)} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${tab === t ? "bg-white text-[var(--text-primary)] shadow-sm dark:bg-[#134E4A]" : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"}`}>
             {t === "members" ? <Users size={14} /> : <BookOpen size={14} />}
             {t === "members" ? "Học sinh" : "Đề thi"}
           </button>

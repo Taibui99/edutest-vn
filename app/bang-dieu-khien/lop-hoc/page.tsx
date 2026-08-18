@@ -216,7 +216,7 @@ export default function ClassroomsPage() {
           {classrooms.map((cls) => (
             <Link key={cls.id} href={`/bang-dieu-khien/lop-hoc/${cls.id}`}>
               <Card hover className="h-full p-0 overflow-hidden group">
-                <div className="h-2 bg-gradient-to-r from-[var(--primary)] to-[#a78bfa]" />
+                <div className="h-2 bg-gradient-to-r from-[var(--primary)] to-[#5EEAD4]" />
                 <div className="p-4">
                   <div className="flex items-start justify-between gap-2 mb-3">
                     <div className="min-w-0">

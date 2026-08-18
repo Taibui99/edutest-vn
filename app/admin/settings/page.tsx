@@ -107,7 +107,7 @@ export default function AdminSettings() {
   return (
     <div className="p-4 lg:p-8 max-w-3xl mx-auto">
       <h1 className="text-xl font-black text-[var(--text-primary)] mb-6 flex items-center gap-2">
-        <Settings size={20} className="text-[#6C63FF]" /> Cài đặt hệ thống
+        <Settings size={20} className="text-[#0F766E]" /> Cài đặt hệ thống
       </h1>
 
       <div className="flex gap-1.5 mb-5 flex-wrap">
@@ -115,7 +115,7 @@ export default function AdminSettings() {
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
-            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-colors ${tab === t.key ? "bg-[#6C63FF] text-white" : "bg-[var(--surface-card)] border border-[var(--surface-border)] text-[var(--text-secondary)] hover:border-[#6C63FF]/40"}`}
+            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-colors ${tab === t.key ? "bg-[#0F766E] text-white" : "bg-[var(--surface-card)] border border-[var(--surface-border)] text-[var(--text-secondary)] hover:border-[#0F766E]/40"}`}
           >
             {t.icon} {t.label}
           </button>
@@ -146,7 +146,7 @@ export default function AdminSettings() {
                   <button
                     onClick={() => save(f.key, boolValue(f.key) ? "false" : "true")}
                     disabled={saving}
-                    className={`relative w-11 h-6 rounded-full transition-colors shrink-0 disabled:opacity-50 ${boolValue(f.key) ? "bg-[#6C63FF]" : "bg-[var(--gray-200)]"}`}
+                    className={`relative w-11 h-6 rounded-full transition-colors shrink-0 disabled:opacity-50 ${boolValue(f.key) ? "bg-[#0F766E]" : "bg-[var(--gray-200)]"}`}
                     aria-label={f.label}
                   >
                     <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-[var(--surface-card)] shadow transition-all ${boolValue(f.key) ? "left-[22px]" : "left-0.5"}`} />
@@ -156,12 +156,12 @@ export default function AdminSettings() {
                     <input
                       value={settings[f.key] ?? ""}
                       onChange={(e) => setSettings((prev) => ({ ...prev, [f.key]: e.target.value }))}
-                      className="flex-1 rounded-lg border border-[var(--surface-border)] px-3 py-2 text-sm focus:border-[#6C63FF] focus:outline-none"
+                      className="flex-1 rounded-lg border border-[var(--surface-border)] px-3 py-2 text-sm focus:border-[#0F766E] focus:outline-none"
                     />
                     <button
                       onClick={() => save(f.key, settings[f.key] ?? "")}
                       disabled={saving}
-                      className="rounded-lg bg-[#6C63FF] px-4 py-2 text-xs font-bold text-white hover:opacity-90 disabled:opacity-50"
+                      className="rounded-lg bg-[#0F766E] px-4 py-2 text-xs font-bold text-white hover:opacity-90 disabled:opacity-50"
                     >
                       Lưu
                     </button>

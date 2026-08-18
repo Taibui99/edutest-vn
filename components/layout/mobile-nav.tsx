@@ -31,18 +31,18 @@ export function MobileTopbar({ user }: { user: { name: string; role: string; mod
   return (
     <header className="lg:hidden flex items-center justify-between px-4 h-14 bg-[var(--surface-sidebar)] border-b border-[var(--surface-border)] sticky top-0 z-40">
       <span className="text-lg font-black tracking-tight">
-        <span className="text-[#6C63FF]">Edu</span><span className="text-[#FF6B6B]">Test</span>
+        <span className="text-[#0F766E]">Edu</span><span className="text-[#F97316]">Test</span>
       </span>
       <div className="flex items-center gap-2">
         <span className={cn(
           "text-[10px] font-bold px-2 py-1 rounded-full",
-          mode === "teacher" ? "bg-[#E8F4FD] text-[#4EA8DE]" : "bg-[#E1F5EE] text-[#06D6A0]"
+          mode === "teacher" ? "bg-[#E8F4FD] text-[#0284C7]" : "bg-[#E1F5EE] text-[#06D6A0]"
         )}>
           {mode === "teacher" ? "Giáo viên" : "Học sinh"}
         </span>
         <ThemeToggle />
         <NotificationBell />
-        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#6C63FF] to-[#FF6B6B] flex items-center justify-center text-white text-xs font-bold">
+        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#0F766E] to-[#F97316] flex items-center justify-center text-white text-xs font-bold">
           {user.name.charAt(0).toUpperCase()}
         </div>
       </div>
@@ -69,13 +69,13 @@ export function MobileBottomNav({ user }: { user: { name: string; role: string; 
             href={item.href}
             className={cn(
               "flex-1 flex flex-col items-center justify-center gap-0.5 text-xs font-semibold transition-colors",
-              active ? "text-[#6C63FF]" : "text-[var(--text-muted)]"
+              active ? "text-[#0F766E]" : "text-[var(--text-muted)]"
             )}
             aria-current={active ? "page" : undefined}
           >
             <span className={cn("transition-transform", active && "scale-110")}>{item.icon}</span>
             <span className="text-[10px]">{item.label}</span>
-            {active && <span className="absolute bottom-1 w-1 h-1 rounded-full bg-[#6C63FF]" />}
+            {active && <span className="absolute bottom-1 w-1 h-1 rounded-full bg-[#0F766E]" />}
           </Link>
         );
       })}

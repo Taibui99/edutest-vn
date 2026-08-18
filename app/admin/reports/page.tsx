@@ -139,7 +139,7 @@ export default function AdminReports() {
   return (
     <div className="p-4 lg:p-8 max-w-5xl mx-auto">
       <h1 className="text-xl font-black text-[var(--text-primary)] mb-6 flex items-center gap-2">
-        <Flag size={20} className="text-[#6C63FF]" /> Báo cáo từ người dùng
+        <Flag size={20} className="text-[#0F766E]" /> Báo cáo từ người dùng
         <span className="text-xs font-bold text-[var(--text-muted)]">({total} báo cáo)</span>
       </h1>
 
@@ -148,7 +148,7 @@ export default function AdminReports() {
           <button
             key={s || "all"}
             onClick={() => { setStatus(s); setPage(1); }}
-            className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-colors ${status === s ? "bg-[#6C63FF] text-white" : "bg-[var(--surface-card)] border border-[var(--surface-border)] text-[var(--text-secondary)] hover:border-[#6C63FF]/40"}`}
+            className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-colors ${status === s ? "bg-[#0F766E] text-white" : "bg-[var(--surface-card)] border border-[var(--surface-border)] text-[var(--text-secondary)] hover:border-[#0F766E]/40"}`}
           >
             {s === "" ? "Tất cả" : STATUS_LABEL[s]}
           </button>
@@ -159,7 +159,7 @@ export default function AdminReports() {
             value={q}
             onChange={(e) => { setQ(e.target.value); setPage(1); }}
             placeholder="Tìm theo loại / nội dung / người báo cáo / đề..."
-            className="w-full rounded-lg border border-[var(--surface-border)] pl-9 pr-3 py-2 text-sm focus:border-[#6C63FF] focus:outline-none"
+            className="w-full rounded-lg border border-[var(--surface-border)] pl-9 pr-3 py-2 text-sm focus:border-[#0F766E] focus:outline-none"
           />
         </div>
         <button
@@ -282,7 +282,7 @@ export default function AdminReports() {
           onChange={(e) => setResolution(e.target.value)}
           placeholder="Kết quả xử lý (tùy chọn)..."
           rows={3}
-          className="mb-4 w-full rounded-lg border border-[var(--surface-border)] px-3 py-2 text-sm focus:border-[#6C63FF] focus:outline-none"
+          className="mb-4 w-full rounded-lg border border-[var(--surface-border)] px-3 py-2 text-sm focus:border-[#0F766E] focus:outline-none"
         />
       </ConfirmDialog>
 

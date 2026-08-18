@@ -122,15 +122,15 @@ export default function AdminUsers() {
 
   const roleBadge = (r: string) =>
     r === "admin"
-      ? "bg-[#EEEFFE] text-[#6C63FF]"
+      ? "bg-[#CCFBF1] text-[#0F766E]"
       : r === "teacher"
-        ? "bg-[#E8F4FD] text-[#4EA8DE]"
+        ? "bg-[#E8F4FD] text-[#0284C7]"
         : "bg-[#E1F5EE] text-[#06D6A0]";
 
   return (
     <div className="p-4 lg:p-8 max-w-6xl mx-auto">
       <h1 className="text-xl font-black text-[var(--text-primary)] mb-6 flex items-center gap-2">
-        <Users size={20} className="text-[#6C63FF]" /> Quản lý người dùng
+        <Users size={20} className="text-[#0F766E]" /> Quản lý người dùng
         <span className="text-xs font-bold text-[var(--text-muted)]">({total} tài khoản)</span>
       </h1>
 
@@ -141,13 +141,13 @@ export default function AdminUsers() {
             value={q}
             onChange={(e) => { setQ(e.target.value); setPage(1); }}
             placeholder="Tìm theo tên / email..."
-            className="w-full rounded-lg border border-[var(--surface-border)] pl-9 pr-3 py-2 text-sm focus:border-[#6C63FF] focus:outline-none"
+            className="w-full rounded-lg border border-[var(--surface-border)] pl-9 pr-3 py-2 text-sm focus:border-[#0F766E] focus:outline-none"
           />
         </div>
         <select
           value={role}
           onChange={(e) => { setRole(e.target.value); setPage(1); }}
-          className="rounded-lg border border-[var(--surface-border)] px-3 py-2 text-sm focus:border-[#6C63FF] focus:outline-none"
+          className="rounded-lg border border-[var(--surface-border)] px-3 py-2 text-sm focus:border-[#0F766E] focus:outline-none"
         >
           <option value="">Tất cả vai trò</option>
           <option value="student">Học sinh</option>
@@ -157,7 +157,7 @@ export default function AdminUsers() {
         <select
           value={status}
           onChange={(e) => { setStatus(e.target.value); setPage(1); }}
-          className="rounded-lg border border-[var(--surface-border)] px-3 py-2 text-sm focus:border-[#6C63FF] focus:outline-none"
+          className="rounded-lg border border-[var(--surface-border)] px-3 py-2 text-sm focus:border-[#0F766E] focus:outline-none"
         >
           <option value="">Tất cả trạng thái</option>
           <option value="active">Đang hoạt động</option>

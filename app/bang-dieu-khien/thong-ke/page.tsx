@@ -23,7 +23,7 @@ interface Analytics {
 }
 
 const DIST_LABELS = ["< 4", "4 – 5.9", "6 – 6.9", "7 – 8.4", "8.5 – 10"];
-const DIST_COLORS = ["#FF6B6B", "#FFD166", "#06D6A0", "#4EA8DE", "#6C63FF"];
+const DIST_COLORS = ["#F97316", "#FFD166", "#06D6A0", "#0284C7", "#0F766E"];
 
 function MiniBar({ value, max, color }: { value: number; max: number; color: string }) {
   const pct = max > 0 ? (value / max) * 100 : 0;
@@ -37,7 +37,7 @@ function MiniBar({ value, max, color }: { value: number; max: number; color: str
 function scoreColor(score: number) {
   if (score >= 8) return "#06D6A0";
   if (score >= 6.5) return "#FFD166";
-  return "#FF6B6B";
+  return "#F97316";
 }
 
 export default function StatisticsPage() {
@@ -79,13 +79,13 @@ export default function StatisticsPage() {
           { label: "TG làm TB", value: avgMins > 0 ? `${avgMins} phút` : "—", icon: <Clock size={14} />, color: "c4" },
         ].map(({ label, value, icon, color }) => (
           <div key={label} className={`rounded-2xl p-4 ${
-            color === "c1" ? "bg-[#EEEFFE]" :
+            color === "c1" ? "bg-[#CCFBF1]" :
             color === "c2" ? "bg-[#E8F4FD]" :
             color === "c3" ? "bg-[#FFF8E1]" : "bg-[#E1F5EE]"
           }`}>
             <div className={`flex items-center gap-2 mb-1 ${
-              color === "c1" ? "text-[#6C63FF]" :
-              color === "c2" ? "text-[#4EA8DE]" :
+              color === "c1" ? "text-[#0F766E]" :
+              color === "c2" ? "text-[#0284C7]" :
               color === "c3" ? "text-[#D4A017]" : "text-[#06D6A0]"
             }`}>
               {icon}

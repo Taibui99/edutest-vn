@@ -64,7 +64,7 @@ export function ConfirmDialog({
         >
           <X size={16} />
         </button>
-        <div className={cn("w-11 h-11 rounded-2xl flex items-center justify-center mb-3", danger ? "bg-red-50 text-red-500" : "bg-[#EEEFFE] text-[#6C63FF]")}>
+        <div className={cn("w-11 h-11 rounded-2xl flex items-center justify-center mb-3", danger ? "bg-red-50 text-red-500" : "bg-[#CCFBF1] text-[#0F766E]")}>
           <AlertTriangle size={20} />
         </div>
         <h3 className="text-base font-black text-[var(--text-primary)] mb-1.5">{title}</h3>
@@ -80,7 +80,7 @@ export function ConfirmDialog({
               "mb-4 w-full rounded-lg border px-3 py-2 text-sm focus:outline-none disabled:opacity-50",
               typed === requireText && typed !== ""
                 ? "border-red-400 focus:border-red-500"
-                : "border-[var(--surface-border)] focus:border-[#6C63FF]",
+                : "border-[var(--surface-border)] focus:border-[#0F766E]",
             )}
           />
         )}
@@ -98,7 +98,7 @@ export function ConfirmDialog({
             disabled={!canConfirm || busy}
             className={cn(
               "rounded-lg px-3.5 py-2 text-xs font-bold text-white disabled:opacity-40",
-              danger ? "bg-red-500 hover:bg-red-600" : "bg-[#6C63FF] hover:bg-[#5A54E0]",
+              danger ? "bg-red-500 hover:bg-red-600" : "bg-[#0F766E] hover:bg-[#115E59]",
             )}
           >
             {confirmLabel}

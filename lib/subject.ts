@@ -19,19 +19,19 @@ export interface SubjectColor {
 }
 
 const subjectMap: Record<string, SubjectColor> = {
-  "Toán":       { text: "#6C63FF", bg: "#EEEFFE", border: "#C7C4FC" },
-  "Ngữ Văn":   { text: "#FF6B6B", bg: "#FFECEC", border: "#FFC5C5" },
-  "Tiếng Anh": { text: "#06D6A0", bg: "#E1F5EE", border: "#A8E6D6" },
+  "Toán":       { text: "#2563EB", bg: "#DBEAFE", border: "#BFDBFE" },
+  "Ngữ Văn":   { text: "#E11D48", bg: "#FFE4E6", border: "#FECDD3" },
+  "Tiếng Anh": { text: "#0F766E", bg: "#CCFBF1", border: "#99F6E4" },
   "Vật Lý":    { text: "#D4A017", bg: "#FFF8E1", border: "#FFE8A0" },
-  "Hóa Học":   { text: "#4EA8DE", bg: "#E8F4FD", border: "#B8D8F0" },
-  "Sinh Học":  { text: "#059669", bg: "#ECFDF5", border: "#A7F3D0" },
+  "Hóa Học":   { text: "#059669", bg: "#D1FAE5", border: "#A7F3D0" },
+  "Sinh Học":  { text: "#0EA5E9", bg: "#E0F2FE", border: "#BAE6FD" },
   "Lịch Sử":  { text: "#D97706", bg: "#FFFBEB", border: "#FDE68A" },
-  "Địa Lý":   { text: "#7C3AED", bg: "#F5F3FF", border: "#DDD6FE" },
-  "GDCD":      { text: "#DB2777", bg: "#FDF2F8", border: "#FBCFE8" },
+  "Địa Lý":   { text: "#16A34A", bg: "#DCFCE7", border: "#BBF7D0" },
+  "GDCD":      { text: "#EA580C", bg: "#FFEDD5", border: "#FED7AA" },
   "Tin Học":   { text: "#0891B2", bg: "#ECFEFF", border: "#A5F3FC" },
 };
 
-const defaultColor: SubjectColor = { text: "#6C63FF", bg: "#EEEFFE", border: "#C7C4FC" };
+const defaultColor: SubjectColor = { text: "#0F766E", bg: "#CCFBF1", border: "#99F6E4" };
 
 export function getSubjectColor(subject: string): SubjectColor {
   return subjectMap[subject] ?? defaultColor;

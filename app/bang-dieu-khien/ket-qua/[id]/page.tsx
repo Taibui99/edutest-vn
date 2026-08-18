@@ -42,7 +42,7 @@ interface Submission {
 
 function ScoreGauge({ score }: { score: number }) {
   const pct = (score / 10) * 100;
-  const color = score >= 8 ? "#06D6A0" : score >= 6.5 ? "#FFD166" : "#FF6B6B";
+  const color = score >= 8 ? "#06D6A0" : score >= 6.5 ? "#FFD166" : "#F97316";
   const grade = score >= 8.5 ? "Xuất sắc" : score >= 7 ? "Khá" : score >= 5 ? "Trung bình" : "Yếu";
 
   return (
@@ -132,9 +132,9 @@ export default function ResultPage({ params }: { params: Promise<{ id: string }>
             <p className="text-xs text-[#06D6A0] font-bold">Đúng</p>
           </div>
           <div className="rounded-xl bg-[#FFECEC] p-3 dark:bg-[#2B1616]">
-            <XCircle size={16} className="text-[#FF6B6B] mx-auto mb-1" />
+            <XCircle size={16} className="text-[#F97316] mx-auto mb-1" />
             <p className="text-lg font-black text-[var(--text-primary)]">{sub.totalQuestions - sub.correctCount}</p>
-            <p className="text-xs text-[#FF6B6B] font-bold">Sai</p>
+            <p className="text-xs text-[#F97316] font-bold">Sai</p>
           </div>
           <div className="rounded-xl bg-[var(--gray-100)] p-3">
             <Clock size={16} className="text-[var(--text-muted)] mx-auto mb-1" />
@@ -202,7 +202,7 @@ export default function ResultPage({ params }: { params: Promise<{ id: string }>
                       }`}>
                         {isCorrect
                           ? <CheckCircle2 size={13} className="text-[#06D6A0]" />
-                          : <XCircle size={13} className="text-[#FF6B6B]" />
+                          : <XCircle size={13} className="text-[#F97316]" />
                         }
                       </span>
                       <p className="text-sm font-semibold text-[var(--text-primary)]">
@@ -227,7 +227,7 @@ export default function ResultPage({ params }: { params: Promise<{ id: string }>
                           >
                             <span className={`w-5 h-5 rounded-full text-xs font-black flex items-center justify-center shrink-0 ${
                               isCorrectAnswer ? "bg-[#06D6A0] text-white" :
-                              isUserPick && !isCorrect ? "bg-[#FF6B6B] text-white" :
+                              isUserPick && !isCorrect ? "bg-[#F97316] text-white" :
                               "bg-[var(--gray-200)] text-[var(--text-muted)]"
                             }`}>
                               {letter}
