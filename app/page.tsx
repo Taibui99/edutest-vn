@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Link2, PenLine, Rocket, Target } from "lucide-react";
+import { Link2, PenLine, Rocket } from "lucide-react";
 import { auth } from "@/auth";
 import { Header } from "./components/header";
 import { Hero } from "./components/hero";
@@ -81,31 +81,28 @@ export default async function Home() {
         </section>
 
         {/* CTA */}
-        <section className="relative overflow-hidden py-16" style={{ background: "var(--gradient-brand)" }}>
-          <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-white/10" />
-          <div className="absolute -bottom-24 left-1/4 h-72 w-72 rounded-full bg-white/5" />
-          <div className="relative mx-auto max-w-2xl px-5 text-center">
-            <h2 className="mb-3 flex items-center justify-center gap-2 text-2xl font-black text-white sm:text-3xl">
-              <Target className="h-7 w-7" />
+        <section className="py-16" style={{ background: "var(--surface-card)", borderTop: "1px solid var(--surface-border)" }}>
+          <div className="mx-auto max-w-2xl px-5 text-center">
+            <h2 className="mb-3 text-2xl font-black sm:text-3xl" style={{ color: "var(--text-primary)" }}>
               Sẵn sàng bắt đầu?
             </h2>
-            <p className="mb-8 text-white/80">
+            <p className="mb-8 text-base" style={{ color: "var(--text-secondary)" }}>
               Tạo tài khoản miễn phí để học và quản lý bài thi, hoặc vào bài bằng mã nếu giáo viên đã gửi đề cho bạn.
             </p>
             <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
               <Link
                 href="/dang-ky"
-                className="inline-flex h-12 w-full items-center justify-center rounded-2xl px-8 text-base font-black transition-transform hover:scale-105 sm:w-auto"
-                style={{ background: "var(--surface-card)", color: "var(--primary)" }}
+                className="inline-flex h-12 w-full items-center justify-center rounded-xl px-8 text-base font-bold text-white transition-opacity hover:opacity-90 sm:w-auto"
+                style={{ background: "var(--primary)" }}
               >
                 Đăng ký miễn phí
               </Link>
               <Link
                 href="/vao-thi"
-                className="inline-flex h-12 w-full items-center justify-center rounded-2xl px-8 text-base font-bold text-white/90 transition-colors sm:w-auto"
-                style={{ border: "2px solid rgba(255,255,255,0.4)" }}
+                className="inline-flex h-12 w-full items-center justify-center rounded-xl px-8 text-base font-semibold transition-colors sm:w-auto"
+                style={{ border: "1.5px solid var(--surface-border-strong)", color: "var(--primary)", background: "var(--surface-bg)" }}
               >
-                Vào thi bằng mã →
+                Vào thi bằng mã
               </Link>
             </div>
           </div>
