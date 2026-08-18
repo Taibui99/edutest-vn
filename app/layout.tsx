@@ -26,7 +26,7 @@ export default async function RootLayout({
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem("edutest-theme");var d=t==="dark"||t==="light"?t==="dark":window.matchMedia("(prefers-color-scheme: dark)").matches;if(d)document.documentElement.classList.add("dark")}catch(e){}})();`,
+            __html: `(function(){try{document.documentElement.classList.remove("dark")}catch(e){}})();`,
           }}
         />
       </head>
