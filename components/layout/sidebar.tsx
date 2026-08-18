@@ -34,7 +34,7 @@ const teacherNav: NavItem[] = [
   { href: "/bang-dieu-khien/tao-de-thi",  label: "Tạo đề",         icon: <Plus size={18} /> },
   { href: "/bang-dieu-khien/lop-hoc",    label: "Lớp học",         icon: <Users size={18} /> },
   { href: "/bang-dieu-khien/hoc-sinh",   label: "Học sinh",        icon: <GraduationCap size={18} /> },
-  { href: "/bang-dieu-khien/ngan-hang",  label: "Ngân hàng câu",   icon: <Library size={18} /> },
+  { href: "/bang-dieu-khien/ngan-hang",  label: "Ngân hàng câu hỏi", icon: <Library size={18} /> },
   { href: "/bang-dieu-khien/ai",         label: "AI tạo đề",       icon: <Sparkles size={18} /> },
   { href: "/bang-dieu-khien/thong-ke",   label: "Thống kê",        icon: <BarChart3 size={18} /> },
 ];
@@ -63,7 +63,7 @@ function NavLink({ item, pathname }: { item: NavItem; pathname: string }) {
       <span className={cn("shrink-0 transition-colors", active ? "text-[#6C63FF]" : "text-[var(--text-muted)]")}>
         {item.icon}
       </span>
-      {item.label}
+      <span className="whitespace-nowrap">{item.label}</span>
       {active && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-[#6C63FF]" />}
     </Link>
   );

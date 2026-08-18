@@ -102,7 +102,7 @@ export function ProgressClient({ streak, lastStudyDate, flashcardCount, submissi
           { label: "Flashcard", value: flashcardCount, icon: <Layers size={14} />, color: "c4" },
         ].map(({ label, value, icon, color, dim }) => (
           <div key={label} className={`rounded-2xl p-4 ${dim ? "opacity-50" : ""} ${
-            color === "c1" ? "bg-[#FFF8E1]" : color === "c2" ? "bg-[#EEEFFE]" : color === "c3" ? "bg-[#E8F4FD]" : "bg-[#E1F5EE]"
+            color === "c1" ? "bg-[#FFF8E1] dark:bg-[#2B2410]" : color === "c2" ? "bg-[#EEEFFE] dark:bg-[#241F5E]" : color === "c3" ? "bg-[#E8F4FD] dark:bg-[#0D2A3E]" : "bg-[#E1F5EE] dark:bg-[#0A2A20]"
           }`}>
             <div className={`flex items-center gap-2 mb-1 ${
               color === "c1" ? "text-[#D4A017]" : color === "c2" ? "text-[#6C63FF]" : color === "c3" ? "text-[#4EA8DE]" : "text-[#06D6A0]"

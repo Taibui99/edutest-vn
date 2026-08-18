@@ -621,7 +621,7 @@ function ModeSwitcher({ mode, role }: { mode: string; role: string }) {
               className={cn(
                 "w-full text-left rounded-2xl border p-4 transition-all cursor-pointer",
                 active
-                  ? "border-[#6C63FF] bg-[#EEEFFE] shadow-sm ring-2 ring-[#6C63FF]/20"
+                  ? "border-[#6C63FF] bg-[#EEEFFE] shadow-sm ring-2 ring-[#6C63FF]/20 dark:bg-[#241F5E]"
                   : "border-[var(--surface-border)] bg-[var(--surface-card)] hover:border-[#6C63FF]/50 hover:shadow-sm",
               )}
             >

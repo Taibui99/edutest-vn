@@ -126,12 +126,12 @@ export default function ResultPage({ params }: { params: Promise<{ id: string }>
         )}
 
         <div className="grid grid-cols-3 gap-3 mt-2">
-          <div className="rounded-xl bg-[#E1F5EE] p-3">
+          <div className="rounded-xl bg-[#E1F5EE] p-3 dark:bg-[#0A2A20]">
             <CheckCircle2 size={16} className="text-[#06D6A0] mx-auto mb-1" />
             <p className="text-lg font-black text-[var(--text-primary)]">{sub.correctCount}</p>
             <p className="text-xs text-[#06D6A0] font-bold">Đúng</p>
           </div>
-          <div className="rounded-xl bg-[#FFECEC] p-3">
+          <div className="rounded-xl bg-[#FFECEC] p-3 dark:bg-[#2B1616]">
             <XCircle size={16} className="text-[#FF6B6B] mx-auto mb-1" />
             <p className="text-lg font-black text-[var(--text-primary)]">{sub.totalQuestions - sub.correctCount}</p>
             <p className="text-xs text-[#FF6B6B] font-bold">Sai</p>

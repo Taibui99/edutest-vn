@@ -59,7 +59,7 @@ function renderAnswer(q: SubQuestion, selected: AnswerValue | undefined) {
     return (
       <div className="flex flex-wrap gap-1.5">
         {Object.keys(map).sort((a, b) => Number(a) - Number(b)).map((k) => (
-          <span key={k} className="rounded-md bg-slate-100 px-2 py-0.5 text-xs">
+          <span key={k} className="rounded-md bg-[var(--gray-100)] px-2 py-0.5 text-xs">
             {String.fromCharCode(97 + Number(k))}) {map[k] ? "Đúng" : "Sai"}
           </span>
         ))}

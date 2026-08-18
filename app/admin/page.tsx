@@ -82,10 +82,10 @@ export default function AdminDashboard() {
   if (!data) return <div className="flex items-center justify-center py-32"><Spinner /></div>;
 
   const cards = [
-    { label: "Người dùng", value: data.users.total, delta: data.users.deltaPct, sub: `${data.users.students} HS · ${data.users.teachers} GV · ${data.users.admins} admin`, icon: <Users size={15} />, color: "#6C63FF", bg: "#EEEFFE", href: "/admin/users" },
-    { label: "Đề thi", value: data.exams, sub: `${data.submissions} bài nộp`, icon: <FileText size={15} />, color: "#4EA8DE", bg: "#E8F4FD", href: "/admin/exams" },
-    { label: "Lớp học", value: data.classrooms, sub: `${data.flashcards} flashcard`, icon: <School size={15} />, color: "#06D6A0", bg: "#E1F5EE", href: "/admin" },
-    { label: "Báo cáo chờ", value: data.pendingReports, sub: `${data.aiLogs24h} lượt AI / 24h`, icon: <Flag size={15} />, color: "#FF6B6B", bg: "#FFF0F0", href: "/admin/reports" },
+    { label: "Người dùng", value: data.users.total, delta: data.users.deltaPct, sub: `${data.users.students} HS · ${data.users.teachers} GV · ${data.users.admins} admin`, icon: <Users size={15} />, color: "#6C63FF", bgClass: "bg-[#EEEFFE] dark:bg-[#241F5E]", href: "/admin/users" },
+    { label: "Đề thi", value: data.exams, sub: `${data.submissions} bài nộp`, icon: <FileText size={15} />, color: "#4EA8DE", bgClass: "bg-[#E8F4FD] dark:bg-[#0D2A3E]", href: "/admin/exams" },
+    { label: "Lớp học", value: data.classrooms, sub: `${data.flashcards} flashcard`, icon: <School size={15} />, color: "#06D6A0", bgClass: "bg-[#E1F5EE] dark:bg-[#0A2A20]", href: "/admin" },
+    { label: "Báo cáo chờ", value: data.pendingReports, sub: `${data.aiLogs24h} lượt AI / 24h`, icon: <Flag size={15} />, color: "#FF6B6B", bgClass: "bg-[#FFF0F0] dark:bg-[#2B1616]", href: "/admin/reports" },
   ];
 
   const checks = health?.checks ?? {};
@@ -100,7 +100,7 @@ export default function AdminDashboard() {
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         {cards.map((c) => (
-          <Link key={c.label} href={c.href} className="rounded-2xl p-4 transition-transform hover:-translate-y-0.5" style={{ background: c.bg }}>
+          <Link key={c.label} href={c.href} className={`rounded-2xl p-4 transition-transform hover:-translate-y-0.5 ${c.bgClass}`}>
             <div className="flex items-center gap-2 mb-1" style={{ color: c.color }}>
               {c.icon}
               <span className="text-xs font-bold">{c.label}</span>

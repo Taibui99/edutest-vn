@@ -244,7 +244,7 @@ export default function QuestionBankPage() {
           <button
             key={key}
             onClick={() => setTab(key)}
-            className={`rounded-lg px-4 py-2 text-sm font-bold transition ${tab === key ? "bg-white text-[var(--primary)] shadow-sm" : "text-[var(--text-muted)]"}`}
+            className={`rounded-lg px-4 py-2 text-sm font-bold transition ${tab === key ? "bg-white text-[var(--primary)] shadow-sm dark:bg-[#241F5E] dark:text-white" : "text-[var(--text-muted)]"}`}
           >
             {label}
           </button>
