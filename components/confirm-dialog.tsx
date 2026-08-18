@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { AlertTriangle, X } from "lucide-react";
 import { cn } from "@/lib/cn";
 
@@ -51,7 +52,7 @@ export function ConfirmDialog({
 
   const canConfirm = !requireText || typed === requireText;
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50" onClick={busy ? undefined : onCancel} />
       <div className="relative w-full max-w-md rounded-2xl bg-[var(--surface-card)] border border-[var(--surface-border)] p-6 shadow-2xl">
@@ -104,6 +105,7 @@ export function ConfirmDialog({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

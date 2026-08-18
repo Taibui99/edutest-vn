@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { createPortal } from "react-dom";
 import { switchModeAction } from "@/app/actions/auth";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 
@@ -17,7 +18,7 @@ interface ModeSwitchButtonProps {
 }
 
 function LoadingScreen({ label }: { label: string }) {
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center gap-6 bg-[var(--surface-page)]/80 backdrop-blur-md">
       <div className="relative">
         <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-[var(--primary)] to-[var(--coral)] flex items-center justify-center shadow-lg shadow-[var(--primary)]/20">
@@ -34,7 +35,8 @@ function LoadingScreen({ label }: { label: string }) {
       <div className="h-1 w-48 overflow-hidden rounded-full bg-[var(--gray-200)]">
         <div className="h-full w-1/2 rounded-full bg-[var(--primary)] animate-indeterminate" />
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
