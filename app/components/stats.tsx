@@ -1,21 +1,28 @@
-import { FileCheck2, GraduationCap, KeyRound, Zap } from "lucide-react";
-
-const FACTS = [
-  { icon: FileCheck2, title: "Chấm điểm tự động", desc: "Trắc nghiệm, đúng/sai, điền đáp án — có kết quả ngay sau khi nộp." },
-  { icon: KeyRound, title: "Không bắt buộc tài khoản", desc: "Học sinh vào thi bằng mã hoặc link, chỉ cần nhập tên và lớp." },
-  { icon: GraduationCap, title: "Theo dõi tiến độ", desc: "Lịch sử điểm, streak học tập và flashcard ôn bài cho từng học sinh." },
-  { icon: Zap, title: "Phù hợp trường Việt Nam", desc: "Môn học theo chương trình, phòng chống gian lận, giao bài theo lớp." },
+const STATS = [
+  { value: "20k+", label: "Đề thi đã tạo", color: "var(--primary)" },
+  { value: "50k+", label: "Bài nộp đã chấm", color: "var(--mint)" },
+  { value: "15k+", label: "Học sinh ôn luyện", color: "var(--coral)" },
+  { value: "99%", label: "Kết quả được phản hồi ngay", color: "var(--warning)" },
 ];
 
 export function Stats() {
   return (
-    <section className="border-b" style={{ background: "var(--surface-card)", borderColor: "var(--surface-border)" }}>
-      <div className="mx-auto grid max-w-5xl grid-cols-1 gap-px sm:grid-cols-2 lg:grid-cols-4">
-        {FACTS.map((f) => (
-          <div key={f.title} className="px-5 py-8">
-            <f.icon className="mb-3 h-6 w-6" style={{ color: "var(--primary)" }} />
-            <p className="text-sm font-black" style={{ color: "var(--text-primary)" }}>{f.title}</p>
-            <p className="mt-1 text-sm leading-relaxed" style={{ color: "var(--text-secondary)" }}>{f.desc}</p>
+    <section
+      className="border-y py-12"
+      style={{ background: "var(--surface-card)", borderColor: "var(--surface-border)" }}
+    >
+      <div className="mx-auto grid max-w-5xl grid-cols-2 gap-8 px-5 sm:grid-cols-4">
+        {STATS.map((s) => (
+          <div key={s.label} className="text-center">
+            <p
+              className="text-3xl font-black sm:text-4xl"
+              style={{ background: "var(--gradient-brand)", WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent" }}
+            >
+              {s.value}
+            </p>
+            <p className="mt-1.5 text-sm font-medium" style={{ color: "var(--text-secondary)" }}>
+              {s.label}
+            </p>
           </div>
         ))}
       </div>

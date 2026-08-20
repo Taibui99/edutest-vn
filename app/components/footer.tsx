@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Heart } from "lucide-react";
 
 export function Footer() {
   return (
@@ -22,7 +23,11 @@ export function Footer() {
           </div>
         </div>
         <div className="mt-6 pt-6 text-center text-xs" style={{ borderTop: "1px solid var(--surface-border-strong)", color: "var(--text-muted)" }}>
-          © {new Date().getFullYear()} EduTest.vn — xây dựng cho học sinh Việt Nam
+          <span className="inline-flex items-center gap-1">
+            © {new Date().getFullYear()} EduTest.vn — Made with
+            <Heart className="h-3 w-3" style={{ color: "var(--coral)", fill: "var(--coral)" }} />
+            for học sinh Việt Nam
+          </span>
         </div>
       </div>
     </footer>
