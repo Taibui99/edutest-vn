@@ -43,12 +43,16 @@ function scoreColor(score: number) {
 export default function StatisticsPage() {
   const [data, setData] = useState<Analytics | null>(null);
   const [loading, setLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState("");
 
   useEffect(() => {
     fetch("/api/analytics")
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
       .then(setData)
-      .catch(() => {})
+      .catch(() => setErrorMsg("Không tải được dữ liệu. Hãy thử lại."))
       .finally(() => setLoading(false));
   }, []);
 
@@ -56,7 +60,7 @@ export default function StatisticsPage() {
     <div className="flex items-center justify-center py-32"><Spinner /></div>
   );
   if (!data) return (
-    <div className="p-8 text-center text-[var(--text-muted)]">Không tải được dữ liệu.</div>
+    <div className="p-8 text-center text-[var(--text-muted)]">{errorMsg || "Không tải được dữ liệu."}</div>
   );
 
   const { summary, distribution, weeklyActivity, examStats } = data;

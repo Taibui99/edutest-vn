@@ -1,5 +1,6 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { isTeacherAccess } from "@/lib/access";
 import { NextResponse } from "next/server";
 
 export async function GET(
@@ -11,7 +12,7 @@ export async function GET(
     return NextResponse.json({ error: "Bạn cần đăng nhập" }, { status: 401 });
   }
 
-  if (session.user.role !== "teacher") {
+  if (!isTeacherAccess(session.user)) {
     return NextResponse.json({ error: "Chỉ giáo viên mới có quyền chia sẻ đề" }, { status: 403 });
   }
 

@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { isTeacherAccess } from "@/lib/access";
 import { normalizeQuestions, validateQuestion } from "../exams/exam-helpers";
 
 export async function GET(req: NextRequest) {
   const session = await auth();
-  if (!session?.user || session.user.role !== "teacher")
+  if (!session?.user || !isTeacherAccess(session.user))
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { searchParams } = new URL(req.url);
@@ -27,7 +28,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const session = await auth();
-  if (!session?.user || session.user.role !== "teacher")
+  if (!session?.user || !isTeacherAccess(session.user))
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await request.json() as {

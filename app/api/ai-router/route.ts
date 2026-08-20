@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
+import { isTeacherAccess } from "@/lib/access";
 
 const GROQ_MODEL = process.env.GROQ_MODEL || "openai/gpt-oss-120b";
 const AGENT_HINT = "__NEEDS_EDUTEST_AGENT__";
@@ -76,7 +77,7 @@ export async function POST(req: NextRequest) {
 
   if (!message) return NextResponse.json({ error: "Tin nhắn trống" }, { status: 400 });
 
-  const role = session.user.role === "teacher" ? "teacher" : "student";
+  const role = isTeacherAccess(session.user) ? "teacher" : "student";
 
   // System-sensitive EduTest actions always use the existing authenticated agent.
   // This keeps database mutations behind the current permission checks and tool layer.

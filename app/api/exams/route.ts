@@ -1,5 +1,6 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { isTeacherAccess } from "@/lib/access";
 import { getSetting } from "@/lib/settings";
 import { NextRequest, NextResponse } from "next/server";
 import { normalizeQuestions, validateQuestion } from "./exam-helpers";
@@ -21,7 +22,7 @@ async function createUniqueJoinCode() {
 export async function GET() {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Bạn cần đăng nhập" }, { status: 401 });
-  if (session.user.role !== "teacher") return NextResponse.json({ error: "Chỉ giáo viên mới xem danh sách đề" }, { status: 403 });
+  if (!isTeacherAccess(session.user)) return NextResponse.json({ error: "Chỉ giáo viên mới xem danh sách đề" }, { status: 403 });
 
   const exams = await prisma.exam.findMany({
     where: { teacherId: session.user.id, deletedAt: null, hidden: false },
@@ -34,7 +35,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Bạn cần đăng nhập" }, { status: 401 });
-  if (session.user.role !== "teacher") return NextResponse.json({ error: "Chỉ giáo viên mới được tạo đề" }, { status: 403 });
+  if (!isTeacherAccess(session.user)) return NextResponse.json({ error: "Chỉ giáo viên mới được tạo đề" }, { status: 403 });
 
   const body = await request.json();
   const title = String(body.title || "").trim();

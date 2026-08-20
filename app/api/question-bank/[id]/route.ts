@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { isTeacherAccess } from "@/lib/access";
 import { normalizeQuestions, validateQuestion } from "../../exams/exam-helpers";
 
 async function getOwnedItem(itemId: string, teacherId: string) {
@@ -13,7 +14,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await auth();
-  if (!session?.user || session.user.role !== "teacher")
+  if (!session?.user || !isTeacherAccess(session.user))
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
@@ -64,7 +65,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await auth();
-  if (!session?.user || session.user.role !== "teacher")
+  if (!session?.user || !isTeacherAccess(session.user))
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;

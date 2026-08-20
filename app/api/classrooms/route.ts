@@ -2,13 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { nanoid } from "@/lib/nanoid";
+import { isTeacherAccess } from "@/lib/access";
 
 export async function GET() {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const userId = session.user.id!;
-  const isTeacher = session.user.role === "teacher";
+  const isTeacher = isTeacherAccess(session.user);
 
   if (isTeacher) {
     const classrooms = await prisma.classroom.findMany({
@@ -36,7 +37,7 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   const session = await auth();
-  if (!session?.user || session.user.role !== "teacher")
+  if (!session?.user || !isTeacherAccess(session.user))
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { name, description, subject, grade } = await req.json();

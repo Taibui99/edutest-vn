@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenAI } from "@google/genai";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { isTeacherAccess } from "@/lib/access";
 
 const MODEL = process.env.GEMINI_AGENT_MODEL || "gemini-3.1-flash-lite";
 const MAX_ROUNDS = 6;
@@ -272,7 +273,7 @@ export async function POST(req: NextRequest) {
   const body = await req.json() as { message?: unknown; history?: unknown };
   const message = typeof body.message === "string" ? body.message.trim() : "";
   if (!message) return NextResponse.json({ error: "Tin nhắn trống" }, { status: 400 });
-  const role: Role = session.user.role === "teacher" ? "teacher" : "student";
+  const role: Role = isTeacherAccess(session.user) ? "teacher" : "student";
   const history = Array.isArray(body.history) ? body.history.filter((x): x is { role: string; content: string } => typeof x === "object" && x !== null && typeof (x as { role?: unknown }).role === "string" && typeof (x as { content?: unknown }).content === "string").slice(-10) : [];
   const transcript = history.map((m) => `${m.role === "user" ? "Giáo viên/Học sinh" : "AI"}: ${m.content}`).join("\n");
   const input = transcript ? `Lịch sử gần đây:\n${transcript}\n\nTin nhắn mới:\n${message}` : message;

@@ -1,5 +1,6 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { isTeacherAccess } from "@/lib/access";
 import { logAudit } from "@/lib/audit";
 import { NextRequest, NextResponse } from "next/server";
 import { normalizeQuestions, validateQuestion } from "../exam-helpers";
@@ -20,7 +21,7 @@ export async function GET(
     return NextResponse.json({ error: "Bạn cần đăng nhập" }, { status: 401 });
   }
 
-  if (session.user.role !== "teacher") {
+  if (!isTeacherAccess(session.user)) {
     return NextResponse.json({ error: "Chỉ giáo viên mới được thao tác" }, { status: 403 });
   }
 
@@ -47,7 +48,7 @@ export async function PUT(
     return NextResponse.json({ error: "Bạn cần đăng nhập" }, { status: 401 });
   }
 
-  if (session.user.role !== "teacher") {
+  if (!isTeacherAccess(session.user)) {
     return NextResponse.json({ error: "Chỉ giáo viên mới được thao tác" }, { status: 403 });
   }
 
@@ -124,7 +125,7 @@ export async function PATCH(
     return NextResponse.json({ error: "Bạn cần đăng nhập" }, { status: 401 });
   }
 
-  if (session.user.role !== "teacher") {
+  if (!isTeacherAccess(session.user)) {
     return NextResponse.json({ error: "Chỉ giáo viên mới được thao tác" }, { status: 403 });
   }
 
@@ -197,7 +198,7 @@ export async function DELETE(
     return NextResponse.json({ error: "Bạn cần đăng nhập" }, { status: 401 });
   }
 
-  if (session.user.role !== "teacher") {
+  if (!isTeacherAccess(session.user)) {
     return NextResponse.json({ error: "Chỉ giáo viên mới được thao tác" }, { status: 403 });
   }
 
