@@ -30,15 +30,13 @@ export async function POST(req: NextRequest) {
     message: `Yêu cầu đặt lại mật khẩu cho ${user.email}`,
   });
 
-  const expose = await prisma.systemSetting
-    .findUnique({ where: { key: "exposeResetLink" } })
-    .then((s) => s?.value === "true")
-    .catch(() => false);
+  // Không bao giờ trả resetLink trong production — chỉ dùng để debug local.
+  if (process.env.NODE_ENV !== "production") {
+    return NextResponse.json({
+      ok: true,
+      resetLink: `/doi-mat-khau?token=${token}`,
+    });
+  }
 
-  const resetLink = `/doi-mat-khau?token=${token}`;
-
-  return NextResponse.json({
-    ok: true,
-    resetLink: expose ? resetLink : null,
-  });
+  return NextResponse.json({ ok: true });
 }

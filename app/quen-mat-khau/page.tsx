@@ -9,7 +9,6 @@ export default function QuenMatKhauPage() {
   const [email, setEmail] = useState("");
   const [state, setState] = useState<"idle" | "loading" | "sent">("idle");
   const [error, setError] = useState("");
-  const [resetLink, setResetLink] = useState<string | null>(null);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,7 +26,6 @@ export default function QuenMatKhauPage() {
         setState("idle");
         return;
       }
-      setResetLink(data.resetLink ?? null);
       setState("sent");
     } catch {
       setError("Đã xảy ra lỗi. Vui lòng thử lại.");
@@ -52,14 +50,6 @@ export default function QuenMatKhauPage() {
             <p className="text-sm text-slate-600">
               Nếu email tồn tại, chúng tôi đã gửi liên kết đặt lại mật khẩu. Vui lòng kiểm tra hộp thư.
             </p>
-            {resetLink && (
-              <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-3 text-left">
-                <p className="text-xs font-semibold text-blue-700 mb-2">Liên kết demo (admin đã bật hiển thị):</p>
-                <Link href={resetLink} className="text-xs font-bold text-blue-600 underline break-all">
-                  {resetLink}
-                </Link>
-              </div>
-            )}
             <Link
               href="/dang-nhap"
               className="mt-6 inline-flex w-full justify-center rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700"
