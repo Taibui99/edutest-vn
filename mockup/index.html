@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EduTest 2.0 — Bản mẫu thiết kế</title>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#FFF9F0; --ink:#231A33; --violet:#6C4CF1;
+  --coral:#FF5D5D; --sky:#3BA3FF; --sun:#FFC24B; --jade:#22C58B;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Be Vietnam Pro',sans-serif;color:var(--paper);background:var(--ink);min-height:100vh;
+  background-image:radial-gradient(rgba(255,255,255,.07) 1px,transparent 1px);background-size:22px 22px;
+  display:flex;flex-direction:column;align-items:center;padding:70px 24px 80px}
+h1,h2,h3{font-family:'Baloo 2',cursive}
+svg.lucide{stroke-width:2.25}
+.kicker{display:inline-flex;align-items:center;gap:8px;background:var(--sun);color:var(--ink);border-radius:999px;padding:8px 19px;font-weight:800;font-size:13px;transform:rotate(-2deg);border:2px solid var(--ink);box-shadow:3px 3px 0 rgba(0,0,0,.4)}
+.kicker svg{width:14px;height:14px}
+h1{font-size:clamp(36px,5vw,60px);font-weight:800;text-align:center;line-height:1.08;margin-top:26px}
+h1 span{color:#9B7BFF}
+.sub{text-align:center;color:#B4A9CC;max-width:560px;margin-top:16px;line-height:1.7;font-size:15.5px}
+
+.palette{display:flex;gap:12px;margin:38px 0 50px;flex-wrap:wrap;justify-content:center}
+.swatch{width:86px;text-align:center}
+.swatch .c{height:56px;border-radius:16px;border:2px solid rgba(255,255,255,.85);box-shadow:4px 4px 0 rgba(0,0,0,.35)}
+.swatch b{display:block;font-family:'Baloo 2';margin-top:8px;font-size:13px}
+.swatch span{font-size:10.5px;color:#8A8095;font-weight:600}
+
+.grid{display:grid;grid-template-columns:repeat(2,minmax(300px,430px));gap:22px;width:100%;max-width:920px}
+.screen{background:var(--paper);color:var(--ink);border-radius:26px;padding:30px;border:2px solid #000;box-shadow:6px 6px 0 var(--violet);text-decoration:none;display:block;transition:.18s;position:relative;overflow:hidden}
+.screen:hover{transform:translate(-4px,-4px) rotate(-.5deg);box-shadow:10px 10px 0 var(--violet)}
+.screen .tag{position:absolute;top:18px;right:20px;background:var(--ink);color:#fff;border-radius:9px;padding:4px 12px;font-weight:800;font-size:11px;letter-spacing:1px}
+.screen .emoji{width:62px;height:62px;border-radius:18px;border:2px solid var(--ink);display:grid;place-items:center;box-shadow:3px 3px 0 var(--ink);color:#fff}
+.screen .emoji svg{width:28px;height:28px}
+.screen h3{font-size:23px;margin:18px 0 6px}
+.screen p{font-size:14px;line-height:1.65;color:#5A5166;font-weight:500}
+.screen .open{display:inline-flex;align-items:center;gap:7px;margin-top:14px;font-weight:800;font-size:13.5px;color:var(--violet)}
+.screen .open svg{width:15px;height:15px;transition:.15s}
+.screen:hover .open svg{transform:translateX(4px)}
+
+@media(max-width:720px){.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<span class="kicker"><i data-lucide="sparkles"></i>EduTest 2.0 · Sân chơi trên giấy<i data-lucide="sparkles"></i></span>
+<h1>Bản mẫu thiết kế <span>mới</span><br>cho toàn bộ website</h1>
+<p class="sub">EduTest là web <b>tạo &amp; làm đề thi</b> — bản mẫu bắt đầu từ màn hình soạn đề, rồi đến phòng làm bài. Phong cách chuyên nghiệp, gọn gàng, đúng chuẩn nền tảng giáo dục. Bấm vào từng thẻ để xem bản mẫu thật.</p>
+
+<div class="palette">
+  <div class="swatch"><div class="c" style="background:#FFF9F0"></div><b>Giấy</b><span>#FFF9F0</span></div>
+  <div class="swatch"><div class="c" style="background:#231A33"></div><b>Mực</b><span>#231A33</span></div>
+  <div class="swatch"><div class="c" style="background:#6C4CF1"></div><b>Tím điện</b><span>#6C4CF1</span></div>
+  <div class="swatch"><div class="c" style="background:#FF5D5D"></div><b>San hô</b><span>#FF5D5D</span></div>
+  <div class="swatch"><div class="c" style="background:#3BA3FF"></div><b>Xanh trời</b><span>#3BA3FF</span></div>
+  <div class="swatch"><div class="c" style="background:#FFC24B"></div><b>Nắng</b><span>#FFC24B</span></div>
+  <div class="swatch"><div class="c" style="background:#22C58B"></div><b>Ngọc</b><span>#22C58B</span></div>
+</div>
+
+<div class="grid">
+  <a class="screen" href="exam-builder.html" style="grid-column:1/-1">
+    <span class="tag">01 · SOẠN ĐỀ — TRÁI TIM EDUTEST</span>
+    <div class="emoji" style="background:var(--sun);color:var(--ink)"><i data-lucide="pencil-ruler"></i></div>
+    <h3>Màn hình soạn đề (Exam Builder)</h3>
+    <p>Danh sách câu bên trái, trình soạn thảo ở giữa, ngân hàng 86.000 câu + cài đặt trộn đề bên phải. Đổi loại câu TN/Đúng–Sai/Điền/Tự luận, đánh dấu đáp án đúng, thêm–nhân bản–xóa câu, chèn từ ngân hàng — tất cả bấm thử được thật.</p>
+    <span class="open">Xem màn hình soạn đề<i data-lucide="arrow-right"></i></span>
+  </a>
+  <a class="screen" href="landing.html">
+    <span class="tag">02 · CÔNG KHAI</span>
+    <div class="emoji" style="background:var(--violet)"><i data-lucide="rocket"></i></div>
+    <h3>Landing page</h3>
+    <p>Bán đúng tinh thần tạo đề: hero "Tạo đề siêu tốc, chấm tự động" + demo soạn nhanh một câu ngay tại chỗ (đổi loại câu, đánh dấu đáp án, thêm vào đề).</p>
+    <span class="open">Xem bản mẫu<i data-lucide="arrow-right"></i></span>
+  </a>
+  <a class="screen" href="teacher-rail.html">
+    <span class="tag">03 · GIÁO VIÊN</span>
+    <div class="emoji" style="background:var(--sky)"><i data-lucide="presentation"></i></div>
+    <h3>Workspace giáo viên</h3>
+    <p>Rail icon 68px hover tự mở + panel ngữ cảnh: chọn đề nào xem ngay thống kê, mã phòng, hành động nhanh của đề đó.</p>
+    <span class="open">Xem bản mẫu<i data-lucide="arrow-right"></i></span>
+  </a>
+  <a class="screen" href="student-lobby.html">
+    <span class="tag">04 · HỌC SINH</span>
+    <div class="emoji" style="background:var(--coral)"><i data-lucide="layout-dashboard"></i></div>
+    <h3>Dashboard học sinh</h3>
+    <p>Bố cục chuẩn nền tảng giáo dục: sidebar điều hướng, thẻ thống kê tổng quan, danh sách đề sắp tới với trạng thái rõ ràng, tiến độ theo môn. Sạch sẽ, dễ dùng, không màu mè.</p>
+    <span class="open">Xem bản mẫu<i data-lucide="arrow-right"></i></span>
+  </a>
+  <a class="screen" href="runner.html">
+    <span class="tag">05 · LÀM BÀI THI</span>
+    <div class="emoji" style="background:var(--jade)"><i data-lucide="timer"></i></div>
+    <h3>Màn hình làm bài thi</h3>
+    <p>Giao diện thi tập trung như phòng thi thật: đồng hồ đếm ngược, thanh tiến độ, đáp án A/B/C/D rõ ràng, phản hồi đúng/sai kèm giải thích. Giao diện mới thôi — logic chấm giữ nguyên 100%.</p>
+    <span class="open">Xem bản mẫu<i data-lucide="arrow-right"></i></span>
+  </a>
+</div>
+
+<p style="margin-top:44px;color:#8A8095;font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px">
+  Font chủ đạo: Baloo 2 (tiêu đề) + Be Vietnam Pro (nội dung) · Bộ icon Lucide · Bo góc dày + đổ bóng lệch kiểu sticker
+</p>
+
+<script src="https://unpkg.com/lucide@latest"></script>
+<script>lucide.createIcons();</script>
+</body>
+</html>

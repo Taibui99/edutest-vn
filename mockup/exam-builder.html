@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EduTest 2.0 — Màn hình Soạn đề (Exam Builder)</title>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#FFF9F0; --ink:#231A33; --violet:#6C4CF1;
+  --coral:#FF5D5D; --sky:#3BA3FF; --sun:#FFC24B; --jade:#22C58B;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Be Vietnam Pro',sans-serif;color:var(--ink);background:var(--paper);
+  background-image:radial-gradient(#EBE1D0 1px,transparent 1px);background-size:24px 24px;display:flex;min-height:100vh}
+h1,h2,h3{font-family:'Baloo 2',cursive}
+svg.lucide{stroke-width:2.25}
+
+/* ===== RAIL ===== */
+.rail{width:68px;flex:none;background:linear-gradient(180deg,var(--ink) 0%,#3A2E52 100%);display:flex;flex-direction:column;align-items:center;padding:16px 0;gap:6px;position:sticky;top:0;height:100vh;z-index:40;transition:width .22s ease;overflow:hidden}
+.rail:hover{width:212px}
+.rail .logo-chip{width:42px;height:42px;border-radius:13px;background:var(--violet);border:2px solid rgba(255,255,255,.9);display:grid;place-items:center;color:#fff;margin-bottom:14px;flex:none}
+.rail .logo-chip svg{width:20px;height:20px}
+.rail-item{display:flex;align-items:center;gap:12px;width:44px;height:46px;padding:0 11px;border-radius:13px;color:#B4A9CC;font-weight:700;font-size:14px;white-space:nowrap;transition:.15s;flex:none;cursor:pointer}
+.rail-item svg{width:20px;height:20px;flex:none}
+.rail-item:hover{background:rgba(255,255,255,.1);color:#fff}
+.rail-item.on{background:var(--violet);color:#fff;width:44px}
+.rail:hover .rail-item,.rail:hover .rail-item.on{width:auto;align-self:stretch}
+.rail-sep{width:34px;height:1.5px;background:rgba(255,255,255,.18);margin:10px 0;flex:none}
+.rail-spacer{flex:1}
+
+/* ===== CANVAS ===== */
+.canvas{flex:1;min-width:0;padding:26px 30px 70px;display:flex;flex-direction:column}
+.builder-top{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:16px}
+.back-btn{width:44px;height:44px;border-radius:13px;border:2px solid var(--ink);background:#fff;display:grid;place-items:center;box-shadow:3px 3px 0 var(--ink);cursor:pointer;transition:.15s;flex:none}
+.back-btn svg{width:18px;height:18px}
+.back-btn:hover{background:var(--sun)}
+.title-wrap{flex:1;min-width:220px}
+.title-input{font-family:'Baloo 2';font-weight:800;font-size:26px;background:transparent;border:2px dashed transparent;border-radius:12px;padding:4px 10px;width:100%;outline:none;transition:.15s}
+.title-input:hover{border-color:#D8CCB4}
+.title-input:focus{border-color:var(--violet);background:#fff}
+.top-actions{display:flex;gap:10px}
+.btn{display:inline-flex;align-items:center;gap:8px;font-weight:700;font-size:14px;padding:11px 20px;border-radius:13px;border:2px solid var(--ink);cursor:pointer;transition:.15s;font-family:'Be Vietnam Pro'}
+.btn svg{width:16px;height:16px}
+.btn-ghost{background:#fff;box-shadow:3px 3px 0 var(--ink)}
+.btn-ghost:hover{background:var(--sun)}
+.btn-pub{background:var(--jade);color:#fff;box-shadow:3px 3px 0 var(--ink)}
+.btn-pub:hover{transform:translate(-2px,-2px);box-shadow:5px 5px 0 var(--ink)}
+.meta-row{display:flex;gap:9px;flex-wrap:wrap;margin-bottom:20px;padding-left:58px}
+.mchip{display:inline-flex;align-items:center;gap:7px;border:2px solid var(--ink);border-radius:999px;padding:6px 14px;font-weight:700;font-size:12.5px;background:#fff}
+.mchip svg{width:14px;height:14px}
+.mchip.hot{background:var(--sun)}
+
+/* ===== BUILDER GRID ===== */
+.bgrid{display:grid;grid-template-columns:225px minmax(0,1fr) 300px;gap:18px;align-items:start}
+
+/* question list */
+.qpanel{background:#fff;border:2px solid var(--ink);border-radius:20px;box-shadow:5px 5px 0 var(--ink);padding:14px;position:sticky;top:20px}
+.qpanel h3{font-size:15px;display:flex;align-items:center;justify-content:space-between;padding:2px 4px 10px}
+.qpanel h3 span{font-size:11.5px;background:var(--paper);border:1.5px solid var(--ink);border-radius:99px;padding:2px 9px;font-weight:800}
+.qli{display:flex;align-items:center;gap:9px;border-radius:12px;padding:9px 10px;font-size:13px;font-weight:600;color:#5A5166;cursor:pointer;border:2px solid transparent;transition:.12s;margin-top:4px;line-height:1.3}
+.qli svg{width:15px;height:15px;flex:none}
+.qli .qt{overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical}
+.qli:hover{background:var(--paper)}
+.qli.on{background:var(--paper);border-color:var(--ink);box-shadow:3px 3px 0 var(--ink);color:var(--ink)}
+.qli .badge-mini{margin-left:auto;font-size:9.5px;font-weight:800;border:1.5px solid var(--ink);border-radius:6px;padding:1px 5px;letter-spacing:.4px;flex:none}
+.bm-tn{background:var(--coral);color:#fff}.bm-ds{background:var(--sky);color:#fff}
+.bm-dt{background:var(--sun)}.bm-tl{background:var(--jade);color:#fff}
+.add-q{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin-top:12px;border:2px dashed #C9BCA4;border-radius:12px;padding:11px;font-weight:800;font-size:13.5px;color:#8A8095;background:transparent;cursor:pointer;transition:.15s;font-family:'Be Vietnam Pro'}
+.add-q svg{width:17px;height:17px}
+.add-q:hover{background:#fff;color:var(--violet);border-color:var(--violet)}
+
+/* editor */
+.editor{background:#fff;border:2px solid var(--ink);border-radius:22px;box-shadow:5px 5px 0 var(--ink);padding:24px}
+.ed-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding-bottom:16px;border-bottom:2px dashed #E9DFCE}
+.tchip{display:inline-flex;align-items:center;gap:6px;border:2px solid var(--ink);border-radius:999px;padding:7px 14px;font-weight:700;font-size:12.5px;background:#fff;cursor:pointer;transition:.12s;font-family:'Be Vietnam Pro'}
+.tchip svg{width:14px;height:14px}
+.tchip:hover{background:var(--sun)}
+.tchip.on{background:var(--ink);color:#fff}
+.ed-right{margin-left:auto;display:flex;gap:8px;align-items:center}
+.pt-chip{display:inline-flex;align-items:center;gap:5px;border:2px solid var(--ink);border-radius:999px;padding:6px 13px;font-weight:800;font-size:12.5px;background:var(--paper)}
+.pt-chip svg{width:13px;height:13px}
+.dchips{display:inline-flex;border:2px solid var(--ink);border-radius:999px;overflow:hidden}
+.dchip{padding:6px 12px;font-weight:800;font-size:11.5px;background:#fff;border:none;cursor:pointer;font-family:'Be Vietnam Pro';border-right:2px solid var(--ink)}
+.dchip:last-child{border-right:none}
+.dchip.on-e{background:var(--jade);color:#fff}.dchip.on-m{background:var(--sun)}.dchip.on-h{background:var(--coral);color:#fff}
+.ed-num{font-size:12px;font-weight:800;color:#8A8095;letter-spacing:1px}
+.qtext{margin-top:18px;font-size:17px;font-weight:600;line-height:1.55;min-height:64px;border:2px dashed #D8CCB4;border-radius:15px;padding:15px 17px;outline:none;background:var(--paper);transition:.15s}
+.qtext:focus{border-color:var(--violet);background:#fff}
+.opts-head{display:flex;justify-content:space-between;align-items:center;margin:18px 0 4px;font-size:11.5px;font-weight:800;letter-spacing:1.2px;color:#8A8095;text-transform:uppercase}
+.arow{display:flex;align-items:center;gap:11px;border:2px solid var(--ink);border-radius:14px;padding:9px 13px;background:#fff;margin-top:9px;transition:.12s}
+.arow:focus-within{box-shadow:3px 3px 0 rgba(108,76,241,.35)}
+.arow.ok{background:#EDFBF4;border-color:var(--ink)}
+.radio{width:26px;height:26px;border-radius:50%;border:2px solid var(--ink);flex:none;cursor:pointer;display:grid;place-items:center;background:#fff;transition:.12s;color:#fff}
+.radio svg{width:14px;height:14px;opacity:0}
+.arow.ok .radio{background:var(--jade)}
+.arow.ok .radio svg{opacity:1}
+.arow input{border:none;outline:none;flex:1;font-family:'Be Vietnam Pro';font-weight:600;font-size:14.5px;background:transparent;color:var(--ink);min-width:0}
+.a-tools{display:flex;gap:4px}
+.atool{width:32px;height:32px;border:none;background:transparent;border-radius:9px;display:grid;place-items:center;cursor:pointer;color:#B4A9CC;transition:.12s}
+.atool svg{width:15px;height:15px}
+.atool.del:hover{background:#FFECEC;color:var(--coral)}
+.opt-foot{margin-top:12px}
+.mini-add{display:inline-flex;align-items:center;gap:7px;border:2px dashed #C9BCA4;border-radius:11px;padding:8px 15px;font-weight:800;font-size:13px;color:#8A8095;background:transparent;cursor:pointer;transition:.15s;font-family:'Be Vietnam Pro'}
+.mini-add svg{width:15px;height:15px}
+.mini-add:hover{color:var(--violet);border-color:var(--violet);background:var(--paper)}
+.ed-foot{display:flex;align-items:center;margin-top:22px;padding-top:16px;border-top:2px dashed #E9DFCE}
+.ed-foot .left{display:flex;gap:9px}
+.ed-foot .right{margin-left:auto;font-family:'Baloo 2';font-weight:800;font-size:15px;color:#8A8095}
+.key-area{margin-top:18px;border:2px dashed #D8CCB4;border-radius:15px;padding:15px 17px;background:var(--paper)}
+.key-area b{font-size:12px;letter-spacing:1.2px;color:#8A8095;text-transform:uppercase;display:block;margin-bottom:8px}
+.key-area textarea{width:100%;min-height:84px;border:none;background:transparent;resize:vertical;outline:none;font-family:'Be Vietnam Pro';font-size:14.5px;font-weight:500;color:var(--ink);line-height:1.55}
+.ai-note{display:flex;gap:9px;align-items:flex-start;margin-top:12px;background:#F3EEFF;border:2px solid var(--violet);border-radius:13px;padding:11px 14px;font-size:13px;font-weight:600;color:#4A4059;line-height:1.5}
+.ai-note svg{width:16px;height:16px;flex:none;color:var(--violet);margin-top:1px}
+
+/* side panel */
+.side{display:flex;flex-direction:column;gap:16px;position:sticky;top:20px}
+.scard{background:#fff;border:2px solid var(--ink);border-radius:20px;box-shadow:5px 5px 0 var(--ink);padding:18px}
+.scard h3{font-size:15.5px;display:flex;align-items:center;gap:8px;margin-bottom:13px}
+.scard h3 svg{width:17px;height:17px;color:var(--violet)}
+.search-box{display:flex;align-items:center;gap:8px;border:2px solid var(--ink);border-radius:12px;padding:8px 12px;background:var(--paper)}
+.search-box svg{width:15px;height:15px;color:#8A8095}
+.search-box input{border:none;background:transparent;outline:none;font-family:'Be Vietnam Pro';font-weight:600;font-size:13px;width:100%;color:var(--ink)}
+.frow{display:flex;gap:6px;margin-top:10px}
+.fchip{border:2px solid var(--ink);border-radius:999px;padding:4px 12px;font-weight:700;font-size:11.5px;background:#fff;cursor:pointer;transition:.12s;font-family:'Be Vietnam Pro'}
+.fchip.on{background:var(--ink);color:#fff}
+.snips{margin-top:12px;display:flex;flex-direction:column;gap:8px}
+.snip{display:flex;align-items:center;gap:9px;border:2px solid var(--ink);border-radius:13px;padding:9px 10px;background:var(--paper);transition:.12s}
+.snip:hover{background:#fff;transform:translateX(2px)}
+.snip .stxt{flex:1;font-size:12px;font-weight:600;line-height:1.35;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.snip .plus{width:28px;height:28px;flex:none;border-radius:9px;border:2px solid var(--ink);background:var(--violet);color:#fff;display:grid;place-items:center;cursor:pointer;transition:.12s}
+.snip .plus svg{width:14px;height:14px}
+.snip .plus:hover{transform:rotate(90deg)}
+.set-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1.5px dashed #E9DFCE}
+.set-row:last-child{border-bottom:none;padding-bottom:2px}
+.set-row span{font-size:13px;font-weight:600}
+.sw{width:42px;height:24px;border-radius:99px;border:2px solid var(--ink);background:#E9DFCE;position:relative;cursor:pointer;transition:.15s;flex:none}
+.sw::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;border:2px solid var(--ink);transition:.15s}
+.sw.on{background:var(--jade)}
+.sw.on::after{left:19px}
+
+/* toast */
+.toast{position:fixed;bottom:26px;left:50%;transform:translate(-50%,80px);z-index:80;display:flex;align-items:center;gap:9px;background:var(--ink);color:#fff;border:2px solid #000;border-radius:14px;padding:13px 22px;font-weight:800;font-size:14px;box-shadow:0 12px 34px rgba(35,26,51,.45);transition:.3s cubic-bezier(.2,.9,.3,1.3)}
+.toast svg{width:17px;height:17px;color:var(--jade)}
+.toast.show{transform:translate(-50%,0)}
+.mockup-note{position:fixed;right:14px;top:14px;z-index:60;background:var(--coral);color:#fff;border:2px solid var(--ink);border-radius:12px;padding:7px 14px;font-weight:800;font-size:12px;box-shadow:3px 3px 0 var(--ink);transform:rotate(2deg)}
+
+@media(max-width:1150px){.bgrid{grid-template-columns:200px 1fr}.side{display:none}}
+@media(max-width:760px){.bgrid{grid-template-columns:1fr}.qpanel{position:static}}
+</style>
+</head>
+<body>
+
+<div class="mockup-note">Bản mẫu Soạn đề — thử bấm thoải mái!</div>
+
+<!-- RAIL -->
+<aside class="rail">
+  <div class="logo-chip"><i data-lucide="zap"></i></div>
+  <a class="rail-item"><i data-lucide="layout-dashboard"></i>Tổng quan</a>
+  <a class="rail-item on"><i data-lucide="clipboard-list"></i>Đề thi</a>
+  <a class="rail-item"><i data-lucide="database"></i>Ngân hàng câu hỏi</a>
+  <div class="rail-sep"></div>
+  <a class="rail-item"><i data-lucide="users"></i>Lớp học</a>
+  <a class="rail-item"><i data-lucide="bar-chart-3"></i>Thống kê</a>
+  <div class="rail-spacer"></div>
+  <a class="rail-item"><i data-lucide="bot"></i>AI Coach</a>
+  <a class="rail-item"><i data-lucide="settings"></i>Cài đặt</a>
+</aside>
+
+<!-- CANVAS -->
+<main class="canvas">
+  <div class="builder-top">
+    <button class="back-btn"><i data-lucide="arrow-left"></i></button>
+    <input class="title-input" value="Giữa kỳ Toán 10 — HK1">
+    <div class="top-actions">
+      <button class="btn btn-ghost" onclick="toast('Đã lưu nháp đề thi')"><i data-lucide="save"></i>Lưu nháp</button>
+      <button class="btn btn-pub" onclick="toast('Xuất bản thành công · Mã phòng: TOAN45')"><i data-lucide="rocket"></i>Xuất bản</button>
+    </div>
+  </div>
+  <div class="meta-row">
+    <span class="mchip"><i data-lucide="list-checks"></i><span id="metaCount">5</span>&nbsp;câu hỏi</span>
+    <span class="mchip"><i data-lucide="timer"></i>45 phút</span>
+    <span class="mchip hot"><i data-lucide="shuffle"></i>Trộn đề đang bật</span>
+    <span class="mchip"><i data-lucide="graduation-cap"></i>Lớp 10A1</span>
+  </div>
+
+  <div class="bgrid">
+    <!-- QUESTION LIST -->
+    <aside class="qpanel">
+      <h3>Danh sách câu<span id="qlCount">5 câu</span></h3>
+      <div id="qList"></div>
+      <button class="add-q" onclick="addQuestion()"><i data-lucide="plus"></i>Thêm câu hỏi</button>
+    </aside>
+
+    <!-- EDITOR -->
+    <section class="editor" id="editor"></section>
+
+    <!-- SIDE -->
+    <aside class="side">
+      <div class="scard">
+        <h3><i data-lucide="database"></i>Chèn từ ngân hàng</h3>
+        <div class="search-box"><i data-lucide="search"></i><input id="bankSearch" placeholder="Tìm câu hỏi..."></div>
+        <div class="frow">
+          <button class="fchip on">Toán 10</button>
+          <button class="fchip">Lý 10</button>
+          <button class="fchip">Hóa 10</button>
+        </div>
+        <div class="snips" id="snips"></div>
+      </div>
+      <div class="scard">
+        <h3><i data-lucide="settings-2"></i>Cài đặt đề</h3>
+        <div class="set-row"><span>Trộn thứ tự câu</span><div class="sw on" onclick="this.classList.toggle('on')"></div></div>
+        <div class="set-row"><span>Trộn thứ tự đáp án</span><div class="sw on" onclick="this.classList.toggle('on')"></div></div>
+        <div class="set-row"><span>Chặn thoát tab khi thi</span><div class="sw" onclick="this.classList.toggle('on');toast(this.classList.contains('on')?'Đã bật chống gian lận':'Đã tắt chống gian lận')"></div></div>
+        <div class="set-row"><span>Cho xem lại bài sau nộp</span><div class="sw on" onclick="this.classList.toggle('on')"></div></div>
+      </div>
+    </aside>
+  </div>
+</main>
+
+<div class="toast" id="toast"><i data-lucide="check-circle-2"></i><span id="toastMsg">OK</span></div>
+
+<script src="https://unpkg.com/lucide@latest"></script>
+<script>
+const TYPES={
+  tn:{lbl:'TN',name:'Trắc nghiệm',icon:'list-checks'},
+  ds:{lbl:'Đ–S',name:'Đúng – Sai',icon:'toggle-left'},
+  dt:{lbl:'Điền',name:'Điền khuyết',icon:'text-cursor-input'},
+  tl:{lbl:'TL',name:'Tự luận',icon:'pen-line'}
+};
+const DIFFS=[['e','Dễ','on-e'],['m','Vừa','on-m'],['h','Khó','on-h']];
+let uid=100;
+let qs=[
+ {id:1,type:'tn',diff:'h',pts:'1.0',text:'Cho parabol (P): y = x² − 4x + 3. Hoành độ đỉnh của (P) là:',opts:[['x = 2',1],['x = 4',0],['x = −2',0],['x = 3',0]]},
+ {id:2,type:'tn',diff:'e',pts:'0.5',text:'Nghiệm của phương trình x² = 16 là:',opts:[['x = ±4',1],['x = 4',0],['x = −4',0],['x = 8',0]]},
+ {id:3,type:'ds',diff:'m',pts:'0.25',text:'Hàm số y = 2x + 1 đồng biến trên tập R.',opts:[['Đúng',1],['Sai',0]]},
+ {id:4,type:'dt',diff:'m',pts:'1.0',text:'Cho x + y = 7 và xy = 10. Giá trị của x² + y² bằng ____.',opts:[['29',1],['39',0],['49',0],['59',0]]},
+ {id:5,type:'tl',diff:'h',pts:'2.0',text:'Chứng minh rằng với mọi a, b > 0 ta có: a/b + b/a ≥ 2.',key:'Áp dụng AM-GM cho hai số dương a/b và b/a:\na/b + b/a ≥ 2·√((a/b)(b/a)) = 2.\nDấu "=" khi a = b.'}
+];
+let cur=0;
+const BANK=[
+ ['tn','Cung hoàng đạo của tam giác vuông cân có số đo góc bằng:'],
+ ['tn','Đồ thị hàm số y = ax + b (a ≠ 0) song song với trục nào?'],
+ ['ds','Mọi hình vuông đều là hình chữ nhật.'],
+ ['dt','Tan 45° = ____'],
+ ['tl','Viết phương trình tiếp tuyến của (C): y = x² tại x₀ = 1.']
+];
+const $=id=>document.getElementById(id);
+
+function renderList(){
+  $('qList').innerHTML=qs.map((q,i)=>`
+   <div class="qli${i===cur?' on':''}" onclick="pick(${i})">
+     <i data-lucide="${TYPES[q.type].icon}"></i>
+     <span class="qt">Câu ${i+1} · ${q.text}</span>
+     <span class="badge-mini bm-${q.type}">${TYPES[q.type].lbl}</span>
+   </div>`).join('');
+  const n=qs.length;
+  $('qlCount').textContent=n+' câu';$('metaCount').textContent=n;
+  lucide.createIcons();
+}
+function pick(i){cur=i;renderList();renderEditor();window.scrollTo({top:0});}
+
+function renderEditor(){
+  const q=qs[cur];
+  const diffCls=d=>d===q.diff?' '+DIFFS.find(x=>x[0]===d)[2]:'';
+  let body='';
+  if(q.type==='tl'){
+    body=`<div class="opts-head"><span>Đáp án tham khảo</span></div>
+      <div class="key-area"><b>Gợi ý chấm</b><textarea placeholder="Nhập đáp án hoặc tiêu chí chấm...">${q.key||''}</textarea></div>
+      <div class="ai-note"><i data-lucide="bot"></i>Bài tự luận sẽ do bạn chấm — AI Coach sẽ đề xuất điểm &amp; nhận xét dự thảo để duyệt nhanh hơn.</div>`;
+  }else{
+    const isDs=q.type==='ds';
+    const headLabel=isDs?'Chọn đáp án đúng':(q.type==='dt'?'Các đáp án điền vào chỗ trống':'Các lựa chọn');
+    body=`<div class="opts-head"><span>${headLabel}</span><span>Bấm vòng tròn để đánh dấu đúng</span></div>
+      ${q.opts.map((o,i)=>`
+       <div class="arow${o[1]?' ok':''}">
+         <span class="radio" onclick="markOk(${i})"><i data-lucide="check"></i></span>
+         <input value="${o[0]}" placeholder="${isDs?(i===0?'Đúng':'Sai'):'Nhập nội dung đáp án...'}" ${isDs?'disabled style="cursor:default"':''}>
+         <span class="a-tools">${isDs?'':`<button class="atool del" onclick="delOpt(${i})"><i data-lucide="trash-2"></i></button>`}</span>
+       </div>`).join('')}
+      ${isDs?'':'<div class="opt-foot"><button class="mini-add" onclick="addOpt()"><i data-lucide="plus"></i>Thêm đáp án</button></div>'}`;
+  }
+  $('editor').innerHTML=`
+    <div class="ed-toolbar">
+      ${Object.keys(TYPES).map(t=>`<button class="tchip${t===q.type?' on':''}" onclick="setType('${t}')"><i data-lucide="${TYPES[t].icon}"></i>${TYPES[t].name}</button>`).join('')}
+      <span class="ed-right">
+        <span class="pt-chip"><i data-lucide="star"></i>${q.pts} đ</span>
+        <span class="dchips">${DIFFS.map(d=>`<button class="dchip${diffCls(d[0])}" onclick="setDiff('${d[0]}')">${d[1]}</button>`).join('')}</span>
+      </span>
+    </div>
+    <div class="qtext" contenteditable="true">${q.text}</div>
+    ${body}
+    <div class="ed-foot">
+      <div class="left">
+        <button class="mini-add" onclick="dupQ()"><i data-lucide="copy"></i>Nhân bản câu</button>
+        <button class="mini-add" onclick="delQ()"><i data-lucide="trash-2"></i>Xóa câu</button>
+      </div>
+      <span class="right">Câu ${cur+1} / ${qs.length}</span>
+    </div>`;
+  document.querySelector('.qtext').addEventListener('blur',e=>{qs[cur].text=e.target.textContent.trim()||'(Câu hỏi chưa có nội dung)';renderList();});
+  lucide.createIcons();
+}
+function setType(t){
+  const q=qs[cur];if(q.type===t)return;
+  if(t==='ds')q.opts=[['Đúng',1],['Sai',0]];
+  if(t==='tl'){q.key='';delete q.opts;}
+  if(t!=='tl'&&(!q.opts))q.opts=[['',1],['',0],['',0],['',0]];
+  if(t==='dt'&&q.opts&&q.opts.length<2)q.opts.push(['',0]);
+  q.type=t;renderList();renderEditor();
+}
+function setDiff(d){qs[cur].diff=d;renderEditor();}
+function markOk(i){qs[cur].opts.forEach(o=>o[1]=0);qs[cur].opts[i][1]=1;renderEditor();toastMini('Đã đánh dấu đáp án đúng');}
+function addOpt(){if(qs[cur].opts.length>=6)return toastMini('Tối đa 6 đáp án');qs[cur].opts.push(['',0]);renderEditor();}
+function delOpt(i){if(qs[cur].opts.length<=2)return toastMini('Cần tối thiểu 2 đáp án');qs[cur].opts.splice(i,1);renderEditor();}
+function addQuestion(){
+  qs.push({id:++uid,type:'tn',diff:'m',pts:'0.5',text:'(Câu hỏi mới — nhập nội dung)',opts:[['',1],['',0],['',0],['',0]]});
+  cur=qs.length-1;renderList();renderEditor();toast('Đã thêm câu hỏi mới');
+}
+function dupQ(){const c=JSON.parse(JSON.stringify(qs[cur]));c.id=++uid;qs.splice(cur+1,0,c);cur++;renderList();renderEditor();toast('Đã nhân bản câu hỏi');}
+function delQ(){
+  if(qs.length<=1)return toastMini('Đề phải có tối thiểu 1 câu');
+  qs.splice(cur,1);cur=Math.max(0,cur-1);renderList();renderEditor();toast('Đã xóa câu hỏi');
+}
+function renderSnips(filter=''){
+  $('snips').innerHTML=BANK.filter(b=>b[1].toLowerCase().includes(filter.toLowerCase()))
+   .map((b,i)=>`
+   <div class="snip">
+     <span class="badge-mini bm-${b[0]}">${TYPES[b[0]].lbl}</span>
+     <span class="stxt">${b[1]}</span>
+     <button class="plus" onclick="insertBank(${BANK.indexOf(b)})"><i data-lucide="plus"></i></button>
+   </div>`).join('');
+  lucide.createIcons();
+}
+function insertBank(i){
+  const[b,t]=BANK[i];
+  qs.push({id:++uid,type:b,diff:'m',pts:'0.5',text:t,opts:b==='tl'?undefined:(b==='ds'?[['Đúng',1],['Sai',0]]:[['',1],['',0],['',0],['',0]])});
+  cur=qs.length-1;renderList();renderEditor();toast('Đã thêm từ ngân hàng câu hỏi');
+}
+$('bankSearch').addEventListener('input',e=>renderSnips(e.target.value));
+
+let tt=null;
+function toast(msg){
+  const t=$('toast');$('toastMsg').textContent=msg;t.querySelector('svg').style.color='#22C58B';
+  t.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('show'),2200);
+}
+function toastMini(msg){toast(msg);}
+
+renderList();renderEditor();renderSnips();
+lucide.createIcons();
+</script>
+</body>
+</html>

@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EduTest 2.0 — Bản mẫu Landing</title>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#FFF9F0; --ink:#231A33; --violet:#6C4CF1;
+  --coral:#FF5D5D; --sky:#3BA3FF; --sun:#FFC24B; --jade:#22C58B;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  font-family:'Be Vietnam Pro',sans-serif;color:var(--ink);background:var(--paper);
+  background-image:radial-gradient(#EBE1D0 1px,transparent 1px);background-size:24px 24px;
+}
+h1,h2,h3,.disp{font-family:'Baloo 2',cursive}
+.wrap{max-width:1180px;margin:0 auto;padding:0 28px}
+a{text-decoration:none;color:inherit}
+svg.lucide{stroke-width:2.25}
+
+/* ===== header ===== */
+header{position:sticky;top:0;z-index:50;background:rgba(255,249,240,.92);backdrop-filter:blur(8px);border-bottom:2px solid var(--ink)}
+.nav{display:flex;align-items:center;justify-content:space-between;height:72px}
+.logo{display:flex;align-items:center;gap:10px;font-family:'Baloo 2';font-weight:800;font-size:22px}
+.logo-chip{width:38px;height:38px;border-radius:12px;background:var(--violet);border:2px solid var(--ink);box-shadow:3px 3px 0 var(--ink);display:grid;place-items:center;color:#fff}
+.logo-chip svg{width:19px;height:19px}
+.nav-links{display:flex;gap:26px;font-weight:600;font-size:15px}
+.nav-links a:hover{color:var(--violet)}
+.btn{display:inline-flex;align-items:center;gap:8px;font-weight:700;font-size:15px;padding:12px 22px;border-radius:14px;border:2px solid var(--ink);cursor:pointer;transition:.15s;font-family:'Be Vietnam Pro'}
+.btn svg{width:17px;height:17px}
+.btn-violet{background:var(--violet);color:#fff;box-shadow:4px 4px 0 var(--ink)}
+.btn-violet:hover{transform:translate(-2px,-2px);box-shadow:6px 6px 0 var(--ink)}
+.btn-ghost{background:#fff;box-shadow:3px 3px 0 var(--ink)}
+.btn-ghost:hover{background:var(--sun)}
+
+/* ===== hero ===== */
+.hero{display:grid;grid-template-columns:1.02fr .98fr;gap:56px;align-items:center;padding:76px 0 64px}
+.kicker{display:inline-flex;align-items:center;gap:8px;background:var(--sun);border:2px solid var(--ink);border-radius:999px;padding:7px 17px;font-weight:700;font-size:13px;box-shadow:3px 3px 0 var(--ink);transform:rotate(-2deg);margin-bottom:22px}
+.kicker svg{width:15px;height:15px}
+.hero h1{font-size:clamp(40px,5vw,64px);line-height:1.04;font-weight:800;letter-spacing:-.5px}
+.hl{position:relative;display:inline-block;z-index:1}
+.hl::after{content:"";position:absolute;left:-4px;right:-6px;bottom:4px;height:34%;background:var(--sky);z-index:-1;transform:rotate(-1.5deg);border-radius:4px}
+.hl-sun::after{background:var(--sun)}
+.hero p.lead{margin-top:20px;font-size:18px;line-height:1.65;color:#4A4059;max-width:480px}
+.hero-ctas{display:flex;gap:14px;margin-top:30px;flex-wrap:wrap}
+.trust{margin-top:26px;display:flex;gap:18px;flex-wrap:wrap;font-size:13.5px;color:#5A5166;font-weight:600}
+.trust span{display:inline-flex;align-items:center;gap:6px}
+.trust svg{width:15px;height:15px;color:var(--jade)}
+
+/* demo builder card */
+.demo-card{background:#fff;border:2px solid var(--ink);border-radius:26px;box-shadow:7px 7px 0 var(--ink);padding:24px;position:relative;transform:rotate(1deg)}
+.demo-tag{position:absolute;top:-16px;left:22px;background:var(--violet);color:#fff;border:2px solid var(--ink);border-radius:10px;padding:5px 14px;font-weight:800;font-size:13px;box-shadow:3px 3px 0 var(--ink);transform:rotate(-3deg)}
+.demo-head{display:flex;justify-content:space-between;align-items:center;padding-bottom:14px}
+.demo-head b{font-family:'Baloo 2';font-size:17px;display:flex;align-items:center;gap:8px}
+.demo-head b svg{width:18px;height:18px;color:var(--violet)}
+.count-pill{display:inline-flex;align-items:center;gap:6px;background:var(--paper);border:2px solid var(--ink);border-radius:999px;padding:4px 13px;font-weight:800;font-size:12.5px}
+.type-chips{display:flex;gap:8px;padding-bottom:14px;flex-wrap:wrap}
+.tchip{display:inline-flex;align-items:center;gap:6px;border:2px solid var(--ink);border-radius:999px;padding:6px 13px;font-weight:700;font-size:12.5px;background:#fff;cursor:pointer;transition:.12s;font-family:'Be Vietnam Pro'}
+.tchip svg{width:13px;height:13px}
+.tchip:hover{background:var(--sun)}
+.tchip.on{background:var(--ink);color:#fff}
+.demo-q{font-family:'Baloo 2';font-weight:700;font-size:19px;line-height:1.35;background:var(--paper);border:2px dashed #D8CCB4;border-radius:14px;padding:14px 16px}
+.opt-list{margin-top:12px;display:flex;flex-direction:column;gap:8px}
+.opt-row{display:flex;align-items:center;gap:11px;border:2px solid var(--ink);border-radius:13px;padding:10px 13px;background:#fff;cursor:pointer;transition:.12s;font-weight:600;font-size:14.5px}
+.opt-row .radio{width:25px;height:25px;border-radius:50%;border:2px solid var(--ink);flex:none;display:grid;place-items:center;background:#fff;transition:.12s;color:#fff}
+.opt-row .radio svg{width:14px;height:14px;opacity:0}
+.opt-row:hover{transform:translateX(3px)}
+.opt-row.ok{background:#EDFBF4}
+.opt-row.ok .radio{background:var(--jade)}
+.opt-row.ok .radio svg{opacity:1}
+.demo-foot{margin-top:16px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.mini-btn{display:inline-flex;align-items:center;gap:7px;border:2px solid var(--ink);border-radius:12px;padding:8px 15px;font-weight:800;font-size:13px;background:var(--jade);color:#fff;box-shadow:3px 3px 0 var(--ink);cursor:pointer;transition:.15s;font-family:'Be Vietnam Pro'}
+.mini-btn svg{width:14px;height:14px}
+.mini-btn:hover{transform:translate(-2px,-2px);box-shadow:5px 5px 0 var(--ink)}
+.saved-toast{position:absolute;top:-16px;right:-8px;display:flex;align-items:center;gap:6px;background:var(--jade);color:#fff;border:2px solid var(--ink);border-radius:12px;padding:7px 14px;font-family:'Baloo 2';font-weight:800;font-size:15px;box-shadow:3px 3px 0 var(--ink);opacity:0;transition:.3s;transform:scale(.6) rotate(4deg)}
+.saved-toast svg{width:15px;height:15px}
+.saved-toast.show{opacity:1;transform:scale(1) rotate(4deg)}
+
+/* ===== stats band ===== */
+.band{display:grid;grid-template-columns:repeat(4,1fr);border:2px solid var(--ink);border-radius:24px;overflow:hidden;box-shadow:6px 6px 0 var(--ink);margin:26px 0 80px;background:#fff}
+.cell{padding:30px 22px;text-align:center;border-right:2px dashed rgba(35,26,51,.25)}
+.cell:last-child{border-right:none}
+.cell .num{font-family:'Baloo 2';font-weight:800;font-size:40px;line-height:1}
+.cell .lbl{font-weight:700;font-size:14px;margin-top:8px}
+.c-coral{background:var(--coral);color:#fff}.c-sky{background:var(--sky);color:#fff}
+.c-sun{background:var(--sun)}.c-jade{background:var(--jade);color:#fff}
+
+/* ===== features bento ===== */
+.sec-head{margin-bottom:36px}
+.sec-head .eyebrow{color:var(--violet);font-weight:800;font-size:13px;letter-spacing:2px;text-transform:uppercase}
+.sec-head h2{font-size:clamp(30px,3.6vw,44px);font-weight:800;line-height:1.1;margin-top:8px}
+.bento{display:grid;grid-template-columns:repeat(12,1fr);gap:18px;margin-bottom:90px}
+.bx{border:2px solid var(--ink);border-radius:24px;padding:28px;background:#fff;box-shadow:5px 5px 0 var(--ink);transition:.15s}
+.bx:hover{transform:translate(-3px,-3px);box-shadow:8px 8px 0 var(--ink)}
+.bx h3{font-size:21px;font-weight:800;margin:14px 0 8px}
+.bx p{font-size:14.5px;line-height:1.6;color:#5A5166}
+.bx .ico{width:52px;height:52px;border-radius:15px;border:2px solid var(--ink);display:grid;place-items:center;box-shadow:3px 3px 0 var(--ink);color:#fff}
+.bx .ico svg{width:25px;height:25px}
+.b-span7{grid-column:span 7}.b-span5{grid-column:span 5}.b-span4{grid-column:span 4}.b-span8{grid-column:span 8}
+.bx.tilt-l{transform:rotate(-1deg)}.bx.tilt-r{transform:rotate(.8deg)}
+.bx.tilt-l:hover,.bx.tilt-r:hover{transform:rotate(0) translate(-3px,-3px)}
+
+/* ===== steps ===== */
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-bottom:90px}
+.step{background:#fff;border:2px solid var(--ink);border-radius:22px;padding:28px;position:relative;box-shadow:5px 5px 0 var(--ink)}
+.step-num{position:absolute;top:-18px;left:20px;width:44px;height:44px;border-radius:50%;border:2px solid var(--ink);display:grid;place-items:center;font-family:'Baloo 2';font-weight:800;font-size:19px;color:#fff;box-shadow:3px 3px 0 var(--ink)}
+.s1{background:var(--coral)}.s2{background:var(--violet)}.s3{background:var(--jade)}
+.step h3{margin:14px 0 8px;font-size:19px}
+.step p{font-size:14px;color:#5A5166;line-height:1.6}
+
+/* ===== CTA panel ===== */
+.cta-panel{background:var(--ink);color:#fff;border:2px solid var(--ink);border-radius:28px;padding:60px 48px;text-align:center;position:relative;overflow:hidden;margin-bottom:80px;box-shadow:7px 7px 0 rgba(35,26,51,.25)}
+.cta-panel::before{content:"";position:absolute;inset:0;background-image:radial-gradient(rgba(255,255,255,.09) 1px,transparent 1px);background-size:20px 20px}
+.cta-panel h2{font-size:clamp(28px,3.4vw,42px);font-weight:800;position:relative}
+.cta-panel p{position:relative;margin:14px auto 30px;max-width:520px;color:#CFC8DD;line-height:1.65;font-size:15.5px}
+.stickers{position:relative;display:flex;gap:12px;justify-content:center;margin-bottom:26px;flex-wrap:wrap}
+.sticker{border:2px solid #fff;border-radius:12px;padding:7px 16px;font-weight:800;font-size:13.5px;transform:rotate(-2deg)}
+.stk1{background:var(--coral);transform:rotate(-3deg)}.stk2{background:var(--sun);color:var(--ink);transform:rotate(2deg)}.stk3{background:var(--jade);transform:rotate(-1.5deg)}
+
+footer{border-top:2px solid var(--ink);padding:34px 0 46px;background:#fff}
+.foot{display:flex;justify-content:space-between;align-items:center;gap:18px;flex-wrap:wrap;font-size:14px;color:#7A7188;font-weight:600}
+.foot .made{display:inline-flex;align-items:center;gap:6px}
+.foot .made svg{width:15px;height:15px;color:var(--violet);fill:var(--violet)}
+
+@media(max-width:900px){
+  .hero{grid-template-columns:1fr;padding-top:48px}
+  .nav-links{display:none}
+  .band{grid-template-columns:repeat(2,1fr)}
+  .cell:nth-child(2){border-right:none}
+  .cell:nth-child(-n+2){border-bottom:2px dashed rgba(35,26,51,.25)}
+  .bento{grid-template-columns:1fr}
+  .b-span7,.b-span5,.b-span4,.b-span8{grid-column:auto}
+  .steps{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<header><div class="wrap nav">
+  <div class="logo"><div class="logo-chip"><i data-lucide="zap"></i></div>EduTest<span style="color:var(--violet)">.</span></div>
+  <nav class="nav-links"><a href="#">Tạo đề thi</a><a href="#">Ngân hàng câu hỏi</a><a href="#">Thi trực tuyến</a><a href="#">Lớp học</a></nav>
+  <div style="display:flex;gap:10px"><a class="btn btn-ghost" href="#">Đăng nhập</a><a class="btn btn-violet" href="#">Tạo đề miễn phí</a></div>
+</div></header>
+
+<main class="wrap">
+
+<section class="hero">
+  <div>
+    <span class="kicker"><i data-lucide="sparkles"></i>Bản mẫu thiết kế EduTest 2.0</span>
+    <h1>Tạo đề thi <span class="hl">siêu tốc</span>.<br>Chấm bài <span class="hl hl-sun">tự động</span>.</h1>
+    <p class="lead">EduTest là bàn soạn đề online dành cho giáo viên Việt Nam: soạn câu hỏi, dựng đề từ ngân hàng 86.000 câu, giao thi trực tuyến — học sinh làm bài, hệ thống lo toàn bộ phần còn lại.</p>
+    <div class="hero-ctas">
+      <a class="btn btn-violet" href="#"><i data-lucide="file-plus-2"></i>Tạo đề thi ngay</a>
+      <a class="btn btn-ghost" href="#"><i data-lucide="play"></i>Xem demo 60s</a>
+    </div>
+    <div class="trust">
+      <span><i data-lucide="check"></i>Miễn phí cho giáo viên</span>
+      <span><i data-lucide="check"></i>Không cần cài đặt</span>
+      <span><i data-lucide="check"></i>Dành cho THCS &amp; THPT</span>
+    </div>
+  </div>
+
+  <!-- DEMO SOẠNH CÂU HỎI -->
+  <div class="demo-card">
+    <span class="saved-toast" id="saveToast"><i data-lucide="check"></i>Đã lưu câu hỏi</span>
+    <div class="demo-head">
+      <b><i data-lucide="pencil-line"></i>Soạn nhanh một câu</b>
+      <span class="count-pill"><i data-lucide="layers" style="width:13px;height:13px"></i><span id="qCount">40</span>&nbsp;câu trong đề</span>
+    </div>
+    <div class="type-chips">
+      <button class="tchip on" data-preset="tn"><i data-lucide="list-checks"></i>Trắc nghiệm</button>
+      <button class="tchip" data-preset="ds"><i data-lucide="toggle-left"></i>Đúng – Sai</button>
+      <button class="tchip" data-preset="dt"><i data-lucide="text-cursor-input"></i>Điền khuyết</button>
+    </div>
+    <div class="demo-q" id="demoQ">Thành phố nào là thủ đô của Nhật Bản?</div>
+    <div class="opt-list" id="optList"></div>
+    <div class="demo-foot">
+      <span id="demoMsg" style="font-size:13px;font-weight:600;color:#7A7188">Bấm vòng tròn để chọn đáp án đúng</span>
+      <button class="mini-btn" onclick="addQ()"><i data-lucide="plus"></i>Thêm vào đề</button>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="cell c-coral"><div class="num">86.000+</div><div class="lbl">Câu hỏi sẵn trong ngân hàng</div></div>
+  <div class="cell c-sky"><div class="num">12.400+</div><div class="lbl">Đề thi đã được tạo</div></div>
+  <div class="cell c-sun"><div class="num">30 giây</div><div class="lbl">Chấm xong cả lớp 40 bài</div></div>
+  <div class="cell c-jade"><div class="num">0 đồng</div><div class="lbl">Chi phí bắt đầu cho GV</div></div>
+</section>
+
+<section>
+  <div class="sec-head">
+    <div class="eyebrow">// Bộ công cụ soạn đề</div>
+    <h2>Từ trang giấy trắng đến đề thi hoàn chỉnh<br>trong vài cú bấm</h2>
+  </div>
+  <div class="bento">
+    <div class="bx b-span7 tilt-l"><div class="ico" style="background:var(--coral)"><i data-lucide="pencil-ruler"></i></div>
+      <h3>Trình soạn đề cực nhanh</h3>
+      <p>Soạn câu trắc nghiệm, đúng–sai, điền khuyết và tự luận trên cùng một màn hình. Phím tắt, nhân bản câu, sắp xếp kéo-thả — mọi thao tác nghĩ là có.</p></div>
+    <div class="bx b-span5 tilt-r"><div class="ico" style="background:var(--sky)"><i data-lucide="database"></i></div>
+      <h3>Ngân hàng 86.000 câu</h3>
+      <p>Lọc theo lớp, môn, chủ đề, độ khó — dựng nguyên một đề 40 câu chỉ trong vài cú bấm.</p></div>
+    <div class="bx b-span5 tilt-r"><div class="ico" style="background:var(--sun)"><i data-lucide="shuffle"></i></div>
+      <h3>Trộn đề thông minh</h3>
+      <p>Mỗi học sinh nhận một bộ đề riêng về thứ tự câu và đáp án — hết thời nhìn chéo.</p></div>
+    <div class="bx b-span7 tilt-l"><div class="ico" style="background:var(--jade)"><i data-lucide="badge-check"></i></div>
+      <h3>Chấm tự động &amp; báo cáo tức thì</h3>
+      <p>Bài nộp được chấm ngay lập tức kèm thống kê điểm, câu sai nhiều nhất, so sánh giữa các lớp — xuất Excel một chạm.</p></div>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head"><div class="eyebrow">// Quy trình 3 bước</div><h2>Sáng nay nghĩ ý tưởng, trưa đã giao thi được</h2></div>
+  <div class="steps">
+    <div class="step"><div class="step-num s1">1</div><h3>Soạn hoặc chọn câu hỏi</h3><p>Tự tay soạn trên trình soạn đề, hoặc kéo thẳng từ ngân hàng câu hỏi có sẵn.</p></div>
+    <div class="step"><div class="step-num s2">2</div><h3>Xuất bản &amp; gửi mã phòng</h3><p>Hệ thống sinh mã phòng thi — học sinh nhập mã là làm bài ngay, không cần cài gì.</p></div>
+    <div class="step"><div class="step-num s3">3</div><h3>Nhận báo cáo tức thì</h3><p>Chấm tự động 100% với trắc nghiệm. Bài nộp tới đâu, điểm số hiện tới đó.</p></div>
+  </div>
+</section>
+
+<section class="cta-panel">
+  <div class="stickers"><span class="sticker stk1">Miễn phí cho GV</span><span class="sticker stk2">Không cần cài đặt</span><span class="sticker stk3">Xuất Word / PDF</span></div>
+  <h2>Tạo đề thi đầu tiên của bạn</h2>
+  <p>Tham gia cùng hàng nghìn giáo viên đang soạn đề, giao thi và nhận báo cáo ngay trên EduTest mỗi ngày.</p>
+  <a class="btn btn-violet" href="#" style="background:var(--sun);color:var(--ink)">Bắt đầu soạn đề<i data-lucide="arrow-right"></i></a>
+</section>
+
+</main>
+
+<footer><div class="wrap foot">
+  <div class="logo" style="font-size:18px"><div class="logo-chip" style="width:32px;height:32px"><i data-lucide="zap" style="width:15px;height:15px"></i></div>EduTest</div>
+  <span>© 2026 EduTest · Điều khoản · Quyền riêng tư</span>
+  <span class="made">Made with<i data-lucide="heart"></i>in Vietnam</span>
+</div></footer>
+
+<script src="https://unpkg.com/lucide@latest"></script>
+<script>
+const PRESETS={
+  tn:{q:'Thành phố nào là thủ đô của Nhật Bản?',opts:[['Tokyo',1],['Osaka',0],['Kyoto',0],['Sapporo',0]]},
+  ds:{q:'Tam giác đều có ba góc bằng nhau.',opts:[['Đúng',1],['Sai',0]]},
+  dt:{q:'Điền kết quả: 12 × 8 = ____',opts:[['96',1],['86',0],['106',0],['88',0]]}
+};
+const SHAPES=['triangle','circle','square','diamond'];
+let cur='tn';
+function render(p){
+  const d=PRESETS[p];
+  document.getElementById('demoQ').textContent=d.q;
+  const list=document.getElementById('optList');
+  list.innerHTML=d.opts.map((o,i)=>`
+    <div class="opt-row${o[1]?' ok':''}" onclick="mark(this)">
+      <span class="radio"><i data-lucide="check"></i></span>${o[0]}
+    </div>`).join('');
+  lucide.createIcons();
+  document.getElementById('demoMsg').textContent='Bấm vòng tròn để chọn đáp án đúng';
+  document.getElementById('saveToast').classList.remove('show');
+}
+function mark(row){
+  [...row.parentElement.children].forEach(r=>r.classList.remove('ok'));
+  row.classList.add('ok');
+  document.getElementById('demoMsg').textContent='Đã đánh dấu đáp án đúng';
+  const t=document.getElementById('saveToast');t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),1600);
+}
+function addQ(){
+  const c=document.getElementById('qCount');c.textContent=parseInt(c.textContent)+1;
+  const t=document.getElementById('saveToast');
+  t.innerHTML='<i data-lucide="plus"></i>Đã thêm · '+c.textContent+' câu';
+  lucide.createIcons();t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),1600);
+}
+document.querySelectorAll('.tchip').forEach(ch=>ch.onclick=()=>{
+  document.querySelectorAll('.tchip').forEach(x=>x.classList.remove('on'));
+  ch.classList.add('on');cur=ch.dataset.preset;render(cur);
+});
+render('tn');lucide.createIcons();
+</script>
+</body>
+</html>

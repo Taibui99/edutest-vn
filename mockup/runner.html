@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EduTest 2.0 — Màn hình làm bài thi</title>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F6F7F9; --surface:#FFFFFF; --ink:#1F2937; --muted:#6B7280;
+  --line:#E7E5E0; --violet:#6C4CF1; --violet-soft:#F1EDFD;
+  --jade:#189A6C; --jade-soft:#E8F7F1;
+  --coral:#E14D4D; --coral-soft:#FDEDED;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Be Vietnam Pro',sans-serif;color:var(--ink);background:var(--bg);min-height:100vh;display:flex;flex-direction:column}
+svg.lucide{stroke-width:2}
+
+/* ===== TOPBAR ===== */
+.topbar{background:var(--surface);border-bottom:1px solid var(--line);padding:11px 22px;display:flex;align-items:center;gap:14px;position:sticky;top:0;z-index:30}
+.tb-left{display:flex;align-items:center;gap:12px;min-width:0}
+.tb-title b{font-size:15px;font-weight:700;display:block;line-height:1.25}
+.tb-title span{font-size:12px;color:var(--muted);font-weight:500}
+.timer{display:inline-flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:99px;padding:8px 16px;font-weight:800;font-size:14px;margin-left:auto;font-variant-numeric:tabular-nums}
+.timer svg{width:16px;height:16px;color:var(--violet)}
+.timer.low{background:var(--coral-soft);color:var(--coral);border-color:transparent}
+.counter{font-size:13px;font-weight:700;color:var(--muted);background:var(--bg);border-radius:99px;padding:8px 15px}
+.exit-btn{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:9px 15px;font-weight:700;font-size:13px;cursor:pointer;font-family:'Be Vietnam Pro';color:var(--muted);transition:.15s}
+.exit-btn:hover{color:var(--coral);border-color:var(--coral)}
+.exit-btn svg{width:15px;height:15px}
+
+.progress{height:4px;background:var(--line)}
+.progress div{height:100%;background:var(--violet);width:15%;transition:.3s}
+
+/* ===== STAGE ===== */
+.stage{flex:1;width:100%;max-width:800px;margin:0 auto;padding:30px 20px 46px;display:flex;flex-direction:column}
+.qlabel{font-size:12.5px;font-weight:700;color:var(--violet);letter-spacing:.6px;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.qcard{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:26px 28px}
+.qcard h2{font-size:19px;font-weight:600;line-height:1.6}
+
+.opts{margin-top:18px;display:flex;flex-direction:column;gap:11px}
+.opt{display:flex;align-items:center;gap:14px;background:var(--surface);border:1.5px solid var(--line);border-radius:13px;padding:14px 17px;cursor:pointer;transition:.12s;font-size:15px;font-weight:500;text-align:left;width:100%;font-family:'Be Vietnam Pro'}
+.opt .letter{width:34px;height:34px;border-radius:10px;border:1.5px solid var(--line);display:grid;place-items:center;font-weight:800;font-size:14px;color:var(--muted);flex:none;transition:.12s;background:var(--bg)}
+.opt .mark{margin-left:auto;width:24px;height:24px;border-radius:50%;display:none;place-items:center;flex:none}
+.opt .mark svg{width:14px;height:14px;color:#fff}
+.opt:hover{border-color:#C9BFF7}
+.opt.picked{border-color:var(--violet);background:var(--violet-soft)}
+.opt.picked .letter{border-color:var(--violet);color:var(--violet);background:#fff}
+.opt.correct{border-color:var(--jade);background:var(--jade-soft)}
+.opt.correct .letter{border-color:var(--jade);color:var(--jade);background:#fff}
+.opt.correct .mark.ok{display:grid;background:var(--jade)}
+.opt.wrongpick{border-color:var(--coral);background:var(--coral-soft)}
+.opt.wrongpick .letter{border-color:var(--coral);color:var(--coral);background:#fff}
+.opt.wrongpick .mark.bad{display:grid;background:var(--coral)}
+.opt.dim{opacity:.55}
+
+/* feedback */
+.feedback{margin-top:16px;display:none;align-items:flex-start;gap:11px;border-radius:13px;padding:15px 18px;font-size:14px;line-height:1.55}
+.feedback.show{display:flex}
+.feedback.f-ok{background:var(--jade-soft);color:var(--jade)}
+.feedback.f-bad{background:var(--coral-soft);color:var(--coral)}
+.feedback svg{width:19px;height:19px;flex:none;margin-top:1px}
+.feedback b{display:block;margin-bottom:2px}
+.feedback p{color:var(--ink);font-weight:500;font-size:13.5px}
+
+/* footer actions */
+.actions{margin-top:22px;display:flex;align-items:center;gap:12px}
+.btn{display:inline-flex;align-items:center;gap:8px;font-weight:700;font-size:14px;padding:11px 20px;border-radius:11px;cursor:pointer;font-family:'Be Vietnam Pro';transition:.15s}
+.btn svg{width:15px;height:15px}
+.btn-primary{background:var(--violet);color:#fff;border:none;margin-left:auto}
+.btn-primary:hover{filter:brightness(1.08)}
+.btn-ghost{background:var(--surface);border:1px solid var(--line);color:var(--muted)}
+.btn-ghost:hover{border-color:var(--violet);color:var(--violet)}
+
+@media(max-width:640px){
+  .qcard{padding:20px}
+  .counter{display:none}
+  .tb-title span{display:none}
+}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="tb-left">
+    <div class="tb-title"><b>Giữa kỳ Toán 10 — HK1</b><span>Lớp 10A1 · Cô Hồng phụ trách</span></div>
+  </div>
+  <span class="counter">Câu 3/20</span>
+  <span class="timer" id="timerBox"><i data-lucide="timer"></i><span id="tsec">41:24</span></span>
+  <button class="exit-btn"><i data-lucide="x"></i>Nộp bài &amp; thoát</button>
+</header>
+<div class="progress"><div id="pfill"></div></div>
+
+<main class="stage">
+  <div class="qlabel"><i data-lucide="circle-help" style="width:15px;height:15px"></i>Chọn một đáp án đúng nhất</div>
+
+  <div class="qcard">
+    <h2>Cho parabol (P): y = x² − 4x + 3. Hoành độ đỉnh của parabol (P) là:</h2>
+  </div>
+
+  <div class="opts" id="opts">
+    <button class="opt"><span class="letter">A</span>x = 2<span class="mark ok"><i data-lucide="check"></i></span></button>
+    <button class="opt"><span class="letter">B</span>x = 4<span class="mark bad"><i data-lucide="x"></i></span></button>
+    <button class="opt"><span class="letter">C</span>x = −2<span class="mark bad"><i data-lucide="x"></i></span></button>
+    <button class="opt"><span class="letter">D</span>x = 3<span class="mark bad"><i data-lucide="x"></i></span></button>
+  </div>
+
+  <div class="feedback" id="fb">
+    <i data-lucide="info" id="fbIcon"></i>
+    <div><b id="fbTitle"></b><p>Hoành độ đỉnh của parabol y = ax² + bx + c là x = −b/(2a). Với a = 1 và b = −4 ta được x = −(−4)/2 = 2.</p></div>
+  </div>
+
+  <div class="actions">
+    <button class="btn btn-ghost"><i data-lucide="arrow-left"></i>Câu trước</button>
+    <button class="btn btn-primary" id="nextBtn">Kiểm tra đáp án<i data-lucide="check"></i></button>
+  </div>
+</main>
+
+<script src="https://unpkg.com/lucide@latest"></script>
+<script>
+lucide.createIcons();
+const opts=[...document.querySelectorAll('.opt')];
+const CORRECT=0;
+let picked=-1, checked=false;
+const nextBtn=document.getElementById('nextBtn');
+
+opts.forEach((el,i)=>{
+  el.onclick=()=>{
+    if(checked)return;
+    picked=i;
+    opts.forEach(o=>o.classList.remove('picked'));
+    el.classList.add('picked');
+    nextBtn.innerHTML='Kiểm tra đáp án<i data-lucide="check"></i>';lucide.createIcons();
+  };
+});
+
+nextBtn.onclick=()=>{
+  if(!checked){
+    if(picked<0)return;
+    checked=true;
+    opts.forEach((o,i)=>{
+      if(i===CORRECT)o.classList.add('correct');
+      else if(i===picked)o.classList.add('wrongpick');
+      else o.classList.add('dim');
+    });
+    const fb=document.getElementById('fb');
+    const ok=picked===CORRECT;
+    fb.classList.add(ok?'f-ok':'f-bad','show');
+    document.getElementById('fbTitle').textContent=ok?'Chính xác.':'Chưa chính xác — đáp án đúng là A.';
+    nextBtn.innerHTML='Câu tiếp theo<i data-lucide="arrow-right"></i>';lucide.createIcons();
+    document.getElementById('pfill').style.width='20%';
+  }else{
+    // demo: reset sang câu mới
+    checked=false;picked=-1;
+    opts.forEach(o=>o.classList.remove('picked','correct','wrongpick','dim'));
+    document.getElementById('fb').classList.remove('show');
+    document.querySelector('.qlabel').firstChild.textContent='';
+    document.querySelector('.qcard h2').textContent='Cho hàm số y = x³ − 3x² + 2. Hàm số đồng biến trên khoảng nào?';
+    [...document.querySelectorAll('.opt')].forEach((o,i)=>o.childNodes[1].textContent=['(1;2)','(−∞;0) và (2;+∞)','(0;2)','ℝ'][i]);
+    nextBtn.innerHTML='Kiểm tra đáp án<i data-lucide="check"></i>';lucide.createIcons();
+  }
+};
+
+// đồng hồ demo
+let s=41*60+24;
+setInterval(()=>{
+  if(s<=0)return;s--;
+  const m=String(Math.floor(s/60)).padStart(2,'0'),sec=String(s%60).padStart(2,'0');
+  document.getElementById('tsec').textContent=m+':'+sec;
+  if(s<300)document.getElementById('timerBox').classList.add('low');
+},1000);
+</script>
+</body>
+</html>

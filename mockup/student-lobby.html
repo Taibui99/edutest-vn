@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EduTest 2.0 — Dashboard Học sinh</title>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F6F7F9; --surface:#FFFFFF; --ink:#1F2937; --muted:#6B7280;
+  --line:#E7E5E0; --violet:#6C4CF1; --violet-soft:#F1EDFD;
+  --coral:#E14D4D; --coral-soft:#FDEDED;
+  --sky:#2F80D8; --sky-soft:#EAF3FC;
+  --jade:#189A6C; --jade-soft:#E8F7F1;
+  --sun:#B97F10; --sun-soft:#FCF3E2;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Be Vietnam Pro',sans-serif;color:var(--ink);background:var(--bg);display:flex;min-height:100vh}
+a{text-decoration:none;color:inherit}
+svg.lucide{stroke-width:2}
+
+/* ===== SIDEBAR ===== */
+.side{width:236px;flex:none;background:var(--surface);border-right:1px solid var(--line);display:flex;flex-direction:column;padding:18px 14px;position:sticky;top:0;height:100vh}
+.brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:19px;padding:4px 10px 18px}
+.brand-chip{width:36px;height:36px;border-radius:11px;background:var(--violet);display:grid;place-items:center;color:#fff;flex:none}
+.brand-chip svg{width:18px;height:18px}
+.nav-lbl{font-size:11px;font-weight:700;color:#9CA3AF;letter-spacing:1px;text-transform:uppercase;padding:12px 12px 6px}
+.nitem{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:11px;font-weight:600;font-size:14px;color:#4B5563;margin-bottom:2px}
+.nitem svg{width:18px;height:18px;color:#6B7280}
+.nitem:hover{background:var(--bg)}
+.nitem.on{background:var(--violet-soft);color:var(--violet)}
+.nitem.on svg{color:var(--violet)}
+.nitem .cnt{margin-left:auto;font-size:11.5px;font-weight:700;background:var(--bg);border-radius:99px;padding:2px 8px;color:var(--muted)}
+.side-spacer{flex:1}
+.side-foot{border-top:1px solid var(--line);padding-top:12px}
+
+/* ===== MAIN ===== */
+.main{flex:1;min-width:0;display:flex;flex-direction:column}
+.topbar{background:var(--surface);border-bottom:1px solid var(--line);padding:12px 28px;display:flex;align-items:center;gap:14px;position:sticky;top:0;z-index:30}
+.search{flex:1;max-width:430px;display:flex;align-items:center;gap:9px;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:9px 13px}
+.search svg{width:16px;height:16px;color:#9CA3AF}
+.search input{border:none;background:transparent;outline:none;font-family:'Be Vietnam Pro';font-size:13.5px;width:100%;color:var(--ink)}
+.tb-right{margin-left:auto;display:flex;align-items:center;gap:12px}
+.streak{display:inline-flex;align-items:center;gap:7px;background:var(--sun-soft);color:var(--sun);border-radius:99px;padding:7px 14px;font-weight:700;font-size:12.5px}
+.streak svg{width:14px;height:14px}
+.tbtn{position:relative;width:38px;height:38px;border-radius:10px;border:none;background:transparent;display:grid;place-items:center;cursor:pointer}
+.tbtn:hover{background:var(--bg)}
+.tbtn svg{width:19px;height:19px;color:#4B5563}
+.tbtn .dot{position:absolute;top:8px;right:9px;width:7px;height:7px;border-radius:50%;background:var(--coral);border:1.5px solid #fff}
+.avatar{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#6C4CF1,#9B7BFF);color:#fff;display:grid;place-items:center;font-weight:800;font-size:15px}
+
+.content{padding:26px 28px 60px;max-width:1200px;width:100%;margin:0 auto}
+.greet{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:22px}
+.greet .date{font-size:13px;color:var(--muted);font-weight:500}
+.greet h1{font-size:26px;font-weight:700;letter-spacing:-.3px;margin-top:3px}
+.greet h1 span{color:var(--violet)}
+.xp{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 16px}
+.xp b{font-size:13px}
+.xp-track{width:140px;height:8px;border-radius:99px;background:var(--line);overflow:hidden}
+.xp-fill{width:64%;height:100%;background:var(--violet);border-radius:99px}
+.xp small{font-size:12px;color:var(--muted);font-weight:600}
+
+/* stats */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px;display:flex;align-items:center;gap:14px}
+.stat .ic{width:46px;height:46px;border-radius:12px;display:grid;place-items:center;flex:none}
+.stat .ic svg{width:21px;height:21px}
+.stat b{font-size:23px;font-weight:800;line-height:1.1;display:block}
+.stat span{font-size:12.5px;color:var(--muted);font-weight:600}
+
+/* cards */
+.grid{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:16px;align-items:start}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px 22px}
+.card+.card{margin-top:16px}
+.card-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.card-h h2{font-size:16px;font-weight:700;display:flex;align-items:center;gap:9px}
+.card-h h2 svg{width:18px;height:18px;color:var(--violet)}
+.card-h a,.link{font-size:13px;font-weight:700;color:var(--violet)}
+
+.exam-row{display:flex;align-items:center;gap:14px;padding:14px 0;border-top:1px solid var(--line)}
+.exam-row:first-of-type{border-top:none}
+.subj{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;flex:none;font-weight:800;font-size:15px}
+.exam-info{flex:1;min-width:0}
+.exam-info b{font-size:14.5px;font-weight:700;display:block}
+.exam-info span{font-size:12.5px;color:var(--muted);font-weight:500;display:block;margin-top:2px}
+.badge{font-size:11.5px;font-weight:700;border-radius:99px;padding:4px 11px;white-space:nowrap}
+.bg-jade{background:var(--jade-soft);color:var(--jade)}.bg-sun{background:var(--sun-soft);color:var(--sun)}
+.btn{display:inline-flex;align-items:center;gap:7px;font-weight:700;font-size:13px;padding:9px 16px;border-radius:10px;cursor:pointer;font-family:'Be Vietnam Pro';transition:.15s}
+.btn svg{width:15px;height:15px}
+.btn-primary{background:var(--violet);color:#fff;border:none}
+.btn-primary:hover{filter:brightness(1.08)}
+.btn-ghost{background:var(--surface);border:1px solid var(--line);color:var(--ink)}
+.btn-ghost:hover{border-color:var(--violet);color:var(--violet)}
+
+.resume{display:flex;gap:14px;align-items:center}
+.thumb{width:52px;height:52px;border-radius:12px;background:var(--violet-soft);color:var(--violet);display:grid;place-items:center;flex:none}
+.thumb svg{width:22px;height:22px}
+.prog-wrap{margin-top:10px;height:8px;border-radius:99px;background:var(--line);overflow:hidden;max-width:420px}
+.prog-fill{width:40%;height:100%;background:var(--violet);border-radius:99px}
+
+.mon{display:flex;align-items:center;gap:12px;padding:9px 0}
+.mon span:first-child{font-size:13px;font-weight:600;width:86px;flex:none}
+.bar{flex:1;height:8px;border-radius:99px;background:var(--line);overflow:hidden}
+.bar div{height:100%;border-radius:99px}
+.mon small{font-size:12px;color:var(--muted);font-weight:700;width:34px;text-align:right}
+
+.act{display:flex;gap:12px;padding:11px 0;border-top:1px dashed var(--line);align-items:flex-start}
+.act:first-of-type{border-top:none}
+.aic{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;flex:none}
+.aic svg{width:16px;height:16px}
+.act b{font-size:13.5px;font-weight:600;display:block}
+.act small{font-size:12px;color:var(--muted);font-weight:500}
+.act time{margin-left:auto;font-size:11.5px;color:#9CA3AF;font-weight:600;white-space:nowrap}
+
+/* mobile */
+.dock{display:none}
+@media(max-width:1080px){
+  .side{display:none}
+  .grid{grid-template-columns:1fr}
+  .stats{grid-template-columns:repeat(2,1fr)}
+  .xp{display:none}
+  .dock{display:flex;position:fixed;bottom:0;left:0;right:0;z-index:50;background:var(--surface);border-top:1px solid var(--line);padding:6px 8px calc(6px + env(safe-area-inset-bottom))}
+  .dock a{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:10px;font-weight:700;color:#9CA3AF;padding:7px 2px;border-radius:10px}
+  .dock a svg{width:19px;height:19px}
+  .dock a.on{color:var(--violet)}
+  .dock a.on{background:var(--violet-soft)}
+}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="side">
+  <div class="brand"><div class="brand-chip"><i data-lucide="zap"></i></div>EduTest</div>
+  <div class="nav-lbl">Học tập</div>
+  <a class="nitem on" href="#"><i data-lucide="layout-dashboard"></i>Tổng quan</a>
+  <a class="nitem" href="#"><i data-lucide="file-text"></i>Đề thi của tôi<span class="cnt">2</span></a>
+  <a class="nitem" href="#"><i data-lucide="layers"></i>Thẻ nhớ</a>
+  <a class="nitem" href="#"><i data-lucide="users"></i>Lớp học</a>
+  <div class="nav-lbl">Khác</div>
+  <a class="nitem" href="#"><i data-lucide="trophy"></i>Bảng xếp hạng</a>
+  <a class="nitem" href="#"><i data-lucide="bot"></i>Hỏi AI Coach</a>
+  <div class="side-spacer"></div>
+  <div class="side-foot">
+    <a class="nitem" href="#"><i data-lucide="settings"></i>Cài đặt</a>
+  </div>
+</aside>
+
+<div class="main">
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <div class="search"><i data-lucide="search"></i><input placeholder="Tìm đề thi, thẻ nhớ..."></div>
+    <div class="tb-right">
+      <span class="streak"><i data-lucide="flame"></i>Chuỗi 12 ngày</span>
+      <button class="tbtn"><i data-lucide="bell"></i><span class="dot"></span></button>
+      <button class="avatar">M</button>
+    </div>
+  </header>
+
+  <main class="content">
+    <div class="greet">
+      <div>
+        <div class="date">Thứ Hai, 24 tháng 8, 2026</div>
+        <h1>Chào Minh, bạn có <span>2 đề sắp tới</span></h1>
+      </div>
+      <div class="xp"><b>Cấp 8</b><div class="xp-track"><div class="xp-fill"></div></div><small>340/520 XP</small></div>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><span class="ic" style="background:var(--coral-soft);color:var(--coral)"><i data-lucide="calendar-days"></i></span><div><b>2</b><span>Đề thi sắp tới</span></div></div>
+      <div class="stat"><span class="ic" style="background:var(--sky-soft);color:var(--sky)"><i data-lucide="layers"></i></span><div><b>42</b><span>Thẻ cần ôn hôm nay</span></div></div>
+      <div class="stat"><span class="ic" style="background:var(--jade-soft);color:var(--jade)"><i data-lucide="clipboard-check"></i></span><div><b>128</b><span>Bài đã hoàn thành</span></div></div>
+      <div class="stat"><span class="ic" style="background:var(--sun-soft);color:var(--sun)"><i data-lucide="flame"></i></span><div><b>12 ngày</b><span>Chuỗi học liên tục</span></div></div>
+    </div>
+
+    <div class="grid">
+      <div><!-- LEFT -->
+        <div class="card">
+          <div class="card-h">
+            <h2><i data-lucide="file-text"></i>Đề thi sắp tới</h2>
+            <a href="#">Xem tất cả</a>
+          </div>
+          <div class="exam-row">
+            <span class="subj" style="background:var(--coral-soft);color:var(--coral)">T</span>
+            <div class="exam-info"><b>Giữa kỳ Toán 10 — HK1</b><span>Lớp 10A1 · Cô Hồng · 40 câu · 45 phút</span></div>
+            <span class="badge bg-sun">Mở sau 2 ngày</span>
+            <button class="btn btn-ghost"><i data-lucide="eye"></i>Xem trước</button>
+          </div>
+          <div class="exam-row">
+            <span class="subj" style="background:var(--sky-soft);color:var(--sky)">H</span>
+            <div class="exam-info"><b>Kiểm tra chương 3 — Hóa 10</b><span>Lớp 10A1 · Thầy Sơn · 20 câu · 25 phút</span></div>
+            <span class="badge bg-jade">Đang mở</span>
+            <button class="btn btn-primary"><i data-lucide="play"></i>Vào thi</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-h"><h2><i data-lucide="rotate-cw"></i>Tiếp tục bài đang làm</h2></div>
+          <div class="resume">
+            <span class="thumb"><i data-lucide="flask-conical"></i></span>
+            <div style="flex:1">
+              <b style="font-size:14.5px">Đề luyện tập Hóa 10 — Chương 3</b>
+              <div class="prog-wrap"><div class="prog-fill"></div></div>
+              <small style="font-size:12.5px;color:var(--muted);font-weight:500;display:block;margin-top:6px">Câu 8/20 · tự động lưu 12 phút trước</small>
+            </div>
+            <button class="btn btn-primary"><i data-lucide="play"></i>Làm tiếp</button>
+          </div>
+        </div>
+      </div>
+
+      <div><!-- RIGHT -->
+        <div class="card">
+          <div class="card-h"><h2><i data-lucide="trending-up"></i>Tiến độ theo môn</h2><a href="#">Chi tiết</a></div>
+          <div class="mon"><span>Toán</span><div class="bar"><div style="width:78%;background:var(--violet)"></div></div><small>78%</small></div>
+          <div class="mon"><span>Văn</span><div class="bar"><div style="width:81%;background:var(--jade)"></div></div><small>81%</small></div>
+          <div class="mon"><span>Lý</span><div class="bar"><div style="width:64%;background:var(--sky)"></div></div><small>64%</small></div>
+          <div class="mon"><span>Hóa</span><div class="bar"><div style="width:52%;background:var(--sun)"></div></div><small>52%</small></div>
+        </div>
+
+        <div class="card">
+          <div class="card-h"><h2><i data-lucide="history"></i>Hoạt động gần đây</h2></div>
+          <div class="act"><span class="aic" style="background:var(--jade-soft);color:var(--jade)"><i data-lucide="check"></i></span><div><b>Hoàn thành Đề Văn 11</b><small>Đúng 18/20 câu</small></div><time>19:32</time></div>
+          <div class="act"><span class="aic" style="background:var(--sky-soft);color:var(--sky)"><i data-lucide="layers"></i></span><div><b>Ôn 30 thẻ Flashcards</b><small>Môn Hóa</small></div><time>07:15</time></div>
+          <div class="act"><span class="aic" style="background:var(--sun-soft);color:var(--sun)"><i data-lucide="flame"></i></span><div><b>Duy trì chuỗi 12 ngày</b><small>+10 XP</small></div><time>T6</time></div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<nav class="dock">
+  <a class="on" href="#"><i data-lucide="house"></i>Tổng quan</a>
+  <a href="#"><i data-lucide="file-text"></i>Đề thi</a>
+  <a href="#"><i data-lucide="layers"></i>Thẻ nhớ</a>
+  <a href="#"><i data-lucide="trophy"></i>Xếp hạng</a>
+  <a href="#"><i data-lucide="user"></i>Hồ sơ</a>
+</nav>
+
+<script src="https://unpkg.com/lucide@latest"></script>
+<script>lucide.createIcons();</script>
+</body>
+</html>
