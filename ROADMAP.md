@@ -84,3 +84,8 @@
 - Share/QR (§8, §14) — `chia-se-de/[joinCode]`: copy link, mã truy cập, QR + tải QR, native share
 - Re-import / tạo lại đề trong modal import — nút "Thử lại"/"Chọn file khác"
 - Streak đọc trong AI coach (chỉ đọc, chưa ghi — đã nằm P2-2)
+
+## 🧪 QA toàn diện production (2026-08-22)
+- [x] **QA-1 E2E suite đầy đủ** — 22 spec / 192 test Playwright chạy trực tiếp trên https://edutest-vn.vercel.app, 2 project desktop 1366×768 + mobile 390×844: **189 passed + 2 flaky timing + 1 skip chủ ý**. Phủ: landing, auth (đăng ký/đăng nhập/validation), RBAC, dashboard, editor tạo đề, ngân hàng câu hỏi, chi tiết đề (stats/CSV/đóng-xóa), lớp học (tạo/tham gia/giao đề), làm bài student (guest, anti-cheat, autosave), kết quả/xem lại đáp án, hồ sơ, góc học tập (streak/task/flashcard/AI), chia sẻ đề (QR/link), AI Coach, admin UI (users/exams/reports/analytics/system/settings + chặn student).
+- [x] **QA-2 Bugs xác nhận** — BUG-01 P1 register nhận email sai định dạng; SEC-01 P1 token admin cũ thiếu claim `mode` vẫn gọi được API admin (đã vá bằng login thật); SEC-02 P2 forgot-password trả resetLink plaintext + demo link hiển thị trên UI.
+- [x] **QA-3 Dọn dữ liệu test** — xóa toàn bộ exam/lớp/tài khoản QA qua API (`scripts/cleanup-qa.js` giữ lại để dùng sau); production về trạng thái sạch, chỉ giữ 3 tài khoản: tester-gv/tester-hs/admin-p2.
