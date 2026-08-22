@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
+import { isAdminAccess, sessionUser } from "@/lib/access";
 import { prisma } from "@/lib/prisma";
 import { logAudit } from "@/lib/audit";
 
@@ -15,7 +16,7 @@ const ALLOWED_KEYS = new Set([
 
 export async function GET() {
   const session = await auth();
-  if (!session?.user || session.user.role !== "admin") {
+  if (!isAdminAccess(sessionUser(session))) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -25,7 +26,7 @@ export async function GET() {
 
 export async function PUT(req: NextRequest) {
   const session = await auth();
-  if (!session?.user || session.user.role !== "admin") {
+  if (!isAdminAccess(sessionUser(session))) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

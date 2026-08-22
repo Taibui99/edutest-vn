@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowLeft, CalendarDays, CheckSquare, Flame, Layers } from "lucide-react";
 import { auth } from "@/auth";
+import { effectiveMode } from "@/lib/access";
 import { Logo } from "@/app/components/logo";
 import { ThemeToggle } from "@/components/theme/theme-provider";
 import { prisma } from "@/lib/prisma";
@@ -15,7 +16,7 @@ export const metadata: Metadata = {
 export default async function StudyHubPage() {
   const session = await auth();
   if (!session?.user) redirect("/dang-nhap");
-  if (session.user.mode !== "student") redirect("/bang-dieu-khien");
+  if (effectiveMode(session.user) !== "student") redirect("/bang-dieu-khien");
 
   const [user, tasks, allCards, subjectProgress] = await Promise.all([
     prisma.user.findUnique({ where: { id: session.user.id } }),

@@ -36,7 +36,7 @@ async function setupSubmission() {
   return { submissionId: subJson.submission.id, code: exam.joinCode };
 }
 
-let DATA: any = null;
+let DATA = null as { submissionId: string; code: string };
 
 test.beforeAll(async () => {
   DATA = await setupSubmission();

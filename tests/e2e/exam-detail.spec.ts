@@ -1,5 +1,5 @@
 import { test, expect, request as pwRequest } from "@playwright/test";
-import { TEACHER, login, timestamp } from "./helpers";
+import { TEACHER, login } from "./helpers";
 
 // Tạo 1 exam + 1 submission qua API để test trang detail
 async function setupExam() {

@@ -36,7 +36,7 @@ test.describe("ADMIN — Panel", () => {
     test.info().annotations.push({ type: "note", description: `stats:${stats.status()} users:${users.status()} exams:${exams.status()} reports:${reports.status()}` });
   });
 
-  test("AD-03: Student token gọi admin API → 403", async ({ page, context }) => {
+  test("AD-03: Student token gọi admin API → 403", async ({ page }) => {
     // Đăng nhập student bình thường
     await page.goto("/dang-nhap");
     await page.locator("#email").fill("tester-hs-20260816@edutest.vn");

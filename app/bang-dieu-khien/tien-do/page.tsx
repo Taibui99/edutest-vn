@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import dynamic from "next/dynamic";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
+import { effectiveMode } from "@/lib/access";
 import { prisma } from "@/lib/prisma";
 
 const ProgressClient = dynamic(() => import("./progress-client").then((m) => m.ProgressClient));
@@ -13,7 +14,7 @@ export const metadata: Metadata = {
 export default async function TienDoPage() {
   const session = await auth();
   if (!session?.user) redirect("/dang-nhap");
-  if (session.user.mode !== "student") redirect("/bang-dieu-khien");
+  if (effectiveMode(session.user) !== "student") redirect("/bang-dieu-khien");
 
   const [user, submissions, flashcardCount] = await Promise.all([
     prisma.user.findUnique({

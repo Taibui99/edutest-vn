@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { auth } from "@/auth";
+import { effectiveMode } from "@/lib/access";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { GraduationCap, Users, FileCheck, TrendingUp } from "lucide-react";
@@ -12,7 +13,7 @@ export const metadata: Metadata = { title: "Học sinh — EduTest" };
 export default async function StudentsPage() {
   const session = await auth();
   if (!session?.user) redirect("/dang-nhap");
-  if (session.user.mode !== "teacher") redirect("/bang-dieu-khien");
+  if (effectiveMode(session.user) !== "teacher") redirect("/bang-dieu-khien");
 
   const classrooms = await prisma.classroom.findMany({
     where: { teacherId: session.user.id },

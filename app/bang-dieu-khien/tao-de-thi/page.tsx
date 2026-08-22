@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { auth } from "@/auth";
+import { effectiveMode } from "@/lib/access";
 import { prisma } from "@/lib/prisma";
 import type { InitialExam } from "./editor-lazy";
 import { TaoDeThiEditorLazy } from "./editor-lazy";
@@ -15,7 +16,7 @@ export default async function TaoDeThiPage({ searchParams }: { searchParams: Pro
 
   if (edit) {
     const session = await auth();
-    if (session?.user?.mode === "teacher" || session?.user?.mode === "admin") {
+    if (["teacher", "admin"].includes(effectiveMode(session.user) ?? "")) {
       const exam = await prisma.exam.findFirst({
         where: { id: edit, teacherId: session.user.id },
         select: {

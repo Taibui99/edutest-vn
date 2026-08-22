@@ -1,5 +1,5 @@
 import { test, expect, request as pwRequest } from "@playwright/test";
-import { TEACHER, STUDENT, login, timestamp } from "./helpers";
+import { TEACHER, STUDENT, login } from "./helpers";
 
 async function setupClassroom() {
   const req = await pwRequest.newContext({ baseURL: "https://edutest-vn.vercel.app" });
@@ -21,7 +21,7 @@ async function setupClassroom() {
   return classroom;
 }
 
-let CLASS = null as any;
+let CLASS = null as { id: string; name: string; joinCode: string };
 
 test.beforeAll(async () => {
   CLASS = await setupClassroom();

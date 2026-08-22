@@ -1,4 +1,5 @@
 import type { NextAuthConfig } from "next-auth";
+import { effectiveMode, defaultModeByRole } from "@/lib/access";
 
 const STUDENT_MODE_ROUTES = ["/bang-dieu-khien/hoc-tap", "/bang-dieu-khien/tien-do"];
 
@@ -36,7 +37,8 @@ export const authConfig: NextAuthConfig = {
       }
 
       if (isLoggedIn) {
-        const mode = auth.user.mode;
+        // Token cũ trước G6 thiếu claim mode → suy ra mặc định theo role
+        const mode = effectiveMode(auth.user);
 
         if (pathname.startsWith("/admin")) {
           if (mode !== "admin") {
@@ -64,9 +66,10 @@ export const authConfig: NextAuthConfig = {
       if (user) {
         token.id = user.id ?? "";
         token.role = user.role;
-        if (!token.mode) {
-          token.mode = user.role === "admin" ? "admin" : user.role;
-        }
+      }
+      if (!token.mode) {
+        // Token cũ trước G6 thiếu claim mode → bổ sung theo role
+        token.mode = defaultModeByRole(token.role as string);
       }
       return token;
     },
