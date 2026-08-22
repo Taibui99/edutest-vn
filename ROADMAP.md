@@ -80,6 +80,11 @@
 - [x] **Fix focus outline vuông** (commits `8bbcd63` + `2c430a2`) — lỗi user báo: click ô nhập tin nhắn AI thấy viền ô vuông khó chịu (input bo tròn). Nguyên nhân: rule toàn cục `*:focus-visible { outline: 2px }` **unlayered** thắng mọi `@layer` bất kể specificity nên `outline-none` (Tailwind utilities layer) không gỡ được. Fix: `:where(*:focus-visible)` + bọc trong `@layer base` để utilities override — verified live: AI coach textarea `outline-style:none`, editor textarea `none`, input login vẫn còn focus ring teal qua `focus:ring-2`
 - [x] **Fix thống kê lỗi cho admin ở chế độ GV** (commit `ae8d414`) — bug: `/bang-dieu-khien/thong-ke` crash "undefined is not iterable" khi đăng nhập admin → chuyển mode Giáo viên. Nguyên nhân: G6 proxy guard theo `mode` nhưng các API check `role === "teacher"` → admin (role=admin) bị 401 → `{error}` được `setData` → destructure `summary` undefined → `Math.max(...)` crash. Fix: thêm `lib/access.ts` (`isTeacherAccess` = teacher **hoặc** admin; `isAdminAccess`), thay 14 API teacher dùng `isTeacherAccess` (analytics, questions, classrooms + [id]/members/assignments, exams + [id]/share, question-bank + [id], gemini, ai-coach, ai-router); thống kê check `r.ok` trước `setData` + hiện thông báo khi lỗi; admin routes giữ nguyên `role !== "admin"` — verified live: admin login → đổi mode GV → `/thong-ke` hiển thị đủ Đề thi/Bài nộp, 0 console error
 
+## 🛠 Fix bug theo báo cáo QA (2026-08-22)
+- [ ] **BUG-1 · SEC-02 (P1)** Forgot-password rò rỉ `resetLink` plaintext trong response khi bật setting `exposeResetLink` + UI render link demo — bỏ cơ chế expose khỏi production (chỉ giữ NODE_ENV=development), sửa UI không còn render link
+- [ ] **BUG-2 · BUG-01 (P1)** Register chấp nhận email sai định dạng (`qa-short`) — thêm validate email server-side → 400 kèm message tiếng Việt
+- [ ] **BUG-3 · SEC-01 (P2)** Token cũ trước G6 thiếu claim `mode`: UI chặn `/admin` nhưng `/api/admin/*` chỉ check role vẫn cho qua; admin đang ở mode GV/HS cũng gọi được API admin — thêm helper suy ra mode mặc định theo role khi thiếu claim, nhất quán guard UI lẫn API admin
+
 ## ✅ Đã xong (không cần làm lại)
 - Share/QR (§8, §14) — `chia-se-de/[joinCode]`: copy link, mã truy cập, QR + tải QR, native share
 - Re-import / tạo lại đề trong modal import — nút "Thử lại"/"Chọn file khác"
