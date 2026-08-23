@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Link2, PenLine, Rocket, Target } from "lucide-react";
+import { ClipboardCheck, PenLine, Rocket, Target } from "lucide-react";
 import { auth } from "@/auth";
 import { Header } from "./components/header";
 import { Hero } from "./components/hero";
@@ -12,20 +12,20 @@ const STEPS = [
   {
     icon: PenLine,
     step: "1",
-    title: "Tạo tài khoản hoặc mở đề",
-    desc: "Giáo viên đăng ký để tạo đề và quản lý lớp. Học sinh có thể đăng ký tài khoản hoặc mở link/mã đề để tham gia khi đề cho phép guest.",
-  },
-  {
-    icon: Link2,
-    step: "2",
-    title: "Tham gia bài thi",
-    desc: "Học sinh mở link hoặc nhập mã đề, sau đó bắt đầu làm bài. Với guest, chỉ cần nhập họ tên và lớp.",
+    title: "Soạn hoặc chọn câu hỏi",
+    desc: "Tự tay soạn trắc nghiệm, đúng–sai, điền khuyết, tự luận trên một màn hình — hoặc kéo thẳng từ ngân hàng câu hỏi có sẵn.",
   },
   {
     icon: Rocket,
+    step: "2",
+    title: "Xuất bản & gửi mã phòng",
+    desc: "Hệ thống sinh mã phòng thi và link đề. Học sinh nhập mã là làm bài ngay, không cần cài đặt gì.",
+  },
+  {
+    icon: ClipboardCheck,
     step: "3",
-    title: "Làm bài và xem kết quả",
-    desc: "Làm bài trong thời gian quy định, hệ thống chấm và ghi nhận kết quả. Tài khoản EduTest còn hỗ trợ ôn tập và theo dõi tiến độ.",
+    title: "Nhận báo cáo tức thì",
+    desc: "Chấm tự động 100% với trắc nghiệm. Bài nộp tới đâu, điểm số và thống kê hiện tới đó.",
   },
 ];
 
@@ -53,7 +53,7 @@ export default async function Home() {
               Hướng dẫn
             </span>
             <h2 className="mb-12 text-2xl font-black sm:text-3xl" style={{ color: "var(--text-primary)" }}>
-              Bắt đầu dễ dàng, theo cách phù hợp với bạn
+              Từ ý tưởng đến đề thi hoàn chỉnh trong vài cú bấm
             </h2>
 
             <div className="grid gap-6 sm:grid-cols-3">
@@ -90,15 +90,15 @@ export default async function Home() {
               Sẵn sàng bắt đầu?
             </h2>
             <p className="mb-8 text-white/80">
-              Tạo tài khoản miễn phí để học và quản lý bài thi, hoặc vào bài bằng mã nếu giáo viên đã gửi đề cho bạn.
+              Tạo tài khoản miễn phí để soạn đề, quản lý lớp và nhận báo cáo tự động — hoặc vào bài bằng mã nếu giáo viên đã gửi đề cho bạn.
             </p>
             <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
               <Link
                 href="/dang-ky"
-                className="inline-flex h-12 w-full items-center justify-center rounded-2xl px-8 text-base font-black transition-transform hover:scale-105 sm:w-auto"
+                className="inline-flex h-12 w-full items-center justify-center rounded-2xl px-8 text-base font-black transition-transform hover:scale-[1.03] sm:w-auto"
                 style={{ background: "var(--surface-card)", color: "var(--primary)" }}
               >
-                Đăng ký miễn phí
+                Bắt đầu soạn đề miễn phí
               </Link>
               <Link
                 href="/vao-thi"
