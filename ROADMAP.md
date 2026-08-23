@@ -85,6 +85,14 @@
 - [x] **BUG-2 · BUG-01 (P1)** Register chấp nhận email sai định dạng (`qa-short`) — thêm validate email server-side regex → 400 "Email không hợp lệ." (commit `011759a`) — verified live: `qa-short`/email rỗng → 400
 - [x] **BUG-3 · SEC-01 (P2)** Token cũ trước G6 thiếu claim `mode`: UI chặn `/admin` nhưng `/api/admin/*` chỉ check role vẫn cho qua; admin đang ở mode GV/HS cũng gọi được API admin — thêm `effectiveMode()`/`defaultModeByRole()` vào `lib/access.ts`, jwt callback tự backfill mode cho token cũ, 15 guard trong 8 route `/api/admin/*` chuyển sang `isAdminAccess(sessionUser(session))` (role=admin **và** mode=Quản trị), 4 page-guard dùng `effectiveMode()` nhất quán (commit `f9ac83a`) — verified live: admin→stats/system 200, student→403; kèm dọn lint E2E suite (eslint ignore scripts/, sửa any/unused) — full E2E 192 test: 191 passed + 1 skip chủ ý L-04 mobile, cleanup về trạng thái sạch
 
+## 🎨 Đại tu UI 2.0 (design system đã duyệt qua `mockup/preview.html`)
+- [x] **R0 Design tokens + font** (commit `dc9fa12`) — hoán đổi toàn bộ tokens trong `globals.css` sang palette đã duyệt: primary tím `#6C4CF1` (+hover `#5A3BD8`, light `#F1EDFD`), nền tím-nhẹ `#F6F5FB` ("thêm màu nền 1 tí"), card trắng viền ấm `#E7E5E0`, text ink `#1F2937`, gradient brand violet đơn sắc, accent chức năng jade/coral/sky/sun theo preview; **font đổi Nunito → Be Vietnam Pro duy nhất**; bulk sweep ~25 file hex teal cứng sót từ G11 → mapping violet tương đương (avatar/subject/sidebar/admin/dashboard...); dark block cập nhật neutral-violet (dark vẫn bị tắt từ G10) — verified live: body bg rgb(246,245,251), font Be Vietnam Pro, CTA rgb(108,76,241); lint 0 error + tsc sạch + build OK
+- [ ] **R1 Landing + Auth** — áp layout/phong cách preview (hero creation-first, form 2 cột) trên nền tokens mới
+- [ ] **R2 Khung điều hướng** — sidebar/topbar/mobile-nav đồng bộ phong cách mới
+- [ ] **R3+R4 Trang GV/HS** — dashboard, đề thi, lớp học, học tập...
+- [ ] **R5 Runner** — phòng thi nghiêm túc (A/B/C/D, timer, giải thích) như mockup/runner.html
+- [ ] **R6 Admin + monitoring DB**
+
 ## ✅ Đã xong (không cần làm lại)
 - Share/QR (§8, §14) — `chia-se-de/[joinCode]`: copy link, mã truy cập, QR + tải QR, native share
 - Re-import / tạo lại đề trong modal import — nút "Thử lại"/"Chọn file khác"
