@@ -80,7 +80,7 @@ export function Sidebar({ user, logoutAction }: SidebarProps) {
       {/* Logo */}
       <div className="flex items-center justify-between px-5 h-[60px] border-b border-[var(--surface-border)] shrink-0">
         <span className="text-xl font-black tracking-tight">
-          <span className="text-[#6C4CF1]">Edu</span><span className="text-[#F97316]">Test</span>
+          <span className="text-[#6C4CF1]">Edu</span><span className="text-[var(--text-primary)]">Test</span>
           <span className="text-[var(--text-muted)] font-semibold text-sm">.vn</span>
         </span>
         <div className="flex items-center gap-1.5">
@@ -94,7 +94,7 @@ export function Sidebar({ user, logoutAction }: SidebarProps) {
         <div className="flex items-center gap-1.5">
           <div className={cn(
             "text-xs font-bold px-2.5 py-1.5 rounded-lg inline-flex items-center gap-1.5",
-            mode === "teacher" ? "bg-[#E8F4FD] text-[#0284C7]" : "bg-[#E1F5EE] text-[#06D6A0]"
+            mode === "teacher" ? "bg-[#EAF3FC] text-[#2F80D8]" : "bg-[#E8F7F1] text-[#189A6C]"
           )}>
             {mode === "teacher" ? <GraduationCap size={11} /> : <BookOpen size={11} />}
             {mode === "teacher" ? "Giáo viên" : "Học sinh"}
@@ -127,7 +127,7 @@ export function Sidebar({ user, logoutAction }: SidebarProps) {
       {/* User + logout */}
       <div className="p-3 border-t border-[var(--surface-border)]">
         <div className="flex items-center gap-3 px-2 py-2 rounded-xl hover:bg-[var(--gray-100)] transition-colors">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#6C4CF1] to-[#F97316] flex items-center justify-center text-white text-xs font-bold shrink-0">
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#6C4CF1] to-[#9B7FF7] flex items-center justify-center text-white text-xs font-bold shrink-0">
             {user.name.charAt(0).toUpperCase()}
           </div>
           <div className="flex-1 min-w-0">
@@ -135,7 +135,7 @@ export function Sidebar({ user, logoutAction }: SidebarProps) {
             <p className="text-xs text-[var(--text-muted)] truncate">{user.email}</p>
           </div>
           <form action={logoutAction}>
-            <button type="submit" className="text-[var(--text-muted)] hover:text-[#F97316] transition-colors" aria-label="Đăng xuất">
+            <button type="submit" className="text-[var(--text-muted)] hover:text-[#E14D4D] transition-colors" aria-label="Đăng xuất">
               <LogOut size={15} />
             </button>
           </form>

@@ -87,7 +87,7 @@ export default function AdminAnalytics() {
       <div className="grid lg:grid-cols-2 gap-5 mb-5">
         <div className="rounded-2xl bg-[var(--surface-card)] border border-[var(--surface-border)] p-5">
           <h2 className="text-sm font-black text-[var(--text-primary)] mb-4 flex items-center gap-2">
-            <Flag size={14} className="text-[#F97316]" /> Báo cáo theo trạng thái
+            <Flag size={14} className="text-[#E14D4D]" /> Báo cáo theo trạng thái
           </h2>
           <div className="flex flex-wrap gap-2">
             {Object.entries(REPORT_LABEL).map(([k, label]) => (
@@ -99,7 +99,7 @@ export default function AdminAnalytics() {
         </div>
         <div className="rounded-2xl bg-[var(--surface-card)] border border-[var(--surface-border)] p-5">
           <h2 className="text-sm font-black text-[var(--text-primary)] mb-4 flex items-center gap-2">
-            <Sparkles size={14} className="text-[#0284C7]" /> AI Import theo trạng thái
+            <Sparkles size={14} className="text-[#2F80D8]" /> AI Import theo trạng thái
           </h2>
           <div className="flex flex-wrap gap-2">
             {Object.entries(AI_LABEL).map(([k, label]) => (

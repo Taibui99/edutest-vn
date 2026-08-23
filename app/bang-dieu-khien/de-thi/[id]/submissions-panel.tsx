@@ -39,9 +39,9 @@ const SORT_OPTIONS: { key: SortKey; label: string }[] = [
 ];
 
 function scoreColor(score: number) {
-  if (score >= 8) return { text: "#06D6A0", bg: "#E1F5EE" };
+  if (score >= 8) return { text: "#189A6C", bg: "#E8F7F1" };
   if (score >= 6.5) return { text: "#D4A017", bg: "#FFF8E1" };
-  return { text: "#F97316", bg: "#FFECEC" };
+  return { text: "#E14D4D", bg: "#FFECEC" };
 }
 
 function renderAnswer(q: SubQuestion, selected: AnswerValue | undefined) {
@@ -228,7 +228,7 @@ export function SubmissionsPanel({ subs, questions }: { subs: SubRow[]; question
                       const auto = isAutoGraded(q);
                       const answered = selected !== undefined && selected !== null;
                       const Icon = !answered ? MinusCircle : correct ? CheckCircle2 : XCircle;
-                      const iconColor = !answered ? "#94A3B8" : correct ? "#06D6A0" : "#F97316";
+                      const iconColor = !answered ? "#94A3B8" : correct ? "#189A6C" : "#E14D4D";
                       return (
                         <div key={q.id} className="rounded-xl border border-[var(--surface-border)] bg-[var(--surface-card)] p-3">
                           <div className="flex items-start gap-2.5">
@@ -260,8 +260,8 @@ export function SubmissionsPanel({ subs, questions }: { subs: SubRow[]; question
                             <span
                               className="shrink-0 text-[11px] font-black px-2 py-0.5 rounded-md"
                               style={{
-                                background: !answered ? "#F1F5F9" : correct ? "#E1F5EE" : "#FFECEC",
-                                color: !answered ? "#64748B" : correct ? "#06D6A0" : "#F97316",
+                                background: !answered ? "#F1F5F9" : correct ? "#E8F7F1" : "#FFECEC",
+                                color: !answered ? "#64748B" : correct ? "#189A6C" : "#E14D4D",
                               }}
                             >
                               {!answered ? "Bỏ trống" : correct ? "Đúng" : "Sai"}

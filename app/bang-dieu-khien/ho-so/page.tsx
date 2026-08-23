@@ -191,7 +191,7 @@ export default function ProfilePage() {
           <h2 className="font-black text-[var(--text-primary)] text-lg truncate">{profile.name}</h2>
           <p className="text-sm text-[var(--text-muted)] truncate">{profile.email}</p>
           <span className={`inline-block mt-1 text-xs font-bold px-2.5 py-0.5 rounded-full ${
-            profile.role === "teacher" ? "bg-[#E8F4FD] text-[#0284C7]" : "bg-[#E1F5EE] text-[#06D6A0]"
+            profile.role === "teacher" ? "bg-[#EAF3FC] text-[#2F80D8]" : "bg-[#E8F7F1] text-[#189A6C]"
           }`}>
             {profile.role === "teacher" ? "Giáo viên" : "Học sinh"}
           </span>

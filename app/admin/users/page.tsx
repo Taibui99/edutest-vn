@@ -124,8 +124,8 @@ export default function AdminUsers() {
     r === "admin"
       ? "bg-[#F1EDFD] text-[#6C4CF1]"
       : r === "teacher"
-        ? "bg-[#E8F4FD] text-[#0284C7]"
-        : "bg-[#E1F5EE] text-[#06D6A0]";
+        ? "bg-[#EAF3FC] text-[#2F80D8]"
+        : "bg-[#E8F7F1] text-[#189A6C]";
 
   return (
     <div className="p-4 lg:p-8 max-w-6xl mx-auto">

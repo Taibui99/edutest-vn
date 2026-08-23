@@ -154,8 +154,8 @@ export default async function ExamDetailPage({ params }: { params: Promise<{ id:
         {[
           { label: "Bài nộp", value: subs.length, color: "bg-[#F1EDFD] dark:bg-[#2B2358] text-[#6C4CF1]" },
           { label: "Điểm TB", value: avgScore !== null ? avgScore.toFixed(1) : "—", color: "bg-[#FFF8E1] dark:bg-[#2B2410] text-[#D4A017]" },
-          { label: "Điểm cao nhất", value: highest !== null ? highest.toFixed(1) : "—", color: "bg-[#E1F5EE] dark:bg-[#0A2A20] text-[#06D6A0]" },
-          { label: "Tỉ lệ đậu", value: subs.length > 0 ? `${Math.round((passCount / subs.length) * 100)}%` : "—", color: "bg-[#E8F4FD] dark:bg-[#0D2A3E] text-[#0284C7]" },
+          { label: "Điểm cao nhất", value: highest !== null ? highest.toFixed(1) : "—", color: "bg-[#E8F7F1] dark:bg-[#0A2A20] text-[#189A6C]" },
+          { label: "Tỉ lệ đậu", value: subs.length > 0 ? `${Math.round((passCount / subs.length) * 100)}%` : "—", color: "bg-[#EAF3FC] dark:bg-[#0D2A3E] text-[#2F80D8]" },
         ].map(({ label, value, color }) => (
           <div key={label} className={`rounded-2xl p-4 ${color.split(" ").slice(0, 2).join(" ")}`}>
             <p className={`text-xs font-bold mb-1 ${color.split(" ").slice(-1)[0]}`}>{label}</p>
@@ -189,7 +189,7 @@ export default async function ExamDetailPage({ params }: { params: Promise<{ id:
                         className="h-full rounded-full transition-all"
                         style={{
                           width: `${(dist[i] / maxDist) * 100}%`,
-                          background: ["#F97316","#FFD166","#06D6A0","#2F80D8","#6C4CF1"][i]
+                          background: ["#E14D4D","#FFD166","#189A6C","#2F80D8","#6C4CF1"][i]
                         }}
                       />
                     </div>
@@ -220,7 +220,7 @@ export default async function ExamDetailPage({ params }: { params: Promise<{ id:
                           {question.text}
                         </p>
                         {pct !== null && (
-                          <span className={`shrink-0 text-xs font-black ${pct >= 70 ? "text-[#06D6A0]" : pct >= 40 ? "text-[#D4A017]" : "text-[#F97316]"}`}>
+                          <span className={`shrink-0 text-xs font-black ${pct >= 70 ? "text-[#189A6C]" : pct >= 40 ? "text-[#D4A017]" : "text-[#E14D4D]"}`}>
                             {pct}%
                           </span>
                         )}
@@ -230,7 +230,7 @@ export default async function ExamDetailPage({ params }: { params: Promise<{ id:
                           className="h-full rounded-full transition-all"
                           style={{
                             width: `${pct ?? 0}%`,
-                            background: pct === null ? "#CBD5E1" : pct >= 70 ? "#06D6A0" : pct >= 40 ? "#D4A017" : "#F97316",
+                            background: pct === null ? "#CBD5E1" : pct >= 70 ? "#189A6C" : pct >= 40 ? "#D4A017" : "#E14D4D",
                           }}
                         />
                       </div>
@@ -246,15 +246,15 @@ export default async function ExamDetailPage({ params }: { params: Promise<{ id:
 
           {subs.length > 0 && (
             <div className="grid grid-cols-2 gap-2">
-              <div className="rounded-xl bg-[#E1F5EE] p-3 text-center dark:bg-[#0A2A20]">
-                <CheckCircle2 size={16} className="text-[#06D6A0] mx-auto mb-1" />
+              <div className="rounded-xl bg-[#E8F7F1] p-3 text-center dark:bg-[#0A2A20]">
+                <CheckCircle2 size={16} className="text-[#189A6C] mx-auto mb-1" />
                 <p className="text-lg font-black text-[var(--text-primary)]">{passCount}</p>
-                <p className="text-xs text-[#06D6A0] font-bold">Đậu (≥ 5)</p>
+                <p className="text-xs text-[#189A6C] font-bold">Đậu (≥ 5)</p>
               </div>
               <div className="rounded-xl bg-[#FFECEC] p-3 text-center dark:bg-[#2B1616]">
-                <XCircle size={16} className="text-[#F97316] mx-auto mb-1" />
+                <XCircle size={16} className="text-[#E14D4D] mx-auto mb-1" />
                 <p className="text-lg font-black text-[var(--text-primary)]">{subs.length - passCount}</p>
-                <p className="text-xs text-[#F97316] font-bold">Rớt (&lt; 5)</p>
+                <p className="text-xs text-[#E14D4D] font-bold">Rớt (&lt; 5)</p>
               </div>
             </div>
           )}

@@ -84,8 +84,8 @@ export default async function StudentsPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         {[
           { label: "Tổng học sinh", value: students.length, icon: <Users size={16} />, color: "#6C4CF1" },
-          { label: "Lớp học", value: classrooms.length, icon: <GraduationCap size={16} />, color: "#06D6A0" },
-          { label: "Bài đã nộp", value: totalSubmissions, icon: <FileCheck size={16} />, color: "#F97316" },
+          { label: "Lớp học", value: classrooms.length, icon: <GraduationCap size={16} />, color: "#189A6C" },
+          { label: "Bài đã nộp", value: totalSubmissions, icon: <FileCheck size={16} />, color: "#E14D4D" },
           { label: "Điểm TB", value: subAgg.length > 0 ? avgAll.toFixed(1) : "—", icon: <TrendingUp size={16} />, color: "#FFD166" },
         ].map((stat) => (
           <Card key={stat.label} className="px-5 py-4">

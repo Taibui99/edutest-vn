@@ -31,7 +31,7 @@ export function AdminSidebar({ user }: { user: { name: string; email: string; ro
         <div className="flex items-center justify-between px-5 h-[60px] border-b border-[var(--surface-border)] shrink-0">
           <span className="text-xl font-black tracking-tight">
             <span className="text-[#6C4CF1]">Edu</span>
-            <span className="text-[#F97316]">Test</span>
+            <span className="text-[#E14D4D]">Test</span>
             <span className="text-[var(--text-muted)] font-semibold text-sm">.vn</span>
           </span>
           <div className="flex items-center gap-1.5">
@@ -77,7 +77,7 @@ export function AdminSidebar({ user }: { user: { name: string; email: string; ro
               redirectTo="/bang-dieu-khien"
               label="Học sinh"
               active={false}
-              className="flex-1 flex items-center justify-center gap-1.5 px-2 py-2 rounded-xl text-xs font-bold text-[#06D6A0] bg-[#E1F5EE] hover:bg-[#D2F0E3] transition-colors cursor-pointer"
+              className="flex-1 flex items-center justify-center gap-1.5 px-2 py-2 rounded-xl text-xs font-bold text-[#189A6C] bg-[#E8F7F1] hover:bg-[#D2F0E3] transition-colors cursor-pointer"
             >
               <BookOpen size={13} /> Học sinh
             </ModeSwitchButton>
@@ -86,13 +86,13 @@ export function AdminSidebar({ user }: { user: { name: string; email: string; ro
               redirectTo="/bang-dieu-khien"
               label="Giáo viên"
               active={false}
-              className="flex-1 flex items-center justify-center gap-1.5 px-2 py-2 rounded-xl text-xs font-bold text-[#0284C7] bg-[#E8F4FD] hover:bg-[#D8EDFB] transition-colors cursor-pointer"
+              className="flex-1 flex items-center justify-center gap-1.5 px-2 py-2 rounded-xl text-xs font-bold text-[#2F80D8] bg-[#EAF3FC] hover:bg-[#D8EDFB] transition-colors cursor-pointer"
             >
               <GraduationCap size={13} /> Giáo viên
             </ModeSwitchButton>
           </div>
           <div className="flex items-center gap-3 px-2 py-2 mt-2">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#6C4CF1] to-[#F97316] flex items-center justify-center text-white text-xs font-bold shrink-0">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#6C4CF1] to-[#E14D4D] flex items-center justify-center text-white text-xs font-bold shrink-0">
               {user.name.charAt(0).toUpperCase()}
             </div>
             <div className="flex-1 min-w-0">

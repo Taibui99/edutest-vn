@@ -42,7 +42,7 @@ interface Submission {
 
 function ScoreGauge({ score }: { score: number }) {
   const pct = (score / 10) * 100;
-  const color = score >= 8 ? "#06D6A0" : score >= 6.5 ? "#FFD166" : "#F97316";
+  const color = score >= 8 ? "#189A6C" : score >= 6.5 ? "#FFD166" : "#E14D4D";
   const grade = score >= 8.5 ? "Xuất sắc" : score >= 7 ? "Khá" : score >= 5 ? "Trung bình" : "Yếu";
 
   return (
@@ -126,15 +126,15 @@ export default function ResultPage({ params }: { params: Promise<{ id: string }>
         )}
 
         <div className="grid grid-cols-3 gap-3 mt-2">
-          <div className="rounded-xl bg-[#E1F5EE] p-3 dark:bg-[#0A2A20]">
-            <CheckCircle2 size={16} className="text-[#06D6A0] mx-auto mb-1" />
+          <div className="rounded-xl bg-[#E8F7F1] p-3 dark:bg-[#0A2A20]">
+            <CheckCircle2 size={16} className="text-[#189A6C] mx-auto mb-1" />
             <p className="text-lg font-black text-[var(--text-primary)]">{sub.correctCount}</p>
-            <p className="text-xs text-[#06D6A0] font-bold">Đúng</p>
+            <p className="text-xs text-[#189A6C] font-bold">Đúng</p>
           </div>
           <div className="rounded-xl bg-[#FFECEC] p-3 dark:bg-[#2B1616]">
-            <XCircle size={16} className="text-[#F97316] mx-auto mb-1" />
+            <XCircle size={16} className="text-[#E14D4D] mx-auto mb-1" />
             <p className="text-lg font-black text-[var(--text-primary)]">{sub.totalQuestions - sub.correctCount}</p>
-            <p className="text-xs text-[#F97316] font-bold">Sai</p>
+            <p className="text-xs text-[#E14D4D] font-bold">Sai</p>
           </div>
           <div className="rounded-xl bg-[var(--gray-100)] p-3">
             <Clock size={16} className="text-[var(--text-muted)] mx-auto mb-1" />
@@ -150,11 +150,11 @@ export default function ResultPage({ params }: { params: Promise<{ id: string }>
 
       {/* Strengths/weaknesses */}
       {wrongQuestions.length === 0 ? (
-        <div className="rounded-2xl bg-[#E1F5EE] border border-[#A8E6D6] p-4 mb-5 flex items-center gap-3">
-          <Trophy size={20} className="text-[#06D6A0] shrink-0" />
+        <div className="rounded-2xl bg-[#E8F7F1] border border-[#A8E6D6] p-4 mb-5 flex items-center gap-3">
+          <Trophy size={20} className="text-[#189A6C] shrink-0" />
           <div>
             <p className="font-black text-[#064E3B]">🎉 Hoàn hảo! Bạn trả lời đúng tất cả câu!</p>
-            <p className="text-sm text-[#06D6A0] mt-0.5">Tiếp tục duy trì phong độ nhé.</p>
+            <p className="text-sm text-[#189A6C] mt-0.5">Tiếp tục duy trì phong độ nhé.</p>
           </div>
         </div>
       ) : (
@@ -198,11 +198,11 @@ export default function ResultPage({ params }: { params: Promise<{ id: string }>
                   <div key={q.id} className="p-5">
                     <div className="flex items-start gap-2 mb-3">
                       <span className={`shrink-0 w-5 h-5 rounded-full flex items-center justify-center ${
-                        isCorrect ? "bg-[#E1F5EE]" : "bg-[#FFECEC]"
+                        isCorrect ? "bg-[#E8F7F1]" : "bg-[#FFECEC]"
                       }`}>
                         {isCorrect
-                          ? <CheckCircle2 size={13} className="text-[#06D6A0]" />
-                          : <XCircle size={13} className="text-[#F97316]" />
+                          ? <CheckCircle2 size={13} className="text-[#189A6C]" />
+                          : <XCircle size={13} className="text-[#E14D4D]" />
                         }
                       </span>
                       <p className="text-sm font-semibold text-[var(--text-primary)]">
@@ -220,20 +220,20 @@ export default function ResultPage({ params }: { params: Promise<{ id: string }>
                           <div
                             key={letter}
                             className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm ${
-                              isCorrectAnswer ? "bg-[#E1F5EE] text-[#064E3B] font-semibold" :
+                              isCorrectAnswer ? "bg-[#E8F7F1] text-[#064E3B] font-semibold" :
                               isUserPick && !isCorrect ? "bg-[#FFECEC] text-[#7F1D1D]" :
                               "text-[var(--text-secondary)]"
                             }`}
                           >
                             <span className={`w-5 h-5 rounded-full text-xs font-black flex items-center justify-center shrink-0 ${
-                              isCorrectAnswer ? "bg-[#06D6A0] text-white" :
-                              isUserPick && !isCorrect ? "bg-[#F97316] text-white" :
+                              isCorrectAnswer ? "bg-[#189A6C] text-white" :
+                              isUserPick && !isCorrect ? "bg-[#E14D4D] text-white" :
                               "bg-[var(--gray-200)] text-[var(--text-muted)]"
                             }`}>
                               {letter}
                             </span>
                             {opt}
-                            {isCorrectAnswer && <CheckCircle2 size={13} className="ml-auto text-[#06D6A0]" />}
+                            {isCorrectAnswer && <CheckCircle2 size={13} className="ml-auto text-[#189A6C]" />}
                           </div>
                         );
                       })}

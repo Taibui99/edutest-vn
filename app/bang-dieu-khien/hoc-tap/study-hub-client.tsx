@@ -165,7 +165,7 @@ function ExamCountdown({ initialExamDate }: { initialExamDate: string | null }) 
               <defs>
                 <linearGradient id="countdownGradient" x1="0" y1="0" x2="1" y2="1">
                   <stop offset="0%" stopColor="#6C4CF1" />
-                  <stop offset="100%" stopColor="#06D6A0" />
+                  <stop offset="100%" stopColor="#189A6C" />
                 </linearGradient>
               </defs>
             </svg>

@@ -23,7 +23,7 @@ export function MaintenanceGate({
 
   return (
     <main className="flex-1 flex flex-col items-center justify-center px-6 text-center py-24">
-      <div className="w-16 h-16 rounded-2xl bg-[#FFF0F0] text-[#F97316] flex items-center justify-center mb-5">
+      <div className="w-16 h-16 rounded-2xl bg-[#FFF0F0] text-[#E14D4D] flex items-center justify-center mb-5">
         <Wrench size={30} />
       </div>
       <h1 className="text-2xl font-black text-slate-800 mb-2">Website đang bảo trì</h1>
