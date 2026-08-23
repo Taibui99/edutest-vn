@@ -38,7 +38,7 @@ export default function AdminAi() {
   return (
     <div className="p-4 lg:p-8 max-w-5xl mx-auto">
       <h1 className="text-xl font-black text-[var(--text-primary)] mb-6 flex items-center gap-2">
-        <Sparkles size={20} className="text-[#0F766E]" /> Nhật ký AI Import
+        <Sparkles size={20} className="text-[#6C4CF1]" /> Nhật ký AI Import
       </h1>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">

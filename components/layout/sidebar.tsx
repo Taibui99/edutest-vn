@@ -55,16 +55,16 @@ function NavLink({ item, pathname }: { item: NavItem; pathname: string }) {
       className={cn(
         "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-700 font-semibold transition-all",
         active
-          ? "bg-[#CCFBF1] text-[#0F766E] shadow-sm"
+          ? "bg-[#F1EDFD] text-[#6C4CF1] shadow-sm"
           : "text-[var(--text-secondary)] hover:bg-[var(--gray-100)] hover:text-[var(--text-primary)]",
       )}
       aria-current={active ? "page" : undefined}
     >
-      <span className={cn("shrink-0 transition-colors", active ? "text-[#0F766E]" : "text-[var(--text-muted)]")}>
+      <span className={cn("shrink-0 transition-colors", active ? "text-[#6C4CF1]" : "text-[var(--text-muted)]")}>
         {item.icon}
       </span>
       <span className="whitespace-nowrap">{item.label}</span>
-      {active && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-[#0F766E]" />}
+      {active && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-[#6C4CF1]" />}
     </Link>
   );
 }
@@ -80,7 +80,7 @@ export function Sidebar({ user, logoutAction }: SidebarProps) {
       {/* Logo */}
       <div className="flex items-center justify-between px-5 h-[60px] border-b border-[var(--surface-border)] shrink-0">
         <span className="text-xl font-black tracking-tight">
-          <span className="text-[#0F766E]">Edu</span><span className="text-[#F97316]">Test</span>
+          <span className="text-[#6C4CF1]">Edu</span><span className="text-[#F97316]">Test</span>
           <span className="text-[var(--text-muted)] font-semibold text-sm">.vn</span>
         </span>
         <div className="flex items-center gap-1.5">
@@ -104,7 +104,7 @@ export function Sidebar({ user, logoutAction }: SidebarProps) {
             redirectTo="/bang-dieu-khien"
             label={mode === "student" ? "Giáo viên" : "Học sinh"}
             active={false}
-            className="text-[10px] font-bold text-[var(--text-muted)] hover:text-[#0F766E] transition-colors inline-flex items-center gap-1 px-2 py-1.5 rounded-lg hover:bg-[var(--gray-100)] cursor-pointer"
+            className="text-[10px] font-bold text-[var(--text-muted)] hover:text-[#6C4CF1] transition-colors inline-flex items-center gap-1 px-2 py-1.5 rounded-lg hover:bg-[var(--gray-100)] cursor-pointer"
           >
             <Repeat size={11} /> Đổi chế độ
           </ModeSwitchButton>
@@ -127,7 +127,7 @@ export function Sidebar({ user, logoutAction }: SidebarProps) {
       {/* User + logout */}
       <div className="p-3 border-t border-[var(--surface-border)]">
         <div className="flex items-center gap-3 px-2 py-2 rounded-xl hover:bg-[var(--gray-100)] transition-colors">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#0F766E] to-[#F97316] flex items-center justify-center text-white text-xs font-bold shrink-0">
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#6C4CF1] to-[#F97316] flex items-center justify-center text-white text-xs font-bold shrink-0">
             {user.name.charAt(0).toUpperCase()}
           </div>
           <div className="flex-1 min-w-0">

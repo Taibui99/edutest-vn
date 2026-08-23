@@ -30,18 +30,18 @@ export function AdminSidebar({ user }: { user: { name: string; email: string; ro
       <aside className="hidden lg:flex flex-col w-[230px] shrink-0 border-r border-[var(--surface-border)] bg-[var(--surface-sidebar)] h-screen sticky top-0 overflow-y-auto">
         <div className="flex items-center justify-between px-5 h-[60px] border-b border-[var(--surface-border)] shrink-0">
           <span className="text-xl font-black tracking-tight">
-            <span className="text-[#0F766E]">Edu</span>
+            <span className="text-[#6C4CF1]">Edu</span>
             <span className="text-[#F97316]">Test</span>
             <span className="text-[var(--text-muted)] font-semibold text-sm">.vn</span>
           </span>
           <div className="flex items-center gap-1.5">
             <ThemeToggle />
-            <ShieldCheck size={16} className="text-[#0F766E]" />
+            <ShieldCheck size={16} className="text-[#6C4CF1]" />
           </div>
         </div>
 
         <div className="px-4 pt-4 pb-1">
-          <span className="inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1.5 rounded-lg bg-[#CCFBF1] text-[#0F766E]">
+          <span className="inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1.5 rounded-lg bg-[#F1EDFD] text-[#6C4CF1]">
             <ShieldCheck size={11} /> Quản trị viên
           </span>
         </div>
@@ -56,11 +56,11 @@ export function AdminSidebar({ user }: { user: { name: string; email: string; ro
                 className={cn(
                   "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all",
                   active
-                    ? "bg-[#CCFBF1] text-[#0F766E] shadow-sm"
+                    ? "bg-[#F1EDFD] text-[#6C4CF1] shadow-sm"
                     : "text-[var(--text-secondary)] hover:bg-[var(--gray-100)] hover:text-[var(--text-primary)]",
                 )}
               >
-                <span className={cn("shrink-0", active ? "text-[#0F766E]" : "text-[var(--text-muted)]")}>{item.icon}</span>
+                <span className={cn("shrink-0", active ? "text-[#6C4CF1]" : "text-[var(--text-muted)]")}>{item.icon}</span>
                 {item.label}
               </Link>
             );
@@ -92,7 +92,7 @@ export function AdminSidebar({ user }: { user: { name: string; email: string; ro
             </ModeSwitchButton>
           </div>
           <div className="flex items-center gap-3 px-2 py-2 mt-2">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#0F766E] to-[#F97316] flex items-center justify-center text-white text-xs font-bold shrink-0">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#6C4CF1] to-[#F97316] flex items-center justify-center text-white text-xs font-bold shrink-0">
               {user.name.charAt(0).toUpperCase()}
             </div>
             <div className="flex-1 min-w-0">
@@ -112,7 +112,7 @@ export function AdminSidebar({ user }: { user: { name: string; email: string; ro
               href={item.href}
               className={cn(
                 "flex-1 flex flex-col items-center justify-center gap-0.5 text-[10px] font-semibold",
-                active ? "text-[#0F766E]" : "text-[var(--text-muted)]",
+                active ? "text-[#6C4CF1]" : "text-[var(--text-muted)]",
               )}
             >
               {item.icon}

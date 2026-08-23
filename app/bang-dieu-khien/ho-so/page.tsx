@@ -296,15 +296,15 @@ export default function ProfilePage() {
 
       {profile.role === "admin" && (
         <Link href="/admin">
-          <div className="flex items-center gap-4 p-5 bg-gradient-to-r from-[#CCFBF1] to-[#E6F7F3] dark:from-[#1E3230] dark:to-[#21383A] rounded-2xl border border-[#0F766E]/30 hover:border-[#0F766E] transition-all cursor-pointer">
-            <span className="w-10 h-10 rounded-xl bg-[#0F766E] text-white flex items-center justify-center shrink-0">
+          <div className="flex items-center gap-4 p-5 bg-gradient-to-r from-[#F1EDFD] to-[#F4F2FD] dark:from-[#1C1917] dark:to-[#21383A] rounded-2xl border border-[#6C4CF1]/30 hover:border-[#6C4CF1] transition-all cursor-pointer">
+            <span className="w-10 h-10 rounded-xl bg-[#6C4CF1] text-white flex items-center justify-center shrink-0">
               <ShieldCheck size={18} />
             </span>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-black text-[var(--text-primary)]">Khu vực quản trị</p>
               <p className="text-xs text-[var(--text-muted)]">Quản lý người dùng, đề thi, báo cáo hệ thống</p>
             </div>
-            <ArrowRight size={16} className="text-[#0F766E] shrink-0" />
+            <ArrowRight size={16} className="text-[#6C4CF1] shrink-0" />
           </div>
         </Link>
       )}

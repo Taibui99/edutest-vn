@@ -21,7 +21,7 @@ export interface SubjectColor {
 const subjectMap: Record<string, SubjectColor> = {
   "Toán":       { text: "#2563EB", bg: "#DBEAFE", border: "#BFDBFE" },
   "Ngữ Văn":   { text: "#E11D48", bg: "#FFE4E6", border: "#FECDD3" },
-  "Tiếng Anh": { text: "#0F766E", bg: "#CCFBF1", border: "#99F6E4" },
+  "Tiếng Anh": { text: "#6C4CF1", bg: "#F1EDFD", border: "#DCD4FA" },
   "Vật Lý":    { text: "#D4A017", bg: "#FFF8E1", border: "#FFE8A0" },
   "Hóa Học":   { text: "#059669", bg: "#D1FAE5", border: "#A7F3D0" },
   "Sinh Học":  { text: "#0EA5E9", bg: "#E0F2FE", border: "#BAE6FD" },
@@ -31,7 +31,7 @@ const subjectMap: Record<string, SubjectColor> = {
   "Tin Học":   { text: "#0891B2", bg: "#ECFEFF", border: "#A5F3FC" },
 };
 
-const defaultColor: SubjectColor = { text: "#0F766E", bg: "#CCFBF1", border: "#99F6E4" };
+const defaultColor: SubjectColor = { text: "#6C4CF1", bg: "#F1EDFD", border: "#DCD4FA" };
 
 export function getSubjectColor(subject: string): SubjectColor {
   return subjectMap[subject] ?? defaultColor;

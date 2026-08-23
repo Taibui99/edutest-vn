@@ -152,7 +152,7 @@ export default async function ExamDetailPage({ params }: { params: Promise<{ id:
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         {[
-          { label: "Bài nộp", value: subs.length, color: "bg-[#CCFBF1] dark:bg-[#134E4A] text-[#0F766E]" },
+          { label: "Bài nộp", value: subs.length, color: "bg-[#F1EDFD] dark:bg-[#2B2358] text-[#6C4CF1]" },
           { label: "Điểm TB", value: avgScore !== null ? avgScore.toFixed(1) : "—", color: "bg-[#FFF8E1] dark:bg-[#2B2410] text-[#D4A017]" },
           { label: "Điểm cao nhất", value: highest !== null ? highest.toFixed(1) : "—", color: "bg-[#E1F5EE] dark:bg-[#0A2A20] text-[#06D6A0]" },
           { label: "Tỉ lệ đậu", value: subs.length > 0 ? `${Math.round((passCount / subs.length) * 100)}%` : "—", color: "bg-[#E8F4FD] dark:bg-[#0D2A3E] text-[#0284C7]" },
@@ -189,7 +189,7 @@ export default async function ExamDetailPage({ params }: { params: Promise<{ id:
                         className="h-full rounded-full transition-all"
                         style={{
                           width: `${(dist[i] / maxDist) * 100}%`,
-                          background: ["#F97316","#FFD166","#06D6A0","#0284C7","#0F766E"][i]
+                          background: ["#F97316","#FFD166","#06D6A0","#2F80D8","#6C4CF1"][i]
                         }}
                       />
                     </div>

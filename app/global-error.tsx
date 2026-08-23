@@ -9,7 +9,7 @@ export default function GlobalError({
 }) {
   return (
     <html lang="vi">
-      <body style={{ margin: 0, fontFamily: "Nunito, sans-serif", background: "#F0EFFE", color: "#1E3230" }}>
+      <body style={{ margin: 0, fontFamily: "Nunito, sans-serif", background: "#F0EFFE", color: "#1C1917" }}>
         <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
           <div style={{ textAlign: "center", maxWidth: 420 }}>
             <div style={{ fontSize: 44, marginBottom: 12 }}>🚨</div>
@@ -24,7 +24,7 @@ export default function GlobalError({
                 padding: "0 24px",
                 borderRadius: 12,
                 border: "none",
-                background: "#0F766E",
+                background: "#6C4CF1",
                 color: "#fff",
                 fontWeight: 700,
                 fontSize: 14,

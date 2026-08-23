@@ -53,7 +53,7 @@ function MiniBar({ data }: { data: { day: string; count: number }[] }) {
       {data.map((d) => (
         <div key={d.day} className="flex-1 flex flex-col items-center gap-1">
           <span className="text-[10px] font-bold text-[var(--text-secondary)]">{d.count > 0 ? d.count : ""}</span>
-          <div className="w-full rounded-t-md bg-[#0F766E] opacity-80" style={{ height: `${Math.max((d.count / max) * 100, 4)}%` }} />
+          <div className="w-full rounded-t-md bg-[#6C4CF1] opacity-80" style={{ height: `${Math.max((d.count / max) * 100, 4)}%` }} />
           <span className="text-[9px] text-[var(--text-muted)] font-semibold">{d.day}</span>
         </div>
       ))}
@@ -82,7 +82,7 @@ export default function AdminDashboard() {
   if (!data) return <div className="flex items-center justify-center py-32"><Spinner /></div>;
 
   const cards = [
-    { label: "Người dùng", value: data.users.total, delta: data.users.deltaPct, sub: `${data.users.students} HS · ${data.users.teachers} GV · ${data.users.admins} admin`, icon: <Users size={15} />, color: "#0F766E", bgClass: "bg-[#CCFBF1] dark:bg-[#134E4A]", href: "/admin/users" },
+    { label: "Người dùng", value: data.users.total, delta: data.users.deltaPct, sub: `${data.users.students} HS · ${data.users.teachers} GV · ${data.users.admins} admin`, icon: <Users size={15} />, color: "#6C4CF1", bgClass: "bg-[#F1EDFD] dark:bg-[#46309F]", href: "/admin/users" },
     { label: "Đề thi", value: data.exams, sub: `${data.submissions} bài nộp`, icon: <FileText size={15} />, color: "#0284C7", bgClass: "bg-[#E8F4FD] dark:bg-[#0D2A3E]", href: "/admin/exams" },
     { label: "Lớp học", value: data.classrooms, sub: `${data.flashcards} flashcard`, icon: <School size={15} />, color: "#06D6A0", bgClass: "bg-[#E1F5EE] dark:bg-[#0A2A20]", href: "/admin" },
     { label: "Báo cáo chờ", value: data.pendingReports, sub: `${data.aiLogs24h} lượt AI / 24h`, icon: <Flag size={15} />, color: "#F97316", bgClass: "bg-[#FFF0F0] dark:bg-[#2B1616]", href: "/admin/reports" },
@@ -95,7 +95,7 @@ export default function AdminDashboard() {
   return (
     <div className="p-4 lg:p-8 max-w-6xl mx-auto">
       <h1 className="text-xl font-black text-[var(--text-primary)] mb-6 flex items-center gap-2">
-        <ShieldCheck size={20} className="text-[#0F766E]" /> Tổng quan hệ thống
+        <ShieldCheck size={20} className="text-[#6C4CF1]" /> Tổng quan hệ thống
       </h1>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
@@ -150,7 +150,7 @@ export default function AdminDashboard() {
               );
             })}
           </div>
-          <Link href="/admin/system" className="mt-3 inline-flex items-center gap-1 text-xs font-bold text-[#0F766E] hover:underline">
+          <Link href="/admin/system" className="mt-3 inline-flex items-center gap-1 text-xs font-bold text-[#6C4CF1] hover:underline">
             Chi tiết <TrendingUp size={11} />
           </Link>
         </div>
@@ -186,7 +186,7 @@ export default function AdminDashboard() {
           <div className="flex flex-col gap-2 max-h-44 overflow-y-auto">
             {data.recentActivity.users.slice(0, 3).map((u) => (
               <div key={u.email} className="flex items-center gap-2 rounded-lg bg-[var(--gray-100)] px-3 py-2">
-                <UserPlus size={13} className="text-[#0F766E] shrink-0" />
+                <UserPlus size={13} className="text-[#6C4CF1] shrink-0" />
                 <div className="min-w-0">
                   <p className="text-xs font-bold text-[var(--text-primary)] truncate">{u.name} đăng ký</p>
                   <p className="text-[10px] text-[var(--text-muted)]">{u.role} · {new Date(u.createdAt).toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" })}</p>
@@ -227,7 +227,7 @@ export default function AdminDashboard() {
               <div className="flex flex-col gap-1.5">
                 {data.topExams.slice(0, 3).map((e) => (
                   <Link key={e.id} href={`/admin/exams`} className="flex items-center gap-2 rounded-lg bg-[var(--gray-100)] px-3 py-1.5">
-                    <FileText size={12} className="text-[#0F766E] shrink-0" />
+                    <FileText size={12} className="text-[#6C4CF1] shrink-0" />
                     <span className="text-xs font-semibold text-[var(--text-primary)] truncate">{e.title}</span>
                     <span className="ml-auto text-[10px] font-bold text-[var(--text-muted)]">{e._count.submissions} nộp</span>
                   </Link>
@@ -286,8 +286,8 @@ export default function AdminDashboard() {
           { label: "Nhật ký AI import", desc: "Theo dõi lượt dùng Gemini", href: "/admin/ai", icon: <Sparkles size={16} /> },
           { label: "Kiểm tra hệ thống", desc: "DB, Gemini, cấu hình env", href: "/admin/system", icon: <ClipboardList size={16} /> },
         ].map((c) => (
-          <Link key={c.href} href={c.href} className="flex items-center gap-3 rounded-2xl bg-[var(--surface-card)] border border-[var(--surface-border)] p-4 hover:border-[#0F766E]/40 transition-colors">
-            <span className="w-9 h-9 rounded-xl bg-[#CCFBF1] text-[#0F766E] flex items-center justify-center shrink-0">{c.icon}</span>
+          <Link key={c.href} href={c.href} className="flex items-center gap-3 rounded-2xl bg-[var(--surface-card)] border border-[var(--surface-border)] p-4 hover:border-[#6C4CF1]/40 transition-colors">
+            <span className="w-9 h-9 rounded-xl bg-[#F1EDFD] text-[#6C4CF1] flex items-center justify-center shrink-0">{c.icon}</span>
             <div>
               <p className="text-sm font-bold text-[var(--text-primary)]">{c.label}</p>
               <p className="text-xs text-[var(--text-muted)]">{c.desc}</p>

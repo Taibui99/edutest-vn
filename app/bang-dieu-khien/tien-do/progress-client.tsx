@@ -43,12 +43,12 @@ function LineChart({ data }: { data: { label: string; score: number }[] }) {
           <text x={0} y={y(g) + 3} fontSize="9" fill="var(--text-muted)">{g}</text>
         </g>
       ))}
-      <path d={path} fill="none" stroke="#0F766E" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d={path} fill="none" stroke="#6C4CF1" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
       {data.map((d, i) => (
         <g key={d.label + i}>
-          <circle cx={x(i)} cy={y(d.score)} r="4" fill="#0F766E" stroke="white" strokeWidth="2" />
+          <circle cx={x(i)} cy={y(d.score)} r="4" fill="#6C4CF1" stroke="white" strokeWidth="2" />
           <text x={x(i)} y={H - 8} fontSize="9" fill="var(--text-muted)" textAnchor="middle">{d.label}</text>
-          <text x={x(i)} y={y(d.score) - 9} fontSize="9" fontWeight="bold" fill="#0F766E" textAnchor="middle">{d.score.toFixed(1)}</text>
+          <text x={x(i)} y={y(d.score) - 9} fontSize="9" fontWeight="bold" fill="#6C4CF1" textAnchor="middle">{d.score.toFixed(1)}</text>
         </g>
       ))}
     </svg>
@@ -91,7 +91,7 @@ export function ProgressClient({ streak, lastStudyDate, flashcardCount, submissi
   return (
     <div className="p-4 lg:p-8 max-w-5xl mx-auto animate-fade-in">
       <h1 className="text-xl font-black text-[var(--text-primary)] mb-6 flex items-center gap-2">
-        <TrendingUp size={20} className="text-[#0F766E]" /> Tiến độ học tập
+        <TrendingUp size={20} className="text-[#6C4CF1]" /> Tiến độ học tập
       </h1>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
@@ -102,10 +102,10 @@ export function ProgressClient({ streak, lastStudyDate, flashcardCount, submissi
           { label: "Flashcard", value: flashcardCount, icon: <Layers size={14} />, color: "c4" },
         ].map(({ label, value, icon, color, dim }) => (
           <div key={label} className={`rounded-2xl p-4 ${dim ? "opacity-50" : ""} ${
-            color === "c1" ? "bg-[#FFF8E1] dark:bg-[#2B2410]" : color === "c2" ? "bg-[#CCFBF1] dark:bg-[#134E4A]" : color === "c3" ? "bg-[#E8F4FD] dark:bg-[#0D2A3E]" : "bg-[#E1F5EE] dark:bg-[#0A2A20]"
+            color === "c1" ? "bg-[#FFF8E1] dark:bg-[#2B2410]" : color === "c2" ? "bg-[#F1EDFD] dark:bg-[#46309F]" : color === "c3" ? "bg-[#E8F4FD] dark:bg-[#0D2A3E]" : "bg-[#E1F5EE] dark:bg-[#0A2A20]"
           }`}>
             <div className={`flex items-center gap-2 mb-1 ${
-              color === "c1" ? "text-[#D4A017]" : color === "c2" ? "text-[#0F766E]" : color === "c3" ? "text-[#0284C7]" : "text-[#06D6A0]"
+              color === "c1" ? "text-[#D4A017]" : color === "c2" ? "text-[#6C4CF1]" : color === "c3" ? "text-[#0284C7]" : "text-[#06D6A0]"
             }`}>
               {icon}
               <span className="text-xs font-bold">{label}</span>

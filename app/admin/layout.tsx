@@ -24,7 +24,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       <main id="main-content" className="flex-1 min-w-0 lg:pl-0 pb-[72px] lg:pb-0" tabIndex={-1}>
         <div className="lg:sticky lg:top-0 z-30 lg:hidden bg-[var(--surface-card)] border-b border-[var(--surface-border)] px-4 h-14 flex items-center justify-between">
           <span className="text-lg font-black tracking-tight">
-            <span className="text-[#0F766E]">Edu</span>
+            <span className="text-[#6C4CF1]">Edu</span>
             <span className="text-[#F97316]">Test</span>
             <span className="text-[var(--text-muted)] font-semibold text-sm">.vn</span>
           </span>

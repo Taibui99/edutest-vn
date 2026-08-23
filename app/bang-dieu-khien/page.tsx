@@ -85,7 +85,7 @@ async function StudentDashboard({ userId, name }: { userId: string; name: string
     <div className="p-4 lg:p-8 max-w-5xl mx-auto animate-fade-in">
 
       {/* ── Greeting banner */}
-      <div className="rounded-3xl bg-gradient-to-r from-[#0F766E] via-[#2DD4BF] to-[#F97316] p-6 mb-6 relative overflow-hidden">
+      <div className="rounded-3xl bg-gradient-to-r from-[#6C4CF1] via-[#8B6FF5] to-[#F97316] p-6 mb-6 relative overflow-hidden">
         {/* decorative circles */}
         <div className="absolute -top-8 -right-8 w-40 h-40 rounded-full bg-white/10" />
         <div className="absolute -bottom-10 right-20 w-28 h-28 rounded-full bg-white/5" />
@@ -128,12 +128,12 @@ async function StudentDashboard({ userId, name }: { userId: string; name: string
 
       {/* ── 4 stat pills */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-        <div className="bg-[#CCFBF1] rounded-2xl p-4">
+        <div className="bg-[#F1EDFD] rounded-2xl p-4">
           <div className="flex items-center gap-2 mb-1">
-            <FileText size={14} className="text-[#0F766E]" />
-            <span className="text-xs font-bold text-[#0F766E]">Bài đã làm</span>
+            <FileText size={14} className="text-[#6C4CF1]" />
+            <span className="text-xs font-bold text-[#6C4CF1]">Bài đã làm</span>
           </div>
-          <p className="text-2xl font-black text-[#1E3230]">{totalSubmissions}</p>
+          <p className="text-2xl font-black text-[#1C1917]">{totalSubmissions}</p>
         </div>
         <div className="bg-[#FFF8E1] rounded-2xl p-4">
           <div className="flex items-center gap-2 mb-1">
@@ -149,14 +149,14 @@ async function StudentDashboard({ userId, name }: { userId: string; name: string
             <BookOpen size={14} className="text-[#06D6A0]" />
             <span className="text-xs font-bold text-[#06D6A0]">Flashcard</span>
           </div>
-          <p className="text-2xl font-black text-[#1E3230]">{allCards}</p>
+          <p className="text-2xl font-black text-[#1C1917]">{allCards}</p>
         </div>
         <div className="bg-[#FFECEC] rounded-2xl p-4">
           <div className="flex items-center gap-2 mb-1">
             <Flame size={14} className="text-[#F97316]" />
             <span className="text-xs font-bold text-[#F97316]">Cần ôn</span>
           </div>
-          <p className="text-2xl font-black text-[#1E3230]">{dueCards}</p>
+          <p className="text-2xl font-black text-[#1C1917]">{dueCards}</p>
         </div>
       </div>
 
@@ -165,16 +165,16 @@ async function StudentDashboard({ userId, name }: { userId: string; name: string
         <div className="lg:col-span-2 min-w-0 flex flex-col gap-5">
 
           {/* AI Study Coach */}
-          <div className="bg-[#CCFBF1] border border-[#99F6E4] rounded-2xl p-5">
+          <div className="bg-[#F1EDFD] border border-[#DCD4FA] rounded-2xl p-5">
             <div className="flex items-start gap-3">
-              <div className="w-9 h-9 rounded-xl bg-[#0F766E] flex items-center justify-center shrink-0 shadow-sm">
+              <div className="w-9 h-9 rounded-xl bg-[#6C4CF1] flex items-center justify-center shrink-0 shadow-sm">
                 <Zap size={17} className="text-white" />
               </div>
               <div className="flex-1">
-                <p className="text-sm font-black text-[#1E3230] mb-1">✨ AI Study Coach</p>
+                <p className="text-sm font-black text-[#1C1917] mb-1">✨ AI Study Coach</p>
                 {dueCards > 0 ? (
                   <p className="text-sm text-[#4A4870]">
-                    Bạn có <strong className="text-[#0F766E]">{dueCards} flashcard</strong> cần ôn hôm nay.
+                    Bạn có <strong className="text-[#6C4CF1]">{dueCards} flashcard</strong> cần ôn hôm nay.
                     Chỉ mất khoảng {Math.round(dueCards * 0.5)} phút!
                   </p>
                 ) : allCards === 0 ? (
@@ -188,12 +188,12 @@ async function StudentDashboard({ userId, name }: { userId: string; name: string
                 )}
                 <div className="flex gap-2 mt-3 flex-wrap">
                   <Link href="/bang-dieu-khien/hoc-tap">
-                    <Button size="sm" className="bg-[#0F766E] text-white hover:bg-[#115E59]">
+                    <Button size="sm" className="bg-[#6C4CF1] text-white hover:bg-[#5A3BD8]">
                       Ôn flashcard ngay
                     </Button>
                   </Link>
                   <Link href="/bang-dieu-khien/ai">
-                    <Button size="sm" variant="ghost" className="text-[#0F766E]">
+                    <Button size="sm" variant="ghost" className="text-[#6C4CF1]">
                       Hỏi AI <Sparkles size={12} />
                     </Button>
                   </Link>
@@ -206,7 +206,7 @@ async function StudentDashboard({ userId, name }: { userId: string; name: string
           <Card padding="none">
             <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--surface-border)]">
               <h2 className="text-sm font-black text-[var(--text-primary)]">📋 Bài thi gần đây</h2>
-              <Link href="/bang-dieu-khien/de-thi" className="text-xs text-[#0F766E] font-bold flex items-center gap-1 hover:underline">
+              <Link href="/bang-dieu-khien/de-thi" className="text-xs text-[#6C4CF1] font-bold flex items-center gap-1 hover:underline">
                 Xem tất cả <ArrowRight size={12} />
               </Link>
             </div>
@@ -256,9 +256,9 @@ async function StudentDashboard({ userId, name }: { userId: string; name: string
           {/* Quick actions */}
           <div className="grid grid-cols-2 gap-3">
             <Link href="/vao-thi">
-              <div className="bg-[var(--surface-card)] border border-[var(--surface-border)] rounded-2xl p-4 flex items-center gap-3 hover:border-[#0F766E]/40 hover:shadow-sm transition-all cursor-pointer h-full">
-                <div className="w-10 h-10 rounded-xl bg-[#CCFBF1] flex items-center justify-center shrink-0">
-                  <FileText size={18} className="text-[#0F766E]" />
+              <div className="bg-[var(--surface-card)] border border-[var(--surface-border)] rounded-2xl p-4 flex items-center gap-3 hover:border-[#6C4CF1]/40 hover:shadow-sm transition-all cursor-pointer h-full">
+                <div className="w-10 h-10 rounded-xl bg-[#F1EDFD] flex items-center justify-center shrink-0">
+                  <FileText size={18} className="text-[#6C4CF1]" />
                 </div>
                 <div>
                   <p className="text-sm font-black text-[var(--text-primary)]">Vào thi</p>
@@ -291,7 +291,7 @@ async function StudentDashboard({ userId, name }: { userId: string; name: string
                 Nhiệm vụ hôm nay
               </h2>
               <Link href="/bang-dieu-khien/hoc-tap">
-                <Plus size={15} className="text-[#0F766E]" />
+                <Plus size={15} className="text-[#6C4CF1]" />
               </Link>
             </div>
             {tasks.length === 0 ? (
@@ -300,7 +300,7 @@ async function StudentDashboard({ userId, name }: { userId: string; name: string
               <div className="p-3 flex flex-col gap-1">
                 {tasks.map((task: TaskType) => (
                   <div key={task.id} className="flex items-center gap-2.5 p-2.5 rounded-xl hover:bg-[var(--gray-100)] transition-colors">
-                    <div className="w-4 h-4 rounded-full border-2 border-[#99F6E4] shrink-0" />
+                    <div className="w-4 h-4 rounded-full border-2 border-[#DCD4FA] shrink-0" />
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-semibold text-[var(--text-primary)] truncate">{task.title}</p>
                       {task.dueDate && (
@@ -396,7 +396,7 @@ async function TeacherDashboard({ userId, name }: { userId: string; name: string
     <div className="p-4 lg:p-8 max-w-5xl mx-auto animate-fade-in">
 
       {/* ── Greeting banner */}
-      <div className="rounded-3xl bg-gradient-to-r from-[#0284C7] via-[#0F766E] to-[#2DD4BF] p-6 mb-6 relative overflow-hidden">
+      <div className="rounded-3xl bg-gradient-to-r from-[#0284C7] via-[#6C4CF1] to-[#8B6FF5] p-6 mb-6 relative overflow-hidden">
         <div className="absolute -top-8 -right-8 w-40 h-40 rounded-full bg-white/10" />
         <div className="absolute -bottom-10 right-20 w-28 h-28 rounded-full bg-white/5" />
         <div className="relative flex items-start justify-between gap-4">
@@ -415,19 +415,19 @@ async function TeacherDashboard({ userId, name }: { userId: string; name: string
 
       {/* ── Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-        <div className="bg-[#CCFBF1] rounded-2xl p-4">
+        <div className="bg-[#F1EDFD] rounded-2xl p-4">
           <div className="flex items-center gap-2 mb-1">
-            <FileText size={14} className="text-[#0F766E]" />
-            <span className="text-xs font-bold text-[#0F766E]">Đề thi</span>
+            <FileText size={14} className="text-[#6C4CF1]" />
+            <span className="text-xs font-bold text-[#6C4CF1]">Đề thi</span>
           </div>
-          <p className="text-2xl font-black text-[#1E3230]">{exams.length}</p>
+          <p className="text-2xl font-black text-[#1C1917]">{exams.length}</p>
         </div>
         <div className="bg-[#E8F4FD] rounded-2xl p-4">
           <div className="flex items-center gap-2 mb-1">
             <BarChart3 size={14} className="text-[#0284C7]" />
             <span className="text-xs font-bold text-[#0284C7]">Bài nộp</span>
           </div>
-          <p className="text-2xl font-black text-[#1E3230]">{totalSubmissions}</p>
+          <p className="text-2xl font-black text-[#1C1917]">{totalSubmissions}</p>
           {recentSubs > 0 && <p className="text-xs text-[#06D6A0] font-bold">+{recentSubs} hôm nay</p>}
         </div>
         <div className="bg-[#FFF8E1] rounded-2xl p-4">
@@ -444,7 +444,7 @@ async function TeacherDashboard({ userId, name }: { userId: string; name: string
             <CheckCircle2 size={14} className="text-[#06D6A0]" />
             <span className="text-xs font-bold text-[#06D6A0]">Đang mở</span>
           </div>
-          <p className="text-2xl font-black text-[#1E3230]">{activeExams.length}</p>
+          <p className="text-2xl font-black text-[#1C1917]">{activeExams.length}</p>
         </div>
       </div>
 
@@ -464,7 +464,7 @@ async function TeacherDashboard({ userId, name }: { userId: string; name: string
           <Card padding="none">
             <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--surface-border)]">
               <h2 className="text-sm font-black text-[var(--text-primary)]">📋 Đề thi đã tạo</h2>
-              <Link href="/bang-dieu-khien/de-thi" className="text-xs text-[#0F766E] font-bold flex items-center gap-1 hover:underline">
+              <Link href="/bang-dieu-khien/de-thi" className="text-xs text-[#6C4CF1] font-bold flex items-center gap-1 hover:underline">
                 Quản lý <ArrowRight size={12} />
               </Link>
             </div>
@@ -621,19 +621,19 @@ function ModeSwitcher({ mode, role }: { mode: string; role: string }) {
               className={cn(
                 "w-full text-left rounded-2xl border p-4 transition-all cursor-pointer",
                 active
-                  ? "border-[#0F766E] bg-[#CCFBF1] shadow-sm ring-2 ring-[#0F766E]/20 dark:bg-[#134E4A]"
-                  : "border-[var(--surface-border)] bg-[var(--surface-card)] hover:border-[#0F766E]/50 hover:shadow-sm",
+                  ? "border-[#6C4CF1] bg-[#F1EDFD] shadow-sm ring-2 ring-[#6C4CF1]/20 dark:bg-[#46309F]"
+                  : "border-[var(--surface-border)] bg-[var(--surface-card)] hover:border-[#6C4CF1]/50 hover:shadow-sm",
               )}
             >
               <div className="flex items-start justify-between gap-3">
                 <span className={cn(
                   "w-10 h-10 rounded-xl flex items-center justify-center shrink-0",
-                  active ? "bg-[#0F766E] text-white" : "bg-[#CCFBF1] text-[#0F766E]",
+                  active ? "bg-[#6C4CF1] text-white" : "bg-[#F1EDFD] text-[#6C4CF1]",
                 )}>
                   {card.icon}
                 </span>
                 {active && (
-                  <span className="inline-flex items-center gap-1 text-[11px] font-bold text-[#0F766E] bg-white/70 dark:bg-white/10 rounded-full px-2 py-0.5">
+                  <span className="inline-flex items-center gap-1 text-[11px] font-bold text-[#6C4CF1] bg-white/70 dark:bg-white/10 rounded-full px-2 py-0.5">
                     <Check size={12} /> Đang dùng
                   </span>
                 )}

@@ -46,11 +46,11 @@ export default function AdminSystem() {
     <div className="p-4 lg:p-8 max-w-4xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-xl font-black text-[var(--text-primary)] flex items-center gap-2">
-          <Activity size={20} className="text-[#0F766E]" /> Kiểm tra hệ thống
+          <Activity size={20} className="text-[#6C4CF1]" /> Kiểm tra hệ thống
         </h1>
         <button
           onClick={() => { setRefreshing(true); load(); }}
-          className="rounded-lg bg-[#0F766E] px-3 py-1.5 text-xs font-bold text-white hover:opacity-90"
+          className="rounded-lg bg-[#6C4CF1] px-3 py-1.5 text-xs font-bold text-white hover:opacity-90"
         >
           Chạy lại kiểm tra
         </button>
