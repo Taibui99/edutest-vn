@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { CheckCircle2 } from "lucide-react";
 import { Spinner } from "@/app/components/spinner";
 
 export function ResetPasswordForm({ token }: { token: string }) {
@@ -45,11 +46,13 @@ export function ResetPasswordForm({ token }: { token: string }) {
   if (done) {
     return (
       <div className="text-center">
-        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-green-100 text-2xl">✅</div>
-        <p className="text-sm text-slate-600">Mật khẩu đã được đặt lại thành công.</p>
+        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[#E8F7F1]">
+          <CheckCircle2 size={24} className="text-[#189A6C]" />
+        </div>
+        <p className="text-sm text-[var(--text-secondary)]">Mật khẩu đã được đặt lại thành công.</p>
         <Link
           href="/dang-nhap"
-          className="mt-6 inline-flex w-full justify-center rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700"
+          className="mt-6 inline-flex w-full justify-center rounded-lg bg-[#6C4CF1] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#5A3BD8]"
         >
           Đăng nhập với mật khẩu mới
         </Link>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Search, BookOpen, Filter, FileText, Plus, ChevronDown, ChevronUp, Pencil, Trash2, X } from "lucide-react";
+import { Search, BookOpen, Filter, FileText, Plus, ChevronDown, ChevronUp, Pencil, Trash2, X, Lightbulb } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -312,7 +312,7 @@ export default function QuestionBankPage() {
                         {item.type === "essay" && <div className="mt-2 text-xs text-amber-600 font-semibold">Tự luận — chấm thủ công</div>}
                         {item.explanation && (
                           <div className="mt-2 flex gap-2 p-2.5 bg-[var(--primary-light)] rounded-lg">
-                            <span className="text-[var(--primary)] text-xs shrink-0 font-bold">💡</span>
+                            <Lightbulb size={13} className="text-[var(--primary)] shrink-0" />
                             <p className="text-xs text-[var(--text-secondary)]">{item.explanation}</p>
                           </div>
                         )}

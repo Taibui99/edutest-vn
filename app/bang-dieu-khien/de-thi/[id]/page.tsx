@@ -153,7 +153,7 @@ export default async function ExamDetailPage({ params }: { params: Promise<{ id:
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         {[
           { label: "Bài nộp", value: subs.length, color: "bg-[#F1EDFD] dark:bg-[#2B2358] text-[#6C4CF1]" },
-          { label: "Điểm TB", value: avgScore !== null ? avgScore.toFixed(1) : "—", color: "bg-[#FFF8E1] dark:bg-[#2B2410] text-[#D4A017]" },
+          { label: "Điểm TB", value: avgScore !== null ? avgScore.toFixed(1) : "—", color: "bg-[#FCF3E2] dark:bg-[#2B2410] text-[#B97F10]" },
           { label: "Điểm cao nhất", value: highest !== null ? highest.toFixed(1) : "—", color: "bg-[#E8F7F1] dark:bg-[#0A2A20] text-[#189A6C]" },
           { label: "Tỉ lệ đậu", value: subs.length > 0 ? `${Math.round((passCount / subs.length) * 100)}%` : "—", color: "bg-[#EAF3FC] dark:bg-[#0D2A3E] text-[#2F80D8]" },
         ].map(({ label, value, color }) => (
@@ -189,7 +189,7 @@ export default async function ExamDetailPage({ params }: { params: Promise<{ id:
                         className="h-full rounded-full transition-all"
                         style={{
                           width: `${(dist[i] / maxDist) * 100}%`,
-                          background: ["#E14D4D","#FFD166","#189A6C","#2F80D8","#6C4CF1"][i]
+                          background: ["#E14D4D","#B97F10","#189A6C","#2F80D8","#6C4CF1"][i]
                         }}
                       />
                     </div>
@@ -220,7 +220,7 @@ export default async function ExamDetailPage({ params }: { params: Promise<{ id:
                           {question.text}
                         </p>
                         {pct !== null && (
-                          <span className={`shrink-0 text-xs font-black ${pct >= 70 ? "text-[#189A6C]" : pct >= 40 ? "text-[#D4A017]" : "text-[#E14D4D]"}`}>
+                          <span className={`shrink-0 text-xs font-black ${pct >= 70 ? "text-[#189A6C]" : pct >= 40 ? "text-[#B97F10]" : "text-[#E14D4D]"}`}>
                             {pct}%
                           </span>
                         )}
@@ -230,7 +230,7 @@ export default async function ExamDetailPage({ params }: { params: Promise<{ id:
                           className="h-full rounded-full transition-all"
                           style={{
                             width: `${pct ?? 0}%`,
-                            background: pct === null ? "#CBD5E1" : pct >= 70 ? "#189A6C" : pct >= 40 ? "#D4A017" : "#E14D4D",
+                            background: pct === null ? "#CBD5E1" : pct >= 70 ? "#189A6C" : pct >= 40 ? "#B97F10" : "#E14D4D",
                           }}
                         />
                       </div>

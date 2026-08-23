@@ -31,14 +31,14 @@ export function GuestJoin({ code, title }: { code: string; title: string }) {
   }
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-[#F6F5FB] flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl border border-[#E2E8F0] p-6 sm:p-8 max-w-md w-full shadow-sm">
-        <div className="w-12 h-12 rounded-2xl bg-[#EFF6FF] text-[#2563EB] flex items-center justify-center mb-4">
+        <div className="w-12 h-12 rounded-2xl bg-[#EFF6FF] text-[#6C4CF1] flex items-center justify-center mb-4">
           <UserRound size={22} />
         </div>
-        <p className="text-sm font-semibold text-[#2563EB] mb-1">Tham gia không cần tài khoản</p>
+        <p className="text-sm font-semibold text-[#6C4CF1] mb-1">Tham gia không cần tài khoản</p>
         <h1 className="text-2xl font-bold text-[#0F172A] mb-2">{title}</h1>
-        <p className="text-sm text-[#64748B] mb-6">
+        <p className="text-sm text-[#6B7280] mb-6">
           Nhập họ tên và lớp để hệ thống ghi nhận bạn là người tham gia chính thức của bài thi.
         </p>
 
@@ -47,7 +47,7 @@ export function GuestJoin({ code, title }: { code: string; title: string }) {
         <form onSubmit={submit} className="space-y-4">
           <label className="block">
             <span className="text-sm font-semibold text-[#334155]">Họ và tên</span>
-            <div className="mt-1.5 flex items-center gap-2 rounded-xl border border-[#E2E8F0] bg-white px-3 focus-within:border-[#2563EB]">
+            <div className="mt-1.5 flex items-center gap-2 rounded-xl border border-[#E2E8F0] bg-white px-3 focus-within:border-[#6C4CF1]">
               <UserRound size={16} className="text-[#94A3B8] shrink-0" />
               <input
                 value={name}
@@ -63,7 +63,7 @@ export function GuestJoin({ code, title }: { code: string; title: string }) {
 
           <label className="block">
             <span className="text-sm font-semibold text-[#334155]">Lớp</span>
-            <div className="mt-1.5 flex items-center gap-2 rounded-xl border border-[#E2E8F0] bg-white px-3 focus-within:border-[#2563EB]">
+            <div className="mt-1.5 flex items-center gap-2 rounded-xl border border-[#E2E8F0] bg-white px-3 focus-within:border-[#6C4CF1]">
               <School size={16} className="text-[#94A3B8] shrink-0" />
               <input
                 value={className}
@@ -79,7 +79,7 @@ export function GuestJoin({ code, title }: { code: string; title: string }) {
           <button
             type="submit"
             disabled={loading || !name.trim() || !className.trim()}
-            className="h-12 w-full rounded-xl bg-[#2563EB] text-sm font-semibold text-white transition-colors hover:bg-[#1D4ED8] disabled:cursor-not-allowed disabled:opacity-50"
+            className="h-12 w-full rounded-xl bg-[#6C4CF1] text-sm font-semibold text-white transition-colors hover:bg-[#1D4ED8] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {loading ? "Đang vào bài thi..." : "Bắt đầu làm bài"}
           </button>

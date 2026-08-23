@@ -295,21 +295,21 @@ export function ExamTakingClientV2({ exam, preview = false, backHref }: { exam: 
 
       {preview && <div className="bg-[var(--primary-light)] border-b border-[var(--primary-muted)] px-4 py-2 text-center text-xs font-semibold text-[var(--primary)]">Đây là chế độ xem trước. Lựa chọn của bạn sẽ không được nộp.</div>}
       {!preview && violations > 0 && (
-        <div className={`border-b px-4 py-2 text-center text-xs font-bold ${violations >= MAX_VIOLATIONS ? "bg-red-600 text-white border-red-700" : "bg-amber-50 border-amber-200 text-amber-700"}`}>
+        <div className={`border-b px-4 py-2 text-center text-xs font-bold ${violations >= MAX_VIOLATIONS ? "bg-[var(--danger)] text-white" : "bg-[#FCF3E2] border-[#F5E5BC] text-[#B97F10]"}`}>
           {violations >= MAX_VIOLATIONS
-            ? "🚨 Bạn đã rời khỏi trang thi quá nhiều lần. Bài thi đã được nộp tự động."
-            : `⚠️ Cảnh báo ${violations}/${MAX_VIOLATIONS}: Không rời khỏi trang thi. Rời khỏi trang ${MAX_VIOLATIONS} lần sẽ bị nộp bài tự động!`}
+            ? "Bạn đã rời khỏi trang thi quá nhiều lần. Bài thi đã được nộp tự động."
+            : `Cảnh báo ${violations}/${MAX_VIOLATIONS}: Không rời khỏi trang thi. Rời khỏi trang ${MAX_VIOLATIONS} lần sẽ bị nộp bài tự động!`}
         </div>
       )}
-      {!preview && warnVisible && violations < MAX_VIOLATIONS && <div className="bg-amber-100 border-b border-amber-300 px-4 py-1.5 text-center text-[11px] font-bold text-amber-800">Bạn đã rời khỏi trang thi (lần {violations}). Vui lòng quay lại làm bài ngay!</div>}
+      {!preview && warnVisible && violations < MAX_VIOLATIONS && <div className="bg-[#FCF3E2] border-b border-[#F5E5BC] px-4 py-1.5 text-center text-[11px] font-bold text-[#B97F10]">Bạn đã rời khỏi trang thi (lần {violations}). Vui lòng quay lại làm bài ngay!</div>}
       {!preview && restored && <div className="bg-[var(--primary-light)] border-b border-[var(--primary-muted)] px-4 py-2 text-center text-xs font-semibold text-[var(--primary)]">Đã khôi phục bài làm trước đó của bạn</div>}
       {offline && !preview && (
-        <div role="status" className="bg-orange-100 border-b border-orange-300 px-4 py-2 text-center text-xs font-bold text-orange-800">
-          📡 Mất kết nối mạng — bài làm vẫn được lưu cục bộ. Kiểm tra lại mạng để nộp bài.
+        <div role="status" className="bg-[#FCF3E2] border-b border-[#F5E5BC] px-4 py-2 text-center text-xs font-bold text-[#B97F10]">
+          Mất kết nối mạng — bài làm vẫn được lưu cục bộ. Kiểm tra lại mạng để nộp bài.
         </div>
       )}
-      {!preview && remaining <= 60 && remaining > 0 && <div className="bg-[var(--danger-light)] border-b border-[var(--danger-light)] px-4 py-2 text-center text-xs font-bold text-[var(--danger)] animate-pulse">⏰ Còn {formatTime(remaining)} — sắp hết giờ!</div>}
-      {!preview && remaining <= 300 && remaining > 60 && <div className="bg-amber-50 border-b border-amber-200 px-4 py-2 text-center text-xs font-bold text-amber-700">⏳ Còn {Math.ceil(remaining / 60)} phút để hoàn thành bài thi</div>}
+      {!preview && remaining <= 60 && remaining > 0 && <div className="bg-[var(--danger-light)] border-b border-[var(--danger-light)] px-4 py-2 text-center text-xs font-bold text-[var(--danger)] animate-pulse">Còn {formatTime(remaining)} — sắp hết giờ!</div>}
+      {!preview && remaining <= 300 && remaining > 60 && <div className="bg-[#FCF3E2] border-b border-[#F5E5BC] px-4 py-2 text-center text-xs font-bold text-[#B97F10]">Còn {Math.ceil(remaining / 60)} phút để hoàn thành bài thi</div>}
       <div className="h-1 bg-[var(--gray-100)]"><div className="h-full bg-[var(--primary)] transition-all" style={{ width: `${progress}%` }}/></div>
 
       <div className="flex-1 w-full max-w-5xl mx-auto flex flex-col lg:flex-row gap-5 p-4 pt-6">

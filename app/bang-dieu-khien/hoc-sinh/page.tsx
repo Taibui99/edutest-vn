@@ -86,7 +86,7 @@ export default async function StudentsPage() {
           { label: "Tổng học sinh", value: students.length, icon: <Users size={16} />, color: "#6C4CF1" },
           { label: "Lớp học", value: classrooms.length, icon: <GraduationCap size={16} />, color: "#189A6C" },
           { label: "Bài đã nộp", value: totalSubmissions, icon: <FileCheck size={16} />, color: "#E14D4D" },
-          { label: "Điểm TB", value: subAgg.length > 0 ? avgAll.toFixed(1) : "—", icon: <TrendingUp size={16} />, color: "#FFD166" },
+          { label: "Điểm TB", value: subAgg.length > 0 ? avgAll.toFixed(1) : "—", icon: <TrendingUp size={16} />, color: "#B97F10" },
         ].map((stat) => (
           <Card key={stat.label} className="px-5 py-4">
             <div className="flex items-center gap-2 text-xs font-semibold" style={{ color: stat.color }}>{stat.icon}{stat.label}</div>

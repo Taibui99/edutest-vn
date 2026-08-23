@@ -13,7 +13,7 @@ const COLORS = [
   "bg-gradient-to-br from-[#6C4CF1] to-[#B9A5FA]",
   "bg-gradient-to-br from-[#189A6C] to-[#2F80D8]",
   "bg-gradient-to-br from-[#E14D4D] to-[#FFB199]",
-  "bg-gradient-to-br from-[#FFD166] to-[#FF9F45]",
+  "bg-gradient-to-br from-[#FCF3E2] to-[#B97F10]",
   "bg-gradient-to-br from-[#B9A5FA] to-[#6C4CF1]",
   "bg-gradient-to-br from-[#059669] to-[#189A6C]",
 ];

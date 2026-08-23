@@ -23,7 +23,7 @@ interface Analytics {
 }
 
 const DIST_LABELS = ["< 4", "4 – 5.9", "6 – 6.9", "7 – 8.4", "8.5 – 10"];
-const DIST_COLORS = ["#E14D4D", "#FFD166", "#189A6C", "#2F80D8", "#6C4CF1"];
+const DIST_COLORS = ["#E14D4D", "#B97F10", "#189A6C", "#2F80D8", "#6C4CF1"];
 
 function MiniBar({ value, max, color }: { value: number; max: number; color: string }) {
   const pct = max > 0 ? (value / max) * 100 : 0;
@@ -36,7 +36,7 @@ function MiniBar({ value, max, color }: { value: number; max: number; color: str
 
 function scoreColor(score: number) {
   if (score >= 8) return "#189A6C";
-  if (score >= 6.5) return "#FFD166";
+  if (score >= 6.5) return "#B97F10";
   return "#E14D4D";
 }
 
@@ -85,12 +85,12 @@ export default function StatisticsPage() {
           <div key={label} className={`rounded-2xl p-4 ${
             color === "c1" ? "bg-[#F1EDFD]" :
             color === "c2" ? "bg-[#EAF3FC]" :
-            color === "c3" ? "bg-[#FFF8E1]" : "bg-[#E8F7F1]"
+            color === "c3" ? "bg-[#FCF3E2]" : "bg-[#E8F7F1]"
           }`}>
             <div className={`flex items-center gap-2 mb-1 ${
               color === "c1" ? "text-[#6C4CF1]" :
               color === "c2" ? "text-[#2F80D8]" :
-              color === "c3" ? "text-[#D4A017]" : "text-[#189A6C]"
+              color === "c3" ? "text-[#B97F10]" : "text-[#189A6C]"
             }`}>
               {icon}
               <span className="text-xs font-bold">{label}</span>

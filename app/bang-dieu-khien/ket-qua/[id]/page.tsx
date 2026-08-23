@@ -4,7 +4,7 @@ import { useState, useEffect, use } from "react";
 import Link from "next/link";
 import {
   CheckCircle2, XCircle, Clock, Trophy, ArrowLeft,
-  ChevronDown, ChevronUp, BookOpen, BarChart3
+  ChevronDown, ChevronUp, BookOpen, BarChart3, PenLine
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -42,7 +42,7 @@ interface Submission {
 
 function ScoreGauge({ score }: { score: number }) {
   const pct = (score / 10) * 100;
-  const color = score >= 8 ? "#189A6C" : score >= 6.5 ? "#FFD166" : "#E14D4D";
+  const color = score >= 8 ? "#189A6C" : score >= 6.5 ? "#B97F10" : "#E14D4D";
   const grade = score >= 8.5 ? "Xuất sắc" : score >= 7 ? "Khá" : score >= 5 ? "Trung bình" : "Yếu";
 
   return (
@@ -153,18 +153,18 @@ export default function ResultPage({ params }: { params: Promise<{ id: string }>
         <div className="rounded-2xl bg-[#E8F7F1] border border-[#A8E6D6] p-4 mb-5 flex items-center gap-3">
           <Trophy size={20} className="text-[#189A6C] shrink-0" />
           <div>
-            <p className="font-black text-[#064E3B]">🎉 Hoàn hảo! Bạn trả lời đúng tất cả câu!</p>
+            <p className="font-black text-[#064E3B]">Hoàn hảo! Bạn trả lời đúng tất cả câu!</p>
             <p className="text-sm text-[#189A6C] mt-0.5">Tiếp tục duy trì phong độ nhé.</p>
           </div>
         </div>
       ) : (
-        <div className="rounded-2xl bg-[#FFF8E1] border border-[#FFD16680] p-4 mb-5">
-          <p className="font-black text-[#78350F] mb-2">
-            📝 Bạn sai {wrongQuestions.length} câu — cần ôn lại:
+        <div className="rounded-2xl bg-[#FCF3E2] border border-[#B97F1080] p-4 mb-5">
+          <p className="font-black text-[#78350F] mb-2 flex items-center gap-1.5">
+            <PenLine size={14} /> Bạn sai {wrongQuestions.length} câu — cần ôn lại:
           </p>
           <div className="flex flex-wrap gap-2">
             {wrongQuestions.slice(0, 6).map((q) => (
-              <span key={q.id} className="text-xs bg-[var(--surface-card)] border border-[#FFD166] text-[var(--warning)] px-2 py-1 rounded-lg font-semibold">
+              <span key={q.id} className="text-xs bg-[var(--surface-card)] border border-[#B97F10] text-[var(--warning)] px-2 py-1 rounded-lg font-semibold">
                 Câu {q.order}
               </span>
             ))}

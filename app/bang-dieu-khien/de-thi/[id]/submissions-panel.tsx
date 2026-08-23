@@ -40,7 +40,7 @@ const SORT_OPTIONS: { key: SortKey; label: string }[] = [
 
 function scoreColor(score: number) {
   if (score >= 8) return { text: "#189A6C", bg: "#E8F7F1" };
-  if (score >= 6.5) return { text: "#D4A017", bg: "#FFF8E1" };
+  if (score >= 6.5) return { text: "#B97F10", bg: "#FCF3E2" };
   return { text: "#E14D4D", bg: "#FFECEC" };
 }
 
@@ -182,7 +182,7 @@ export function SubmissionsPanel({ subs, questions }: { subs: SubRow[]; question
         {sorted.map((sub, i) => {
           const sc = scoreColor(sub.score);
           const open = expanded === sub.id;
-          const badge = i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : null;
+          const badge = i === 0 ? "bg-[#FCF3E2] text-[#B97F10]" : null;
           return (
             <div key={sub.id}>
               <button
@@ -190,7 +190,7 @@ export function SubmissionsPanel({ subs, questions }: { subs: SubRow[]; question
                 onClick={() => setExpanded(open ? null : sub.id)}
                 className="w-full flex items-center gap-3 px-5 py-3.5 hover:bg-[var(--gray-100)] transition-colors text-left"
               >
-                <span className="w-5 shrink-0 text-center text-xs font-black text-[var(--text-muted)]">
+                <span className={`w-5 shrink-0 text-center text-xs font-black rounded-md py-0.5 ${badge ?? "text-[var(--text-muted)]"}`}>
                   {badge ?? i + 1}
                 </span>
                 <div className="w-8 h-8 rounded-full bg-[var(--primary-light)] flex items-center justify-center shrink-0">
@@ -219,7 +219,7 @@ export function SubmissionsPanel({ subs, questions }: { subs: SubRow[]; question
               {open && (
                 <div className="bg-[var(--gray-50)]/60 px-5 py-4 border-t border-[var(--surface-border)]">
                   <p className="mb-3 flex items-center gap-1.5 text-xs font-black text-[var(--text-primary)]">
-                    <Trophy size={13} className="text-[#D4A017]" /> Chi tiết đáp án
+                    <Trophy size={13} className="text-[#B97F10]" /> Chi tiết đáp án
                   </p>
                   <div className="flex flex-col gap-2.5">
                     {questions.map((q) => {
@@ -260,8 +260,8 @@ export function SubmissionsPanel({ subs, questions }: { subs: SubRow[]; question
                             <span
                               className="shrink-0 text-[11px] font-black px-2 py-0.5 rounded-md"
                               style={{
-                                background: !answered ? "#F1F5F9" : correct ? "#E8F7F1" : "#FFECEC",
-                                color: !answered ? "#64748B" : correct ? "#189A6C" : "#E14D4D",
+                                background: !answered ? "#E7E5E0" : correct ? "#E8F7F1" : "#FFECEC",
+                                color: !answered ? "#6B7280" : correct ? "#189A6C" : "#E14D4D",
                               }}
                             >
                               {!answered ? "Bỏ trống" : correct ? "Đúng" : "Sai"}

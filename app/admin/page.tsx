@@ -257,7 +257,7 @@ export default function AdminDashboard() {
 
       <div className="rounded-2xl bg-[var(--surface-card)] border border-[var(--surface-border)] p-5">
         <h2 className="text-sm font-black text-[var(--text-primary)] mb-4 flex items-center gap-2">
-          <Flame size={15} className="text-[#D4A017]" /> Học sinh có chuỗi ngày học cao nhất
+          <Flame size={15} className="text-[#B97F10]" /> Học sinh có chuỗi ngày học cao nhất
         </h2>
         {data.streakTop.length === 0 ? (
           <p className="text-sm text-[var(--text-muted)] text-center py-6">Chưa có dữ liệu</p>
@@ -270,7 +270,7 @@ export default function AdminDashboard() {
                   <p className="text-sm font-semibold text-[var(--text-primary)] truncate">{s.name}</p>
                   <p className="text-xs text-[var(--text-muted)] truncate">{s.email}</p>
                 </div>
-                <span className="inline-flex items-center gap-1 text-sm font-black text-[#D4A017]">
+                <span className="inline-flex items-center gap-1 text-sm font-black text-[#B97F10]">
                   <Flame size={13} /> {s.streak} ngày
                 </span>
               </div>

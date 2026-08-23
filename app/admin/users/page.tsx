@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { Users, Search, ShieldCheck, RotateCcw, ChevronLeft, ChevronRight, Download } from "lucide-react";
+import { Users, Search, ShieldCheck, RotateCcw, ChevronLeft, ChevronRight, Download, Flame } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { exportCsv } from "@/lib/csv";
@@ -212,7 +212,7 @@ export default function AdminUsers() {
                     </td>
                     <td className="px-4 py-3 text-xs text-[var(--text-secondary)]">
                       {u._count.submissions} bài nộp · {u._count.exams} đề
-                      {u.streak > 0 && <span className="ml-1 text-[#D4A017] font-bold">🔥{u.streak}</span>}
+                      {u.streak > 0 && <span className="ml-1 text-[#B97F10] font-bold inline-flex items-center gap-0.5"><Flame size={11} className="inline" />{u.streak}</span>}
                     </td>
                     <td className="px-4 py-3 text-xs text-[var(--text-muted)]">
                       {u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" }) : "—"}

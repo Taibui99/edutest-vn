@@ -102,10 +102,10 @@ export function ProgressClient({ streak, lastStudyDate, flashcardCount, submissi
           { label: "Flashcard", value: flashcardCount, icon: <Layers size={14} />, color: "c4" },
         ].map(({ label, value, icon, color, dim }) => (
           <div key={label} className={`rounded-2xl p-4 ${dim ? "opacity-50" : ""} ${
-            color === "c1" ? "bg-[#FFF8E1] dark:bg-[#2B2410]" : color === "c2" ? "bg-[#F1EDFD] dark:bg-[#46309F]" : color === "c3" ? "bg-[#EAF3FC] dark:bg-[#0D2A3E]" : "bg-[#E8F7F1] dark:bg-[#0A2A20]"
+            color === "c1" ? "bg-[#FCF3E2] dark:bg-[#2B2410]" : color === "c2" ? "bg-[#F1EDFD] dark:bg-[#46309F]" : color === "c3" ? "bg-[#EAF3FC] dark:bg-[#0D2A3E]" : "bg-[#E8F7F1] dark:bg-[#0A2A20]"
           }`}>
             <div className={`flex items-center gap-2 mb-1 ${
-              color === "c1" ? "text-[#D4A017]" : color === "c2" ? "text-[#6C4CF1]" : color === "c3" ? "text-[#2F80D8]" : "text-[#189A6C]"
+              color === "c1" ? "text-[#B97F10]" : color === "c2" ? "text-[#6C4CF1]" : color === "c3" ? "text-[#2F80D8]" : "text-[#189A6C]"
             }`}>
               {icon}
               <span className="text-xs font-bold">{label}</span>
@@ -138,7 +138,7 @@ export function ProgressClient({ streak, lastStudyDate, flashcardCount, submissi
                       <p className="text-sm font-semibold text-[var(--text-primary)]">{subject}</p>
                       <p className="text-xs text-[var(--text-muted)]">{count} bài · cao nhất {best.toFixed(1)}</p>
                     </div>
-                    <span className="text-sm font-black" style={{ color: avg >= 8 ? "#189A6C" : avg >= 6.5 ? "#D4A017" : "#E14D4D" }}>
+                    <span className="text-sm font-black" style={{ color: avg >= 8 ? "#189A6C" : avg >= 6.5 ? "#B97F10" : "#E14D4D" }}>
                       {avg.toFixed(1)}
                     </span>
                   </div>
@@ -166,7 +166,7 @@ export function ProgressClient({ streak, lastStudyDate, flashcardCount, submissi
                       {s.subject} · {new Date(s.submittedAt).toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" })}
                     </p>
                   </div>
-                  <span className={`text-sm font-black ${s.score >= 8 ? "text-[#189A6C]" : s.score >= 6.5 ? "text-[#D4A017]" : "text-[#E14D4D]"}`}>
+                  <span className={`text-sm font-black ${s.score >= 8 ? "text-[#189A6C]" : s.score >= 6.5 ? "text-[#B97F10]" : "text-[#E14D4D]"}`}>
                     {s.score.toFixed(1)}
                   </span>
                 </div>

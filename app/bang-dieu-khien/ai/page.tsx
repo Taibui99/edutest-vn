@@ -12,7 +12,7 @@ interface Message {
 
 const INITIAL_MESSAGE: Message = {
   role: "assistant",
-  content: "Xin chào! Tôi là AI Study Coach của EduTest 👋\n\nTôi có thể giúp bạn:\n• Phân tích điểm yếu và đề xuất ôn tập\n• Giải thích kiến thức, tạo câu hỏi luyện tập\n• Lập kế hoạch học tập cá nhân\n\nBạn muốn bắt đầu từ đâu?",
+  content: "Xin chào! Tôi là AI Study Coach của EduTest.\n\nTôi có thể giúp bạn:\n• Phân tích điểm yếu và đề xuất ôn tập\n• Giải thích kiến thức, tạo câu hỏi luyện tập\n• Lập kế hoạch học tập cá nhân\n\nBạn muốn bắt đầu từ đâu?",
 };
 
 const STORAGE_PREFIX = "edutest-ai-chat-v2:";

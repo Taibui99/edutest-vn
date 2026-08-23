@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { ArrowLeft, CheckCircle2 } from "lucide-react";
 import { AuthCard } from "@/app/components/auth-card";
 import { Spinner } from "@/app/components/spinner";
 
@@ -34,25 +35,27 @@ export default function QuenMatKhauPage() {
   };
 
   return (
-    <div className="min-h-screen grid place-items-center bg-gradient-to-b from-blue-50 to-white p-4">
+    <div className="min-h-screen grid place-items-center bg-[var(--bg-page)] p-4">
       <AuthCard
         title="Quên mật khẩu"
         subtitle="Nhập email đăng ký, chúng tôi sẽ gửi liên kết đặt lại mật khẩu"
         footer={
-          <Link href="/dang-nhap" className="font-semibold text-blue-600 hover:text-blue-700">
-            ← Quay lại đăng nhập
+          <Link href="/dang-nhap" className="font-semibold text-[#6C4CF1] hover:text-[#5A3BD8] inline-flex items-center gap-1.5">
+            <ArrowLeft size={14} /> Quay lại đăng nhập
           </Link>
         }
       >
         {state === "sent" ? (
           <div className="text-center">
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-green-100 text-2xl">✅</div>
-            <p className="text-sm text-slate-600">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[#E8F7F1]">
+              <CheckCircle2 size={24} className="text-[#189A6C]" />
+            </div>
+            <p className="text-sm text-[var(--text-secondary)]">
               Nếu email tồn tại, chúng tôi đã gửi liên kết đặt lại mật khẩu. Vui lòng kiểm tra hộp thư.
             </p>
             <Link
               href="/dang-nhap"
-              className="mt-6 inline-flex w-full justify-center rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700"
+              className="mt-6 inline-flex w-full justify-center rounded-lg bg-[#6C4CF1] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#5A3BD8]"
             >
               Về trang đăng nhập
             </Link>
