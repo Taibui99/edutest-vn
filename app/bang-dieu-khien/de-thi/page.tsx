@@ -105,7 +105,7 @@ export default async function ExamListPage({ searchParams }: { searchParams: Pro
                         </div>
                         <Badge variant="primary">{exam.joinCode}</Badge>
                         {exam.status === "draft" && (
-                          <span className="text-xs px-2 py-0.5 rounded-md font-medium bg-amber-100 text-amber-700">
+                          <span className="text-xs px-2 py-0.5 rounded-md font-medium bg-[#FCF3E2] text-[#B97F10]">
                             Bản nháp
                           </span>
                         )}
@@ -116,12 +116,12 @@ export default async function ExamListPage({ searchParams }: { searchParams: Pro
                         <span className="flex items-center gap-1"><Users size={12} /> {exam._count.submissions} bài nộp</span>
                       </div>
                       {schedule && (
-                        <p className="mt-2 text-[11px] font-semibold text-[#D97706] flex items-center gap-1">
+                        <p className="mt-2 text-[11px] font-semibold text-[#B97F10] flex items-center gap-1">
                           <Clock size={11} /> {schedule}
                         </p>
                       )}
                       {avgScore !== null && (
-                        <div className="mt-3 pt-3 border-t border-[#F1F5F9] flex items-center justify-between">
+                        <div className="mt-3 pt-3 border-t border-[var(--surface-border)] flex items-center justify-between">
                           <span className="text-xs text-[var(--text-muted)]">Điểm trung bình</span>
                           <span className="text-sm font-bold text-[var(--primary)]">{avgScore.toFixed(1)}/10</span>
                         </div>
@@ -170,7 +170,7 @@ export default async function ExamListPage({ searchParams }: { searchParams: Pro
           {submissions.map((sub: typeof submissions[0]) => {
             const c = getSubjectColor(sub.exam.subject);
             const scoreVal = sub.score;
-            const scoreCol = scoreVal >= 8 ? "#16A34A" : scoreVal >= 6.5 ? "#D97706" : "#DC2626";
+            const scoreCol = scoreVal >= 8 ? "#189A6C" : scoreVal >= 6.5 ? "#B97F10" : "#E14D4D";
 
             return (
               <Card key={sub.id} className="p-0 overflow-hidden">

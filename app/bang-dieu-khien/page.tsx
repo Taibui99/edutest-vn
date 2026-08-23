@@ -32,13 +32,13 @@ function getGreeting() {
 
 function scoreColor(score: number) {
   if (score >= 8)   return "text-[#189A6C]";
-  if (score >= 6.5) return "text-[#FFD166]";
+  if (score >= 6.5) return "text-[#B97F10]";
   return "text-[#E14D4D]";
 }
 
 function scoreBg(score: number) {
   if (score >= 8)   return { bg: "#E8F7F1", text: "#189A6C" };
-  if (score >= 6.5) return { bg: "#FFF8E1", text: "#D4A017" };
+  if (score >= 6.5) return { bg: "#FCF3E2", text: "#B97F10" };
   return { bg: "#FFECEC", text: "#E14D4D" };
 }
 
@@ -85,7 +85,7 @@ async function StudentDashboard({ userId, name }: { userId: string; name: string
     <div className="p-4 lg:p-8 max-w-5xl mx-auto animate-fade-in">
 
       {/* ── Greeting banner */}
-      <div className="rounded-3xl bg-gradient-to-r from-[#6C4CF1] via-[#8B6FF5] to-[#E14D4D] p-6 mb-6 relative overflow-hidden">
+      <div className="rounded-3xl bg-gradient-to-r from-[#6C4CF1] via-[#7C5CF3] to-[#8B6FF5] p-6 mb-6 relative overflow-hidden">
         {/* decorative circles */}
         <div className="absolute -top-8 -right-8 w-40 h-40 rounded-full bg-white/10" />
         <div className="absolute -bottom-10 right-20 w-28 h-28 rounded-full bg-white/5" />
@@ -93,7 +93,7 @@ async function StudentDashboard({ userId, name }: { userId: string; name: string
         <div className="relative flex items-start justify-between gap-4">
           <div>
             <p className="text-white/70 text-sm font-medium">{getGreeting()},</p>
-            <h1 className="text-2xl font-black text-white mt-0.5">{name} 👋</h1>
+            <h1 className="text-2xl font-black text-white mt-0.5">{name}</h1>
             {daysLeft !== null ? (
               <div className="mt-3">
                 <p className="text-white/80 text-sm">
@@ -114,11 +114,13 @@ async function StudentDashboard({ userId, name }: { userId: string; name: string
           </div>
           <div className="flex shrink-0 flex-col items-end gap-2">
             <div className="inline-flex items-center gap-1.5 rounded-2xl bg-white/15 px-4 py-2 backdrop-blur-sm">
-              <Flame size={18} className="text-[#FFD166]" fill="currentColor" />
+              <Flame size={18} className="text-[#FCF3E2]" fill="currentColor" />
               <span className="text-lg font-black text-white">{streak}</span>
               <span className="text-xs font-semibold text-white/80">ngày liên tiếp</span>
             </div>
-            <div className="shrink-0 text-4xl select-none hidden sm:block">🎯</div>
+            <div className="shrink-0 hidden sm:block">
+              <Target size={36} className="text-white/30" strokeWidth={1.5} />
+            </div>
           </div>
         </div>
       </div>
@@ -135,10 +137,10 @@ async function StudentDashboard({ userId, name }: { userId: string; name: string
           </div>
           <p className="text-2xl font-black text-[#1C1917]">{totalSubmissions}</p>
         </div>
-        <div className="bg-[#FFF8E1] rounded-2xl p-4">
+        <div className="bg-[#FCF3E2] rounded-2xl p-4">
           <div className="flex items-center gap-2 mb-1">
-            <Trophy size={14} className="text-[#D4A017]" />
-            <span className="text-xs font-bold text-[#D4A017]">Điểm TB</span>
+            <Trophy size={14} className="text-[#B97F10]" />
+            <span className="text-xs font-bold text-[#B97F10]">Điểm TB</span>
           </div>
           <p className={`text-2xl font-black ${scoreColor(avgScore)}`}>
             {avgScore > 0 ? avgScore.toFixed(1) : "—"}
@@ -171,7 +173,7 @@ async function StudentDashboard({ userId, name }: { userId: string; name: string
                 <Zap size={17} className="text-white" />
               </div>
               <div className="flex-1">
-                <p className="text-sm font-black text-[#1C1917] mb-1">✨ AI Study Coach</p>
+                <p className="text-sm font-black text-[#1C1917] mb-1 flex items-center gap-1.5"><Sparkles size={14} className="text-[#6C4CF1]" /> AI Study Coach</p>
                 {dueCards > 0 ? (
                   <p className="text-sm text-[#4A4870]">
                     Bạn có <strong className="text-[#6C4CF1]">{dueCards} flashcard</strong> cần ôn hôm nay.
@@ -183,7 +185,7 @@ async function StudentDashboard({ userId, name }: { userId: string; name: string
                   </p>
                 ) : (
                   <p className="text-sm text-[#4A4870]">
-                    🎉 Hôm nay bạn đã ôn xong tất cả flashcard! Thử làm một đề thi nhé.
+                    Hôm nay bạn đã ôn xong tất cả flashcard! Thử làm một đề thi nhé.
                   </p>
                 )}
                 <div className="flex gap-2 mt-3 flex-wrap">
@@ -205,7 +207,7 @@ async function StudentDashboard({ userId, name }: { userId: string; name: string
           {/* Recent exams */}
           <Card padding="none">
             <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--surface-border)]">
-              <h2 className="text-sm font-black text-[var(--text-primary)]">📋 Bài thi gần đây</h2>
+              <h2 className="text-sm font-black text-[var(--text-primary)] flex items-center gap-1.5"><Clock size={14} className="text-[var(--text-muted)]" /> Bài thi gần đây</h2>
               <Link href="/bang-dieu-khien/de-thi" className="text-xs text-[#6C4CF1] font-bold flex items-center gap-1 hover:underline">
                 Xem tất cả <ArrowRight size={12} />
               </Link>
@@ -287,7 +289,7 @@ async function StudentDashboard({ userId, name }: { userId: string; name: string
           <Card padding="none">
             <div className="flex items-center justify-between px-4 py-3.5 border-b border-[var(--surface-border)]">
               <h2 className="text-sm font-black text-[var(--text-primary)]">
-                <CheckSquare size={14} className="inline mr-1.5 text-[#FFD166]" />
+                <CheckSquare size={14} className="inline mr-1.5 text-[#B97F10]" />
                 Nhiệm vụ hôm nay
               </h2>
               <Link href="/bang-dieu-khien/hoc-tap">
@@ -295,7 +297,7 @@ async function StudentDashboard({ userId, name }: { userId: string; name: string
               </Link>
             </div>
             {tasks.length === 0 ? (
-              <EmptyState title="Không có việc chờ 🎉" className="py-8" />
+              <EmptyState title="Không có việc chờ" className="py-8" />
             ) : (
               <div className="p-3 flex flex-col gap-1">
                 {tasks.map((task: TaskType) => (
@@ -396,20 +398,25 @@ async function TeacherDashboard({ userId, name }: { userId: string; name: string
     <div className="p-4 lg:p-8 max-w-5xl mx-auto animate-fade-in">
 
       {/* ── Greeting banner */}
-      <div className="rounded-3xl bg-gradient-to-r from-[#2F80D8] via-[#6C4CF1] to-[#8B6FF5] p-6 mb-6 relative overflow-hidden">
+      <div className="rounded-3xl bg-gradient-to-r from-[#6C4CF1] via-[#7C5CF3] to-[#8B6FF5] p-6 mb-6 relative overflow-hidden">
         <div className="absolute -top-8 -right-8 w-40 h-40 rounded-full bg-white/10" />
         <div className="absolute -bottom-10 right-20 w-28 h-28 rounded-full bg-white/5" />
         <div className="relative flex items-start justify-between gap-4">
           <div>
             <p className="text-white/70 text-sm font-medium">{getGreeting()},</p>
-            <h1 className="text-2xl font-black text-white mt-0.5">{name} 👨‍🏫</h1>
+            <h1 className="text-2xl font-black text-white mt-0.5">{name}</h1>
             <p className="text-white/80 text-sm mt-2">
-              {recentSubs > 0
-                ? `🔥 ${recentSubs} bài nộp hôm nay — lớp đang học tích cực!`
-                : "Hôm nay lớp chưa có bài nộp mới."}
+              {recentSubs > 0 ? (
+                <>
+                  <Flame size={14} className="inline -mt-0.5 mr-1" fill="currentColor" />
+                  {recentSubs} bài nộp hôm nay — lớp đang học tích cực!
+                </>
+              ) : "Hôm nay lớp chưa có bài nộp mới."}
             </p>
           </div>
-          <div className="shrink-0 text-5xl select-none hidden sm:block">📊</div>
+          <div className="shrink-0 hidden sm:block">
+            <BarChart3 size={44} className="text-white/30" strokeWidth={1.5} />
+          </div>
         </div>
       </div>
 
@@ -430,10 +437,10 @@ async function TeacherDashboard({ userId, name }: { userId: string; name: string
           <p className="text-2xl font-black text-[#1C1917]">{totalSubmissions}</p>
           {recentSubs > 0 && <p className="text-xs text-[#189A6C] font-bold">+{recentSubs} hôm nay</p>}
         </div>
-        <div className="bg-[#FFF8E1] rounded-2xl p-4">
+        <div className="bg-[#FCF3E2] rounded-2xl p-4">
           <div className="flex items-center gap-2 mb-1">
-            <Trophy size={14} className="text-[#D4A017]" />
-            <span className="text-xs font-bold text-[#D4A017]">Điểm TB</span>
+            <Trophy size={14} className="text-[#B97F10]" />
+            <span className="text-xs font-bold text-[#B97F10]">Điểm TB</span>
           </div>
           <p className={`text-2xl font-black ${scoreColor(avgScore)}`}>
             {avgScore > 0 ? avgScore.toFixed(1) : "—"}
@@ -463,7 +470,7 @@ async function TeacherDashboard({ userId, name }: { userId: string; name: string
           {/* Exam list */}
           <Card padding="none">
             <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--surface-border)]">
-              <h2 className="text-sm font-black text-[var(--text-primary)]">📋 Đề thi đã tạo</h2>
+              <h2 className="text-sm font-black text-[var(--text-primary)] flex items-center gap-1.5"><FileText size={14} className="text-[#6C4CF1]" /> Đề thi đã tạo</h2>
               <Link href="/bang-dieu-khien/de-thi" className="text-xs text-[#6C4CF1] font-bold flex items-center gap-1 hover:underline">
                 Quản lý <ArrowRight size={12} />
               </Link>
@@ -536,8 +543,8 @@ async function TeacherDashboard({ userId, name }: { userId: string; name: string
             </div>
             <div className="p-3 flex flex-col gap-2">
               {activeExams.length === 0 && noSubmissionExams.length === 0 ? (
-                <p className="text-xs text-[var(--text-muted)] text-center py-6">
-                  ✅ Không có gì cần chú ý
+                <p className="text-xs text-[var(--text-muted)] flex items-center justify-center gap-1.5 py-6">
+                  <CheckCircle2 size={13} className="text-[#189A6C]" /> Không có gì cần chú ý
                 </p>
               ) : (
                 <>
@@ -545,7 +552,7 @@ async function TeacherDashboard({ userId, name }: { userId: string; name: string
                     <Link
                       key={exam.id}
                       href={`/bang-dieu-khien/de-thi/${exam.id}`}
-                      className="flex items-center gap-2.5 p-2.5 rounded-xl bg-[#E8F7F1] hover:bg-[#C8EEE1] transition-colors"
+                      className="flex items-center gap-2.5 p-2.5 rounded-xl bg-[#E8F7F1] hover:bg-[#D3EFE5] transition-colors"
                     >
                       <CheckCircle2 size={14} className="text-[#189A6C] shrink-0" />
                       <div className="min-w-0">
@@ -558,12 +565,12 @@ async function TeacherDashboard({ userId, name }: { userId: string; name: string
                     <Link
                       key={exam.id}
                       href={`/bang-dieu-khien/de-thi/${exam.id}`}
-                      className="flex items-center gap-2.5 p-2.5 rounded-xl bg-[#FFF8E1] hover:bg-[#FFE8A0] transition-colors"
+                      className="flex items-center gap-2.5 p-2.5 rounded-xl bg-[#FCF3E2] hover:bg-[#F5E5BC] transition-colors"
                     >
-                      <AlertCircle size={14} className="text-[#D4A017] shrink-0" />
+                      <AlertCircle size={14} className="text-[#B97F10] shrink-0" />
                       <div className="min-w-0">
                         <p className="text-xs font-bold text-[#78350F] truncate">{exam.title}</p>
-                        <p className="text-xs text-[#D4A017]">Chưa có bài nộp</p>
+                        <p className="text-xs text-[#B97F10]">Chưa có bài nộp</p>
                       </div>
                     </Link>
                   ))}
@@ -670,7 +677,7 @@ export default async function DashboardPage({
         <div className="mx-4 mt-4 lg:mx-8 lg:mt-6 rounded-2xl bg-[#E8F7F1] border border-[#A8E6D6] p-4 flex items-center gap-3 animate-bounce-in">
           <CheckCircle2 size={18} className="text-[#189A6C] shrink-0" />
           <div>
-            <p className="text-sm font-black text-[#064E3B]">🎉 Đã xuất bản đề thi!</p>
+            <p className="text-sm font-black text-[#064E3B]">Đã xuất bản đề thi!</p>
             <p className="text-xs text-[#189A6C]">
               Mã tham gia:{" "}
               <span className="font-mono font-black tracking-widest">{params.created}</span>
