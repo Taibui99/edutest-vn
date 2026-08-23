@@ -52,7 +52,7 @@ test.describe("AUTH UI — Form đăng ký & quên mật khẩu", () => {
     await expect(page.getByText(/email hoặc mật khẩu không đúng/i)).toBeVisible({ timeout: 15000 });
   });
 
-  test("R-06: Quên mật khẩu — gửi liên kết + đặt lại mật khẩu mới (exposeResetLink bật)", async ({ page }) => {
+  test("R-06: Quên mật khẩu — gửi OK và không rò rỉ resetLink (SEC-02 đã vá)", async ({ page }) => {
     const email = `qa-reset-${timestamp()}@edutest.vn`;
     await page.request.post("/api/auth/register", {
       data: { fullName: "QA Reset", email, role: "student", password: "OldPass@123" },
@@ -61,31 +61,18 @@ test.describe("AUTH UI — Form đăng ký & quên mật khẩu", () => {
     await expect(page.getByRole("heading", { name: /quên mật khẩu/i })).toBeVisible();
     await page.locator("#email").fill(email);
     await page.getByRole("button", { name: /gửi liên kết đặt lại/i }).click();
-    // exposeResetLink bật → hiện thông báo + demo link chứa token
     await expect(page.getByText(/nếu email tồn tại/i)).toBeVisible({ timeout: 15000 });
-    const demoLink = page.getByText(/doi-mat-khau\?token=/).first();
-    await expect(demoLink).toBeVisible();
-    // SEC-02 confirmed: token hiển thị trực tiếp trên UI
+    // SEC-02 đã vá (4b33879): UI không còn render demo link chứa token
+    await expect(page.getByText(/doi-mat-khau\?token=/)).toHaveCount(0);
+    // kiểm tra trực tiếp response API — không có trường resetLink
+    const res = await page.request.post("/api/auth/forgot-password", { data: { email } });
+    expect(res.status()).toBe(200);
+    const json = await res.json();
+    expect(json).not.toHaveProperty("resetLink");
     test.info().annotations.push({
       type: "note",
-      description: "SEC-02 xác nhận: reset token hiển thị trực tiếp trong demo link trên trang /quen-mat-khau khi exposeResetLink=true",
+      description: "SEC-02 đã vá: response API {ok:true} không chứa resetLink, UI chỉ hiện thông báo chung",
     });
-    const token = (await demoLink.innerText()).match(/token=(\S+)/)?.[1];
-    expect(token).toBeTruthy();
-    await page.goto(`/doi-mat-khau?token=${token}`);
-    await expect(page.getByText(/tạo mật khẩu mới/i)).toBeVisible({ timeout: 15000 });
-    await page.locator("#password").fill("NewPass@456");
-    await page.getByLabel(/xác nhận mật khẩu mới/i).fill("NewPass@456");
-    await page.getByRole("button", { name: /đặt lại mật khẩu/i }).click();
-    // thành công → link đăng nhập với mật khẩu mới
-    await expect(page.getByText(/mật khẩu đã được đặt lại thành công/i)).toBeVisible({ timeout: 15000 });
-    await page.getByRole("link", { name: /đăng nhập với mật khẩu mới/i }).click();
-    await page.waitForURL(/\/dang-nhap/, { timeout: 15000 });
-    // login với mật khẩu mới
-    await page.locator("#email").fill(email);
-    await page.locator("#password").fill("NewPass@456");
-    await page.getByRole("button", { name: /đăng nhập/i }).click();
-    await page.waitForURL(/\/bang-dieu-khien/, { timeout: 20000 });
   });
 
   test("R-07: /doi-mat-khau public — không có token → báo liên kết không hợp lệ", async ({ page }) => {
