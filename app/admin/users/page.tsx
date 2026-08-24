@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { Users, Search, ShieldCheck, RotateCcw, ChevronLeft, ChevronRight, Download, Flame } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { ConfirmDialog } from "@/components/confirm-dialog";
@@ -29,36 +29,47 @@ export default function AdminUsers() {
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
   const [q, setQ] = useState("");
   const [role, setRole] = useState("");
   const [status, setStatus] = useState("");
   const [page, setPage] = useState(1);
+  const [refreshTick, setRefreshTick] = useState(0);
   const [error, setError] = useState("");
   const [busyId, setBusyId] = useState("");
   const [deleting, setDeleting] = useState<AdminUser | null>(null);
 
-  const load = useCallback(async (query = q, r = role, s = status, p = page) => {
-    setLoading(true);
-    const params = new URLSearchParams();
-    if (query) params.set("q", query);
-    if (r) params.set("role", r);
-    if (s) params.set("status", s);
-    params.set("page", String(p));
-    try {
-      const res = await fetch(`/api/admin/users?${params}`);
-      if (!res.ok) throw new Error("Forbidden");
-      const data = await res.json();
-      setUsers(data.users);
-      setTotal(data.total);
-      setTotalPages(data.totalPages);
-    } catch {
-      setError("Không tải được dữ liệu");
-    } finally {
-      setLoading(false);
-    }
-  }, [q, role, status, page]);
+  useEffect(() => {
+    const t = setTimeout(() => { setQ(search); setPage(1); }, 300);
+    return () => clearTimeout(t);
+  }, [search]);
 
-  useEffect(() => { load(q, role, status, page); }, [load, q, role, status, page]); // eslint-disable-line react-hooks/set-state-in-effect
+  useEffect(() => {
+    const ac = new AbortController();
+    const run = async () => {
+      setLoading(true);
+      setError("");
+      const params = new URLSearchParams();
+      if (q) params.set("q", q);
+      if (role) params.set("role", role);
+      if (status) params.set("status", status);
+      params.set("page", String(page));
+      try {
+        const res = await fetch(`/api/admin/users?${params}`, { signal: ac.signal });
+        if (!res.ok) throw new Error("Forbidden");
+        const data = await res.json();
+        setUsers(data.users);
+        setTotal(data.total);
+        setTotalPages(data.totalPages);
+      } catch (e) {
+        if ((e as Error).name !== "AbortError") setError("Không tải được dữ liệu");
+      } finally {
+        setLoading(false);
+      }
+    };
+    run();
+    return () => ac.abort();
+  }, [q, role, status, page, refreshTick]);
 
   const patch = async (id: string, body: Record<string, unknown>) => {
     setBusyId(id);
@@ -74,7 +85,7 @@ export default function AdminUsers() {
         return;
       }
       toast("success", "Đã cập nhật tài khoản");
-      load(q, role, status, page);
+      setRefreshTick((t) => t + 1);
     } finally {
       setBusyId("");
     }
@@ -94,7 +105,7 @@ export default function AdminUsers() {
         return;
       }
       toast("success", "Đã xóa tài khoản", u.email);
-      load(q, role, status, page);
+      setRefreshTick((t) => t + 1);
     } finally {
       setBusyId("");
       setDeleting(null);
@@ -138,8 +149,8 @@ export default function AdminUsers() {
         <div className="relative flex-1 min-w-[200px]">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
           <input
-            value={q}
-            onChange={(e) => { setQ(e.target.value); setPage(1); }}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
             placeholder="Tìm theo tên / email..."
             className="w-full rounded-lg border border-[var(--surface-border)] pl-9 pr-3 py-2 text-sm focus:border-[#6C4CF1] focus:outline-none"
           />
