@@ -3,7 +3,7 @@ import { test, expect } from "@playwright/test";
 test.describe("LANDING — Trang chủ", () => {
   test("L-01: Landing hiển thị đầy đủ sections", async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByRole("heading", { name: /tạo đề, giao bài, thi trực tuyến/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /tạo đề thi siêu tốc/i })).toBeVisible();
     await expect(page.getByText(/dành cho học sinh/i)).toBeVisible();
     await expect(page.getByText(/dành cho giáo viên/i)).toBeVisible();
     await expect(page.getByText("Flashcard thông minh").first()).toBeVisible();
@@ -12,7 +12,7 @@ test.describe("LANDING — Trang chủ", () => {
     await expect(page.getByText("Tạo đề trên một màn hình").first()).toBeVisible();
     await expect(page.getByText("20k+").first()).toBeVisible();
     await expect(page.getByText("Đề thi đã tạo").first()).toBeVisible();
-    await expect(page.getByRole("link", { name: /bắt đầu miễn phí/i }).first()).toBeVisible();
+    await expect(page.getByRole("link", { name: /bắt đầu soạn đề miễn phí/i }).first()).toBeVisible();
     await expect(page.getByRole("link", { name: /vào thi bằng mã/i }).first()).toBeVisible();
   });
 
@@ -44,7 +44,7 @@ test.describe("LANDING — Trang chủ", () => {
     await page.goto("/");
     test.skip(test.info().project.name === "mobile", "Nav ẩn trên mobile");
     await page.getByRole("link", { name: "Hướng dẫn" }).click();
-    await expect(page.getByRole("heading", { name: /bắt đầu dễ dàng/i })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole("heading", { name: /từ ý tưởng đến đề thi hoàn chỉnh/i })).toBeVisible({ timeout: 10000 });
   });
 
   test("L-05: Footer hiển thị", async ({ page }) => {

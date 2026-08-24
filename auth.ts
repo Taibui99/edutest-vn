@@ -3,7 +3,7 @@ import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { authConfig } from "@/auth.config";
 import { prisma } from "@/lib/prisma";
-import { rateLimit } from "@/lib/rate-limit";
+import { rateLimit, resetRateLimit } from "@/lib/rate-limit";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   ...authConfig,
@@ -21,13 +21,15 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           return null;
         }
 
-        const rl = rateLimit(`login:${email.toLowerCase().trim()}`, 10, 5 * 60_000);
+        const emailKey = email.toLowerCase().trim();
+        // Chỉ đếm lần đăng nhập THẤT BẠI — login thành công không bị giới hạn.
+        const rl = rateLimit(`login-fail:${emailKey}`, 10, 5 * 60_000);
         if (!rl.ok) {
           return null;
         }
 
         const user = await prisma.user.findUnique({
-          where: { email: email.toLowerCase().trim() },
+          where: { email: emailKey },
         });
 
         if (!user) {
@@ -47,6 +49,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         if (!isValid) {
           return null;
         }
+
+        resetRateLimit(`login-fail:${emailKey}`);
 
         await prisma.user.update({
           where: { id: user.id },

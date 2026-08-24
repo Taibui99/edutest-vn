@@ -42,3 +42,7 @@ export function clientIp(req: Request): string {
   if (fwd) return fwd.split(",")[0].trim();
   return req.headers.get("x-real-ip") || "unknown";
 }
+
+export function resetRateLimit(key: string) {
+  buckets.delete(key);
+}
