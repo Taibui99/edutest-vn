@@ -80,6 +80,18 @@
 - [x] **Fix focus outline vuông** (commits `8bbcd63` + `2c430a2`) — lỗi user báo: click ô nhập tin nhắn AI thấy viền ô vuông khó chịu (input bo tròn). Nguyên nhân: rule toàn cục `*:focus-visible { outline: 2px }` **unlayered** thắng mọi `@layer` bất kể specificity nên `outline-none` (Tailwind utilities layer) không gỡ được. Fix: `:where(*:focus-visible)` + bọc trong `@layer base` để utilities override — verified live: AI coach textarea `outline-style:none`, editor textarea `none`, input login vẫn còn focus ring teal qua `focus:ring-2`
 - [x] **Fix thống kê lỗi cho admin ở chế độ GV** (commit `ae8d414`) — bug: `/bang-dieu-khien/thong-ke` crash "undefined is not iterable" khi đăng nhập admin → chuyển mode Giáo viên. Nguyên nhân: G6 proxy guard theo `mode` nhưng các API check `role === "teacher"` → admin (role=admin) bị 401 → `{error}` được `setData` → destructure `summary` undefined → `Math.max(...)` crash. Fix: thêm `lib/access.ts` (`isTeacherAccess` = teacher **hoặc** admin; `isAdminAccess`), thay 14 API teacher dùng `isTeacherAccess` (analytics, questions, classrooms + [id]/members/assignments, exams + [id]/share, question-bank + [id], gemini, ai-coach, ai-router); thống kê check `r.ok` trước `setData` + hiện thông báo khi lỗi; admin routes giữ nguyên `role !== "admin"` — verified live: admin login → đổi mode GV → `/thong-ke` hiển thị đủ Đề thi/Bài nộp, 0 console error
 
+## 🚀 Launch — đi vào hoạt động chính thức (2026-08-24)
+> Mục tiêu: những thứ bắt buộc/nên có để đón người dùng thật. Admin chính thức tạm hoãn theo yêu cầu.
+- [ ] **L1 Gửi email thật (quên mật khẩu)** — hiện forgot-password chỉ ghi log, không gửi email nào → user quên MK mất tài khoản vĩnh viễn. Dùng Resend HTTP API (fetch thuần, không thêm dependency): `lib/email.ts` đọc `RESEND_API_KEY`/`EMAIL_FROM`, wire vào forgot-password gửi link reset 1h, không đổi hành vi trả `{ok:true}` (chống user enumeration). Dev vẫn nhận resetLink trực tiếp như cũ
+- [ ] **L2 Rate limiting** — hiện 0 endpoint có limit (brute-force tự do): `lib/rate-limit.ts` fixed-window in-memory, áp lên register/forgot-password/reset-password + login
+- [ ] **L3 Trang Điều khoản & Chính sách bảo mật** — `/dieu-khoan`, `/bao-mat` (nội dung tiếng Việt phù hợp nền tảng thi có dữ liệu học sinh) + link ở footer
+- [ ] **L4 SEO cơ bản** — `robots.ts`, `sitemap.ts`, `manifest.ts`
+- [ ] **L5 Full E2E regression** — chạy lại 192 test sau toàn bộ chuỗi UI 2.0 + Launch
+- [ ] **L6 Domain riêng** — user mua domain + trỏ Vercel (hướng dẫn khi làm)
+- [ ] **L7 Uptime/alert monitoring** — hướng dẫn cài UptimeRobot/BetterStack theo dõi `/api/health` (cần tài khoản của user)
+- [ ] **L8 Xác nhận backup database** — kiểm tra provider DB trên Vercel env + bật PITR/backup nếu chưa
+
+
 ## 🛠 Fix bug theo báo cáo QA (2026-08-22)
 - [x] **BUG-1 · SEC-02 (P1)** Forgot-password rò rỉ `resetLink` plaintext trong response khi bật setting `exposeResetLink` + UI render link demo — bỏ cơ chế expose khỏi production (chỉ giữ NODE_ENV=development), sửa UI không còn render link (commit `4b33879`) — verified live: POST `/api/auth/forgot-password` trả `{ok:true}` không có resetLink; E2E R-06 viết lại thành kiểm chứng SEC-02 đã vá (`ea58415`)
 - [x] **BUG-2 · BUG-01 (P1)** Register chấp nhận email sai định dạng (`qa-short`) — thêm validate email server-side regex → 400 "Email không hợp lệ." (commit `011759a`) — verified live: `qa-short`/email rỗng → 400
