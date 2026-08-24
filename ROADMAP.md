@@ -88,7 +88,7 @@
 - [x] **L4 SEO cơ bản** — obots.ts (chặn /admin, /bang-dieu-khien, /thi/, /api/, /doi-mat-khau), sitemap.ts (6 URL public), manifest.ts (PWA-ready, theme #6C4CF1) — kèm đồng bộ footer: logo Edu violet + Test ink (bỏ coral cũ, bỏ Heart icon), thêm link Điều khoản/Bảo mật
 Tất cả L1–L4 trong commit `6e0ad48` — verified live: robots.txt/sitemap.xml/manifest.webmanifest trả 200 đúng nội dung; /dieu-khoan + /bao-mat render 200; rate limit forgot-password chặn lần thứ 4 → 429 + Retry-After 595s; lint 0 error + tsc sạch + build OK
 
-- [ ] **L5 Full E2E regression** — chạy lại 192 test sau toàn bộ chuỗi UI 2.0 + Launch
+- [x] **L5 Full E2E regression** (commit `cddedd8`) — chạy đủ 192 test production: 184 passed / 3 flaky (pass ở retry) / 1 skip chủ ý L-04 mobile; 4 fail xử lý xong: (1) spec landing L-01/L-04 lỗi thời còn khẳng định copy trước R1 → cập nhật theo H1/heading mới, (2) login rate limit ở L2 đếm cả lần thành công khiến E2E burst-login cùng email bị chặn nhầm → sửa chỉ đếm lần THẤT BẠI (`resetRateLimit` khi success). Chạy lại toàn bộ spec liên quan: landing+teacher-create+study-hub 27 passed, exam-detail+teacher-pages 18 passed — cleanup QA: 25 đề / 4 lớp / 20 user đã dọn
 - [ ] **L6 Domain riêng** — user mua domain + trỏ Vercel (hướng dẫn khi làm)
 - [ ] **L7 Uptime/alert monitoring** — hướng dẫn cài UptimeRobot/BetterStack theo dõi `/api/health` (cần tài khoản của user)
 - [ ] **L8 Xác nhận backup database** — kiểm tra provider DB trên Vercel env + bật PITR/backup nếu chưa
