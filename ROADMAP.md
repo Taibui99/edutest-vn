@@ -82,10 +82,12 @@
 
 ## 🚀 Launch — đi vào hoạt động chính thức (2026-08-24)
 > Mục tiêu: những thứ bắt buộc/nên có để đón người dùng thật. Admin chính thức tạm hoãn theo yêu cầu.
-- [ ] **L1 Gửi email thật (quên mật khẩu)** — hiện forgot-password chỉ ghi log, không gửi email nào → user quên MK mất tài khoản vĩnh viễn. Dùng Resend HTTP API (fetch thuần, không thêm dependency): `lib/email.ts` đọc `RESEND_API_KEY`/`EMAIL_FROM`, wire vào forgot-password gửi link reset 1h, không đổi hành vi trả `{ok:true}` (chống user enumeration). Dev vẫn nhận resetLink trực tiếp như cũ
-- [ ] **L2 Rate limiting** — hiện 0 endpoint có limit (brute-force tự do): `lib/rate-limit.ts` fixed-window in-memory, áp lên register/forgot-password/reset-password + login
-- [ ] **L3 Trang Điều khoản & Chính sách bảo mật** — `/dieu-khoan`, `/bao-mat` (nội dung tiếng Việt phù hợp nền tảng thi có dữ liệu học sinh) + link ở footer
-- [ ] **L4 SEO cơ bản** — `robots.ts`, `sitemap.ts`, `manifest.ts`
+- [x] **L1 Gửi email thật (quên mật khẩu)** — hiện forgot-password chỉ ghi log, không gửi email nào → user quên MK mất tài khoản vĩnh viễn. Dùng Resend HTTP API (fetch thuần, không thêm dependency): `lib/email.ts` đọc `RESEND_API_KEY`/`EMAIL_FROM`, wire vào forgot-password gửi link reset 1h, không đổi hành vi trả `{ok:true}` (chống user enumeration). Dev vẫn nhận resetLink trực tiếp như cũ
+- [x] **L2 Rate limiting** — hiện 0 endpoint có limit (brute-force tự do): `lib/rate-limit.ts` fixed-window in-memory, áp lên register/forgot-password/reset-password + login
+- [x] **L3 Trang Điều khoản & Chính sách bảo mật** — `/dieu-khoan`, `/bao-mat` (nội dung tiếng Việt phù hợp nền tảng thi có dữ liệu học sinh) + link ở footer
+- [x] **L4 SEO cơ bản** — obots.ts (chặn /admin, /bang-dieu-khien, /thi/, /api/, /doi-mat-khau), sitemap.ts (6 URL public), manifest.ts (PWA-ready, theme #6C4CF1) — kèm đồng bộ footer: logo Edu violet + Test ink (bỏ coral cũ, bỏ Heart icon), thêm link Điều khoản/Bảo mật
+Tất cả L1–L4 trong commit `6e0ad48` — verified live: robots.txt/sitemap.xml/manifest.webmanifest trả 200 đúng nội dung; /dieu-khoan + /bao-mat render 200; rate limit forgot-password chặn lần thứ 4 → 429 + Retry-After 595s; lint 0 error + tsc sạch + build OK
+
 - [ ] **L5 Full E2E regression** — chạy lại 192 test sau toàn bộ chuỗi UI 2.0 + Launch
 - [ ] **L6 Domain riêng** — user mua domain + trỏ Vercel (hướng dẫn khi làm)
 - [ ] **L7 Uptime/alert monitoring** — hướng dẫn cài UptimeRobot/BetterStack theo dõi `/api/health` (cần tài khoản của user)
