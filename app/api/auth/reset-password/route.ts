@@ -2,8 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { logAudit } from "@/lib/audit";
+import { rateLimit, clientIp } from "@/lib/rate-limit";
 
 export async function POST(req: NextRequest) {
+  const rl = rateLimit(`reset:${clientIp(req)}`, 10, 60 * 60_000);
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: `Quá nhiều lần thử. Thử lại sau ${rl.retryAfterSec} giây.` },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } },
+    );
+  }
+
   const { token, password } = await req.json();
   const normalizedToken = String(token || "");
   const newPassword = String(password || "");

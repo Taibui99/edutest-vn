@@ -3,6 +3,7 @@ import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { authConfig } from "@/auth.config";
 import { prisma } from "@/lib/prisma";
+import { rateLimit } from "@/lib/rate-limit";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   ...authConfig,
@@ -17,6 +18,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const password = credentials?.password as string | undefined;
 
         if (!email || !password) {
+          return null;
+        }
+
+        const rl = rateLimit(`login:${email.toLowerCase().trim()}`, 10, 5 * 60_000);
+        if (!rl.ok) {
           return null;
         }
 

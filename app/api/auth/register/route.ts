@@ -1,8 +1,17 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
+import { rateLimit, clientIp } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
+  const rl = rateLimit(`register:${clientIp(request)}`, 5, 10 * 60_000);
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: `Bạn đã đăng ký quá nhiều tài khoản. Thử lại sau ${rl.retryAfterSec} giây.` },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } },
+    );
+  }
+
   try {
     const body = await request.json();
     const fullName = body.fullName?.trim();
