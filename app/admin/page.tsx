@@ -216,7 +216,7 @@ export default function AdminDashboard() {
           </h2>
           <div className="flex flex-wrap gap-2">
             {Object.entries(data.aiByStatus).map(([k, v]) => (
-              <span key={k} className={`rounded-lg px-3 py-1.5 text-xs font-bold ${k === "success" ? "bg-emerald-50 text-emerald-700" : k === "failed" || k === "timeout" ? "bg-red-50 text-red-600" : "bg-[var(--gray-100)] text-[var(--text-secondary)]"}`}>
+              <span key={k} className={`rounded-lg px-3 py-1.5 text-xs font-bold ${k === "success" ? "bg-[#E8F7F1] text-[#189A6C]" : k === "failed" || k === "timeout" ? "bg-[#FFECEC] text-[#E14D4D]" : "bg-[var(--gray-100)] text-[var(--text-secondary)]"}`}>
                 {k === "success" ? "Thành công" : k === "failed" ? "Thất bại" : k === "timeout" ? "Timeout" : k === "running" ? "Đang chạy" : k}: {v}
               </span>
             ))}
@@ -241,13 +241,13 @@ export default function AdminDashboard() {
             <AlertTriangle size={15} className="text-[#E14D4D]" /> Lỗi AI gần đây
           </h2>
           {data.aiErrors.length === 0 ? (
-            <p className="text-sm text-emerald-600 text-center py-6">Không có lỗi nào gần đây</p>
+            <p className="text-sm text-[#189A6C] text-center py-6">Không có lỗi nào gần đây</p>
           ) : (
             <div className="flex flex-col gap-2 max-h-44 overflow-y-auto">
               {data.aiErrors.map((e, i) => (
-                <div key={i} className="rounded-lg bg-red-50 px-3 py-2 text-xs">
-                  <p className="text-red-700 font-semibold truncate">{e.error}</p>
-                  <p className="text-red-400 text-[10px]">{e.model ?? "gemini"} · {new Date(e.createdAt).toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" })}</p>
+                <div key={i} className="rounded-lg bg-[#FFECEC] px-3 py-2 text-xs">
+                  <p className="text-[#E14D4D] font-semibold truncate">{e.error}</p>
+                  <p className="text-[#E14D4D]/70 text-[10px]">{e.model ?? "gemini"} · {new Date(e.createdAt).toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" })}</p>
                 </div>
               ))}
             </div>

@@ -56,7 +56,7 @@ export default function AdminSystem() {
         </button>
       </div>
 
-      {error && <p className="mb-3 text-sm text-red-500">{error}</p>}
+      {error && <p className="mb-3 text-sm text-[#E14D4D]">{error}</p>}
 
       {loading ? (
         <div className="flex items-center justify-center py-32"><Spinner /></div>
@@ -68,15 +68,15 @@ export default function AdminSystem() {
               return (
                 <div key={c.key} className="rounded-2xl bg-[var(--surface-card)] border border-[var(--surface-border)] p-5 flex items-center gap-3">
                   {check?.ok ? (
-                    <CheckCircle2 size={22} className="text-emerald-500 shrink-0" />
+                    <CheckCircle2 size={22} className="text-[#189A6C] shrink-0" />
                   ) : (
-                    <XCircle size={22} className="text-red-500 shrink-0" />
+                    <XCircle size={22} className="text-[#E14D4D] shrink-0" />
                   )}
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-bold text-[var(--text-primary)]">{c.label}</p>
                     <p className="text-xs text-[var(--text-muted)] truncate">{check?.ok ? "Hoạt động bình thường" : (check?.detail ?? "Không có phản hồi")}</p>
                   </div>
-                  <span className={`text-[11px] font-bold px-2 py-0.5 rounded-lg ${check?.ok ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-600"}`}>
+                  <span className={`text-[11px] font-bold px-2 py-0.5 rounded-lg ${check?.ok ? "bg-[#E8F7F1] text-[#189A6C]" : "bg-[#FFECEC] text-[#E14D4D]"}`}>
                     {check?.ok ? "OK" : "LỖI"}
                   </span>
                 </div>
@@ -105,7 +105,7 @@ export default function AdminSystem() {
             <h2 className="text-sm font-black text-[var(--text-primary)] mb-3">AI import gần nhất</h2>
             {data.lastAiImport ? (
               <div className="flex items-center gap-2 text-sm">
-                <span className={`text-[11px] font-bold px-2 py-0.5 rounded-lg ${data.lastAiImport.status === "success" ? "bg-emerald-100 text-emerald-700" : data.lastAiImport.status === "running" ? "bg-blue-100 text-blue-700" : "bg-red-100 text-red-600"}`}>
+                <span className={`text-[11px] font-bold px-2 py-0.5 rounded-lg ${data.lastAiImport.status === "success" ? "bg-[#E8F7F1] text-[#189A6C]" : data.lastAiImport.status === "running" ? "bg-[#EAF3FC] text-[#2F80D8]" : "bg-[#FFECEC] text-[#E14D4D]"}`}>
                   {data.lastAiImport.status === "success" ? "Thành công" : data.lastAiImport.status === "running" ? "Đang chạy" : "Thất bại"}
                 </span>
                 <span className="font-bold text-[var(--text-secondary)]">{data.lastAiImport.model ?? "gemini"}</span>
@@ -120,10 +120,10 @@ export default function AdminSystem() {
             <h2 className="text-sm font-black text-[var(--text-primary)] mb-3">Cấu hình môi trường</h2>
             <div className="flex flex-col gap-2 text-sm">
               <div className="flex justify-between"><span className="text-[var(--text-secondary)]">AUTH_SECRET</span>
-                <span className={`font-bold ${data.env.nextAuthSecretSet ? "text-emerald-600" : "text-red-500"}`}>{data.env.nextAuthSecretSet ? "Đã đặt" : "CHƯA ĐẶT"}</span>
+                <span className={`font-bold ${data.env.nextAuthSecretSet ? "text-[#189A6C]" : "text-[#E14D4D]"}`}>{data.env.nextAuthSecretSet ? "Đã đặt" : "CHƯA ĐẶT"}</span>
               </div>
               <div className="flex justify-between"><span className="text-[var(--text-secondary)]">GEMINI_API_KEY</span>
-                <span className={`font-bold ${data.env.geminiKeySet ? "text-emerald-600" : "text-red-500"}`}>{data.env.geminiKeySet ? "Đã đặt" : "CHƯA ĐẶT"}</span>
+                <span className={`font-bold ${data.env.geminiKeySet ? "text-[#189A6C]" : "text-[#E14D4D]"}`}>{data.env.geminiKeySet ? "Đã đặt" : "CHƯA ĐẶT"}</span>
               </div>
               <div className="flex justify-between"><span className="text-[var(--text-secondary)]">NODE_ENV</span>
                 <span className="font-bold text-[var(--text-secondary)]">{data.env.nodeEnv}</span>

@@ -30,9 +30,9 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 const STATUS_COLOR: Record<string, string> = {
-  pending: "bg-amber-100 text-amber-700",
-  reviewing: "bg-blue-100 text-blue-700",
-  resolved: "bg-emerald-100 text-emerald-700",
+  pending: "bg-[#FCF3E2] text-[#B97F10]",
+  reviewing: "bg-[#EAF3FC] text-[#2F80D8]",
+  resolved: "bg-[#E8F7F1] text-[#189A6C]",
   rejected: "bg-[var(--gray-100)] text-[var(--text-secondary)]",
 };
 
@@ -171,7 +171,7 @@ export default function AdminReports() {
         </button>
       </div>
 
-      {error && <p className="mb-3 text-sm text-red-500">{error}</p>}
+      {error && <p className="mb-3 text-sm text-[#E14D4D]">{error}</p>}
 
       {loading ? (
         <div className="flex items-center justify-center py-32"><Spinner /></div>
@@ -194,7 +194,7 @@ export default function AdminReports() {
                 </div>
                 <p className="text-sm text-[var(--text-secondary)] mb-1">{r.description}</p>
                 {r.resolution && (
-                  <p className="text-xs text-emerald-700 bg-emerald-50 rounded-lg px-3 py-2 mb-2">
+                  <p className="text-xs text-[#189A6C] bg-[#E8F7F1] rounded-lg px-3 py-2 mb-2">
                     Kết quả xử lý: {r.resolution}
                   </p>
                 )}
@@ -207,7 +207,7 @@ export default function AdminReports() {
                   </p>
                   <div className="flex gap-1.5">
                     {r.status !== "reviewing" && (
-                      <button onClick={() => update(r.id, "reviewing")} disabled={busyId === r.id} className="rounded-lg bg-blue-100 px-2.5 py-1 text-xs font-bold text-blue-700 hover:bg-blue-200 disabled:opacity-50">
+                      <button onClick={() => update(r.id, "reviewing")} disabled={busyId === r.id} className="rounded-lg bg-[#EAF3FC] px-2.5 py-1 text-xs font-bold text-[#2F80D8] hover:bg-[#DCEBFC] disabled:opacity-50">
                         Xem xét
                       </button>
                     )}
@@ -215,7 +215,7 @@ export default function AdminReports() {
                       <button
                         onClick={() => { setPendingAction({ id: r.id, next: "pending" }); setResolution(""); }}
                         disabled={busyId === r.id}
-                        className="rounded-lg bg-amber-100 px-2.5 py-1 text-xs font-bold text-amber-700 hover:bg-amber-200 disabled:opacity-50"
+                        className="rounded-lg bg-[#FCF3E2] px-2.5 py-1 text-xs font-bold text-[#B97F10] hover:bg-[#F5E5BC] disabled:opacity-50"
                       >
                         Mở lại
                       </button>
@@ -224,7 +224,7 @@ export default function AdminReports() {
                         <button
                           onClick={() => { setPendingAction({ id: r.id, next: "resolved" }); setResolution(""); }}
                           disabled={busyId === r.id}
-                          className="rounded-lg bg-emerald-100 px-2.5 py-1 text-xs font-bold text-emerald-700 hover:bg-emerald-200 disabled:opacity-50"
+                          className="rounded-lg bg-[#E8F7F1] px-2.5 py-1 text-xs font-bold text-[#189A6C] hover:bg-[#D3EFE5] disabled:opacity-50"
                         >
                           Đã xử lý
                         </button>
@@ -237,7 +237,7 @@ export default function AdminReports() {
                         </button>
                       </>
                     )}
-                    <button onClick={() => setDeleting(r)} disabled={busyId === r.id} className="rounded-lg bg-red-50 px-2.5 py-1 text-xs font-bold text-red-500 hover:bg-red-100 disabled:opacity-50">
+                    <button onClick={() => setDeleting(r)} disabled={busyId === r.id} className="rounded-lg bg-[#FFECEC] px-2.5 py-1 text-xs font-bold text-[#E14D4D] hover:bg-[#FFECEC] disabled:opacity-50">
                       <Trash2 size={12} />
                     </button>
                   </div>

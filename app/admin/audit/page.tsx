@@ -95,7 +95,7 @@ export default function AdminAudit() {
         </button>
       </div>
 
-      {error && <p className="mb-3 text-sm text-red-500">{error}</p>}
+      {error && <p className="mb-3 text-sm text-[#E14D4D]">{error}</p>}
 
       {loading ? (
         <div className="flex items-center justify-center py-32"><Spinner /></div>

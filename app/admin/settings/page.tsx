@@ -123,13 +123,13 @@ export default function AdminSettings() {
       </div>
 
       {settings.maintenanceMode === "true" && (
-        <div className="mb-4 flex items-center gap-2 rounded-xl bg-amber-50 border border-amber-200 px-4 py-3 text-sm font-semibold text-amber-700">
+        <div className="mb-4 flex items-center gap-2 rounded-xl bg-[#FCF3E2] border border-[#F5E5BC] px-4 py-3 text-sm font-semibold text-[#B97F10]">
           <AlertTriangle size={16} /> Website đang ở chế độ bảo trì — người dùng thường thấy trang bảo trì.
         </div>
       )}
 
-      {error && <p className="mb-3 text-sm text-red-500">{error}</p>}
-      {saved && <p className="mb-3 text-sm text-emerald-600">{saved}</p>}
+      {error && <p className="mb-3 text-sm text-[#E14D4D]">{error}</p>}
+      {saved && <p className="mb-3 text-sm text-[#189A6C]">{saved}</p>}
 
       {loading ? (
         <div className="flex items-center justify-center py-32"><Spinner /></div>

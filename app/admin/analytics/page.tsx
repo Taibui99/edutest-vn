@@ -58,7 +58,7 @@ export default function AdminAnalytics() {
       .catch(() => setError("Không tải được dữ liệu"));
   }, []);
 
-  if (error) return <div className="p-10 text-center text-sm text-red-500">{error}</div>;
+  if (error) return <div className="p-10 text-center text-sm text-[#E14D4D]">{error}</div>;
   if (!data) return <div className="flex items-center justify-center py-32"><Spinner /></div>;
 
   const maxSubject = Math.max(...data.subjects.map((s) => s.count), 1);

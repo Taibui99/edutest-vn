@@ -157,7 +157,7 @@ export default function AdminExams() {
         </button>
       </div>
 
-      {error && <p className="mb-3 text-sm text-red-500">{error}</p>}
+      {error && <p className="mb-3 text-sm text-[#E14D4D]">{error}</p>}
 
       {loading ? (
         <div className="flex items-center justify-center py-32"><Spinner /></div>
@@ -201,11 +201,11 @@ export default function AdminExams() {
                       </td>
                       <td className="px-4 py-3 text-xs text-[var(--text-secondary)]">{e.teacher.name}<br /><span className="text-[var(--text-muted)]">{e.teacher.email}</span></td>
                       <td className="px-4 py-3">
-                        <span className={`text-[11px] font-bold px-2 py-0.5 rounded-lg ${e.status === "published" ? "bg-emerald-100 text-emerald-700" : "bg-[var(--gray-100)] text-[var(--text-secondary)]"}`}>
+                        <span className={`text-[11px] font-bold px-2 py-0.5 rounded-lg ${e.status === "published" ? "bg-[#E8F7F1] text-[#189A6C]" : "bg-[var(--gray-100)] text-[var(--text-secondary)]"}`}>
                           {e.status === "published" ? "Đang mở" : "Bản nháp"}
                         </span>
                         {e._count.reports > 0 && (
-                          <Link href={`/admin/reports`} className="ml-1.5 inline-flex items-center gap-0.5 text-[10px] font-bold text-red-500 bg-red-50 px-1.5 py-0.5 rounded">
+                          <Link href={`/admin/reports`} className="ml-1.5 inline-flex items-center gap-0.5 text-[10px] font-bold text-[#E14D4D] bg-[#FFECEC] px-1.5 py-0.5 rounded">
                             <Flag size={10} /> {e._count.reports}
                           </Link>
                         )}
@@ -218,7 +218,7 @@ export default function AdminExams() {
                             <button
                               disabled={busyId === e.id}
                               onClick={() => patch(e, { restore: true })}
-                              className="inline-flex items-center gap-1 rounded-lg bg-emerald-100 px-2.5 py-1 text-xs font-bold text-emerald-700 hover:bg-emerald-200 disabled:opacity-50"
+                              className="inline-flex items-center gap-1 rounded-lg bg-[#E8F7F1] px-2.5 py-1 text-xs font-bold text-[#189A6C] hover:bg-[#D3EFE5] disabled:opacity-50"
                             >
                               <RotateCcw size={11} /> Khôi phục
                             </button>
@@ -233,14 +233,14 @@ export default function AdminExams() {
                               <button
                                 disabled={busyId === e.id}
                                 onClick={() => patch(e, { hidden: !e.hidden })}
-                                className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-bold disabled:opacity-50 ${e.hidden ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200" : "bg-[var(--gray-100)] text-[var(--text-secondary)] hover:bg-[var(--gray-200)]"}`}
+                                className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-bold disabled:opacity-50 ${e.hidden ? "bg-[#E8F7F1] text-[#189A6C] hover:bg-[#D3EFE5]" : "bg-[var(--gray-100)] text-[var(--text-secondary)] hover:bg-[var(--gray-200)]"}`}
                               >
                                 {e.hidden ? <><Eye size={11} /> Hiện</> : <><EyeOff size={11} /> Ẩn</>}
                               </button>
                               <button
                                 disabled={busyId === e.id}
                                 onClick={() => setDeleting(e)}
-                                className="rounded-lg bg-red-100 px-2.5 py-1 text-xs font-bold text-red-600 hover:bg-red-200 disabled:opacity-50"
+                                className="rounded-lg bg-[#FFECEC] px-2.5 py-1 text-xs font-bold text-[#E14D4D] hover:bg-[#FFDDDD] disabled:opacity-50"
                               >
                                 Xóa
                               </button>
