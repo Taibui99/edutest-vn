@@ -2,11 +2,32 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ClipboardCheck, PenLine, Rocket, Target } from "lucide-react";
 import { auth } from "@/auth";
+import { prisma } from "@/lib/prisma";
 import { Header } from "./components/header";
 import { Hero } from "./components/hero";
 import { Stats } from "./components/stats";
 import { Features } from "./components/features";
 import { Footer } from "./components/footer";
+
+async function getLandingStats() {
+  try {
+    const [exams, submissions, questions, users] = await Promise.all([
+      prisma.exam.count(),
+      prisma.submission.count(),
+      prisma.question.count(),
+      prisma.user.count({ where: { deletedAt: null } }),
+    ]);
+    const fmt = (n: number) => n.toLocaleString("vi-VN");
+    return [
+      { value: fmt(exams), label: "Đề thi đã tạo", color: "var(--primary)" },
+      { value: fmt(submissions), label: "Bài nộp đã chấm", color: "var(--mint)" },
+      { value: fmt(questions), label: "Câu hỏi đã soạn", color: "var(--coral)" },
+      { value: fmt(users), label: "Người dùng đang học & dạy", color: "var(--warning)" },
+    ];
+  } catch {
+    return undefined;
+  }
+}
 
 const STEPS = [
   {
@@ -40,7 +61,7 @@ export default async function Home() {
       <Header />
       <main id="main-content" tabIndex={-1}>
         <Hero />
-        <Stats />
+        <Stats stats={await getLandingStats()} />
         <Features />
 
         {/* How it works */}

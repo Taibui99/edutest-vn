@@ -10,8 +10,8 @@ test.describe("LANDING — Trang chủ", () => {
     await expect(page.getByText("AI Study Coach").first()).toBeVisible();
     await expect(page.getByText("Đếm ngược THPT").first()).toBeVisible();
     await expect(page.getByText("Tạo đề trên một màn hình").first()).toBeVisible();
-    await expect(page.getByText("20k+").first()).toBeVisible();
-    await expect(page.getByText("Đề thi đã tạo").first()).toBeVisible();
+    await expect(page.getByText("Đề thi đã tạo")).toBeVisible();
+    await expect(page.getByText("Bài nộp đã chấm")).toBeVisible();
     await expect(page.getByRole("link", { name: /bắt đầu soạn đề miễn phí/i }).first()).toBeVisible();
     await expect(page.getByRole("link", { name: /vào thi bằng mã/i }).first()).toBeVisible();
   });
