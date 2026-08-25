@@ -48,11 +48,6 @@ export async function GET() {
     checks,
     counts: { exams: examCount, users: userCount, notifications: notifCount, settings: settingCount },
     lastAiImport: lastAi,
-    env: {
-      nextAuthSecretSet: Boolean(process.env.AUTH_SECRET),
-      geminiKeySet: Boolean(process.env.GEMINI_API_KEY),
-      nodeEnv: process.env.NODE_ENV,
-    },
     now: new Date().toISOString(),
   });
 }

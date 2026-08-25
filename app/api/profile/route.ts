@@ -21,10 +21,26 @@ export async function PATCH(req: NextRequest) {
   const { name, school, grade, bio, currentPassword, newPassword } = await req.json();
 
   const updates: Record<string, unknown> = {};
-  if (name?.trim()) updates.name = name.trim();
-  if (school !== undefined) updates.school = school?.trim() || null;
-  if (grade !== undefined) updates.grade = grade?.trim() || null;
-  if (bio !== undefined) updates.bio = bio?.trim() || null;
+  if (name?.trim()) {
+    const n = name.trim();
+    if (n.length > 100) return NextResponse.json({ error: "Tên tối đa 100 ký tự" }, { status: 400 });
+    updates.name = n;
+  }
+  if (school !== undefined) {
+    const s = school?.trim() || null;
+    if (s && s.length > 200) return NextResponse.json({ error: "Trường tối đa 200 ký tự" }, { status: 400 });
+    updates.school = s;
+  }
+  if (grade !== undefined) {
+    const g = grade?.trim() || null;
+    if (g && g.length > 20) return NextResponse.json({ error: "Khối tối đa 20 ký tự" }, { status: 400 });
+    updates.grade = g;
+  }
+  if (bio !== undefined) {
+    const b = bio?.trim() || null;
+    if (b && b.length > 500) return NextResponse.json({ error: "Giới thiệu tối đa 500 ký tự" }, { status: 400 });
+    updates.bio = b;
+  }
 
   // Password change
   if (newPassword) {

@@ -5,12 +5,15 @@ import { prisma } from "@/lib/prisma";
 import { isQuestionCorrect, isAutoGraded, type AnswerValue } from "@/lib/grading";
 import { bumpStudyStreak } from "@/lib/streak";
 import { NextRequest, NextResponse } from "next/server";
+import { rateLimit, clientIp } from "@/lib/rate-limit";
 
 type AnswerMap = Record<string, AnswerValue>;
 
 function hashToken(token: string) { return createHash("sha256").update(token).digest("hex"); }
 
 export async function POST(request: NextRequest) {
+  const rl = rateLimit(`submit:${clientIp(request)}`, 20, 60_000);
+  if (!rl.ok) return NextResponse.json({ error: "Bạn nộp bài quá nhanh. Thử lại sau 1 phút." }, { status: 429 });
   const session = await auth();
   const body = await request.json() as { examId?: unknown; answers?: unknown; durationSeconds?: unknown };
   const examId = typeof body.examId === "string" ? body.examId : "";

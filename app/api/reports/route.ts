@@ -12,12 +12,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Thiếu loại báo cáo hoặc nội dung" }, { status: 400 });
   }
 
+  const desc = String(description).trim();
+  if (desc.length > 2000) {
+    return NextResponse.json({ error: "Nội dung báo cáo tối đa 2000 ký tự" }, { status: 400 });
+  }
+
   const report = await prisma.report.create({
     data: {
       reporterId: session.user.id,
       examId: examId || null,
-      type: String(type),
-      description: String(description).trim(),
+      type: String(type).slice(0, 100),
+      description: desc,
     },
   });
 

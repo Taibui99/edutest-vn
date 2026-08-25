@@ -3,6 +3,7 @@ import { GoogleGenAI } from "@google/genai";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { isTeacherAccess } from "@/lib/access";
+import { rateLimit, clientIp } from "@/lib/rate-limit";
 
 const MODEL = process.env.GEMINI_AGENT_MODEL || "gemini-3.1-flash-lite";
 const MAX_ROUNDS = 6;
@@ -269,6 +270,8 @@ Trả lời tiếng Việt, ngắn gọn. ${ctx}` : `Bạn là AI Study Coach c�
 export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Bạn cần đăng nhập" }, { status: 401 });
+  const rl = rateLimit(`ai-coach:${session.user.id}`, 10, 60_000);
+  if (!rl.ok) return NextResponse.json({ error: "Bạn đang dùng AI quá nhanh. Thử lại sau 1 phút." }, { status: 429 });
   if (!process.env.GEMINI_API_KEY) return NextResponse.json({ error: "AI chưa được cấu hình" }, { status: 500 });
   const body = await req.json() as { message?: unknown; history?: unknown };
   const message = typeof body.message === "string" ? body.message.trim() : "";

@@ -4,6 +4,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getSetting } from "@/lib/settings";
 import { generateWithRetry, DEFAULT_MODEL } from "@/lib/ai";
+import { rateLimit } from "@/lib/rate-limit";
 
 const flashcardPrompt = (subject: string, topic: string) => `Bạn là trợ lý tạo thẻ học (flashcard) cho học sinh Việt Nam.
 Tạo các thẻ học tập ngắn gọn, chính xác, dễ nhớ về chủ đề: "${topic || subject}" (môn: ${subject}).
@@ -34,6 +35,8 @@ const responseSchema = {
 export async function POST(request: NextRequest) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Bạn cần đăng nhập" }, { status: 401 });
+  const rl = rateLimit(`flashcard-gen:${session.user.id}`, 5, 60_000);
+  if (!rl.ok) return NextResponse.json({ error: "Bạn đang tạo flashcard quá nhanh. Thử lại sau 1 phút." }, { status: 429 });
   if (!process.env.GEMINI_API_KEY) return NextResponse.json({ error: "Thiếu GEMINI_API_KEY" }, { status: 500 });
   if ((await getSetting("enableAiImport", "true")) !== "true") {
     return NextResponse.json({ error: "Tính năng AI đang tắt bởi quản trị viên" }, { status: 403 });
