@@ -4,102 +4,108 @@ const path = require("path");
 const BACKUP_DIR = path.join(__dirname, "..", "backups");
 const KEEP_DAYS = 30;
 const PROJECT_REF = "ukzqruepeduxpaiqccfg";
-const BASE = `https://api.supabase.com/v1/projects/${PROJECT_REF}`;
+const BASE_URL = "https://" + PROJECT_REF + ".supabase.co";
 
-function loadToken() {
+const TABLES = [
+  "User", "Classroom", "ClassMember", "Exam", "ExamAssignment",
+  "Question", "QuestionBankItem", "Submission", "Report",
+  "Flashcard", "StudyTask", "SubjectProgress", "Notification",
+  "GuestParticipant", "AiImportLog", "AppLog", "SystemSetting",
+];
+
+function loadKey() {
   const envPath = path.join(__dirname, "..", ".env.backup");
   const raw = fs.readFileSync(envPath, "utf-8");
-  const m = raw.match(/^SUPABASE_ACCESS_TOKEN=(.+)$/m);
-  if (!m) throw new Error("SUPABASE_ACCESS_TOKEN not found in .env.backup — tạo token tại https://supabase.com/account/tokens");
+  const m = raw.match(/^SUPABASE_SERVICE_ROLE_KEY=(.+)$/m);
+  if (!m) throw new Error("SUPABASE_SERVICE_ROLE_KEY not found in .env.backup");
   return m[1].trim();
-}
-
-async function api(token, method, path, body) {
-  const res = await fetch(BASE + path, {
-    method,
-    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-    body: body ? JSON.stringify(body) : undefined,
-  });
-  const text = await res.text();
-  if (!res.ok) throw new Error(`API ${res.status}: ${text.slice(0, 300)}`);
-  return JSON.parse(text);
 }
 
 function escapeVal(v) {
   if (v === null || v === undefined) return "NULL";
   if (typeof v === "number") return String(v);
   if (typeof v === "boolean") return v ? "TRUE" : "FALSE";
-  if (v instanceof Date) return `'${v.toISOString()}'`;
-  if (typeof v === "object") return `'${JSON.stringify(v).replace(/'/g, "''")}'`;
-  const s = String(v).replace(/'/g, "''");
-  return `'${s}'`;
+  if (v instanceof Date) return "'" + v.toISOString() + "'";
+  if (typeof v === "object") return "'" + JSON.stringify(v).replace(/'/g, "''") + "'";
+  return "'" + String(v).replace(/'/g, "''") + "'";
+}
+
+async function fetchAll(token, table) {
+  const rows = [];
+  let offset = 0;
+  const pageSize = 1000;
+  while (true) {
+    const url = BASE_URL + "/rest/v1/" + table + "?select=*&offset=" + offset + "&limit=" + pageSize;
+    const res = await fetch(url, {
+      headers: { apikey: token, Authorization: "Bearer " + token },
+    });
+    if (!res.ok) {
+      const err = await res.text();
+      throw new Error(table + " " + res.status + ": " + err.slice(0, 200));
+    }
+    const batch = await res.json();
+    rows.push.apply(rows, batch);
+    if (batch.length < pageSize) break;
+    offset += pageSize;
+  }
+  return rows;
 }
 
 async function backup() {
-  const token = loadToken();
-  console.log(`Backup Supabase project ${PROJECT_REF}...`);
+  const token = loadKey();
+  console.log("Backup Supabase project " + PROJECT_REF + " via REST API...");
 
-  const tables = await api(token, "POST", "/database/query", {
-    query: "SELECT tablename FROM pg_tables WHERE schemaname = 'public' ORDER BY tablename",
-  });
-  console.log(`Found ${tables.length} tables`);
-
-  const ts = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
-  const filePath = path.join(BACKUP_DIR, `backup-${ts}.sql`);
-
+  var ts = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
+  var filePath = path.join(BACKUP_DIR, "backup-" + ts + ".sql");
   if (!fs.existsSync(BACKUP_DIR)) fs.mkdirSync(BACKUP_DIR, { recursive: true });
 
-  const ws = fs.createWriteStream(filePath);
-  ws.write(`-- EduTest DB backup: ${new Date().toISOString()}\n`);
-  ws.write(`-- Source: Supabase (${PROJECT_REF})\n\n`);
+  var ws = fs.createWriteStream(filePath);
+  ws.write("-- EduTest DB backup: " + new Date().toISOString() + "\n");
+  ws.write("-- Source: Supabase REST API (" + PROJECT_REF + ")\n\n");
 
-  let totalRows = 0;
+  var totalRows = 0;
 
-  for (const { tablename } of tables) {
-    const cols = await api(token, "POST", "/database/query", {
-      query: `SELECT column_name FROM information_schema.columns WHERE table_schema='public' AND table_name='${tablename}' ORDER BY ordinal_position`,
-    });
-    const colNames = cols.map((c) => c.column_name);
-    if (colNames.length === 0) continue;
+  for (var i = 0; i < TABLES.length; i++) {
+    var table = TABLES[i];
+    try {
+      var rows = await fetchAll(token, table);
+      ws.write("\n-- TABLE: " + table + " (" + rows.length + " rows)\n");
+      if (rows.length === 0) { console.log("  " + table + ": 0 rows"); continue; }
 
-    const data = await api(token, "POST", "/database/query", {
-      query: `SELECT * FROM "${tablename}"`,
-    });
+      var colNames = Object.keys(rows[0]);
+      var colList = colNames.map(function(c) { return '"' + c + '"'; }).join(", ");
 
-    ws.write(`\n-- TABLE: ${tablename} (${data.length} rows)\n`);
-    if (data.length === 0) continue;
-
-    const colList = colNames.map((c) => `"${c}"`).join(", ");
-    for (const row of data) {
-      const vals = colNames.map((c) => escapeVal(row[c])).join(", ");
-      ws.write(`INSERT INTO "${tablename}" (${colList}) VALUES (${vals});\n`);
+      for (var j = 0; j < rows.length; j++) {
+        var vals = colNames.map(function(c) { return escapeVal(rows[j][c]); }).join(", ");
+        ws.write("INSERT INTO \"" + table + "\" (" + colList + ") VALUES (" + vals + ");\n");
+      }
+      totalRows += rows.length;
+      console.log("  " + table + ": " + rows.length + " rows");
+    } catch (e) {
+      console.log("  " + table + ": SKIP (" + e.message.slice(0, 80) + ")");
     }
-    totalRows += data.length;
-    console.log(`  ${tablename}: ${data.length} rows`);
   }
 
-  ws.write(`\n-- Total: ${totalRows} rows\n`);
+  ws.write("\n-- Total: " + totalRows + " rows\n");
   ws.end();
+  console.log("\nBackup saved: " + filePath);
+  console.log("Total: " + totalRows + " rows");
 
-  console.log(`\nBackup saved: ${filePath}`);
-  console.log(`Total: ${totalRows} rows`);
-
-  // Xóa backup cũ
-  const now = Date.now();
-  const files = fs.readdirSync(BACKUP_DIR).filter((f) => f.startsWith("backup-") && f.endsWith(".sql"));
-  let deleted = 0;
-  for (const f of files) {
-    const fp = path.join(BACKUP_DIR, f);
-    const stat = fs.statSync(fp);
-    if (now - stat.mtimeMs > KEEP_DAYS * 86400_000) {
+  var now = Date.now();
+  var files = fs.readdirSync(BACKUP_DIR).filter(function(f) { return f.startsWith("backup-") && f.endsWith(".sql"); });
+  var deleted = 0;
+  for (var k = 0; k < files.length; k++) {
+    var fp = path.join(BACKUP_DIR, files[k]);
+    var stat = fs.statSync(fp);
+    if (now - stat.mtimeMs > KEEP_DAYS * 86400000) {
       fs.unlinkSync(fp);
       deleted++;
     }
   }
-  if (deleted > 0) console.log(`Cleaned ${deleted} old backup(s)`);
+  if (deleted > 0) console.log("Cleaned " + deleted + " old backup(s)");
 }
 
-backup().catch((e) => {
+backup().catch(function(e) {
   console.error("Backup failed:", e.message);
   process.exit(1);
 });
