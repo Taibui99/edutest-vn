@@ -117,17 +117,8 @@ export default function AdminSystem() {
           </div>
 
           <div className="rounded-2xl bg-[var(--surface-card)] border border-[var(--surface-border)] p-5">
-            <h2 className="text-sm font-black text-[var(--text-primary)] mb-3">Cấu hình môi trường</h2>
+            <h2 className="text-sm font-black text-[var(--text-primary)] mb-3">Thông tin hệ thống</h2>
             <div className="flex flex-col gap-2 text-sm">
-              <div className="flex justify-between"><span className="text-[var(--text-secondary)]">AUTH_SECRET</span>
-                <span className={`font-bold ${data.env.nextAuthSecretSet ? "text-[#189A6C]" : "text-[#E14D4D]"}`}>{data.env.nextAuthSecretSet ? "Đã đặt" : "CHƯA ĐẶT"}</span>
-              </div>
-              <div className="flex justify-between"><span className="text-[var(--text-secondary)]">GEMINI_API_KEY</span>
-                <span className={`font-bold ${data.env.geminiKeySet ? "text-[#189A6C]" : "text-[#E14D4D]"}`}>{data.env.geminiKeySet ? "Đã đặt" : "CHƯA ĐẶT"}</span>
-              </div>
-              <div className="flex justify-between"><span className="text-[var(--text-secondary)]">NODE_ENV</span>
-                <span className="font-bold text-[var(--text-secondary)]">{data.env.nodeEnv}</span>
-              </div>
               <div className="flex justify-between"><span className="text-[var(--text-secondary)]">Thời gian server</span>
                 <span className="font-bold text-[var(--text-secondary)]">{new Date(data.now).toLocaleString("vi-VN")}</span>
               </div>
