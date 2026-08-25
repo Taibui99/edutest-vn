@@ -3,7 +3,7 @@ import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { authConfig } from "@/auth.config";
 import { prisma } from "@/lib/prisma";
-import { rateLimit, resetRateLimit } from "@/lib/rate-limit";
+import { rateLimit, resetRateLimit, clientIp } from "@/lib/rate-limit";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   ...authConfig,
@@ -13,11 +13,18 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         email: { label: "Email", type: "email" },
         password: { label: "Mật khẩu", type: "password" },
       },
-      async authorize(credentials) {
+      async authorize(credentials, req) {
         const email = credentials?.email as string | undefined;
         const password = credentials?.password as string | undefined;
 
         if (!email || !password) {
+          return null;
+        }
+
+        // Rate limit per-IP: 20 attempts per 5 min (brute-force across many emails)
+        const ip = req?.headers?.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+        const ipRl = rateLimit(`login-ip:${ip}`, 20, 5 * 60_000);
+        if (!ipRl.ok) {
           return null;
         }
 
