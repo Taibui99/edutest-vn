@@ -91,7 +91,7 @@ Tất cả L1–L4 trong commit `6e0ad48` — verified live: robots.txt/sitemap.
 - [x] **L5 Full E2E regression** (commit `cddedd8`) — chạy đủ 192 test production: 184 passed / 3 flaky (pass ở retry) / 1 skip chủ ý L-04 mobile; 4 fail xử lý xong: (1) spec landing L-01/L-04 lỗi thời còn khẳng định copy trước R1 → cập nhật theo H1/heading mới, (2) login rate limit ở L2 đếm cả lần thành công khiến E2E burst-login cùng email bị chặn nhầm → sửa chỉ đếm lần THẤT BẠI (`resetRateLimit` khi success). Chạy lại toàn bộ spec liên quan: landing+teacher-create+study-hub 27 passed, exam-detail+teacher-pages 18 passed — cleanup QA: 25 đề / 4 lớp / 20 user đã dọn
 - [x] **L9 Landing số liệu thật** (commit `93fa9f2`) — 4 số cứng → COUNT thật qua Promise.all (exam/submission/question/user chưa xóa), format vi-VN, try/catch fallback; verified live: 2 đề / 1 bài nộp / 74 câu hỏi / 102 người dùng render trên landing; E2E landing 9 passed
 - [ ] **L6 Domain riêng** — user mua domain + trỏ Vercel (hướng dẫn khi làm)
-- [ ] **L7 Uptime/alert monitoring** — hướng dẫn cài UptimeRobot/BetterStack theo dõi `/api/health` (cần tài khoản của user)
+- [x] **L7 Uptime monitoring** (commit `7f7eecf`) — endpoint `/api/health` trả 200 + DB check live; user cần tạo monitor trên UptimeRobot trỏ đến `https://edutest-vn.vercel.app/api/health`
 - [x] **L8 Backup DB** (commit `3286e72`) — provider Supabase, script `scripts/backup-db.js` dùng Management API dump toàn bộ 17 bảng (887 rows) ra `backups/backup-{ts}.sql`, auto-xóa file >30 ngày; token 30 ngày cần regenerate tại supabase.com/account/tokens
 
 
