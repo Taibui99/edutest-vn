@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
 
   const user = await prisma.user.findUnique({ where: { email: normalized } });
   if (!user) {
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true, found: false });
   }
 
   const token = randomBytes(32).toString("hex");
@@ -53,5 +53,5 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, found: true });
 }

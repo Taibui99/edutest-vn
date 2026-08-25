@@ -2,13 +2,13 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, CheckCircle2, AlertTriangle } from "lucide-react";
 import { AuthCard } from "@/app/components/auth-card";
 import { Spinner } from "@/app/components/spinner";
 
 export default function QuenMatKhauPage() {
   const [email, setEmail] = useState("");
-  const [state, setState] = useState<"idle" | "loading" | "sent">("idle");
+  const [state, setState] = useState<"idle" | "loading" | "sent" | "not-found">("idle");
   const [error, setError] = useState("");
 
   const submit = async (e: React.FormEvent) => {
@@ -27,7 +27,7 @@ export default function QuenMatKhauPage() {
         setState("idle");
         return;
       }
-      setState("sent");
+      setState(data.found === false ? "not-found" : "sent");
     } catch {
       setError("Đã xảy ra lỗi. Vui lòng thử lại.");
       setState("idle");
@@ -51,13 +51,28 @@ export default function QuenMatKhauPage() {
               <CheckCircle2 size={24} className="text-[#189A6C]" />
             </div>
             <p className="text-sm text-[var(--text-secondary)]">
-              Nếu email tồn tại, chúng tôi đã gửi liên kết đặt lại mật khẩu. Vui lòng kiểm tra hộp thư.
+              Chúng tôi đã gửi liên kết đặt lại mật khẩu. Vui lòng kiểm tra hộp thư.
             </p>
             <Link
               href="/dang-nhap"
               className="mt-6 inline-flex w-full justify-center rounded-lg bg-[#6C4CF1] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#5A3BD8]"
             >
               Về trang đăng nhập
+            </Link>
+          </div>
+        ) : state === "not-found" ? (
+          <div className="text-center">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[#FFF3E0]">
+              <AlertTriangle size={24} className="text-[#B97F10]" />
+            </div>
+            <p className="text-sm text-[var(--text-secondary)]">
+              Email này chưa được đăng ký. Vui lòng tạo tài khoản mới để sử dụng EduTest.
+            </p>
+            <Link
+              href="/dang-ky"
+              className="mt-6 inline-flex w-full justify-center rounded-lg bg-[#6C4CF1] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#5A3BD8]"
+            >
+              Tạo tài khoản
             </Link>
           </div>
         ) : (
