@@ -92,7 +92,7 @@ Tất cả L1–L4 trong commit `6e0ad48` — verified live: robots.txt/sitemap.
 - [x] **L9 Landing số liệu thật** (commit `93fa9f2`) — 4 số cứng → COUNT thật qua Promise.all (exam/submission/question/user chưa xóa), format vi-VN, try/catch fallback; verified live: 2 đề / 1 bài nộp / 74 câu hỏi / 102 người dùng render trên landing; E2E landing 9 passed
 - [ ] **L6 Domain riêng** — user mua domain + trỏ Vercel (hướng dẫn khi làm)
 - [x] **L7 Uptime monitoring** (commit `7f7eecf`) — endpoint `/api/health` trả 200 + DB check live; user cần tạo monitor trên UptimeRobot trỏ đến `https://edutest-vn.vercel.app/api/health`
-- [x] **L8 Backup DB** (commit `3286e72`) — provider Supabase, script `scripts/backup-db.js` dùng Management API dump toàn bộ 17 bảng (887 rows) ra `backups/backup-{ts}.sql`, auto-xóa file >30 ngày; token 30 ngày cần regenerate tại supabase.com/account/tokens
+- [x] **L8 Backup DB** (commit `4779a6e`) — provider Supabase, script `scripts/backup-db.js` dùng REST API + service role key (vĩnh viễn) dump toàn bộ 17 bảng ra `backups/backup-{ts}.sql`, auto-xóa file >30 ngày
 
 
 ## 🛠 Fix bug theo báo cáo QA (2026-08-22)
