@@ -85,10 +85,11 @@ async function listBackups(token) {
   const res = await fetch(BASE_URL + "/storage/v1/object/list/" + BUCKET, {
     method: "POST",
     headers: { apikey: token, Authorization: "Bearer " + token, "Content-Type": "application/json" },
-    body: JSON.stringify({ prefix: "backup-", limit: 5000 }),
+    body: JSON.stringify({ prefix: "", limit: 5000, sortBy: { column: "created_at", order: "desc" } }),
   });
   if (!res.ok) return [];
-  return await res.json();
+  const all = await res.json();
+  return all.filter(function(f) { return f.name.startsWith("backup-"); });
 }
 
 async function deleteOldBackups(token) {
