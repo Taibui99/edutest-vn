@@ -1,10 +1,10 @@
 const fs = require("fs");
 const path = require("path");
 
-const BACKUP_DIR = path.join(__dirname, "..", "backups");
-const KEEP_DAYS = 30;
 const PROJECT_REF = "ukzqruepeduxpaiqccfg";
 const BASE_URL = "https://" + PROJECT_REF + ".supabase.co";
+const BUCKET = "backups";
+const KEEP_DAYS = 30;
 
 const TABLES = [
   "User", "Classroom", "ClassMember", "Exam", "ExamAssignment",
@@ -51,25 +51,84 @@ async function fetchAll(token, table) {
   return rows;
 }
 
+async function ensureBucket(token) {
+  const res = await fetch(BASE_URL + "/storage/v1/bucket/" + BUCKET, {
+    headers: { apikey: token, Authorization: "Bearer " + token },
+  });
+  if (res.status === 404) {
+    const create = await fetch(BASE_URL + "/storage/v1/bucket", {
+      method: "POST",
+      headers: { apikey: token, Authorization: "Bearer " + token, "Content-Type": "application/json" },
+      body: JSON.stringify({ id: BUCKET, name: BUCKET, public: false, fileSizeLimit: 5242880 }),
+    });
+    if (!create.ok) throw new Error("Create bucket failed: " + (await create.text()));
+    console.log('Created bucket "' + BUCKET + '"');
+  }
+}
+
+async function uploadBackup(token, filename, sqlContent) {
+  const path = filename;
+  const res = await fetch(BASE_URL + "/storage/v1/object/" + BUCKET + "/" + path, {
+    method: "POST",
+    headers: {
+      apikey: token,
+      Authorization: "Bearer " + token,
+      "Content-Type": "application/sql",
+      "x-upsert": "true",
+    },
+    body: sqlContent,
+  });
+  if (!res.ok) throw new Error("Upload failed: " + (await res.text()));
+}
+
+async function listBackups(token) {
+  const res = await fetch(BASE_URL + "/storage/v1/object/list/" + BUCKET, {
+    method: "POST",
+    headers: { apikey: token, Authorization: "Bearer " + token, "Content-Type": "application/json" },
+    body: JSON.stringify({ prefix: "backup-", limit: 5000 }),
+  });
+  if (!res.ok) return [];
+  return await res.json();
+}
+
+async function deleteOldBackups(token) {
+  const files = await listBackups(token);
+  const now = Date.now();
+  const toDelete = files.filter(function(f) {
+    const created = new Date(f.created_at).getTime();
+    return now - created > KEEP_DAYS * 86400000;
+  });
+  if (toDelete.length === 0) return 0;
+  const paths = toDelete.map(function(f) { return f.name; });
+  const res = await fetch(BASE_URL + "/storage/v1/object/" + BUCKET, {
+    method: "DELETE",
+    headers: { apikey: token, Authorization: "Bearer " + token, "Content-Type": "application/json" },
+    body: JSON.stringify(paths),
+  });
+  if (!res.ok) console.log("Cleanup warning: " + (await res.text()).slice(0, 100));
+  return toDelete.length;
+}
+
 async function backup() {
   const token = loadKey();
-  console.log("Backup Supabase project " + PROJECT_REF + " via REST API...");
+  console.log("=== EduTest DB Backup ===");
+  console.log("Project: " + PROJECT_REF);
+  console.log("Time: " + new Date().toISOString());
 
-  var ts = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
-  var filePath = path.join(BACKUP_DIR, "backup-" + ts + ".sql");
-  if (!fs.existsSync(BACKUP_DIR)) fs.mkdirSync(BACKUP_DIR, { recursive: true });
-
-  var ws = fs.createWriteStream(filePath);
-  ws.write("-- EduTest DB backup: " + new Date().toISOString() + "\n");
-  ws.write("-- Source: Supabase REST API (" + PROJECT_REF + ")\n\n");
+  await ensureBucket(token);
 
   var totalRows = 0;
+  var lines = [];
+  lines.push("-- EduTest DB backup: " + new Date().toISOString());
+  lines.push("-- Source: Supabase REST API (" + PROJECT_REF + ")");
+  lines.push("");
 
   for (var i = 0; i < TABLES.length; i++) {
     var table = TABLES[i];
     try {
       var rows = await fetchAll(token, table);
-      ws.write("\n-- TABLE: " + table + " (" + rows.length + " rows)\n");
+      lines.push("");
+      lines.push("-- TABLE: " + table + " (" + rows.length + " rows)");
       if (rows.length === 0) { console.log("  " + table + ": 0 rows"); continue; }
 
       var colNames = Object.keys(rows[0]);
@@ -77,7 +136,7 @@ async function backup() {
 
       for (var j = 0; j < rows.length; j++) {
         var vals = colNames.map(function(c) { return escapeVal(rows[j][c]); }).join(", ");
-        ws.write("INSERT INTO \"" + table + "\" (" + colList + ") VALUES (" + vals + ");\n");
+        lines.push('INSERT INTO "' + table + '" (' + colList + ") VALUES (" + vals + ");");
       }
       totalRows += rows.length;
       console.log("  " + table + ": " + rows.length + " rows");
@@ -86,26 +145,27 @@ async function backup() {
     }
   }
 
-  ws.write("\n-- Total: " + totalRows + " rows\n");
-  ws.end();
-  console.log("\nBackup saved: " + filePath);
-  console.log("Total: " + totalRows + " rows");
+  lines.push("");
+  lines.push("-- Total: " + totalRows + " rows");
 
-  var now = Date.now();
-  var files = fs.readdirSync(BACKUP_DIR).filter(function(f) { return f.startsWith("backup-") && f.endsWith(".sql"); });
-  var deleted = 0;
-  for (var k = 0; k < files.length; k++) {
-    var fp = path.join(BACKUP_DIR, files[k]);
-    var stat = fs.statSync(fp);
-    if (now - stat.mtimeMs > KEEP_DAYS * 86400000) {
-      fs.unlinkSync(fp);
-      deleted++;
-    }
-  }
-  if (deleted > 0) console.log("Cleaned " + deleted + " old backup(s)");
+  var sql = lines.join("\n");
+  var ts = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
+  var filename = "backup-" + ts + ".sql";
+
+  console.log("\nUploading " + filename + " (" + Math.round(sql.length / 1024) + " KB)...");
+  await uploadBackup(token, filename, sql);
+
+  var deleted = await deleteOldBackups(token);
+
+  console.log("\n=== DONE ===");
+  console.log("File: " + filename);
+  console.log("Rows: " + totalRows);
+  console.log("Tables: " + TABLES.length);
+  if (deleted > 0) console.log("Cleaned: " + deleted + " old backup(s)");
+  console.log("View: https://supabase.com/dashboard/project/" + PROJECT_REF + "/storage/buckets/" + BUCKET);
 }
 
 backup().catch(function(e) {
-  console.error("Backup failed:", e.message);
+  console.error("Backup FAILED:", e.message);
   process.exit(1);
 });
