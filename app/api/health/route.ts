@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   const checks: Record<string, string> = {};
 
-  // Check DB
+  // Check DB — query thật để Supabase không bị pause
   try {
     await prisma.$queryRaw`SELECT 1`;
     checks.db = "ok";
@@ -20,6 +22,12 @@ export async function GET() {
       timestamp: new Date().toISOString(),
       checks,
     },
-    { status: healthy ? 200 : 503 },
+    {
+      status: healthy ? 200 : 503,
+      headers: {
+        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+        "Pragma": "no-cache",
+      },
+    },
   );
 }
