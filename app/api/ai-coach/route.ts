@@ -3,7 +3,7 @@ import { GoogleGenAI } from "@google/genai";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { isTeacherAccess } from "@/lib/access";
-import { rateLimit, clientIp } from "@/lib/rate-limit";
+import { rateLimit } from "@/lib/rate-limit";
 
 const MODEL = process.env.GEMINI_AGENT_MODEL || "gemini-3.1-flash-lite";
 const MAX_ROUNDS = 6;
