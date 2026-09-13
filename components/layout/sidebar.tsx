@@ -20,7 +20,6 @@ interface NavItem {
 
 const studentNav: NavItem[] = [
   { href: "/bang-dieu-khien",            label: "Tổng quan",  icon: <LayoutDashboard size={18} />, exact: true },
-  { href: "/bang-dieu-khien/hoc-tap",    label: "Học tập",    icon: <BookOpen size={18} /> },
   { href: "/bang-dieu-khien/tien-do",    label: "Tiến độ",    icon: <TrendingUp size={18} /> },
   { href: "/bang-dieu-khien/de-thi",     label: "Đề thi",     icon: <FileText size={18} /> },
   { href: "/bang-dieu-khien/ai",         label: "AI Coach",   icon: <Sparkles size={18} /> },

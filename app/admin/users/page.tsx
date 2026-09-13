@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Users, Search, ShieldCheck, RotateCcw, ChevronLeft, ChevronRight, Download, Flame } from "lucide-react";
+import { Users, Search, ShieldCheck, RotateCcw, ChevronLeft, ChevronRight, Download } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { exportCsv } from "@/lib/csv";
@@ -16,7 +16,6 @@ interface AdminUser {
   isBlocked: boolean;
   school: string | null;
   grade: string | null;
-  streak: number;
   lastLoginAt: string | null;
   createdAt: string;
   deletedAt: string | null;
@@ -115,7 +114,7 @@ export default function AdminUsers() {
   const exportRows = () =>
     exportCsv(
       "nguoi-dung.csv",
-      ["Tên", "Email", "Vai trò", "Trạng thái", "Trường", "Khối", "Streak", "Bài nộp", "Đề tạo", "Đăng nhập cuối", "Ngày tạo"],
+      ["Tên", "Email", "Vai trò", "Trạng thái", "Trường", "Khối", "Bài nộp", "Đề tạo", "Đăng nhập cuối", "Ngày tạo"],
       users.map((u) => [
         u.name,
         u.email,
@@ -123,7 +122,6 @@ export default function AdminUsers() {
         u.deletedAt ? "đã xóa" : u.isBlocked ? "đã khóa" : "hoạt động",
         u.school ?? "",
         u.grade ?? "",
-        u.streak,
         u._count.submissions,
         u._count.exams,
         u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleString("vi-VN") : "",
@@ -223,7 +221,6 @@ export default function AdminUsers() {
                     </td>
                     <td className="px-4 py-3 text-xs text-[var(--text-secondary)]">
                       {u._count.submissions} bài nộp · {u._count.exams} đề
-                      {u.streak > 0 && <span className="ml-1 text-[#B97F10] font-bold inline-flex items-center gap-0.5"><Flame size={11} className="inline" />{u.streak}</span>}
                     </td>
                     <td className="px-4 py-3 text-xs text-[var(--text-muted)]">
                       {u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" }) : "—"}

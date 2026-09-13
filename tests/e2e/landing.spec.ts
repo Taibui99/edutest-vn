@@ -6,9 +6,9 @@ test.describe("LANDING — Trang chủ", () => {
     await expect(page.getByRole("heading", { name: /tạo đề thi siêu tốc/i })).toBeVisible();
     await expect(page.getByText(/dành cho học sinh/i)).toBeVisible();
     await expect(page.getByText(/dành cho giáo viên/i)).toBeVisible();
-    await expect(page.getByText("Flashcard thông minh").first()).toBeVisible();
+    await expect(page.getByText("Tham gia lớp học").first()).toBeVisible();
     await expect(page.getByText("AI Study Coach").first()).toBeVisible();
-    await expect(page.getByText("Đếm ngược THPT").first()).toBeVisible();
+    await expect(page.getByText("Thống kê tiến độ").first()).toBeVisible();
     await expect(page.getByText("Tạo đề trên một màn hình").first()).toBeVisible();
     await expect(page.getByText("Đề thi đã tạo")).toBeVisible();
     await expect(page.getByText("Bài nộp đã chấm")).toBeVisible();

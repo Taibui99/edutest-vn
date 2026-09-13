@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { GraduationCap, Search, Flame, FileCheck, TrendingUp } from "lucide-react";
+import { GraduationCap, Search, FileCheck, TrendingUp } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -13,7 +13,6 @@ interface Student {
   email: string;
   grade: string | null;
   school: string | null;
-  streak: number;
   classes: string[];
   submissions: number;
   avgScore: number | null;
@@ -70,11 +69,6 @@ export function StudentListClient({ students }: { students: Student[] }) {
                 <div className="flex items-center gap-2 min-w-0">
                   <p className="text-sm font-bold text-[var(--text-primary)] truncate">{s.name}</p>
                   <Badge variant="default">{s.grade || "Chưa có lớp"}</Badge>
-                  {s.streak > 0 && (
-                    <span className="flex items-center gap-1 text-xs font-semibold text-orange-500 shrink-0">
-                      <Flame size={12} /> {s.streak} ngày
-                    </span>
-                  )}
                 </div>
                 <p className="text-xs text-[var(--text-secondary)] truncate">{s.email}</p>
                 <div className="flex flex-wrap gap-1.5 mt-1.5">

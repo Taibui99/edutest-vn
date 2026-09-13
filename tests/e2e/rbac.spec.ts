@@ -30,9 +30,9 @@ test.describe("RBAC — Phân quyền", () => {
     await expect(page).toHaveURL(/\/bang-dieu-khien/, { timeout: 15000 });
   });
 
-  test("RB-06: Teacher vào /hoc-tap (student route) → redirect dashboard", async ({ page }) => {
+  test("RB-06: Teacher vào /tien-do (student route) → redirect dashboard", async ({ page }) => {
     await login(page, TEACHER.email, TEACHER.password);
-    await page.goto("/bang-dieu-khien/hoc-tap");
+    await page.goto("/bang-dieu-khien/tien-do");
     await expect(page).toHaveURL(/\/bang-dieu-khien$/, { timeout: 15000 });
   });
 

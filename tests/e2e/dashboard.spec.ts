@@ -15,9 +15,9 @@ test.describe("DASHBOARD — Bảng điều khiển", () => {
     await page.goto("/bang-dieu-khien");
     await expect(page.getByText(/chào/i).first()).toBeVisible({ timeout: 20000 });
     await expect(page.getByRole("link", { name: /vào thi/i }).first()).toBeVisible();
-    await expect(page.getByRole("link", { name: /học tập/i }).first()).toBeVisible();
+    await expect(page.getByRole("link", { name: /lớp học/i }).first()).toBeVisible();
     await expect(page.getByText(/bài thi gần đây/i).first()).toBeVisible();
-    await expect(page.getByText(/ai study coach/i).first()).toBeVisible();
+    await expect(page.getByText(/tiến độ học tập/i).first()).toBeVisible();
   });
 
   test("D-03: Sidebar teacher — đủ 8 menu (bản production)", async ({ page }) => {
@@ -58,17 +58,17 @@ test.describe("DASHBOARD — Bảng điều khiển", () => {
     const menu = isMobile
       ? [
           { text: "Home", href: "/bang-dieu-khien" },
-          { text: "Học", href: "/bang-dieu-khien/hoc-tap" },
+          { text: "Lớp", href: "/bang-dieu-khien/lop-hoc" },
           { text: "Tiến độ", href: "/bang-dieu-khien/tien-do" },
           { text: "Đề", href: "/bang-dieu-khien/de-thi" },
           { text: "Profile", href: "/bang-dieu-khien/ho-so" },
         ]
       : [
           { text: "Tổng quan", href: "/bang-dieu-khien" },
-          { text: "Học tập", href: "/bang-dieu-khien/hoc-tap" },
           { text: "Tiến độ", href: "/bang-dieu-khien/tien-do" },
           { text: "Đề thi", href: "/bang-dieu-khien/de-thi" },
           { text: "AI Coach", href: "/bang-dieu-khien/ai" },
+          { text: "Lớp học", href: "/bang-dieu-khien/lop-hoc" },
         ];
     for (const item of menu) {
       const link = page.locator(`nav a[href="${item.href}"]`).filter({ visible: true }).first();

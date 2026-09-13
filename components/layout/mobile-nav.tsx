@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  LayoutDashboard, BookOpen, FileText, Sparkles, User,
-  Users, MoreHorizontal, TrendingUp,
+  LayoutDashboard, FileText, Sparkles, User,
+  Users, MoreHorizontal, TrendingUp, GraduationCap,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { NotificationBell } from "@/components/ui/notification-bell";
@@ -12,7 +12,7 @@ import { ThemeToggle } from "@/components/theme/theme-provider";
 
 const studentMobileNav = [
   { href: "/bang-dieu-khien",         label: "Home",   icon: <LayoutDashboard size={20} />, exact: true },
-  { href: "/bang-dieu-khien/hoc-tap", label: "Học",    icon: <BookOpen size={20} /> },
+  { href: "/bang-dieu-khien/lop-hoc", label: "Lớp",    icon: <GraduationCap size={20} /> },
   { href: "/bang-dieu-khien/tien-do", label: "Tiến độ", icon: <TrendingUp size={20} /> },
   { href: "/bang-dieu-khien/de-thi",  label: "Đề",     icon: <FileText size={20} /> },
   { href: "/bang-dieu-khien/ho-so",  label: "Profile", icon: <User size={20} /> },

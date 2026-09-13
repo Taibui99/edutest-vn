@@ -32,19 +32,11 @@ const tools = [
   { type: "function", name: "remove_student", description: "Xóa học sinh khỏi lớp. Chỉ gọi khi được yêu cầu rõ ràng.", parameters: { type: "object", properties: { classroom_id: { type: "string" }, student_id: { type: "string" } }, required: ["classroom_id", "student_id"] } },
   { type: "function", name: "get_analytics", description: "Lấy thống kê thật của giáo viên.", parameters: { type: "object", properties: {}, required: [] } },
   { type: "function", name: "get_submissions", description: "Lấy bài nộp của một đề mà giáo viên sở hữu hoặc bài của chính học sinh.", parameters: { type: "object", properties: { exam_id: { type: "string" } }, required: ["exam_id"] } },
-  { type: "function", name: "create_study_task", description: "Tạo nhiệm vụ học tập cho học sinh hiện tại.", parameters: { type: "object", properties: { title: { type: "string" }, subject: { type: "string" }, due_date: { type: "string" } }, required: ["title"] } },
-  { type: "function", name: "complete_study_task", description: "Đánh dấu nhiệm vụ học tập hoàn thành hoặc chưa hoàn thành.", parameters: { type: "object", properties: { task_id: { type: "string" }, completed: { type: "boolean" } }, required: ["task_id", "completed"] } },
-  { type: "function", name: "delete_study_task", description: "Xóa nhiệm vụ học tập của học sinh.", parameters: { type: "object", properties: { task_id: { type: "string" } }, required: ["task_id"] } },
-  { type: "function", name: "create_flashcard", description: "Tạo flashcard thật cho học sinh.", parameters: { type: "object", properties: { subject: { type: "string" }, front: { type: "string" }, back: { type: "string" } }, required: ["subject", "front", "back"] } },
-  { type: "function", name: "list_due_flashcards", description: "Lấy flashcard đến hạn ôn.", parameters: { type: "object", properties: {}, required: [] } },
-  { type: "function", name: "update_progress", description: "Cập nhật tiến độ một môn học.", parameters: { type: "object", properties: { subject: { type: "string" }, progress: { type: "integer" } }, required: ["subject", "progress"] } },
-  { type: "function", name: "set_exam_date", description: "Đặt ngày thi THPT của học sinh.", parameters: { type: "object", properties: { exam_date: { type: "string" } }, required: ["exam_date"] } },
 ] as const;
 
 function toolsFor(role: Role) {
   const teacherOnly = new Set(["create_exam", "set_exam_status", "delete_exam", "create_classroom", "update_classroom", "delete_classroom", "assign_exam", "unassign_exam", "remove_student", "get_analytics"]);
-  const studentOnly = new Set(["create_study_task", "complete_study_task", "delete_study_task", "create_flashcard", "list_due_flashcards", "update_progress", "set_exam_date"]);
-  return tools.filter((tool) => role === "teacher" ? !studentOnly.has(tool.name) : !teacherOnly.has(tool.name));
+  return tools.filter((tool) => (role === "teacher") || !teacherOnly.has(tool.name));
 }
 
 async function examCode() {
@@ -70,9 +62,9 @@ async function runTool(name: string, a: Args, userId: string, role: Role): Promi
       const [exams, submissions, classes] = await Promise.all([prisma.exam.count({ where: { teacherId: userId } }), prisma.submission.count({ where: { exam: { teacherId: userId } } }), prisma.classroom.count({ where: { teacherId: userId, archived: false } })]);
       return { success: true, exams, submissions, classes };
     }
-    const [user, submissions, tasks, due] = await Promise.all([prisma.user.findUnique({ where: { id: userId }, select: { name: true, examDate: true, streak: true } }), prisma.submission.findMany({ where: { studentId: userId }, select: { score: true }, take: 20 }), prisma.studyTask.count({ where: { studentId: userId, completed: false } }), prisma.flashcard.count({ where: { studentId: userId, nextReviewAt: { lte: new Date() } } })]);
+    const [user, submissions] = await Promise.all([prisma.user.findUnique({ where: { id: userId }, select: { name: true } }), prisma.submission.findMany({ where: { studentId: userId }, select: { score: true }, take: 20 })]);
     const avg = submissions.length ? submissions.reduce((s, x) => s + x.score, 0) / submissions.length : null;
-    return { success: true, user, averageScore: avg, openTasks: tasks, dueFlashcards: due };
+    return { success: true, user, averageScore: avg, submissions: submissions.length };
   }
 
   if (name === "list_exams") {
@@ -199,54 +191,6 @@ async function runTool(name: string, a: Args, userId: string, role: Role): Promi
     return { success: true, submissions: await prisma.submission.findMany({ where: { examId, studentId: userId }, include: { exam: { select: { title: true, subject: true } } } }) };
   }
 
-  if (name === "create_study_task") {
-    if (role !== "student") return { success: false, error: "Chỉ học sinh được tạo nhiệm vụ" };
-    const title = str(a, "title"); if (!title) return { success: false, error: "Thiếu tiêu đề" };
-    const due = str(a, "due_date"), dueDate = due ? new Date(due) : null;
-    if (dueDate && Number.isNaN(dueDate.getTime())) return { success: false, error: "Ngày hạn không hợp lệ" };
-    return { success: true, action: "created", task: await prisma.studyTask.create({ data: { studentId: userId, title, subject: str(a, "subject") || null, dueDate } }) };
-  }
-
-  if (name === "complete_study_task") {
-    if (role !== "student") return { success: false, error: "Không có quyền" };
-    const id = str(a, "task_id"), task = await prisma.studyTask.findFirst({ where: { id, studentId: userId } });
-    if (!task) return { success: false, error: "Không tìm thấy nhiệm vụ" };
-    return { success: true, action: "updated", task: await prisma.studyTask.update({ where: { id }, data: { completed: bool(a, "completed") } }) };
-  }
-
-  if (name === "delete_study_task") {
-    if (role !== "student") return { success: false, error: "Không có quyền" };
-    const id = str(a, "task_id"), task = await prisma.studyTask.findFirst({ where: { id, studentId: userId } });
-    if (!task) return { success: false, error: "Không tìm thấy nhiệm vụ" };
-    await prisma.studyTask.delete({ where: { id } }); return { success: true, action: "deleted", task_id: id };
-  }
-
-  if (name === "create_flashcard") {
-    if (role !== "student") return { success: false, error: "Không có quyền" };
-    const subject = str(a, "subject"), front = str(a, "front"), back = str(a, "back");
-    if (!subject || !front || !back) return { success: false, error: "Thiếu thông tin flashcard" };
-    return { success: true, action: "created", flashcard: await prisma.flashcard.create({ data: { studentId: userId, subject, front, back } }) };
-  }
-
-  if (name === "list_due_flashcards") {
-    if (role !== "student") return { success: false, error: "Không có quyền" };
-    return { success: true, flashcards: await prisma.flashcard.findMany({ where: { studentId: userId, nextReviewAt: { lte: new Date() } }, orderBy: { nextReviewAt: "asc" }, take: 50 }) };
-  }
-
-  if (name === "update_progress") {
-    if (role !== "student") return { success: false, error: "Không có quyền" };
-    const subject = str(a, "subject"), progress = Math.max(0, Math.min(100, int(a, "progress")));
-    if (!subject) return { success: false, error: "Thiếu môn học" };
-    return { success: true, action: "updated", progress: await prisma.subjectProgress.upsert({ where: { studentId_subject: { studentId: userId, subject } }, create: { studentId: userId, subject, progress }, update: { progress } }) };
-  }
-
-  if (name === "set_exam_date") {
-    if (role !== "student") return { success: false, error: "Không có quyền" };
-    const value = str(a, "exam_date"), date = value ? new Date(value) : null;
-    if (date && Number.isNaN(date.getTime())) return { success: false, error: "Ngày thi không hợp lệ" };
-    return { success: true, action: "updated", user: await prisma.user.update({ where: { id: userId }, data: { examDate: date } }) };
-  }
-
   return { success: false, error: `Tool không tồn tại: ${name}` };
 }
 
@@ -255,8 +199,8 @@ async function context(userId: string, role: Role) {
     const [exams, submissions, classes] = await Promise.all([prisma.exam.count({ where: { teacherId: userId } }), prisma.submission.count({ where: { exam: { teacherId: userId } } }), prisma.classroom.count({ where: { teacherId: userId, archived: false } })]);
     return `Dữ liệu nhanh: ${exams} đề, ${submissions} bài nộp, ${classes} lớp đang hoạt động.`;
   }
-  const [user, tasks, due] = await Promise.all([prisma.user.findUnique({ where: { id: userId }, select: { name: true, examDate: true, streak: true } }), prisma.studyTask.count({ where: { studentId: userId, completed: false } }), prisma.flashcard.count({ where: { studentId: userId, nextReviewAt: { lte: new Date() } } })]);
-  return `Học sinh: ${user?.name ?? ""}. Nhiệm vụ mở: ${tasks}. Flashcard đến hạn: ${due}. Streak: ${user?.streak ?? 0}.`;
+  const [name, count, avg] = await Promise.all([prisma.user.findUnique({ where: { id: userId }, select: { name: true } }), prisma.submission.count({ where: { studentId: userId } }), prisma.submission.aggregate({ where: { studentId: userId }, _avg: { score: true } })]);
+  return `Học sinh: ${name?.name ?? ""}. Bài đã nộp: ${count}. Điểm TB: ${avg._avg.score?.toFixed(1) ?? "chưa có"}.`;
 }
 
 function system(role: Role, ctx: string) {

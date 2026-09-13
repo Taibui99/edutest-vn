@@ -12,7 +12,7 @@ const SECTIONS: { title: string; items: string[] }[] = [
     title: "1. Thông tin chúng tôi thu thập",
     items: [
       "Thông tin tài khoản: họ tên, email, trường, khối (tùy chọn), vai trò (giáo viên/học sinh).",
-      "Dữ liệu học tập: bài nộp, điểm số, tiến độ ôn tập, flashcard và hoạt động học.",
+      "Dữ liệu học tập: bài nộp, điểm số, câu hỏi luyện tập và hoạt động học.",
       "Dữ liệu kỹ thuật: địa chỉ IP, thời gian đăng nhập — phục vụ bảo mật và chống gian lận thi.",
     ],
   },

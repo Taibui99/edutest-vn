@@ -1,8 +1,6 @@
 import {
   Bot,
-  CalendarDays,
   FileText,
-  Layers,
   LineChart,
   PencilLine,
   School,
@@ -31,10 +29,10 @@ const STUDENT_FEATURES: Feature[] = [
     desc: "Đồng hồ đếm ngược và tự động nộp khi hết giờ. Kết quả được ghi nhận ngay sau khi hoàn thành.",
   },
   {
-    icon: Layers,
+    icon: School,
     color: { bg: "var(--warning-light)", text: "#C49A00" },
-    title: "Flashcard thông minh",
-    desc: "Ôn tập theo lịch thông minh để ghi nhớ kiến thức tốt hơn và duy trì thói quen học mỗi ngày.",
+    title: "Tham gia lớp học",
+    desc: "Gia nhập lớp theo mã giáo viên gửi và nhận đề thi được giao riêng cho lớp.",
   },
   {
     icon: Bot,
@@ -43,10 +41,10 @@ const STUDENT_FEATURES: Feature[] = [
     desc: "Hỗ trợ giải đáp, phân tích kết quả học tập và đề xuất nội dung ôn tập phù hợp.",
   },
   {
-    icon: CalendarDays,
+    icon: TrendingUp,
     color: { bg: "var(--blue-light)", text: "var(--blue)" },
-    title: "Đếm ngược THPT",
-    desc: "Theo dõi thời gian còn lại đến kỳ thi và lên kế hoạch ôn tập rõ ràng hơn.",
+    title: "Thống kê tiến độ",
+    desc: "Theo dõi biểu đồ điểm, trung bình theo môn và kết quả từng đề thi.",
   },
   {
     icon: LineChart,

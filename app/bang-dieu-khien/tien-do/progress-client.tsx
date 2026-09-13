@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { Flame, TrendingUp, FileText, Layers, Clock } from "lucide-react";
+import { TrendingUp, FileText, Trophy, Layers, Clock } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { getSubjectColor } from "@/lib/subject";
 
@@ -55,10 +55,7 @@ function LineChart({ data }: { data: { label: string; score: number }[] }) {
   );
 }
 
-export function ProgressClient({ streak, lastStudyDate, flashcardCount, submissions }: {
-  streak: number;
-  lastStudyDate: string | null;
-  flashcardCount: number;
+export function ProgressClient({ submissions }: {
   submissions: Sub[];
 }) {
   const chartData = useMemo(
@@ -85,8 +82,7 @@ export function ProgressClient({ streak, lastStudyDate, flashcardCount, submissi
   }, [submissions]);
 
   const avgScore = submissions.length ? submissions.reduce((a, s) => a + s.score, 0) / submissions.length : 0;
-  const lastStreakDay = lastStudyDate ? new Date(lastStudyDate) : null;
-  const isStudiedToday = lastStreakDay && new Date(lastStreakDay).toDateString() === new Date().toDateString();
+  const bestScore = submissions.length ? Math.max(...submissions.map((s) => s.score)) : 0;
 
   return (
     <div className="p-4 lg:p-8 max-w-5xl mx-auto animate-fade-in">
@@ -96,16 +92,16 @@ export function ProgressClient({ streak, lastStudyDate, flashcardCount, submissi
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         {[
-          { label: "Chuỗi ngày học", value: `${streak} ngày`, icon: <Flame size={14} />, color: "c1", dim: !isStudiedToday },
-          { label: "Bài đã nộp", value: submissions.length, icon: <FileText size={14} />, color: "c2" },
-          { label: "Điểm TB", value: submissions.length ? avgScore.toFixed(1) : "—", icon: <TrendingUp size={14} />, color: "c3" },
-          { label: "Flashcard", value: flashcardCount, icon: <Layers size={14} />, color: "c4" },
-        ].map(({ label, value, icon, color, dim }) => (
-          <div key={label} className={`rounded-2xl p-4 ${dim ? "opacity-50" : ""} ${
-            color === "c1" ? "bg-[#FCF3E2] dark:bg-[#2B2410]" : color === "c2" ? "bg-[#F1EDFD] dark:bg-[#46309F]" : color === "c3" ? "bg-[#EAF3FC] dark:bg-[#0D2A3E]" : "bg-[#E8F7F1] dark:bg-[#0A2A20]"
+          { label: "Bài đã nộp", value: submissions.length, icon: <FileText size={14} />, color: "c1" },
+          { label: "Điểm TB", value: submissions.length ? avgScore.toFixed(1) : "—", icon: <TrendingUp size={14} />, color: "c2" },
+          { label: "Điểm cao nhất", value: submissions.length ? bestScore.toFixed(1) : "—", icon: <Trophy size={14} />, color: "c3" },
+          { label: "Môn đã học", value: bySubject.length, icon: <Layers size={14} />, color: "c4" },
+        ].map(({ label, value, icon, color }) => (
+          <div key={label} className={`rounded-2xl p-4 ${
+            color === "c1" ? "bg-[#F1EDFD] dark:bg-[#46309F]" : color === "c2" ? "bg-[#EAF3FC] dark:bg-[#0D2A3E]" : color === "c3" ? "bg-[#FFF7E6] dark:bg-[#2B2410]" : "bg-[#E8F7F1] dark:bg-[#0A2A20]"
           }`}>
             <div className={`flex items-center gap-2 mb-1 ${
-              color === "c1" ? "text-[#B97F10]" : color === "c2" ? "text-[#6C4CF1]" : color === "c3" ? "text-[#2F80D8]" : "text-[#189A6C]"
+              color === "c1" ? "text-[#6C4CF1]" : color === "c2" ? "text-[#2F80D8]" : color === "c3" ? "text-[#B97F10]" : "text-[#189A6C]"
             }`}>
               {icon}
               <span className="text-xs font-bold">{label}</span>

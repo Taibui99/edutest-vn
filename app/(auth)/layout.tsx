@@ -12,7 +12,7 @@ import { ThemeToggle } from "@/components/theme/theme-provider";
 const BENEFITS = [
   { icon: FileCheck2, title: "Thi trực tuyến mượt mà", desc: "Timer, chấm điểm tự động, kết quả ngay sau khi nộp." },
   { icon: Bot, title: "AI Study Coach", desc: "Giải đáp, phân tích kết quả và đề xuất ôn tập phù hợp." },
-  { icon: Layers, title: "Flashcard thông minh", desc: "Ôn lại đúng lúc theo thuật toán SM-2 để nhớ lâu hơn." },
+  { icon: Layers, title: "Tiến độ học tập", desc: "Biểu đồ điểm và thống kê trung bình theo từng môn." },
   { icon: BarChart3, title: "Thống kê chi tiết", desc: "Giáo viên theo dõi điểm và phân bố kết quả từng đề." },
 ];
 

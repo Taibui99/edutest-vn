@@ -37,7 +37,7 @@ export async function GET(req: NextRequest) {
       take: PAGE_SIZE,
       select: {
         id: true, name: true, email: true, role: true, isBlocked: true,
-        school: true, grade: true, streak: true, lastLoginAt: true, createdAt: true,
+        school: true, grade: true, lastLoginAt: true, createdAt: true,
         deletedAt: true,
         _count: { select: { submissions: true, exams: true } },
       },

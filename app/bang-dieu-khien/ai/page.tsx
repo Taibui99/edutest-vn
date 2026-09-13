@@ -22,8 +22,8 @@ const STUDENT_PROMPTS = [
   "Phân tích điểm yếu của tôi",
   "Tạo 5 câu hỏi Toán luyện tập",
   "Lập kế hoạch ôn thi THPT",
-  "Giải thích Hàm số cho tôi",
-  "Tạo flashcard từ chủ đề này",
+  "Giải thích kiến thức cho tôi",
+  "Tạo bài kiểm tra nhanh giúp tôi",
 ];
 
 const TEACHER_PROMPTS = [

@@ -9,7 +9,7 @@ const KEEP_DAYS = 30;
 const TABLES = [
   "User", "Classroom", "ClassMember", "Exam", "ExamAssignment",
   "Question", "QuestionBankItem", "Submission", "Report",
-  "Flashcard", "StudyTask", "SubjectProgress", "Notification",
+  "Notification",
   "GuestParticipant", "AiImportLog", "AppLog", "SystemSetting",
 ];
 

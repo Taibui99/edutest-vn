@@ -5,8 +5,8 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import {
   BookOpen, FileText, Trophy, Plus, Zap, ArrowRight,
-  CheckCircle2, AlertCircle, Target, Flame, Clock,
-  BarChart3, Sparkles, CheckSquare, GraduationCap, ShieldCheck, Check,
+  CheckCircle2, AlertCircle, Flame, Clock,
+  BarChart3, GraduationCap, ShieldCheck, Check,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,11 +17,6 @@ import { ModeSwitchButton } from "@/components/mode-switch";
 import { ContinueDraftCard } from "./continue-draft";
 
 export const metadata: Metadata = { title: "Tổng quan — EduTest" };
-
-function getDaysUntil(target: Date) {
-  const diff = target.getTime() - Date.now();
-  return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
-}
 
 function getGreeting() {
   const h = new Date().getHours();
@@ -44,7 +39,9 @@ function scoreBg(score: number) {
 
 /* ─────────────────────────────────────────── Student ─── */
 async function StudentDashboard({ userId, name }: { userId: string; name: string }) {
-  const [submissions, allSubs, tasks, dueCards, allCards, subjectProgress, userRecord] = await Promise.all([
+  const weekAgo = new Date();
+  weekAgo.setDate(weekAgo.getDate() - 7);
+  const [submissions, allSubs, weekSubs] = await Promise.all([
     prisma.submission.findMany({
       where: { studentId: userId },
       include: { exam: { select: { title: true, subject: true } } },
@@ -56,71 +53,33 @@ async function StudentDashboard({ userId, name }: { userId: string; name: string
       _count: { _all: true },
       _avg: { score: true },
     }),
-    prisma.studyTask.findMany({
-      where: { studentId: userId, completed: false },
-      orderBy: { dueDate: "asc" },
-      take: 4,
+    prisma.submission.count({
+      where: { studentId: userId, submittedAt: { gte: weekAgo } },
     }),
-    prisma.flashcard.count({
-      where: { studentId: userId, nextReviewAt: { lte: new Date() } },
-    }),
-    prisma.flashcard.count({ where: { studentId: userId } }),
-    prisma.subjectProgress.findMany({ where: { studentId: userId } }),
-    prisma.user.findUnique({ where: { id: userId }, select: { examDate: true, streak: true } }),
   ]);
 
   type SubType = typeof submissions[0];
-  type TaskType = typeof tasks[0];
-  type ProgressType = typeof subjectProgress[0];
 
   const totalSubmissions = allSubs._count._all;
   const avgScore = allSubs._avg.score ?? 0;
-  const streak = userRecord?.streak ?? 0;
-  const daysLeft = userRecord?.examDate ? getDaysUntil(userRecord.examDate) : null;
-  const progressPct = daysLeft != null
-    ? Math.max(5, Math.min(95, 100 - (daysLeft / 365) * 100))
-    : 0;
 
   return (
     <div className="p-4 lg:p-8 max-w-5xl mx-auto animate-fade-in">
 
       {/* ── Greeting banner */}
       <div className="rounded-3xl bg-gradient-to-r from-[#6C4CF1] via-[#7C5CF3] to-[#8B6FF5] p-6 mb-6 relative overflow-hidden">
-        {/* decorative circles */}
         <div className="absolute -top-8 -right-8 w-40 h-40 rounded-full bg-white/10" />
         <div className="absolute -bottom-10 right-20 w-28 h-28 rounded-full bg-white/5" />
-
         <div className="relative flex items-start justify-between gap-4">
           <div>
             <p className="text-white/70 text-sm font-medium">{getGreeting()},</p>
             <h1 className="text-2xl font-black text-white mt-0.5">{name}</h1>
-            {daysLeft !== null ? (
-              <div className="mt-3">
-                <p className="text-white/80 text-sm">
-                  Còn <strong className="text-white font-black text-lg">{daysLeft}</strong> ngày đến kỳ thi THPT
-                </p>
-                <div className="mt-2 h-2 bg-white/20 rounded-full w-48 max-w-full">
-                  <div
-                    className="h-full bg-white rounded-full transition-all"
-                    style={{ width: `${progressPct}%` }}
-                  />
-                </div>
-              </div>
-            ) : (
-              <Link href="/bang-dieu-khien/hoc-tap" className="mt-3 inline-flex items-center gap-1 text-sm text-white/80 hover:text-white">
-                Đặt ngày thi THPT <ArrowRight size={14} />
-              </Link>
-            )}
+            <Link href="/bang-dieu-khien/tien-do" className="mt-3 inline-flex items-center gap-1 text-sm text-white/80 hover:text-white">
+              Xem tiến độ học tập <ArrowRight size={14} />
+            </Link>
           </div>
-          <div className="flex shrink-0 flex-col items-end gap-2">
-            <div className="inline-flex items-center gap-1.5 rounded-2xl bg-white/15 px-4 py-2 backdrop-blur-sm">
-              <Flame size={18} className="text-[#FCF3E2]" fill="currentColor" />
-              <span className="text-lg font-black text-white">{streak}</span>
-              <span className="text-xs font-semibold text-white/80">ngày liên tiếp</span>
-            </div>
-            <div className="shrink-0 hidden sm:block">
-              <Target size={36} className="text-white/30" strokeWidth={1.5} />
-            </div>
+          <div className="shrink-0 hidden sm:block">
+            <BarChart3 size={36} className="text-white/30" strokeWidth={1.5} />
           </div>
         </div>
       </div>
@@ -128,7 +87,7 @@ async function StudentDashboard({ userId, name }: { userId: string; name: string
       {/* ── Continue drafts */}
       <ContinueDraftCard />
 
-      {/* ── 4 stat pills */}
+      {/* ── stat pills */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         <div className="bg-[#F1EDFD] rounded-2xl p-4">
           <div className="flex items-center gap-2 mb-1">
@@ -148,61 +107,25 @@ async function StudentDashboard({ userId, name }: { userId: string; name: string
         </div>
         <div className="bg-[#E8F7F1] rounded-2xl p-4">
           <div className="flex items-center gap-2 mb-1">
-            <BookOpen size={14} className="text-[#189A6C]" />
-            <span className="text-xs font-bold text-[#189A6C]">Flashcard</span>
+            <Zap size={14} className="text-[#189A6C]" />
+            <span className="text-xs font-bold text-[#189A6C]">Bài trong 7 ngày</span>
           </div>
-          <p className="text-2xl font-black text-[#1C1917]">{allCards}</p>
+          <p className="text-2xl font-black text-[#1C1917]">{weekSubs}</p>
         </div>
-        <div className="bg-[#FFECEC] rounded-2xl p-4">
+        <div className="bg-[#EAF3FC] rounded-2xl p-4">
           <div className="flex items-center gap-2 mb-1">
-            <Flame size={14} className="text-[#E14D4D]" />
-            <span className="text-xs font-bold text-[#E14D4D]">Cần ôn</span>
+            <BarChart3 size={14} className="text-[#2F80D8]" />
+            <span className="text-xs font-bold text-[#2F80D8]">Tiến độ</span>
           </div>
-          <p className="text-2xl font-black text-[#1C1917]">{dueCards}</p>
+          <Link href="/bang-dieu-khien/tien-do" className="text-xl font-black text-[#6C4CF1] hover:underline">
+            Xem →
+          </Link>
         </div>
       </div>
 
       <div className="grid lg:grid-cols-3 gap-5">
         {/* ── Left column (2/3) */}
         <div className="lg:col-span-2 min-w-0 flex flex-col gap-5">
-
-          {/* AI Study Coach */}
-          <div className="bg-[#F1EDFD] border border-[#DCD4FA] rounded-2xl p-5">
-            <div className="flex items-start gap-3">
-              <div className="w-9 h-9 rounded-xl bg-[#6C4CF1] flex items-center justify-center shrink-0 shadow-sm">
-                <Zap size={17} className="text-white" />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-black text-[#1C1917] mb-1 flex items-center gap-1.5"><Sparkles size={14} className="text-[#6C4CF1]" /> AI Study Coach</p>
-                {dueCards > 0 ? (
-                  <p className="text-sm text-[#4A4870]">
-                    Bạn có <strong className="text-[#6C4CF1]">{dueCards} flashcard</strong> cần ôn hôm nay.
-                    Chỉ mất khoảng {Math.round(dueCards * 0.5)} phút!
-                  </p>
-                ) : allCards === 0 ? (
-                  <p className="text-sm text-[#4A4870]">
-                    Chưa có flashcard nào. Hãy tạo flashcard để bắt đầu học hiệu quả hơn!
-                  </p>
-                ) : (
-                  <p className="text-sm text-[#4A4870]">
-                    Hôm nay bạn đã ôn xong tất cả flashcard! Thử làm một đề thi nhé.
-                  </p>
-                )}
-                <div className="flex gap-2 mt-3 flex-wrap">
-                  <Link href="/bang-dieu-khien/hoc-tap">
-                    <Button size="sm" className="bg-[#6C4CF1] text-white hover:bg-[#5A3BD8]">
-                      Ôn flashcard ngay
-                    </Button>
-                  </Link>
-                  <Link href="/bang-dieu-khien/ai">
-                    <Button size="sm" variant="ghost" className="text-[#6C4CF1]">
-                      Hỏi AI <Sparkles size={12} />
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-            </div>
-          </div>
 
           {/* Recent exams */}
           <Card padding="none">
@@ -268,14 +191,14 @@ async function StudentDashboard({ userId, name }: { userId: string; name: string
                 </div>
               </div>
             </Link>
-            <Link href="/bang-dieu-khien/hoc-tap">
+            <Link href="/bang-dieu-khien/lop-hoc">
               <div className="bg-[var(--surface-card)] border border-[var(--surface-border)] rounded-2xl p-4 flex items-center gap-3 hover:border-[#189A6C]/40 hover:shadow-sm transition-all cursor-pointer h-full">
                 <div className="w-10 h-10 rounded-xl bg-[#E8F7F1] flex items-center justify-center shrink-0">
                   <BookOpen size={18} className="text-[#189A6C]" />
                 </div>
                 <div>
-                  <p className="text-sm font-black text-[var(--text-primary)]">Học tập</p>
-                  <p className="text-xs text-[var(--text-muted)]">Flashcard & nhiệm vụ</p>
+                  <p className="text-sm font-black text-[var(--text-primary)]">Lớp học</p>
+                  <p className="text-xs text-[var(--text-muted)]">Đề thi được giao</p>
                 </div>
               </div>
             </Link>
@@ -284,75 +207,29 @@ async function StudentDashboard({ userId, name }: { userId: string; name: string
 
         {/* ── Right column (1/3) */}
         <div className="flex flex-col gap-5 min-w-0">
-
-          {/* Today's tasks */}
-          <Card padding="none">
-            <div className="flex items-center justify-between px-4 py-3.5 border-b border-[var(--surface-border)]">
-              <h2 className="text-sm font-black text-[var(--text-primary)]">
-                <CheckSquare size={14} className="inline mr-1.5 text-[#B97F10]" />
-                Nhiệm vụ hôm nay
-              </h2>
-              <Link href="/bang-dieu-khien/hoc-tap">
-                <Plus size={15} className="text-[#6C4CF1]" />
-              </Link>
-            </div>
-            {tasks.length === 0 ? (
-              <EmptyState title="Không có việc chờ" className="py-8" />
-            ) : (
-              <div className="p-3 flex flex-col gap-1">
-                {tasks.map((task: TaskType) => (
-                  <div key={task.id} className="flex items-center gap-2.5 p-2.5 rounded-xl hover:bg-[var(--gray-100)] transition-colors">
-                    <div className="w-4 h-4 rounded-full border-2 border-[#DCD4FA] shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-semibold text-[var(--text-primary)] truncate">{task.title}</p>
-                      {task.dueDate && (
-                        <p className="text-xs text-[var(--text-muted)]">
-                          <Clock size={9} className="inline mr-0.5" />
-                          {new Date(task.dueDate).toLocaleDateString("vi-VN")}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </Card>
-
-          {/* Subject progress */}
           <Card padding="none">
             <div className="px-4 py-3.5 border-b border-[var(--surface-border)]">
               <h2 className="text-sm font-black text-[var(--text-primary)]">
-                <Target size={14} className="inline mr-1.5 text-[#E14D4D]" />
-                Tiến độ môn học
+                <BarChart3 size={14} className="inline mr-1.5 text-[#2F80D8]" />
+                Tóm tắt
               </h2>
             </div>
-            {subjectProgress.length === 0 ? (
-              <EmptyState
-                title="Chưa có tiến độ"
-                description="Cập nhật ở Góc học tập"
-                className="py-8"
-              />
-            ) : (
-              <div className="p-4 flex flex-col gap-3.5">
-                {subjectProgress.map((p: ProgressType) => {
-                  const c = getSubjectColor(p.subject);
-                  return (
-                    <div key={p.subject}>
-                      <div className="flex justify-between mb-1.5">
-                        <span className="text-xs font-semibold text-[var(--text-secondary)]">{p.subject}</span>
-                        <span className="text-xs font-black" style={{ color: c.text }}>{p.progress}%</span>
-                      </div>
-                      <div className="h-2 bg-[var(--gray-200)] rounded-full overflow-hidden">
-                        <div
-                          className="h-full rounded-full transition-all"
-                          style={{ width: `${p.progress}%`, background: c.text }}
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
+            <div className="p-4 flex flex-col gap-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-[var(--text-secondary)]">Số bài đã nộp</span>
+                <span className="text-sm font-black text-[var(--text-primary)]">{totalSubmissions}</span>
               </div>
-            )}
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-[var(--text-secondary)]">Điểm trung bình</span>
+                <span className={`text-sm font-black ${scoreColor(avgScore)}`}>{avgScore > 0 ? avgScore.toFixed(1) : "—"}</span>
+              </div>
+              <Link
+                href="/bang-dieu-khien/tien-do"
+                className="mt-1 inline-flex h-9 w-full items-center justify-center rounded-lg bg-[#F1EDFD] text-xs font-bold text-[#6C4CF1] hover:bg-[#E4DCFA]"
+              >
+                Xem biểu đồ tiến độ
+              </Link>
+            </div>
           </Card>
         </div>
       </div>

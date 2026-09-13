@@ -96,6 +96,10 @@ Tất cả L1–L4 trong commit `6e0ad48` — verified live: robots.txt/sitemap.
 - [x] **L8 Backup DB** (commit `4779a6e`) — provider Supabase, script `scripts/backup-db.js` dùng REST API + service role key (vĩnh viễn) dump toàn bộ 17 bảng ra `backups/backup-{ts}.sql`, auto-xóa file >30 ngày
 
 
+## 🗑️ Xóa tính năng — Góc học tập (2026-09-13)
+> User quyết định bỏ "Góc học tập" — lệch trọng tâm, làm rối UX. Chỉ học viên cần xem bài thi/điểm/lớp.
+- [ ] **REMOVE Góc học tập** — xóa `/hoc-tap` (page + study-hub-client) + API `/api/study/*` (tasks, flashcards + [id]/review/generate, progress, streak, exam-date) + `lib/streak.ts`; drop DB: bảng Flashcard/StudyTask/SubjectProgress + cột User.streak/lastStudyDate/examDate; dọn dashboard, /tien-do (giữ chart điểm, bỏ flashcard/streak), admin users/overview (bỏ streak/flashcards/streakTop), hoc-sinh (bỏ streak hiển thị), AI page (bỏ suggestion flashcard), bao-mat (cập nhật text), auth.config (bỏ /hoc-tap guard), submissions (bỏ bumpStudyStreak)
+
 ## 🛠 Fix bug theo báo cáo QA (2026-08-22)
 - [x] **BUG-1 · SEC-02 (P1)** Forgot-password rò rỉ `resetLink` plaintext trong response khi bật setting `exposeResetLink` + UI render link demo — bỏ cơ chế expose khỏi production (chỉ giữ NODE_ENV=development), sửa UI không còn render link (commit `4b33879`) — verified live: POST `/api/auth/forgot-password` trả `{ok:true}` không có resetLink; E2E R-06 viết lại thành kiểm chứng SEC-02 đã vá (`ea58415`)
 - [x] **BUG-2 · BUG-01 (P1)** Register chấp nhận email sai định dạng (`qa-short`) — thêm validate email server-side regex → 400 "Email không hợp lệ." (commit `011759a`) — verified live: `qa-short`/email rỗng → 400

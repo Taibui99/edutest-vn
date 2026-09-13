@@ -23,7 +23,7 @@ export default async function StudentsPage() {
       members: {
         select: {
           student: {
-            select: { id: true, name: true, email: true, grade: true, school: true, streak: true },
+            select: { id: true, name: true, email: true, grade: true, school: true },
           },
         },
       },
@@ -31,7 +31,7 @@ export default async function StudentsPage() {
     orderBy: { name: "asc" },
   });
 
-  const studentsMap = new Map<string, { name: string; email: string; grade: string | null; school: string | null; streak: number; classes: string[] }>();
+  const studentsMap = new Map<string, { name: string; email: string; grade: string | null; school: string | null; classes: string[] }>();
   for (const cls of classrooms) {
     for (const m of cls.members) {
       const s = m.student;
@@ -39,7 +39,7 @@ export default async function StudentsPage() {
       if (existing) {
         existing.classes.push(cls.name);
       } else {
-        studentsMap.set(s.id, { name: s.name, email: s.email, grade: s.grade, school: s.school, streak: s.streak, classes: [cls.name] });
+        studentsMap.set(s.id, { name: s.name, email: s.email, grade: s.grade, school: s.school, classes: [cls.name] });
       }
     }
   }
@@ -64,7 +64,6 @@ export default async function StudentsPage() {
       email: s.email,
       grade: s.grade,
       school: s.school,
-      streak: s.streak,
       classes: s.classes,
       submissions: st?.submissions ?? 0,
       avgScore: st ? Math.round(st.avgScore * 100) / 100 : null,

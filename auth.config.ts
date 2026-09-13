@@ -1,7 +1,7 @@
 import type { NextAuthConfig } from "next-auth";
 import { effectiveMode, defaultModeByRole } from "@/lib/access";
 
-const STUDENT_MODE_ROUTES = ["/bang-dieu-khien/hoc-tap", "/bang-dieu-khien/tien-do"];
+const STUDENT_MODE_ROUTES = ["/bang-dieu-khien/tien-do"];
 
 const TEACHER_MODE_ROUTES = [
   "/bang-dieu-khien/tao-de-thi",

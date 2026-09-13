@@ -3,7 +3,6 @@ import { cookies } from "next/headers";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { isQuestionCorrect, isAutoGraded, type AnswerValue } from "@/lib/grading";
-import { bumpStudyStreak } from "@/lib/streak";
 import { NextRequest, NextResponse } from "next/server";
 import { rateLimit, clientIp } from "@/lib/rate-limit";
 
@@ -71,10 +70,6 @@ export async function POST(request: NextRequest) {
   try {
     await prisma.notification.create({ data: { userId: exam.teacherId, type: "exam_result", title: "Có người vừa nộp bài", message: `${participantName} vừa nộp bài "${exam.title}" — Điểm: ${score}/10`, link: `/bang-dieu-khien/de-thi/${exam.id}` } });
   } catch { /* ignore notification errors */ }
-
-  if (studentId) {
-    try { await bumpStudyStreak(studentId); } catch { /* ignore streak errors */ }
-  }
 
   return NextResponse.json({ submission, isGuest: Boolean(guestParticipantId), resultLink: guestParticipantId ? null : `/bang-dieu-khien/ket-qua/${submission.id}` });
 }

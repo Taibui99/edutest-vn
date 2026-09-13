@@ -16,25 +16,15 @@ export default async function TienDoPage() {
   if (!session?.user) redirect("/dang-nhap");
   if (effectiveMode(session.user) !== "student") redirect("/bang-dieu-khien");
 
-  const [user, submissions, flashcardCount] = await Promise.all([
-    prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: { streak: true, lastStudyDate: true },
-    }),
-    prisma.submission.findMany({
-      where: { studentId: session.user.id },
-      orderBy: { submittedAt: "desc" },
-      take: 200,
-      include: { exam: { select: { title: true, subject: true } } },
-    }),
-    prisma.flashcard.count({ where: { studentId: session.user.id } }),
-  ]);
+  const submissions = await prisma.submission.findMany({
+    where: { studentId: session.user.id },
+    orderBy: { submittedAt: "desc" },
+    take: 200,
+    include: { exam: { select: { title: true, subject: true } } },
+  });
 
   return (
     <ProgressClient
-      streak={user?.streak ?? 0}
-      lastStudyDate={user?.lastStudyDate ? user.lastStudyDate.toISOString() : null}
-      flashcardCount={flashcardCount}
       submissions={submissions.map((s) => ({
         id: s.id,
         title: s.exam.title,

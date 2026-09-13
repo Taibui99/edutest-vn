@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Users, FileText, ClipboardList, School, Flag, Sparkles, Flame, ShieldCheck, AlertTriangle, Activity, TrendingUp, TrendingDown, UserPlus, Send, ServerCrash, CheckCircle2 } from "lucide-react";
+import { Users, FileText, ClipboardList, School, Flag, Sparkles, ShieldCheck, AlertTriangle, Activity, TrendingUp, TrendingDown, UserPlus, Send, ServerCrash, CheckCircle2 } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/cn";
 
@@ -11,12 +11,10 @@ interface Stats {
   exams: number;
   submissions: number;
   classrooms: number;
-  flashcards: number;
   pendingReports: number;
   aiLogs24h: number;
   aiByStatus: Record<string, number>;
   aiErrors: { model: string | null; error: string; createdAt: string }[];
-  streakTop: { name: string; email: string; streak: number }[];
   usersGrowth: { day: string; count: number }[];
   subsGrowth: { day: string; count: number }[];
   topExams: { id: string; title: string; subject: string; _count: { submissions: number } }[];
@@ -84,7 +82,7 @@ export default function AdminDashboard() {
   const cards = [
     { label: "Người dùng", value: data.users.total, delta: data.users.deltaPct, sub: `${data.users.students} HS · ${data.users.teachers} GV · ${data.users.admins} admin`, icon: <Users size={15} />, color: "#6C4CF1", bgClass: "bg-[#F1EDFD] dark:bg-[#46309F]", href: "/admin/users" },
     { label: "Đề thi", value: data.exams, sub: `${data.submissions} bài nộp`, icon: <FileText size={15} />, color: "#2F80D8", bgClass: "bg-[#EAF3FC] dark:bg-[#0D2A3E]", href: "/admin/exams" },
-    { label: "Lớp học", value: data.classrooms, sub: `${data.flashcards} flashcard`, icon: <School size={15} />, color: "#189A6C", bgClass: "bg-[#E8F7F1] dark:bg-[#0A2A20]", href: "/admin" },
+    { label: "Lớp học", value: data.classrooms, sub: `${data.users.students} học sinh`, icon: <School size={15} />, color: "#189A6C", bgClass: "bg-[#E8F7F1] dark:bg-[#0A2A20]", href: "/admin" },
     { label: "Báo cáo chờ", value: data.pendingReports, sub: `${data.aiLogs24h} lượt AI / 24h`, icon: <Flag size={15} />, color: "#E14D4D", bgClass: "bg-[#FFF0F0] dark:bg-[#2B1616]", href: "/admin/reports" },
   ];
 
@@ -253,30 +251,6 @@ export default function AdminDashboard() {
             </div>
           )}
         </div>
-      </div>
-
-      <div className="rounded-2xl bg-[var(--surface-card)] border border-[var(--surface-border)] p-5">
-        <h2 className="text-sm font-black text-[var(--text-primary)] mb-4 flex items-center gap-2">
-          <Flame size={15} className="text-[#B97F10]" /> Học sinh có chuỗi ngày học cao nhất
-        </h2>
-        {data.streakTop.length === 0 ? (
-          <p className="text-sm text-[var(--text-muted)] text-center py-6">Chưa có dữ liệu</p>
-        ) : (
-          <div className="divide-y divide-[var(--surface-border)]">
-            {data.streakTop.map((s, i) => (
-              <div key={s.email} className="flex items-center gap-3 py-2.5">
-                <span className="w-6 text-center text-sm font-black text-[var(--text-muted)]">#{i + 1}</span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-[var(--text-primary)] truncate">{s.name}</p>
-                  <p className="text-xs text-[var(--text-muted)] truncate">{s.email}</p>
-                </div>
-                <span className="inline-flex items-center gap-1 text-sm font-black text-[#B97F10]">
-                  <Flame size={13} /> {s.streak} ngày
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
       </div>
 
       <div className="mt-5 grid sm:grid-cols-2 gap-3">
