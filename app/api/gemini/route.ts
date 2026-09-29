@@ -14,6 +14,77 @@ const MAX_TEXT_CHARS = 120_000;
 const MAX_MODEL_OUTPUT = 16_384;
 const AI_TIMEOUT_MS = 45_000;
 
+export type GenerateOptions = {
+  subject?: string;
+  grade?: string;
+  count?: number;
+  types?: string[];
+  withExplanation?: boolean;
+  customNote?: string;
+  focus?: string;
+};
+
+type GeneratedQuestion = { type?: string; question?: string; options?: string[]; answer?: string; points?: number; grading?: unknown; explanation?: string };
+type GeneratedPayload = { title?: string; questions?: GeneratedQuestion[] };
+
+const DIFFICULTY = ["nhận biết", "thông hiểu", "vận dụng"] as const;
+
+function difficultyPlan(count: number) {
+  const plan: Record<string, number> = { "nhận biết": Math.round(count * 0.4), "thông hiểu": Math.round(count * 0.4), "vận dụng": count };
+  for (const level of DIFFICULTY) if (!plan[level]) delete plan[level];
+  plan["vận dụng"] = Math.max(0, count - (plan["nhận biết"] + plan["thông hiểu"]));
+  return Object.entries(plan)
+    .filter(([, n]) => n > 0)
+    .map(([level, n]) => `${level}: ${n} câu`)
+    .join(", ");
+}
+
+function buildGeneratePrompt(content: string, opts: GenerateOptions) {
+  const count = Math.min(Math.max(Number(opts.count) || 10, 1), 60);
+  const types = (opts.types?.length ? opts.types : ["mcq"]).map((t) => {
+    if (t === "true_false") return "true_false (Đúng/Sai, mỗi câu gồm 3-5 mệnh đề kèm đáp án)";
+    if (t === "short_answer") return "short_answer (trả lời ngắn, nêu grading.acceptedAnswers đầy đủ biến thể đáp án)";
+    return "mcq (trắc nghiệm 4 đáp án A/B/C/D)";
+  }).join(", ");
+  const focus = opts.focus?.trim();
+  const note = opts.customNote?.trim();
+
+  return `Bạn là chuyên gia soạn đề thi Việt Nam theo chương trình THPT.
+NHIỆM VỤ: Từ TÀI LIỆU bên dưới, TỰ SOẠN câu hỏi mới. KHÔNG được chép lại câu hỏi có sẵn nếu tài liệu không có.
+
+YÊU CẦU BẮT BUỘC:
+- Số câu: đúng ${count} câu. Không được ít hơn hoặc nhiều hơn.
+- Loại câu hỗ trợ (chỉ dùng các loại này): ${types}.
+- Phân bố độ khó: ${difficultyPlan(count)}.
+${opts.subject ? `- Môn học: ${opts.subject}.` : ""}
+${opts.grade ? `- Khối lớp: ${opts.grade}.` : ""}
+- mcq: đúng 4 đáp án A, B, C, D, chỉ có đúng 1 đáp án đúng; đáp án đúng phân bố cân bằng, không dồn cục.
+- 3 đáp án sai phải là những đáp án hợp lý gây nhầm lẫn, KHÔNG được vô lý hoặc quá dễ loại.
+${opts.withExplanation ? "- Kèm giải thích ngắn cho mỗi câu (trường explanation)." : ""}
+${focus ? `- Tập trung vào: ${focus}.` : ""}
+${note ? `- Yêu cầu riêng của giáo viên (phải tuân thủ): ${note}` : ""}
+
+CHỈ DÙNG KIẾN THỨC CÓ TRONG TÀI LIỆU. Không bịa sự kiện, công thức, số liệu hoặc định nghĩa không có trong tài liệu. Câu hỏi phải tự đủ nghĩa, không viết "theo tài liệu trên".
+Tiêu đề đề lấy từ chủ đề chính của tài liệu.
+Trả về JSON đúng response schema.`;
+}
+
+function mergeGenerated(chunks: GeneratedPayload[]): GeneratedPayload {
+  const seen = new Set<string>();
+  const questions: GeneratedQuestion[] = [];
+  let title = "";
+  for (const chunk of chunks) {
+    if (!title && chunk.title) title = chunk.title;
+    for (const q of chunk.questions ?? []) {
+      const key = (q.question ?? "").trim().toLowerCase();
+      if (!key || seen.has(key)) continue;
+      seen.add(key);
+      questions.push(q);
+    }
+  }
+  return { title, questions };
+}
+
 const extractionPrompt = `Bạn là bộ máy nhập đề thi của EduTest.
 Trích xuất CÁC CÂU HỎI ĐÃ CÓ SẴN trong tài liệu và tự nhận diện loại câu hỏi.
 
@@ -43,6 +114,7 @@ const responseSchema = {
           options: { type: "array", items: { type: "string" } },
           answer: { type: "string" },
           points: { type: "number" },
+          explanation: { type: "string" },
           grading: {
             type: "object",
             properties: {
@@ -110,6 +182,45 @@ async function generatePdfFallback(buffer: Buffer, mimeType: string, fileName: s
   }
 }
 
+const CHUNK_CHARS = 40_000;
+const GENERATE_TIMEOUT_MS = 75_000;
+
+function chunkText(text: string, size = CHUNK_CHARS): string[] {
+  const chunks: string[] = [];
+  for (let i = 0; i < text.length; i += size) chunks.push(text.slice(i, i + size));
+  return chunks;
+}
+
+async function runGenerate(
+  content: string,
+  opts: GenerateOptions,
+  onProgress?: (done: number, total: number) => void,
+): Promise<GeneratedPayload> {
+  const chunks = chunkText(content.slice(0, MAX_TEXT_CHARS));
+  const total = Math.min(Math.max(Number(opts.count) || 10, 1), 60);
+  const results: GeneratedPayload[] = [];
+  for (let i = 0; i < chunks.length; i++) {
+    const perChunk = Math.max(1, Math.ceil(total / chunks.length));
+    const result = await generateWithRetry(
+      (model) =>
+        ai.models.generateContent({
+          model,
+          contents: buildGeneratePrompt(chunks[i], { ...opts, count: perChunk }),
+          config: generationConfig(),
+        }).then((r) => r.text),
+      { attempts: 2, timeoutMs: GENERATE_TIMEOUT_MS },
+    );
+    const cleaned = (result || "").replace(/^```json\s*/i, "").replace(/```$/i, "").trim();
+    try {
+      results.push(JSON.parse(cleaned) as GeneratedPayload);
+    } catch {
+      throw new Error("AI trả về dữ liệu câu hỏi không hợp lệ");
+    }
+    onProgress?.(i + 1, chunks.length);
+  }
+  return mergeGenerated(results);
+}
+
 function mimeTypeFor(file: File) {
   if (file.name.toLowerCase().endsWith(".pdf")) return "application/pdf";
   if (file.name.toLowerCase().endsWith(".docx")) return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
@@ -135,8 +246,19 @@ export async function POST(request: NextRequest) {
 
   const formData = await request.formData();
   const file = formData.get("file") as File | null;
+  const mode = (formData.get("mode") as string | null) === "generate" ? "generate" : "extract";
+  let options: GenerateOptions = {};
+  try {
+    const raw = formData.get("options");
+    options = raw ? (JSON.parse(String(raw)) as GenerateOptions) : {};
+  } catch {
+    options = {};
+  }
   const prompt = (formData.get("prompt") as string | null)?.trim();
   if (!file && !prompt) return NextResponse.json({ error: "Thiếu file hoặc nội dung cần xử lý" }, { status: 400 });
+  if (mode === "generate" && !file && !prompt) {
+    return NextResponse.json({ error: "Thiếu nội dung để soạn câu hỏi" }, { status: 400 });
+  }
   if (file) {
     if (!file.size) return NextResponse.json({ error: "File tải lên rỗng hoặc không hợp lệ" }, { status: 400 });
     if (file.size > MAX_FILE_BYTES) return NextResponse.json({ error: "File quá lớn. Vui lòng chọn file dưới 50 MB." }, { status: 413 });
@@ -165,9 +287,38 @@ export async function POST(request: NextRequest) {
           aiLogId = log.id;
         } catch {}
         let resultText = "";
-        let source: "docx" | "pdf-text" | "pdf-gemini" | "text" = "text";
+        let source: "docx" | "pdf-text" | "pdf-gemini" | "text" | "generate" = "text";
 
-        if (file) {
+        if (mode === "generate") {
+          let content = "";
+          if (file) {
+            const buffer = Buffer.from(await file.arrayBuffer());
+            const lowerName = file.name.toLowerCase();
+            if (lowerName.endsWith(".docx")) {
+              send({ type: "stage", stage: "extract" });
+              content = (await mammoth.extractRawText({ buffer })).value.trim();
+            } else {
+              send({ type: "stage", stage: "extract" });
+              content = await extractPdfText(buffer);
+              if (!content) content = (await file.text()).trim();
+            }
+          } else {
+            content = prompt || "";
+          }
+          if (!content) return send({ type: "error", error: "Không đọc được nội dung tài liệu" });
+          console.info(`[exam-generate] content=${content.length} chars; count=${options.count}; model=${geminiModel}`);
+          send({ type: "stage", stage: "analyze" });
+          const payload = await runGenerate(content, options, (done, total) =>
+            send({ type: "stage", stage: "analyze", meta: { done, total } }),
+          );
+          const wanted = Math.min(Math.max(Number(options.count) || 10, 1), 60);
+          const produced = payload.questions?.length ?? 0;
+          if (produced < wanted) {
+            console.warn(`[exam-generate] produced ${produced}/${wanted} questions`);
+          }
+          resultText = JSON.stringify(payload);
+          source = "generate";
+        } else if (file) {
           const buffer = Buffer.from(await file.arrayBuffer());
           if (!buffer.byteLength) return send({ type: "error", error: "Không đọc được dữ liệu file" });
           const lowerName = file.name.toLowerCase();
