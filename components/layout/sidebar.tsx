@@ -103,7 +103,7 @@ export function Sidebar({ user, logoutAction }: SidebarProps) {
             redirectTo="/bang-dieu-khien"
             label={mode === "student" ? "Giáo viên" : "Học sinh"}
             active={false}
-            className="text-[10px] font-bold text-[var(--text-muted)] hover:text-[#6C4CF1] transition-colors inline-flex items-center gap-1 px-2 py-1.5 rounded-lg hover:bg-[var(--gray-100)] cursor-pointer"
+            className="text-xs font-bold text-[var(--text-muted)] hover:text-[#6C4CF1] transition-colors inline-flex items-center gap-1 px-2 py-2 rounded-lg hover:bg-[var(--gray-100)] cursor-pointer"
           >
             <Repeat size={11} /> Đổi chế độ
           </ModeSwitchButton>

@@ -226,7 +226,7 @@ export default function AICoachPage() {
             Chạm để gửi ngay
           </span>
         </div>
-        <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
+        <div className="flex flex-wrap gap-2 sm:flex-nowrap sm:overflow-x-auto sm:scrollbar-hide pb-1">
           {quickPrompts.map((p) => (
             <button
               key={p}
@@ -260,7 +260,7 @@ export default function AICoachPage() {
             {loading ? <Spinner size="sm" color="white" /> : <Send size={15} />}
           </button>
         </div>
-        <p className="text-center text-[10px] text-[var(--text-muted)] mt-2">
+        <p className="text-center text-[11px] text-[var(--text-muted)] mt-2">
           AI có thể mắc lỗi. Kiểm tra thông tin quan trọng từ nguồn đáng tin cậy.
         </p>
       </div>

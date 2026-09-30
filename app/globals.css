@@ -222,3 +222,13 @@ input[type="date"], input[type="time"], input[type="datetime-local"] {
     scroll-behavior: auto !important;
   }
 }
+
+/* Mobile form controls: font < 16px khiến iOS Safari tự zoom khi focus.
+   Đặt ngoài @layer để thắng utility text-sm/text-xs của Tailwind. */
+@media (max-width: 767px) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}

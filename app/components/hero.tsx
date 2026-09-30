@@ -35,7 +35,7 @@ export async function Hero() {
 
       <div className="relative mx-auto flex min-h-[calc(100vh-4rem-1px)] max-w-3xl flex-col items-center justify-center px-5 py-20 text-center">
         <span
-          className="inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-bold sm:text-sm"
+          className="inline-flex items-center gap-2 rounded-full px-3.5 py-2 text-[13px] font-bold sm:py-1.5 sm:text-sm"
           style={{ background: "var(--surface-card)", color: "var(--primary)", border: "1px solid var(--surface-border)", boxShadow: "0 1px 2px rgba(31,41,55,0.04)" }}
         >
           <span className="h-1.5 w-1.5 rounded-full" style={{ background: "var(--primary)" }} />

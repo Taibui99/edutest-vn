@@ -35,7 +35,7 @@ export function MobileTopbar({ user }: { user: { name: string; role: string; mod
       </span>
       <div className="flex items-center gap-2">
         <span className={cn(
-          "text-[10px] font-bold px-2 py-1 rounded-full",
+          "text-[11px] font-bold px-2 py-1 rounded-full",
           mode === "teacher" ? "bg-[#EAF3FC] text-[#2F80D8]" : "bg-[#E8F7F1] text-[#189A6C]"
         )}>
           {mode === "teacher" ? "Giáo viên" : "Học sinh"}
@@ -74,7 +74,7 @@ export function MobileBottomNav({ user }: { user: { name: string; role: string; 
             aria-current={active ? "page" : undefined}
           >
             <span className={cn("transition-transform", active && "scale-110")}>{item.icon}</span>
-            <span className="text-[10px]">{item.label}</span>
+            <span className="text-[11px]">{item.label}</span>
             {active && <span className="absolute bottom-1 w-1 h-1 rounded-full bg-[#6C4CF1]" />}
           </Link>
         );
