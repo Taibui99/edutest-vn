@@ -102,7 +102,7 @@ Tất cả L1–L4 trong commit `6e0ad48` — verified live: robots.txt/sitemap.
 
 ## ✂️ Landing tối giản (2026-09-29)
 > User: "tối giản landingpage hết mức đi, toàn những thông tin chả cần thiết".
-- [ ] **MIN-1 Landing tối giản** — bỏ hết: badge chip, trust row, chips tính năng, demo soạn đề tương tác (`builder-demo.tsx`), dải số liệu (`stats.tsx` + 4 COUNT DB), 9 feature card (`features.tsx`), 3 bước hướng dẫn, section CTA gradient, nav anchor Tính năng/Hướng dẫn; chỉ còn header + hero 1 câu/2 nút + footer; cập nhật `landing.spec.ts`
+- [x] **MIN-1 Landing tối giản** (commit `18de965`) — verified live: hero "Soạn đề thi và chấm bài trực tuyến." + 2 nút, 0 lần xuất hiện "đề thi đã tạo"/"AI Study Coach"/"Hướng dẫn"/link #huong-dan; landing không còn query DB — bỏ hết: badge chip, trust row, chips tính năng, demo soạn đề tương tác (`builder-demo.tsx`), dải số liệu (`stats.tsx` + 4 COUNT DB), 9 feature card (`features.tsx`), 3 bước hướng dẫn, section CTA gradient, nav anchor Tính năng/Hướng dẫn; chỉ còn header + hero 1 câu/2 nút + footer; cập nhật `landing.spec.ts`
 
 ## 🤖 AI soạn đề theo yêu cầu (2026-09-29)
 > GV có file Word lý thuyết, muốn AI tự sinh bộ đề theo yêu cầu thay vì chỉ trích câu hỏi có sẵn.
