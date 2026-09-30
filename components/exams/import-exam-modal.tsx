@@ -107,7 +107,7 @@ export function ImportExamModal({ open, onClose, onSuccess }: { open: boolean; o
     setTypes((prev) => (prev.includes(value) ? (prev.length > 1 ? prev.filter((t) => t !== value) : prev) : [...prev, value]));
 
   return (
-    <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/70/45 px-4 py-4 backdrop-blur-[3px] sm:py-6">
+    <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/45 px-4 py-4 backdrop-blur-[3px] sm:py-6">
       <div role="dialog" aria-modal="true" className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-3xl border border-white/70 bg-white shadow-2xl">
         <div className="sticky top-0 z-10 flex items-start justify-between border-b border-[var(--surface-border)] bg-white px-5 py-4 sm:px-7">
           <div>

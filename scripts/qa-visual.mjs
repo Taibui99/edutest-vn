@@ -21,49 +21,66 @@ const audit = () => {
     });
     return 0.2126 * r + 0.7152 * g + 0.0722 * b;
   };
-  // Tailwind v4 sinh ra oklch()/color(srgb ...), parse rgb thuần se sai hoàn toàn.
-  const oklchToRgb = (L, C, H, a) => {
-    const h = (H * Math.PI) / 180;
-    const A = C * Math.cos(h);
-    const B = C * Math.sin(h);
-    const l_ = L + 0.3963377774 * A + 0.2158037573 * B;
-    const m_ = L - 0.1055613458 * A - 0.0638541728 * B;
-    const s_ = L - 0.0894841775 * A - 1.291485548 * B;
-    const l = l_ * l_ * l_, m = m_ * m_ * m_, s = s_ * s_ * s_;
-    const lin = [
-      4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s,
-      -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s,
-      -0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s,
-    ];
+  // Tailwind v4 sinh ra oklch()/oklab()/color(srgb ...), parse rgb thuần se sai hoàn toàn.
+  const encode = (lin, a) => {
     const enc = lin.map((v) => {
       const c = v <= 0.0031308 ? 12.92 * v : 1.055 * Math.pow(Math.max(v, 0), 1 / 2.4) - 0.055;
       return Math.round(Math.min(1, Math.max(0, c)) * 255);
     });
     return { rgb: enc, a };
   };
+  const lmsToLin = (L, A, B) => {
+    const l_ = L + 0.3963377774 * A + 0.2158037573 * B;
+    const m_ = L - 0.1055613458 * A - 0.0638541728 * B;
+    const s_ = L - 0.0894841775 * A - 1.291485548 * B;
+    const l = l_ * l_ * l_, m = m_ * m_ * m_, s = s_ * s_ * s_;
+    return [
+      4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s,
+      -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s,
+      -0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s,
+    ];
+  };
+  const alphaOf = (raw) => (raw === undefined ? 1 : raw.endsWith("%") ? parseFloat(raw) / 100 : parseFloat(raw));
   const parse = (c) => {
     if (!c || c === "transparent" || c === "none") return null;
-    const ok = c.match(/oklch\(\s*([\d.]+)(%?)\s+([\d.]+)\s+([\d.]+)(?:deg)?\s*(?:\/\s*([\d.]+%?)\s*)?\)/);
-    if (ok) {
-      const L = ok[2] === "%" ? parseFloat(ok[1]) / 100 : parseFloat(ok[1]);
-      const a = ok[5] ? (ok[5].endsWith("%") ? parseFloat(ok[5]) / 100 : parseFloat(ok[5])) : 1;
-      return oklchToRgb(L, parseFloat(ok[3]), parseFloat(ok[4]), a);
+    const oklch = c.match(/oklch\(\s*([\d.]+)(%?)\s+([\d.]+)\s+([\d.]+)(?:deg)?\s*(?:\/\s*([\d.]+%?)\s*)?\)/);
+    if (oklch) {
+      const L = oklch[2] === "%" ? parseFloat(oklch[1]) / 100 : parseFloat(oklch[1]);
+      const h = (parseFloat(oklch[4]) * Math.PI) / 180;
+      const C = parseFloat(oklch[3]);
+      return encode(lmsToLin(L, C * Math.cos(h), C * Math.sin(h)), alphaOf(oklch[5]));
+    }
+    // oklab: Chrome dùng cho màu Tailwind có alpha, ví dụ bg-white/85
+    const oklab = c.match(/oklab\(\s*([\d.]+)(%?)\s+([-\d.]+)\s+([-\d.]+)\s*(?:\/\s*([\d.]+%?)\s*)?\)/);
+    if (oklab) {
+      const L = oklab[2] === "%" ? parseFloat(oklab[1]) / 100 : parseFloat(oklab[1]);
+      return encode(lmsToLin(L, parseFloat(oklab[3]), parseFloat(oklab[4])), alphaOf(oklab[5]));
     }
     const srgb = c.match(/color\(srgb\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)(?:\/\s*([\d.]+%?))?\)/);
     if (srgb) {
-      const a = srgb[4] ? (srgb[4].endsWith("%") ? parseFloat(srgb[4]) / 100 : parseFloat(srgb[4])) : 1;
-      return { rgb: [srgb[1], srgb[2], srgb[3]].map((v) => Math.round(v * 255)), a };
+      return { rgb: [srgb[1], srgb[2], srgb[3]].map((v) => Math.round(v * 255)), a: alphaOf(srgb[4]) };
     }
     const m = c.match(/[\d.]+/g);
     if (!m) return null;
-    const o = c.startsWith("rgba") && Number(m[3]) < 0.6 ? Number(m[3]) : 1;
-    return { rgb: [Number(m[0]), Number(m[1]), Number(m[2])], a: o };
+    // alpha phải đọc thật: rgba(255,255,255,.85) là nền 85%, không phải 100%
+    const raw = m[3];
+    return { rgb: [Number(m[0]), Number(m[1]), Number(m[2])], a: alphaOf(raw) };
   };
   const over = (fg, bg, a) => fg.map((v, i) => v * a + bg[i] * (1 - a));
   const ratio = (f, b) => {
     const l1 = lum(f);
     const l2 = lum(b);
     return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
+  };
+  const chainOf = (el) => {
+    const out = [];
+    let n = el;
+    while (n && n !== document.documentElement) {
+      out.push(n.tagName + " bg=" + getComputedStyle(n).backgroundColor + (getComputedStyle(n).backgroundImage !== "none" ? " +img" : ""));
+      n = n.parentElement;
+    }
+    out.push("BODY bg=" + getComputedStyle(document.body).backgroundColor);
+    return out;
   };
   const bgOf = (el) => {
     const stack = [];
@@ -112,7 +129,7 @@ const audit = () => {
       const key = el.tagName + cr.toFixed(1);
       if (!seen.has(key)) {
         seen.add(key);
-        lowContrast.push(`${cr.toFixed(2)}:1 (cần ${need}) fs=${fs} "${txt.slice(0, 24)}" ${st.color} -> bg rgb(${bg.map(Math.round).join(",")})`);
+        lowContrast.push(`${cr.toFixed(2)}:1 (cần ${need}) fs=${fs} "${txt.slice(0, 24)}" ${st.color} -> bg rgb(${bg.map(Math.round).join(",")})${window.__DEBUG_BG ? " || " + chainOf(el).slice(0, 6).join(" | ") : ""}`);
       }
     }
     const r = el.getBoundingClientRect();
@@ -183,6 +200,8 @@ const ctx = await browser.newContext({
     "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1",
 });
 const page = await ctx.newPage();
+// DEBUG_BG=1 in chuỗi nền cha khi script báo cảnh báo tương phản
+await page.addInitScript(() => { window.__DEBUG_BG = true; });
 await page.goto(BASE + "/dang-nhap", { waitUntil: "domcontentloaded" });
 await page.locator("#email").fill("tester-gv-20260816@edutest.vn");
 await page.locator("#password").fill("Test@12345");
