@@ -260,7 +260,7 @@ export function ExamTakingClientV2({ exam, preview = false, backHref }: { exam: 
         <div className="bg-[var(--surface-card)] rounded-2xl border border-[var(--surface-border)] p-8 max-w-md w-full text-center">
           {exam.showScoreImmediately === false ? (
             <>
-              <div className="w-20 h-20 rounded-full mx-auto mb-5 flex items-center justify-center bg-amber-50 text-amber-500 text-3xl">⏳</div>
+              <div className="w-20 h-20 rounded-full mx-auto mb-5 flex items-center justify-center bg-[var(--warning-light)] text-[var(--warning)] text-3xl">⏳</div>
               <h1 className="text-2xl font-bold mb-2 text-[var(--text-primary)]">Đã nộp bài thành công!</h1>
               <p className="text-[var(--text-secondary)] text-sm mb-5">
                 Giáo viên sẽ công bố điểm sau khi chấm. Bạn đã trả lời {result.totalQuestions} câu hỏi trong {formatTime(result.durationSeconds)}.

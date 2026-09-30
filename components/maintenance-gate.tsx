@@ -26,8 +26,8 @@ export function MaintenanceGate({
       <div className="w-16 h-16 rounded-2xl bg-[#FFF0F0] text-[#BE3B3B] flex items-center justify-center mb-5">
         <Wrench size={30} />
       </div>
-      <h1 className="text-2xl font-black text-slate-800 mb-2">Website đang bảo trì</h1>
-      <p className="text-sm text-slate-500 max-w-md">
+      <h1 className="text-2xl font-black text-[var(--text-primary)] mb-2">Website đang bảo trì</h1>
+      <p className="text-sm text-[var(--text-muted)] max-w-md">
         EduTest đang được nâng cấp và bảo trì. Vui lòng quay lại sau ít phút nữa.
         Cảm ơn bạn đã kiên nhẫn!
       </p>

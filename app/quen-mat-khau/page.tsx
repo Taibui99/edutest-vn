@@ -78,12 +78,12 @@ export default function QuenMatKhauPage() {
         ) : (
           <form onSubmit={submit} className="space-y-5">
             {error && (
-              <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              <div className="rounded-lg border border-[var(--danger-light)] bg-[var(--danger-light)] px-4 py-3 text-sm text-[var(--danger)]">
                 {error}
               </div>
             )}
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-slate-700">
+              <label htmlFor="email" className="block text-sm font-medium text-[var(--text-secondary)]">
                 Email
               </label>
               <input
@@ -93,13 +93,13 @@ export default function QuenMatKhauPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="ten@email.com"
-                className="mt-1.5 block w-full rounded-lg border border-slate-200 px-4 py-2.5 text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                className="mt-1.5 block w-full rounded-lg border border-[var(--surface-border)] px-4 py-2.5 text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20"
               />
             </div>
             <button
               type="submit"
               disabled={state === "loading"}
-              className="flex h-11 w-full items-center justify-center rounded-lg bg-blue-600 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-70"
+              className="flex h-11 w-full items-center justify-center rounded-lg bg-[var(--primary)] text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[var(--primary)] disabled:cursor-not-allowed disabled:opacity-70"
             >
               {state === "loading" ? <Spinner className="h-4 w-4" /> : "Gửi liên kết đặt lại"}
             </button>

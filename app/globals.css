@@ -54,6 +54,9 @@
   --gray-50: #1B1A22; --gray-100: #201F29; --gray-200: #2B2A35; --gray-300: #3C3B49;
   --gray-400: #5C5B6B; --gray-500: #8B8E9C; --gray-600: #CBCCD8; --gray-700: #D8D9E2;
   --gray-800: #EBEBF2; --gray-900: #F4F4FA;
+  --primary: #A78BFA; --primary-hover: #B9A5FC; --primary-muted: #372C6B;
+  --mint: #34D399; --yellow: #FBBF24; --coral: #F87171; --blue: #60A5FA;
+  --success: #34D399; --warning: #FBBF24; --danger: #F87171;
   --primary-light: #2B2358;
   --mint-light: #14352A;
   --yellow-light: #383014;

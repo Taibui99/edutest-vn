@@ -34,16 +34,23 @@ const audit = () => {
     return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
   };
   const bgOf = (el) => {
-    let stack = [];
+    const stack = [];
     let n = el;
     while (n && n !== document.documentElement) {
-      const c = parse(getComputedStyle(n).backgroundColor);
+      const cs = getComputedStyle(n);
+      const c = parse(cs.backgroundColor);
       if (c && c.a > 0) stack.push(c);
+      // Gradient/image backdrop: không đọc được pixel nên coi như không xác định
+      const bgImg = cs.backgroundImage;
+      const hasImage = !!bgImg && bgImg !== "none" && !/gradient\(transparent/.test(bgImg);
+      if (hasImage && c && c.a === 0) return null;
       n = n.parentElement;
     }
-    let base = [246, 245, 251];
-    for (let i = stack.length - 1; i >= 0; i--) base = over(stack[i].rgb, base, stack[i].a);
-    return base;
+    const bodyBg = parse(getComputedStyle(document.body).backgroundColor);
+    const base = bodyBg && bodyBg.a > 0 ? bodyBg.rgb : [246, 245, 251];
+    let out = base;
+    for (let i = stack.length - 1; i >= 0; i--) out = over(stack[i].rgb, out, stack[i].a);
+    return out;
   };
 
   const lowContrast = [];
@@ -63,6 +70,7 @@ const audit = () => {
     const fg = parse(st.color);
     if (!fg) continue;
     const bg = bgOf(el);
+    if (!bg) continue;
     const f = fg.a < 1 ? over(fg.rgb, bg, fg.a) : fg.rgb;
     const cr = ratio(f, bg);
     const fs = parseFloat(st.fontSize);

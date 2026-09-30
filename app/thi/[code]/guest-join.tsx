@@ -42,7 +42,7 @@ export function GuestJoin({ code, title }: { code: string; title: string }) {
           Nhập họ tên và lớp để hệ thống ghi nhận bạn là người tham gia chính thức của bài thi.
         </p>
 
-        {error && <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
+        {error && <div className="mb-4 rounded-xl border border-[var(--danger-light)] bg-[var(--danger-light)] px-4 py-3 text-sm text-[var(--danger)]">{error}</div>}
 
         <form onSubmit={submit} className="space-y-4">
           <label className="block">

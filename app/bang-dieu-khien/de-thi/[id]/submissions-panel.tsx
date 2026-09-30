@@ -87,7 +87,7 @@ function renderCorrect(q: SubQuestion) {
     return (
       <div className="flex flex-wrap gap-1.5">
         {statements.map((val, i) => (
-          <span key={i} className="rounded-md bg-emerald-50 px-2 py-0.5 text-xs text-emerald-700">
+          <span key={i} className="rounded-md bg-[var(--mint-light)] px-2 py-0.5 text-xs text-[var(--mint)]">
             {String.fromCharCode(97 + i)}) {val ? "Đúng" : "Sai"}
           </span>
         ))}
@@ -248,7 +248,7 @@ export function SubmissionsPanel({ subs, questions }: { subs: SubRow[]; question
                                 )}
                               </div>
                               {answered && !auto && (
-                                <div className="mt-1 text-[11px] font-semibold text-amber-600">Tự luận — chờ chấm thủ công</div>
+                                <div className="mt-1 text-[11px] font-semibold text-[var(--warning)]">Tự luận — chờ chấm thủ công</div>
                               )}
                               {answered && auto && !correct && (
                                 <div className="mt-1.5 text-xs">

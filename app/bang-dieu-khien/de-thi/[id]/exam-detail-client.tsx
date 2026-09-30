@@ -60,7 +60,7 @@ export function ExamDetailClient({
     <div className="mt-4 flex flex-wrap items-center gap-3">
       <span
         className={`rounded-full px-3 py-1 text-xs font-semibold ${
-          isPublished ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"
+          isPublished ? "bg-[var(--mint-light)] text-[var(--mint)]" : "bg-[var(--warning-light)] text-[var(--warning)]"
         }`}
       >
         {isPublished ? "Đang mở" : "Bản nháp / Đã ẩn"}
@@ -68,7 +68,7 @@ export function ExamDetailClient({
       <button
         onClick={toggleStatus}
         disabled={loading}
-        className="inline-flex h-9 items-center gap-2 rounded-lg border border-blue-200 bg-white px-4 text-sm font-semibold text-blue-700 transition-colors hover:bg-blue-50 disabled:opacity-50"
+        className="inline-flex h-9 items-center gap-2 rounded-lg border border-[var(--primary-muted)] bg-white px-4 text-sm font-semibold text-[var(--primary)] transition-colors hover:bg-[var(--primary-light)] disabled:opacity-50"
       >
         {loading && <Spinner className="h-3.5 w-3.5" />}
         {isPublished ? "Ẩn đề thi" : "Mở lại đề thi"}
@@ -76,12 +76,12 @@ export function ExamDetailClient({
       <button
         onClick={deleteExam}
         disabled={loading}
-        className="inline-flex h-9 items-center gap-2 rounded-lg border border-red-200 bg-white px-4 text-sm font-semibold text-red-600 transition-colors hover:bg-red-50 disabled:opacity-50"
+        className="inline-flex h-9 items-center gap-2 rounded-lg border border-[var(--danger-light)] bg-white px-4 text-sm font-semibold text-[var(--danger)] transition-colors hover:bg-[var(--danger-light)] disabled:opacity-50"
       >
         {loading && <Spinner className="h-3.5 w-3.5" />}
         Xoá đề thi
       </button>
-      {error && <span className="text-sm text-red-600">{error}</span>}
+      {error && <span className="text-sm text-[var(--danger)]">{error}</span>}
     </div>
   );
 }

@@ -116,7 +116,7 @@ export default function ResultPage({ params }: { params: Promise<{ id: string }>
         <p className="text-sm text-[var(--text-muted)] mb-4">GV: {exam.teacher.name}</p>
 
         {exam.showScoreImmediately === false ? (
-          <div className="rounded-2xl bg-amber-50 border border-amber-200 p-5">
+          <div className="rounded-2xl bg-[var(--warning-light)] border border-[var(--warning-light)] p-5">
             <div className="text-3xl mb-2">⏳</div>
             <p className="font-black text-[var(--text-primary)] mb-1">Đã nộp bài thành công</p>
             <p className="text-sm text-[var(--text-muted)]">Giáo viên sẽ công bố điểm sau khi chấm bài.</p>

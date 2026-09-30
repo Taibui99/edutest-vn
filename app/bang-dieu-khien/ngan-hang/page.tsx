@@ -309,7 +309,7 @@ export default function QuestionBankPage() {
                             Đáp án: <span className="font-semibold text-[var(--text-secondary)]">{(item.grading?.acceptedAnswers || []).join(", ") || "—"}</span>
                           </div>
                         )}
-                        {item.type === "essay" && <div className="mt-2 text-xs text-amber-600 font-semibold">Tự luận — chấm thủ công</div>}
+                        {item.type === "essay" && <div className="mt-2 text-xs text-[var(--warning)] font-semibold">Tự luận — chấm thủ công</div>}
                         {item.explanation && (
                           <div className="mt-2 flex gap-2 p-2.5 bg-[var(--primary-light)] rounded-lg">
                             <Lightbulb size={13} className="text-[var(--primary)] shrink-0" />
@@ -318,8 +318,8 @@ export default function QuestionBankPage() {
                         )}
                       </div>
                       <div className="flex shrink-0 gap-1 ml-2">
-                        <button onClick={() => openEdit(item)} className="grid h-10 sm:h-8 w-10 sm:w-8 place-items-center rounded-lg text-slate-400 hover:bg-[var(--gray-100)] hover:text-[var(--primary)]"><Pencil size={14} /></button>
-                        <button onClick={() => remove(item)} className="grid h-10 sm:h-8 w-10 sm:w-8 place-items-center rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-500"><Trash2 size={14} /></button>
+                        <button onClick={() => openEdit(item)} className="grid h-10 sm:h-8 w-10 sm:w-8 place-items-center rounded-lg text-[var(--text-muted)] hover:bg-[var(--gray-100)] hover:text-[var(--primary)]"><Pencil size={14} /></button>
+                        <button onClick={() => remove(item)} className="grid h-10 sm:h-8 w-10 sm:w-8 place-items-center rounded-lg text-[var(--text-muted)] hover:bg-[var(--danger-light)] hover:text-[var(--danger)]"><Trash2 size={14} /></button>
                       </div>
                     </div>
                   </div>
@@ -381,23 +381,23 @@ export default function QuestionBankPage() {
           <div className="mx-auto my-8 max-w-3xl rounded-2xl bg-white p-6 shadow-2xl">
             <div className="mb-5 flex items-center justify-between">
               <div>
-                <p className="text-xs text-slate-500">{editing ? "Chỉnh sửa" : "Câu hỏi mới"}</p>
+                <p className="text-xs text-[var(--text-muted)]">{editing ? "Chỉnh sửa" : "Câu hỏi mới"}</p>
                 <h2 className="text-xl font-black">{editing ? "Sửa câu hỏi" : "Thêm vào ngân hàng"}</h2>
               </div>
-              <button onClick={() => setModal(false)} className="grid h-10 sm:h-9 w-10 sm:w-9 place-items-center rounded-lg bg-slate-100"><X size={17} /></button>
+              <button onClick={() => setModal(false)} className="grid h-10 sm:h-9 w-10 sm:w-9 place-items-center rounded-lg bg-[var(--gray-100)]"><X size={17} /></button>
             </div>
 
             <div className="flex flex-col gap-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <label className="block">
-                  <span className="mb-1 block text-xs font-bold text-slate-600">Môn học</span>
+                  <span className="mb-1 block text-xs font-bold text-[var(--text-secondary)]">Môn học</span>
                   <select value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} className="w-full rounded-xl border border-[var(--surface-border)] px-3 py-2.5 text-sm focus:outline-none focus:border-[var(--primary)]">
                     <option value="">Chọn môn</option>
                     {SUBJECTS.map((s) => <option key={s} value={s}>{s}</option>)}
                   </select>
                 </label>
                 <label className="block">
-                  <span className="mb-1 block text-xs font-bold text-slate-600">Loại câu hỏi</span>
+                  <span className="mb-1 block text-xs font-bold text-[var(--text-secondary)]">Loại câu hỏi</span>
                   <select value={form.type} onChange={(e) => { const t = e.target.value as QuestionType; setForm((f) => ({ ...blankForm(t), subject: f.subject, explanation: f.explanation })); }} className="w-full rounded-xl border border-[var(--surface-border)] px-3 py-2.5 text-sm focus:outline-none focus:border-[var(--primary)]">
                     {TYPE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                   </select>
@@ -405,7 +405,7 @@ export default function QuestionBankPage() {
               </div>
 
               <label className="block">
-                <span className="mb-1 block text-xs font-bold text-slate-600">Nội dung câu hỏi</span>
+                <span className="mb-1 block text-xs font-bold text-[var(--text-secondary)]">Nội dung câu hỏi</span>
                 <textarea value={form.question} onChange={(e) => setForm({ ...form, question: e.target.value })} rows={3} placeholder="Nhập nội dung câu hỏi..." className="w-full rounded-xl border border-[var(--surface-border)] p-3 text-sm outline-none focus:border-[var(--primary)]" />
               </label>
 
@@ -415,8 +415,8 @@ export default function QuestionBankPage() {
                     const letter = String.fromCharCode(65 + oi);
                     const selected = form.answer === letter;
                     return (
-                      <div key={letter} className={`flex items-center gap-2 rounded-xl border p-2.5 ${selected ? "border-emerald-300 bg-emerald-50" : "border-[var(--surface-border)]"}`}>
-                        <button type="button" onClick={() => setForm({ ...form, answer: letter })} className={`grid h-7 w-7 place-items-center rounded-full text-xs font-black ${selected ? "bg-emerald-500 text-white" : "bg-slate-100 text-slate-500"}`}>{letter}</button>
+                      <div key={letter} className={`flex items-center gap-2 rounded-xl border p-2.5 ${selected ? "border-[var(--mint)] bg-[var(--mint-light)]" : "border-[var(--surface-border)]"}`}>
+                        <button type="button" onClick={() => setForm({ ...form, answer: letter })} className={`grid h-7 w-7 place-items-center rounded-full text-xs font-black ${selected ? "bg-[var(--mint-light)]0 text-white" : "bg-[var(--gray-100)] text-[var(--text-muted)]"}`}>{letter}</button>
                         <input value={opt} onChange={(e) => { const options = [...form.options]; options[oi] = e.target.value; setForm({ ...form, options }); }} placeholder={`Đáp án ${letter}`} className="min-w-0 flex-1 bg-transparent text-sm outline-none" />
                       </div>
                     );
@@ -441,7 +441,7 @@ export default function QuestionBankPage() {
 
               {form.type === "short_answer" && (
                 <div>
-                  <p className="mb-2 text-xs font-semibold text-slate-500">Đáp án chấp nhận</p>
+                  <p className="mb-2 text-xs font-semibold text-[var(--text-muted)]">Đáp án chấp nhận</p>
                   {form.accepted.map((a, ai) => (
                     <div key={ai} className="mb-2 flex gap-2">
                       <input value={a} onChange={(e) => { const arr = [...form.accepted]; arr[ai] = e.target.value; setForm({ ...form, accepted: arr }); }} placeholder="Ví dụ: 42 hoặc 42.0" className="flex-1 rounded-xl border p-2.5 text-sm" />
@@ -451,14 +451,14 @@ export default function QuestionBankPage() {
                 </div>
               )}
 
-              {form.type === "essay" && <div className="rounded-xl bg-amber-50 p-3 text-xs text-amber-700">Câu tự luận sẽ được giáo viên chấm thủ công.</div>}
+              {form.type === "essay" && <div className="rounded-xl bg-[var(--warning-light)] p-3 text-xs text-[var(--warning)]">Câu tự luận sẽ được giáo viên chấm thủ công.</div>}
 
               <label className="block">
-                <span className="mb-1 block text-xs font-bold text-slate-600">Giải thích (tùy chọn)</span>
+                <span className="mb-1 block text-xs font-bold text-[var(--text-secondary)]">Giải thích (tùy chọn)</span>
                 <textarea value={form.explanation} onChange={(e) => setForm({ ...form, explanation: e.target.value })} rows={2} placeholder="Giải thích đáp án..." className="w-full rounded-xl border border-[var(--surface-border)] p-3 text-sm outline-none focus:border-[var(--primary)]" />
               </label>
 
-              {formError && <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-600">{formError}</div>}
+              {formError && <div className="rounded-xl border border-[var(--danger-light)] bg-[var(--danger-light)] p-3 text-sm text-[var(--danger)]">{formError}</div>}
 
               <div className="flex justify-end gap-3">
                 <Button variant="outline" onClick={() => setModal(false)}>Hủy</Button>

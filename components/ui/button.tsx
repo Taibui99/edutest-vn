@@ -14,10 +14,10 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variantStyles: Record<Variant, string> = {
-  primary:   "bg-[var(--primary)] text-white hover:bg-[var(--primary-hover)] shadow-sm hover:shadow-md disabled:bg-[var(--primary-muted)] disabled:shadow-none",
-  secondary: "bg-[var(--mint)] text-white hover:brightness-95 disabled:opacity-60",
+  primary:   "bg-[var(--primary)] text-white hover:bg-[var(--primary-hover)] shadow-sm hover:shadow-md disabled:bg-[var(--gray-200)] disabled:text-[var(--text-muted)] disabled:shadow-none",
+  secondary: "bg-[var(--mint)] text-white hover:brightness-95 disabled:bg-[var(--gray-200)] disabled:text-[var(--text-muted)]",
   ghost:     "bg-transparent text-[var(--text-secondary)] hover:bg-[var(--gray-100)] hover:text-[var(--text-primary)]",
-  danger:    "bg-[var(--danger)] text-white hover:brightness-95 disabled:opacity-60",
+  danger:    "bg-[var(--danger)] text-white hover:brightness-95 disabled:bg-[var(--gray-200)] disabled:text-[var(--text-muted)]",
   outline:   "bg-[var(--surface-card)] border border-[var(--surface-border)] text-[var(--text-secondary)] hover:bg-[var(--gray-100)] hover:border-[var(--primary-muted)]",
   coral:     "bg-[var(--coral-light)] text-[var(--coral)] hover:brightness-95",
   mint:      "bg-[var(--mint-light)] text-[var(--mint)] hover:brightness-95",
