@@ -90,7 +90,7 @@ export function RegisterForm() {
           type="checkbox"
           name="terms"
           required
-          className="mt-0.5 h-4 w-4 rounded border-[var(--surface-border-strong)] text-[var(--primary)]"
+          className="mt-0.5 h-5 w-5 shrink-0 rounded border-[var(--surface-border-strong)] text-[var(--primary)]"
         />
         <span className="text-sm text-[var(--text-secondary)]">
           Tôi đồng ý với{" "}

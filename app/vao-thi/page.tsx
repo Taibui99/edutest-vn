@@ -28,7 +28,7 @@ export default function VaoThiPage() {
           <Logo />
           <div className="flex items-center gap-2">
             <ThemeToggle />
-            <Link href="/bang-dieu-khien" className="text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
+            <Link href="/bang-dieu-khien" className="inline-flex h-10 items-center text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
               Dashboard
             </Link>
           </div>

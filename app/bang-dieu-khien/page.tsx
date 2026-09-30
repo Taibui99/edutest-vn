@@ -131,7 +131,7 @@ async function StudentDashboard({ userId, name }: { userId: string; name: string
           <Card padding="none">
             <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--surface-border)]">
               <h2 className="text-sm font-black text-[var(--text-primary)] flex items-center gap-1.5"><Clock size={14} className="text-[var(--text-muted)]" /> Bài thi gần đây</h2>
-              <Link href="/bang-dieu-khien/de-thi" className="text-xs text-[#6C4CF1] font-bold flex items-center gap-1 py-1.5 -my-1.5 hover:underline">
+              <Link href="/bang-dieu-khien/de-thi" className="text-xs text-[#6C4CF1] font-bold flex items-center gap-1 py-3 -my-3 hover:underline">
                 Xem tất cả <ArrowRight size={12} />
               </Link>
             </div>
@@ -348,7 +348,7 @@ async function TeacherDashboard({ userId, name }: { userId: string; name: string
           <Card padding="none">
             <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--surface-border)]">
               <h2 className="text-sm font-black text-[var(--text-primary)] flex items-center gap-1.5"><FileText size={14} className="text-[#6C4CF1]" /> Đề thi đã tạo</h2>
-              <Link href="/bang-dieu-khien/de-thi" className="text-xs text-[#6C4CF1] font-bold flex items-center gap-1 py-1.5 -my-1.5 hover:underline">
+              <Link href="/bang-dieu-khien/de-thi" className="text-xs text-[#6C4CF1] font-bold flex items-center gap-1 py-3 -my-3 hover:underline">
                 Quản lý <ArrowRight size={12} />
               </Link>
             </div>

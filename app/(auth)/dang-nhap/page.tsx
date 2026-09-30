@@ -40,7 +40,7 @@ export default function LoginPage() {
         <>
           <div className="my-4 flex items-center gap-3">
             <div className="h-px flex-1 bg-[var(--surface-border)]" />
-            <span className="text-xs font-medium text-[var(--text-muted)]">hoặc</span>
+            <span className="text-[13px] font-medium text-[var(--text-muted)]">hoặc</span>
             <div className="h-px flex-1 bg-[var(--surface-border)]" />
           </div>
           <GoogleButton />
