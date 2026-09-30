@@ -171,7 +171,7 @@ export default function ProfilePage() {
             onClick={() => fileRef.current?.click()}
             disabled={uploading}
             aria-label="Đổi ảnh đại diện"
-            className="absolute -bottom-1.5 -right-1.5 w-7 h-7 rounded-full bg-[var(--primary)] text-white flex items-center justify-center shadow-md hover:bg-[var(--primary-hover)] disabled:opacity-50 transition-colors"
+            className="absolute -bottom-1.5 -right-1.5 w-10 h-10 sm:w-7 sm:h-7 rounded-full bg-[var(--primary)] text-white flex items-center justify-center shadow-md hover:bg-[var(--primary-hover)] disabled:opacity-50 transition-colors"
           >
             <Camera size={13} />
           </button>

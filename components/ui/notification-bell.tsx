@@ -240,11 +240,11 @@ export function NotificationBell() {
         ref={buttonRef}
         onClick={handleOpen}
         aria-label="Thông báo"
-        className="relative w-9 h-9 rounded-xl flex items-center justify-center bg-[var(--gray-100)] hover:bg-[var(--gray-200)] transition-colors text-[var(--text-secondary)]"
+        className="relative w-10 h-10 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center bg-[var(--gray-100)] hover:bg-[var(--gray-200)] transition-colors text-[var(--text-secondary)]"
       >
         <Bell size={17} />
         {unread > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-[var(--danger)] rounded-full text-[10px] text-white font-black flex items-center justify-center leading-none">
+          <span className="absolute -top-1 -right-1 h-[18px] min-w-[18px] px-1 bg-[var(--danger)] rounded-full text-[11px] text-white font-black flex items-center justify-center leading-none">
             {unread > 9 ? "9+" : unread}
           </span>
         )}

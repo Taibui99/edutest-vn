@@ -17,7 +17,7 @@ const audit = async () =>
       if (r.width === 0 || r.height === 0) return;
       const inline = getComputedStyle(n).display === "inline" && n.tagName === "A";
       if (!inline && r.height < 40) small.push((n.tagName + ":" + (n.innerText || n.getAttribute("aria-label") || n.placeholder || "").trim().slice(0, 24)) + " h=" + Math.round(r.height) + " w=" + Math.round(r.width));
-      if (["INPUT","TEXTAREA","SELECT"].includes(n.tagName)) {
+      if (["INPUT","TEXTAREA","SELECT"].includes(n.tagName) && !["checkbox","radio","range","color"].includes(n.type)) {
         const fs = parseFloat(getComputedStyle(n).fontSize);
         if (fs < 16) zoomRisk.push(n.tagName + " fontSize=" + fs);
       }
@@ -42,12 +42,12 @@ const audit = async () =>
     const main = document.querySelector("main");
     const bodyPb = parseFloat(getComputedStyle(document.body).paddingBottom || 0);
     const mainPb = main ? parseFloat(getComputedStyle(main).paddingBottom || 0) : 0;
-    const fontOk = document.fonts ? document.fonts.check('700 16px "Be Vietnam Pro"') : null;
+    const faces = document.fonts ? [...document.fonts].filter((f) => f.status === "loaded").map((f) => f.family.replace(/["']/g, "") + "/" + f.weight) : [];
     const last = document.body.lastElementChild;
     return {
       overflow: se ? se.scrollWidth - vw : 0,
       h: se ? se.scrollHeight : 0,
-      fontLoaded: fontOk,
+      fontLoaded: faces.some((f) => /Be Vietnam/i.test(f)),
       h1Font: (document.querySelector("h1") && getComputedStyle(document.querySelector("h1")).fontFamily) || null,
       bodyFont: getComputedStyle(document.body).fontFamily,
       tapTargetsSmall: [...new Set(small)].slice(0, 8),
@@ -70,13 +70,20 @@ const ctx = await browser.newContext({
 });
 const page = await ctx.newPage();
 const rows = [];
+let cspErrors = 0;
+
+page.on("console", (m) => {
+  if (m.type() === "error" && /Content Security Policy|violates/i.test(m.text())) cspErrors++;
+});
 
 const visit = async (path) => {
   try {
+    const before = cspErrors;
     await page.goto(BASE + path, { waitUntil: "networkidle", timeout: 35000 }).catch(() => page.goto(BASE + path, { waitUntil: "domcontentloaded", timeout: 30000 }));
     await page.waitForTimeout(2500);
+    await page.evaluate(() => document.fonts.ready).catch(() => {});
     const a = await page.evaluate(audit);
-    rows.push({ path, ...a });
+    rows.push({ path, ...a, csp: cspErrors - before });
   } catch (e) {
     rows.push({ path, fatal: String(e.message).slice(0, 100) });
   }
@@ -91,12 +98,13 @@ await page.waitForURL(/bang-dieu-khien/, { timeout: 25000 }).catch(() => rows.pu
 for (const p of TEACHER) await visit(p);
 await browser.close();
 
-const problems = rows.filter((r) => r.fatal || r.overflow > 1 || !r.fontLoaded || (r.tapTargetsSmall || []).length || (r.inputZoomRisk || []).length || (r.tinyText || []).length || (r.offscreen || []).length);
+const problems = rows.filter((r) => r.fatal || r.overflow > 1 || !r.fontLoaded || r.csp > 0 || (r.tapTargetsSmall || []).length || (r.inputZoomRisk || []).length || (r.tinyText || []).length || (r.offscreen || []).length);
 console.log("=== VAN DE ===");
 for (const r of problems) {
   console.log("\n[" + r.path + "]" + (r.fatal ? " FATAL " + r.fatal : ""));
   if (r.overflow > 1) console.log("  overflowX: +" + r.overflow + "px");
-  if (r.fontLoaded === false) console.log("  fontLoaded: FALSE");
+  if (r.fontLoaded === false) console.log("  fontLoaded: FALSE (van chay font he thong)");
+  if (r.csp > 0) console.log("  loi CSP: " + r.csp);
   if (r.tinyText?.length) console.log("  tinyText(<13px): " + r.tinyText.join(" | "));
   if (r.tapTargetsSmall?.length) console.log("  tap<40px: " + r.tapTargetsSmall.join(" | "));
   if (r.inputZoomRisk?.length) console.log("  iOS-zoom(input font<16): " + r.inputZoomRisk.join(" | "));

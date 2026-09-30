@@ -318,8 +318,8 @@ export default function QuestionBankPage() {
                         )}
                       </div>
                       <div className="flex shrink-0 gap-1 ml-2">
-                        <button onClick={() => openEdit(item)} className="grid h-8 w-8 place-items-center rounded-lg text-slate-400 hover:bg-[var(--gray-100)] hover:text-[var(--primary)]"><Pencil size={14} /></button>
-                        <button onClick={() => remove(item)} className="grid h-8 w-8 place-items-center rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-500"><Trash2 size={14} /></button>
+                        <button onClick={() => openEdit(item)} className="grid h-10 sm:h-8 w-10 sm:w-8 place-items-center rounded-lg text-slate-400 hover:bg-[var(--gray-100)] hover:text-[var(--primary)]"><Pencil size={14} /></button>
+                        <button onClick={() => remove(item)} className="grid h-10 sm:h-8 w-10 sm:w-8 place-items-center rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-500"><Trash2 size={14} /></button>
                       </div>
                     </div>
                   </div>
@@ -384,7 +384,7 @@ export default function QuestionBankPage() {
                 <p className="text-xs text-slate-500">{editing ? "Chỉnh sửa" : "Câu hỏi mới"}</p>
                 <h2 className="text-xl font-black">{editing ? "Sửa câu hỏi" : "Thêm vào ngân hàng"}</h2>
               </div>
-              <button onClick={() => setModal(false)} className="grid h-9 w-9 place-items-center rounded-lg bg-slate-100"><X size={17} /></button>
+              <button onClick={() => setModal(false)} className="grid h-10 sm:h-9 w-10 sm:w-9 place-items-center rounded-lg bg-slate-100"><X size={17} /></button>
             </div>
 
             <div className="flex flex-col gap-4">

@@ -232,7 +232,7 @@ export default function AICoachPage() {
               key={p}
               onClick={() => send(p)}
               disabled={loading || !hydrated}
-              className="shrink-0 text-xs font-semibold px-3.5 py-2.5 rounded-xl border border-[var(--primary-muted)] text-[var(--primary)] bg-[var(--primary-light)] hover:bg-[var(--primary-muted)] active:scale-[0.98] transition-all whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+              className="shrink-0 text-xs font-semibold px-3.5 py-3 sm:py-2.5 rounded-xl border border-[var(--primary-muted)] text-[var(--primary)] bg-[var(--primary-light)] hover:bg-[var(--primary-muted)] active:scale-[0.98] transition-all whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {p}
             </button>
@@ -255,7 +255,7 @@ export default function AICoachPage() {
           <button
             onClick={() => send()}
             disabled={!input.trim() || loading || !hydrated}
-            className="w-9 h-9 rounded-xl bg-[var(--primary)] text-white flex items-center justify-center shrink-0 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[var(--primary-hover)] transition-colors self-end"
+            className="w-10 h-10 sm:w-9 sm:h-9 rounded-xl bg-[var(--primary)] text-white flex items-center justify-center shrink-0 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[var(--primary-hover)] transition-colors self-end"
           >
             {loading ? <Spinner size="sm" color="white" /> : <Send size={15} />}
           </button>

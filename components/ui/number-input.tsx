@@ -41,7 +41,7 @@ export function NumberInput({
           onClick={() => onChange(clamp(value - step))}
           disabled={value <= min}
           aria-label="Giảm"
-          className="h-9 w-9 shrink-0 inline-flex items-center justify-center rounded-lg border border-[var(--surface-border)] bg-[var(--surface-card)] text-[var(--text-secondary)] hover:bg-[var(--gray-100)] hover:text-[var(--primary)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          className="h-11 sm:h-9 w-11 sm:w-9 shrink-0 inline-flex items-center justify-center rounded-lg border border-[var(--surface-border)] bg-[var(--surface-card)] text-[var(--text-secondary)] hover:bg-[var(--gray-100)] hover:text-[var(--primary)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         >
           <Minus size={14} />
         </button>
@@ -52,14 +52,14 @@ export function NumberInput({
           max={max}
           step={step}
           onChange={(e) => handleRaw(e.target.value)}
-          className="w-full h-9 rounded-lg border border-[var(--surface-border)] bg-[var(--surface-input)] px-2 text-center text-sm font-semibold text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)] focus:border-[var(--primary)]"
+          className="w-full h-11 sm:h-9 rounded-lg border border-[var(--surface-border)] bg-[var(--surface-input)] px-2 text-center text-sm font-semibold text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)] focus:border-[var(--primary)]"
         />
         <button
           type="button"
           onClick={() => onChange(clamp(value + step))}
           disabled={value >= max}
           aria-label="Tăng"
-          className="h-9 w-9 shrink-0 inline-flex items-center justify-center rounded-lg border border-[var(--surface-border)] bg-[var(--surface-card)] text-[var(--text-secondary)] hover:bg-[var(--gray-100)] hover:text-[var(--primary)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          className="h-11 sm:h-9 w-11 sm:w-9 shrink-0 inline-flex items-center justify-center rounded-lg border border-[var(--surface-border)] bg-[var(--surface-card)] text-[var(--text-secondary)] hover:bg-[var(--gray-100)] hover:text-[var(--primary)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         >
           <Plus size={14} />
         </button>

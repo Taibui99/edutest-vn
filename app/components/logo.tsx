@@ -6,7 +6,7 @@ type LogoProps = {
 
 export function Logo({ className = "" }: LogoProps) {
   return (
-    <Link href="/" className={`flex items-center gap-2.5 ${className}`}>
+    <Link href="/" className={`flex items-center gap-2.5 py-1 ${className}`}>
       <div className="flex h-9 w-9 items-center justify-center rounded-lg text-white shadow-sm" style={{ background: "var(--gradient-brand)" }}>
         <svg
           className="h-5 w-5"
