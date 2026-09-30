@@ -235,7 +235,7 @@ export default function ClassroomsPage() {
                     {role === "teacher" && (
                       <button
                         onClick={(e) => { e.preventDefault(); copyCode(cls.joinCode, cls.id); }}
-                        className="shrink-0 flex items-center gap-1 px-2 py-1 rounded-lg bg-[var(--primary-light)] text-[var(--primary)] text-xs font-mono font-black hover:bg-[var(--primary-muted)] transition-colors"
+                        className="shrink-0 flex items-center gap-1 px-2.5 py-2.5 rounded-lg bg-[var(--primary-light)] text-[var(--primary)] text-xs font-mono font-black hover:bg-[var(--primary-muted)] transition-colors"
                       >
                         {copiedId === cls.id ? <Check size={11} /> : <Copy size={11} />}
                         {cls.joinCode}
