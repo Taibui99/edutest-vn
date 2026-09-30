@@ -38,7 +38,7 @@ export function GuestJoin({ code, title }: { code: string; title: string }) {
         </div>
         <p className="text-sm font-semibold text-[#6C4CF1] mb-1">Tham gia không cần tài khoản</p>
         <h1 className="text-2xl font-bold text-[#0F172A] mb-2">{title}</h1>
-        <p className="text-sm text-[#6B7280] mb-6">
+        <p className="text-sm text-[#5B6470] mb-6">
           Nhập họ tên và lớp để hệ thống ghi nhận bạn là người tham gia chính thức của bài thi.
         </p>
 

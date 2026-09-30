@@ -36,7 +36,7 @@ export function MobileTopbar({ user }: { user: { name: string; role: string; mod
       <div className="flex items-center gap-2">
         <span className={cn(
           "text-[11px] font-bold px-2 py-1 rounded-full",
-          mode === "teacher" ? "bg-[#EAF3FC] text-[#2F80D8]" : "bg-[#E8F7F1] text-[#189A6C]"
+          mode === "teacher" ? "bg-[#EAF3FC] text-[#1A5FB0]" : "bg-[#E8F7F1] text-[#0E7350]"
         )}>
           {mode === "teacher" ? "Giáo viên" : "Học sinh"}
         </span>

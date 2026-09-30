@@ -288,7 +288,7 @@ export default function QuestionBankPage() {
                               const isCorrect = item.answer === letter;
                               return (
                                 <div key={letter} className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs ${isCorrect ? "bg-[#E8F7F1] text-[#064E3B] font-semibold" : "bg-[var(--gray-100)] text-[var(--text-secondary)]"}`}>
-                                  <span className={`w-4 h-4 rounded-full text-[10px] font-black flex items-center justify-center shrink-0 ${isCorrect ? "bg-[#189A6C] text-white" : "bg-[var(--gray-200)] text-[var(--text-muted)]"}`}>{letter}</span>
+                                  <span className={`w-4 h-4 rounded-full text-[10px] font-black flex items-center justify-center shrink-0 ${isCorrect ? "bg-[#0E7350] text-white" : "bg-[var(--gray-200)] text-[var(--text-muted)]"}`}>{letter}</span>
                                   {opt}
                                 </div>
                               );

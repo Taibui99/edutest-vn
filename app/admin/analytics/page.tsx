@@ -58,7 +58,7 @@ export default function AdminAnalytics() {
       .catch(() => setError("Không tải được dữ liệu"));
   }, []);
 
-  if (error) return <div className="p-10 text-center text-sm text-[#E14D4D]">{error}</div>;
+  if (error) return <div className="p-10 text-center text-sm text-[#BE3B3B]">{error}</div>;
   if (!data) return <div className="flex items-center justify-center py-32"><Spinner /></div>;
 
   const maxSubject = Math.max(...data.subjects.map((s) => s.count), 1);
@@ -87,7 +87,7 @@ export default function AdminAnalytics() {
       <div className="grid lg:grid-cols-2 gap-5 mb-5">
         <div className="rounded-2xl bg-[var(--surface-card)] border border-[var(--surface-border)] p-5">
           <h2 className="text-sm font-black text-[var(--text-primary)] mb-4 flex items-center gap-2">
-            <Flag size={14} className="text-[#E14D4D]" /> Báo cáo theo trạng thái
+            <Flag size={14} className="text-[#BE3B3B]" /> Báo cáo theo trạng thái
           </h2>
           <div className="flex flex-wrap gap-2">
             {Object.entries(REPORT_LABEL).map(([k, label]) => (
@@ -99,7 +99,7 @@ export default function AdminAnalytics() {
         </div>
         <div className="rounded-2xl bg-[var(--surface-card)] border border-[var(--surface-border)] p-5">
           <h2 className="text-sm font-black text-[var(--text-primary)] mb-4 flex items-center gap-2">
-            <Sparkles size={14} className="text-[#2F80D8]" /> AI Import theo trạng thái
+            <Sparkles size={14} className="text-[#1A5FB0]" /> AI Import theo trạng thái
           </h2>
           <div className="flex flex-wrap gap-2">
             {Object.entries(AI_LABEL).map(([k, label]) => (

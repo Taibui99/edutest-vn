@@ -133,8 +133,8 @@ export default function AdminUsers() {
     r === "admin"
       ? "bg-[#F1EDFD] text-[#6C4CF1]"
       : r === "teacher"
-        ? "bg-[#EAF3FC] text-[#2F80D8]"
-        : "bg-[#E8F7F1] text-[#189A6C]";
+        ? "bg-[#EAF3FC] text-[#1A5FB0]"
+        : "bg-[#E8F7F1] text-[#0E7350]";
 
   return (
     <div className="p-4 lg:p-8 max-w-6xl mx-auto">
@@ -182,7 +182,7 @@ export default function AdminUsers() {
         </button>
       </div>
 
-      {error && <p className="mb-3 text-sm text-[#E14D4D]">{error}</p>}
+      {error && <p className="mb-3 text-sm text-[#BE3B3B]">{error}</p>}
 
       {loading ? (
         <div className="flex items-center justify-center py-32"><Spinner /></div>
@@ -209,7 +209,7 @@ export default function AdminUsers() {
                     <td className="px-4 py-3">
                       <p className="font-semibold text-[var(--text-primary)]">
                         {u.name}
-                        {u.isBlocked && <span className="ml-1 text-[10px] font-bold text-[#E14D4D] bg-[#FFECEC] px-1.5 py-0.5 rounded">ĐÃ KHÓA</span>}
+                        {u.isBlocked && <span className="ml-1 text-[10px] font-bold text-[#BE3B3B] bg-[#FFECEC] px-1.5 py-0.5 rounded">ĐÃ KHÓA</span>}
                         {u.deletedAt && <span className="ml-1 text-[10px] font-bold text-[var(--text-secondary)] bg-[var(--gray-200)] px-1.5 py-0.5 rounded">ĐÃ XÓA</span>}
                       </p>
                       <p className="text-xs text-[var(--text-muted)]">{u.email}{u.school ? ` · ${u.school}${u.grade ? ` ${u.grade}` : ""}` : ""}</p>
@@ -231,7 +231,7 @@ export default function AdminUsers() {
                           <button
                             disabled={busyId === u.id}
                             onClick={() => patch(u.id, { restore: true })}
-                            className="inline-flex items-center gap-1 rounded-lg bg-[#E8F7F1] px-2.5 py-1 text-xs font-bold text-[#189A6C] hover:bg-[#D3EFE5] disabled:opacity-50"
+                            className="inline-flex items-center gap-1 rounded-lg bg-[#E8F7F1] px-2.5 py-1 text-xs font-bold text-[#0E7350] hover:bg-[#D3EFE5] disabled:opacity-50"
                           >
                             <RotateCcw size={11} /> Khôi phục
                           </button>
@@ -250,14 +250,14 @@ export default function AdminUsers() {
                             <button
                               disabled={busyId === u.id}
                               onClick={() => patch(u.id, { isBlocked: !u.isBlocked })}
-                              className={`rounded-lg px-2.5 py-1 text-xs font-bold disabled:opacity-50 ${u.isBlocked ? "bg-[#E8F7F1] text-[#189A6C] hover:bg-[#D3EFE5]" : "bg-[#FCF3E2] text-[#B97F10] hover:bg-[#F5E5BC]"}`}
+                              className={`rounded-lg px-2.5 py-1 text-xs font-bold disabled:opacity-50 ${u.isBlocked ? "bg-[#E8F7F1] text-[#0E7350] hover:bg-[#D3EFE5]" : "bg-[#FCF3E2] text-[#8A5A00] hover:bg-[#F5E5BC]"}`}
                             >
                               {u.isBlocked ? "Mở khóa" : "Khóa"}
                             </button>
                             <button
                               disabled={busyId === u.id}
                               onClick={() => setDeleting(u)}
-                              className="rounded-lg bg-[#FFECEC] px-2.5 py-1 text-xs font-bold text-[#E14D4D] hover:bg-[#FFDDDD] disabled:opacity-50"
+                              className="rounded-lg bg-[#FFECEC] px-2.5 py-1 text-xs font-bold text-[#BE3B3B] hover:bg-[#FFDDDD] disabled:opacity-50"
                             >
                               Xóa
                             </button>

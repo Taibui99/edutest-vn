@@ -47,7 +47,7 @@ export function ResetPasswordForm({ token }: { token: string }) {
     return (
       <div className="text-center">
         <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[#E8F7F1]">
-          <CheckCircle2 size={24} className="text-[#189A6C]" />
+          <CheckCircle2 size={24} className="text-[#0E7350]" />
         </div>
         <p className="text-sm text-[var(--text-secondary)]">Mật khẩu đã được đặt lại thành công.</p>
         <Link

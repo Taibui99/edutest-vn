@@ -45,7 +45,7 @@ export default async function ExamListPage({ searchParams }: { searchParams: Pro
       <div className="p-5 lg:p-8 max-w-5xl mx-auto animate-fade-in">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-xl font-bold text-[var(--text-primary)]">Đề thi</h1>
+            <h1 className="text-[22px] sm:text-xl font-bold text-[var(--text-primary)]">Đề thi</h1>
             <p className="text-sm text-[var(--text-secondary)] mt-0.5">{exams.length} đề thi đã tạo</p>
           </div>
           <Link href="/bang-dieu-khien/tao-de-thi">
@@ -105,7 +105,7 @@ export default async function ExamListPage({ searchParams }: { searchParams: Pro
                         </div>
                         <Badge variant="primary">{exam.joinCode}</Badge>
                         {exam.status === "draft" && (
-                          <span className="text-xs px-2 py-0.5 rounded-md font-medium bg-[#FCF3E2] text-[#B97F10]">
+                          <span className="text-xs px-2 py-0.5 rounded-md font-medium bg-[#FCF3E2] text-[#8A5A00]">
                             Bản nháp
                           </span>
                         )}
@@ -116,7 +116,7 @@ export default async function ExamListPage({ searchParams }: { searchParams: Pro
                         <span className="flex items-center gap-1"><Users size={12} /> {exam._count.submissions} bài nộp</span>
                       </div>
                       {schedule && (
-                        <p className="mt-2 text-[11px] font-semibold text-[#B97F10] flex items-center gap-1">
+                        <p className="mt-2 text-[11px] font-semibold text-[#8A5A00] flex items-center gap-1">
                           <Clock size={11} /> {schedule}
                         </p>
                       )}
@@ -148,7 +148,7 @@ export default async function ExamListPage({ searchParams }: { searchParams: Pro
     <div className="p-5 lg:p-8 max-w-5xl mx-auto animate-fade-in">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-xl font-bold text-[var(--text-primary)]">Đề thi của tôi</h1>
+          <h1 className="text-[22px] sm:text-xl font-bold text-[var(--text-primary)]">Đề thi của tôi</h1>
           <p className="text-sm text-[var(--text-secondary)] mt-0.5">{submissions.length} bài đã làm</p>
         </div>
         <Link href="/vao-thi">
@@ -170,7 +170,7 @@ export default async function ExamListPage({ searchParams }: { searchParams: Pro
           {submissions.map((sub: typeof submissions[0]) => {
             const c = getSubjectColor(sub.exam.subject);
             const scoreVal = sub.score;
-            const scoreCol = scoreVal >= 8 ? "#189A6C" : scoreVal >= 6.5 ? "#B97F10" : "#E14D4D";
+            const scoreCol = scoreVal >= 8 ? "#0E7350" : scoreVal >= 6.5 ? "#8A5A00" : "#BE3B3B";
 
             return (
               <Card key={sub.id} className="p-0 overflow-hidden">

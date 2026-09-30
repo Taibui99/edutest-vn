@@ -81,9 +81,9 @@ export default function AdminDashboard() {
 
   const cards = [
     { label: "Người dùng", value: data.users.total, delta: data.users.deltaPct, sub: `${data.users.students} HS · ${data.users.teachers} GV · ${data.users.admins} admin`, icon: <Users size={15} />, color: "#6C4CF1", bgClass: "bg-[#F1EDFD] dark:bg-[#46309F]", href: "/admin/users" },
-    { label: "Đề thi", value: data.exams, sub: `${data.submissions} bài nộp`, icon: <FileText size={15} />, color: "#2F80D8", bgClass: "bg-[#EAF3FC] dark:bg-[#0D2A3E]", href: "/admin/exams" },
-    { label: "Lớp học", value: data.classrooms, sub: `${data.users.students} học sinh`, icon: <School size={15} />, color: "#189A6C", bgClass: "bg-[#E8F7F1] dark:bg-[#0A2A20]", href: "/admin" },
-    { label: "Báo cáo chờ", value: data.pendingReports, sub: `${data.aiLogs24h} lượt AI / 24h`, icon: <Flag size={15} />, color: "#E14D4D", bgClass: "bg-[#FFF0F0] dark:bg-[#2B1616]", href: "/admin/reports" },
+    { label: "Đề thi", value: data.exams, sub: `${data.submissions} bài nộp`, icon: <FileText size={15} />, color: "#1A5FB0", bgClass: "bg-[#EAF3FC] dark:bg-[#0D2A3E]", href: "/admin/exams" },
+    { label: "Lớp học", value: data.classrooms, sub: `${data.users.students} học sinh`, icon: <School size={15} />, color: "#0E7350", bgClass: "bg-[#E8F7F1] dark:bg-[#0A2A20]", href: "/admin" },
+    { label: "Báo cáo chờ", value: data.pendingReports, sub: `${data.aiLogs24h} lượt AI / 24h`, icon: <Flag size={15} />, color: "#BE3B3B", bgClass: "bg-[#FFF0F0] dark:bg-[#2B1616]", href: "/admin/reports" },
   ];
 
   const checks = health?.checks ?? {};
@@ -125,7 +125,7 @@ export default function AdminDashboard() {
         {/* Sức khỏe hệ thống */}
         <div className="rounded-2xl bg-[var(--surface-card)] border border-[var(--surface-border)] p-5">
           <h2 className="text-sm font-black text-[var(--text-primary)] mb-4 flex items-center gap-2">
-            <Activity size={15} className="text-[#189A6C]" /> Sức khỏe hệ thống
+            <Activity size={15} className="text-[#0E7350]" /> Sức khỏe hệ thống
           </h2>
           <div className="flex flex-col gap-2">
             {healthEntries.map((k) => {
@@ -156,7 +156,7 @@ export default function AdminDashboard() {
         {/* Báo cáo chờ */}
         <div className="rounded-2xl bg-[var(--surface-card)] border border-[var(--surface-border)] p-5">
           <h2 className="text-sm font-black text-[var(--text-primary)] mb-4 flex items-center gap-2">
-            <Flag size={15} className="text-[#E14D4D]" /> Báo cáo chờ ({data.pendingReports})
+            <Flag size={15} className="text-[#BE3B3B]" /> Báo cáo chờ ({data.pendingReports})
           </h2>
           {data.recentActivity.pendingReports.length === 0 ? (
             <p className="text-sm text-[var(--text-muted)] text-center py-6">Không có báo cáo chờ</p>
@@ -179,7 +179,7 @@ export default function AdminDashboard() {
         {/* Hoạt động gần đây */}
         <div className="rounded-2xl bg-[var(--surface-card)] border border-[var(--surface-border)] p-5">
           <h2 className="text-sm font-black text-[var(--text-primary)] mb-4 flex items-center gap-2">
-            <Activity size={15} className="text-[#2F80D8]" /> Hoạt động gần đây
+            <Activity size={15} className="text-[#1A5FB0]" /> Hoạt động gần đây
           </h2>
           <div className="flex flex-col gap-2 max-h-44 overflow-y-auto">
             {data.recentActivity.users.slice(0, 3).map((u) => (
@@ -193,7 +193,7 @@ export default function AdminDashboard() {
             ))}
             {data.recentActivity.subs.slice(0, 3).map((s, i) => (
               <div key={i} className="flex items-center gap-2 rounded-lg bg-[var(--gray-100)] px-3 py-2">
-                <Send size={13} className="text-[#189A6C] shrink-0" />
+                <Send size={13} className="text-[#0E7350] shrink-0" />
                 <div className="min-w-0">
                   <p className="text-xs font-bold text-[var(--text-primary)] truncate">{s.student?.name ?? "?"} nộp bài</p>
                   <p className="text-[10px] text-[var(--text-muted)] truncate">{s.exam?.title} · {s.score}/10</p>
@@ -210,11 +210,11 @@ export default function AdminDashboard() {
       <div className="grid lg:grid-cols-2 gap-5 mb-5">
         <div className="rounded-2xl bg-[var(--surface-card)] border border-[var(--surface-border)] p-5">
           <h2 className="text-sm font-black text-[var(--text-primary)] mb-4 flex items-center gap-2">
-            <Sparkles size={15} className="text-[#2F80D8]" /> AI Import ({data.aiLogs24h} lượt / 24h)
+            <Sparkles size={15} className="text-[#1A5FB0]" /> AI Import ({data.aiLogs24h} lượt / 24h)
           </h2>
           <div className="flex flex-wrap gap-2">
             {Object.entries(data.aiByStatus).map(([k, v]) => (
-              <span key={k} className={`rounded-lg px-3 py-1.5 text-xs font-bold ${k === "success" ? "bg-[#E8F7F1] text-[#189A6C]" : k === "failed" || k === "timeout" ? "bg-[#FFECEC] text-[#E14D4D]" : "bg-[var(--gray-100)] text-[var(--text-secondary)]"}`}>
+              <span key={k} className={`rounded-lg px-3 py-1.5 text-xs font-bold ${k === "success" ? "bg-[#E8F7F1] text-[#0E7350]" : k === "failed" || k === "timeout" ? "bg-[#FFECEC] text-[#BE3B3B]" : "bg-[var(--gray-100)] text-[var(--text-secondary)]"}`}>
                 {k === "success" ? "Thành công" : k === "failed" ? "Thất bại" : k === "timeout" ? "Timeout" : k === "running" ? "Đang chạy" : k}: {v}
               </span>
             ))}
@@ -236,16 +236,16 @@ export default function AdminDashboard() {
         </div>
         <div className="rounded-2xl bg-[var(--surface-card)] border border-[var(--surface-border)] p-5">
           <h2 className="text-sm font-black text-[var(--text-primary)] mb-4 flex items-center gap-2">
-            <AlertTriangle size={15} className="text-[#E14D4D]" /> Lỗi AI gần đây
+            <AlertTriangle size={15} className="text-[#BE3B3B]" /> Lỗi AI gần đây
           </h2>
           {data.aiErrors.length === 0 ? (
-            <p className="text-sm text-[#189A6C] text-center py-6">Không có lỗi nào gần đây</p>
+            <p className="text-sm text-[#0E7350] text-center py-6">Không có lỗi nào gần đây</p>
           ) : (
             <div className="flex flex-col gap-2 max-h-44 overflow-y-auto">
               {data.aiErrors.map((e, i) => (
                 <div key={i} className="rounded-lg bg-[#FFECEC] px-3 py-2 text-xs">
-                  <p className="text-[#E14D4D] font-semibold truncate">{e.error}</p>
-                  <p className="text-[#E14D4D]/70 text-[10px]">{e.model ?? "gemini"} · {new Date(e.createdAt).toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" })}</p>
+                  <p className="text-[#BE3B3B] font-semibold truncate">{e.error}</p>
+                  <p className="text-[#BE3B3B]/70 text-[10px]">{e.model ?? "gemini"} · {new Date(e.createdAt).toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" })}</p>
                 </div>
               ))}
             </div>

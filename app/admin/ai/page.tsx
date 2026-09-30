@@ -30,9 +30,9 @@ export default function AdminAi() {
   }, []);
 
   const statusColor = (s: string) =>
-    s === "success" ? "bg-[#E8F7F1] text-[#189A6C]"
-      : s === "failed" ? "bg-[#FFECEC] text-[#E14D4D]"
-        : s === "running" ? "bg-[#EAF3FC] text-[#2F80D8]"
+    s === "success" ? "bg-[#E8F7F1] text-[#0E7350]"
+      : s === "failed" ? "bg-[#FFECEC] text-[#BE3B3B]"
+        : s === "running" ? "bg-[#EAF3FC] text-[#1A5FB0]"
           : "bg-[var(--gray-100)] text-[var(--text-secondary)]";
 
   return (
@@ -54,7 +54,7 @@ export default function AdminAi() {
         </div>
       </div>
 
-      {error && <p className="mb-3 text-sm text-[#E14D4D]">{error}</p>}
+      {error && <p className="mb-3 text-sm text-[#BE3B3B]">{error}</p>}
 
       {loading ? (
         <div className="flex items-center justify-center py-32"><Spinner /></div>

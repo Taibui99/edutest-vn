@@ -8,34 +8,34 @@
   --primary-hover:  #5A3BD8;
   --primary-light:  #F1EDFD;
   --primary-muted:  #DCD4FA;
-  --coral:          #E14D4D; --coral-light: #FDEDED;
-  --mint:           #189A6C; --mint-light: #E8F7F1;
-  --yellow:         #B97F10; --yellow-light: #FCF3E2;
-  --blue:           #2F80D8; --blue-light: #EAF3FC;
-  --success:        #189A6C; --success-light: #E8F7F1;
-  --warning:        #B97F10; --warning-light: #FCF3E2;
-  --danger:         #E14D4D; --danger-light: #FDEDED;
-  --score-good:     #189A6C;
-  --score-mid:      #B97F10;
-  --score-bad:      #E14D4D;
+  --coral:          #BE3B3B; --coral-light: #FDEDED;
+  --mint:           #0E7350; --mint-light: #E8F7F1;
+  --yellow:         #8A5A00; --yellow-light: #FCF3E2;
+  --blue:           #1A5FB0; --blue-light: #EAF3FC;
+  --success:        #0E7350; --success-light: #E8F7F1;
+  --warning:        #8A5A00; --warning-light: #FCF3E2;
+  --danger:         #BE3B3B; --danger-light: #FDEDED;
+  --score-good:     #0E7350;
+  --score-mid:      #8A5A00;
+  --score-bad:      #BE3B3B;
   --gray-50: #FAFAF8; --gray-100: #F2F2EF; --gray-200: #E7E5E0; --gray-300: #D6D3CD;
   --gray-400: #A8A29E; --gray-500: #78716C; --gray-600: #57534E; --gray-700: #44403C;
   --gray-800: #292524; --gray-900: #1C1917;
   --surface-bg: #F6F5FB; --surface-card: #FFFFFF; --surface-sidebar: #FFFFFF;
   --surface-input: #FFFFFF; --surface-hover: #F4F2FD;
   --surface-border: #E7E5E0; --surface-border-strong: #D6D3CD;
-  --text-primary: #1F2937; --text-secondary: #4B5563; --text-muted: #6B7280;
+  --text-primary: #1F2937; --text-secondary: #4B5563; --text-muted: #5B6470;
   --gradient-brand: linear-gradient(135deg, #6C4CF1 0%, #7C5CF3 55%, #9B7FF7 100%);
   --focus-ring: rgba(108, 76, 241, 0.35);
   --shadow-sm: 0 1px 2px rgba(31, 26, 51, 0.06);
   --shadow-md: 0 4px 12px rgba(31, 26, 51, 0.07);
   --shadow-lg: 0 12px 28px rgba(31, 26, 51, 0.10);
-  --subject-toan: #2F80D8; --subject-toan-bg: #EAF3FC;
+  --subject-toan: #1A5FB0; --subject-toan-bg: #EAF3FC;
   --subject-van: #E11D48; --subject-van-bg: #FFE4E6;
   --subject-anh: #6C4CF1; --subject-anh-bg: #F1EDFD;
-  --subject-ly: #B97F10; --subject-ly-bg: #FCF3E2;
-  --subject-hoa: #189A6C; --subject-hoa-bg: #E8F7F1;
-  --subject-sinh: #2F80D8; --subject-sinh-bg: #EAF3FC;
+  --subject-ly: #8A5A00; --subject-ly-bg: #FCF3E2;
+  --subject-hoa: #0E7350; --subject-hoa-bg: #E8F7F1;
+  --subject-sinh: #1A5FB0; --subject-sinh-bg: #EAF3FC;
   --radius-sm: 6px; --radius-md: 10px; --radius-lg: 14px; --radius-xl: 18px; --radius-2xl: 24px;
   --sidebar-width: 220px; --topbar-height: 60px;
   --motion-fast: 140ms;
@@ -230,5 +230,20 @@ input[type="date"], input[type="time"], input[type="datetime-local"] {
   select,
   textarea {
     font-size: 16px;
+  }
+}
+
+/* Chuỗi chữ gradient: mặc định dùng màu primary đọc được,
+   chỉ cắt nền khi trình duyệt hỗ trợ background-clip: text */
+.text-gradient-brand {
+  color: var(--primary);
+}
+@supports ((-webkit-background-clip: text) or (background-clip: text)) {
+  .text-gradient-brand {
+    background: var(--gradient-brand);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
   }
 }

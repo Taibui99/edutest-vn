@@ -93,7 +93,7 @@ export function Sidebar({ user, logoutAction }: SidebarProps) {
         <div className="flex items-center gap-1.5">
           <div className={cn(
             "text-xs font-bold px-2.5 py-1.5 rounded-lg inline-flex items-center gap-1.5",
-            mode === "teacher" ? "bg-[#EAF3FC] text-[#2F80D8]" : "bg-[#E8F7F1] text-[#189A6C]"
+            mode === "teacher" ? "bg-[#EAF3FC] text-[#1A5FB0]" : "bg-[#E8F7F1] text-[#0E7350]"
           )}>
             {mode === "teacher" ? <GraduationCap size={11} /> : <BookOpen size={11} />}
             {mode === "teacher" ? "Giáo viên" : "Học sinh"}
@@ -134,7 +134,7 @@ export function Sidebar({ user, logoutAction }: SidebarProps) {
             <p className="text-xs text-[var(--text-muted)] truncate">{user.email}</p>
           </div>
           <form action={logoutAction}>
-            <button type="submit" className="text-[var(--text-muted)] hover:text-[#E14D4D] transition-colors" aria-label="Đăng xuất">
+            <button type="submit" className="text-[var(--text-muted)] hover:text-[#BE3B3B] transition-colors" aria-label="Đăng xuất">
               <LogOut size={15} />
             </button>
           </form>

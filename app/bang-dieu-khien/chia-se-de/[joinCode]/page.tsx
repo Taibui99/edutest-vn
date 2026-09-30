@@ -66,7 +66,7 @@ export default function ShareExamPage() {
   };
 
   if (error) {
-    return <div className="min-h-screen grid place-items-center p-6 text-sm text-[#E14D4D]">{error}</div>;
+    return <div className="min-h-screen grid place-items-center p-6 text-sm text-[#BE3B3B]">{error}</div>;
   }
 
   if (!data) {

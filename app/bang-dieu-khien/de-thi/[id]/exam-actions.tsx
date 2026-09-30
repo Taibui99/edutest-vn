@@ -54,7 +54,7 @@ export function ExamActions({ examId, currentStatus }: ExamActionsProps) {
         className={`flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg transition-colors ${
           isPublished
             ? "text-[var(--warning)] hover:bg-[#FCF3E2]"
-            : "text-[#189A6C] hover:bg-[#E8F7F1]"
+            : "text-[#0E7350] hover:bg-[#E8F7F1]"
         }`}
       >
         {loading === "toggle" ? <Spinner size="sm" /> : isPublished ? <EyeOff size={13} /> : <Eye size={13} />}

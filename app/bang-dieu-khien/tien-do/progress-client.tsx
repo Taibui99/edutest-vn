@@ -101,7 +101,7 @@ export function ProgressClient({ submissions }: {
             color === "c1" ? "bg-[#F1EDFD] dark:bg-[#46309F]" : color === "c2" ? "bg-[#EAF3FC] dark:bg-[#0D2A3E]" : color === "c3" ? "bg-[#FFF7E6] dark:bg-[#2B2410]" : "bg-[#E8F7F1] dark:bg-[#0A2A20]"
           }`}>
             <div className={`flex items-center gap-2 mb-1 ${
-              color === "c1" ? "text-[#6C4CF1]" : color === "c2" ? "text-[#2F80D8]" : color === "c3" ? "text-[#B97F10]" : "text-[#189A6C]"
+              color === "c1" ? "text-[#6C4CF1]" : color === "c2" ? "text-[#1A5FB0]" : color === "c3" ? "text-[#8A5A00]" : "text-[#0E7350]"
             }`}>
               {icon}
               <span className="text-xs font-bold">{label}</span>
@@ -134,7 +134,7 @@ export function ProgressClient({ submissions }: {
                       <p className="text-sm font-semibold text-[var(--text-primary)]">{subject}</p>
                       <p className="text-xs text-[var(--text-muted)]">{count} bài · cao nhất {best.toFixed(1)}</p>
                     </div>
-                    <span className="text-sm font-black" style={{ color: avg >= 8 ? "#189A6C" : avg >= 6.5 ? "#B97F10" : "#E14D4D" }}>
+                    <span className="text-sm font-black" style={{ color: avg >= 8 ? "#0E7350" : avg >= 6.5 ? "#8A5A00" : "#BE3B3B" }}>
                       {avg.toFixed(1)}
                     </span>
                   </div>
@@ -162,7 +162,7 @@ export function ProgressClient({ submissions }: {
                       {s.subject} · {new Date(s.submittedAt).toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" })}
                     </p>
                   </div>
-                  <span className={`text-sm font-black ${s.score >= 8 ? "text-[#189A6C]" : s.score >= 6.5 ? "text-[#B97F10]" : "text-[#E14D4D]"}`}>
+                  <span className={`text-sm font-black ${s.score >= 8 ? "text-[#0E7350]" : s.score >= 6.5 ? "text-[#8A5A00]" : "text-[#BE3B3B]"}`}>
                     {s.score.toFixed(1)}
                   </span>
                 </div>

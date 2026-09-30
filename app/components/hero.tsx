@@ -33,7 +33,7 @@ export async function Hero() {
         }}
       />
 
-      <div className="relative mx-auto flex min-h-[calc(100vh-4rem-1px)] max-w-3xl flex-col items-center justify-center px-5 py-20 text-center">
+      <div className="relative mx-auto flex min-h-[72vh] max-w-3xl flex-col items-center justify-center px-5 py-14 text-center sm:min-h-[calc(100vh-4rem-1px)] sm:py-20">
         <span
           className="inline-flex items-center gap-2 rounded-full px-3.5 py-2 text-[13px] font-bold sm:py-1.5 sm:text-sm"
           style={{ background: "var(--surface-card)", color: "var(--primary)", border: "1px solid var(--surface-border)", boxShadow: "0 1px 2px rgba(31,41,55,0.04)" }}
@@ -47,16 +47,7 @@ export async function Hero() {
           style={{ color: "var(--text-primary)", lineHeight: 1.12, letterSpacing: "-0.02em" }}
         >
           Soạn đề thi{" "}
-          <span
-            style={{
-              background: "var(--gradient-brand)",
-              WebkitBackgroundClip: "text",
-              backgroundClip: "text",
-              color: "transparent",
-            }}
-          >
-            siêu nhanh
-          </span>
+          <span className="text-gradient-brand">siêu nhanh</span>
           .<br />
           Chấm bài tự động.
         </h1>
@@ -65,7 +56,7 @@ export async function Hero() {
           Tạo đề trong vài phút rồi gửi mã cho lớp. Học sinh làm bài ngay trên điện thoại, bạn có điểm và thống kê tức thì.
         </p>
 
-        <div className="mt-9 flex w-full flex-col items-center gap-3 sm:w-auto sm:flex-row">
+        <div className="mt-8 flex w-full flex-col items-center gap-3 sm:w-auto sm:flex-row">
           <Link
             href={isLoggedIn ? "/bang-dieu-khien/tao-de-thi" : "/dang-ky"}
             className="group inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl px-8 text-base font-bold text-white transition-all hover:-translate-y-0.5 active:translate-y-0 sm:w-auto"
@@ -83,7 +74,7 @@ export async function Hero() {
           </Link>
         </div>
 
-        <div className="mt-10 flex flex-wrap items-center justify-center gap-x-6 gap-y-2.5 text-sm font-semibold" style={{ color: "var(--text-muted)" }}>
+        <div className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-2.5 text-sm font-semibold" style={{ color: "var(--text-muted)" }}>
           {MICRO.map((item) => (
             <span key={item} className="inline-flex items-center gap-1.5">
               <Check size={15} style={{ color: "var(--success)" }} />

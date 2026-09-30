@@ -48,7 +48,7 @@ export default function QuenMatKhauPage() {
         {state === "sent" ? (
           <div className="text-center">
             <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[#E8F7F1]">
-              <CheckCircle2 size={24} className="text-[#189A6C]" />
+              <CheckCircle2 size={24} className="text-[#0E7350]" />
             </div>
             <p className="text-sm text-[var(--text-secondary)]">
               Chúng tôi đã gửi liên kết đặt lại mật khẩu. Vui lòng kiểm tra hộp thư.
@@ -63,7 +63,7 @@ export default function QuenMatKhauPage() {
         ) : state === "not-found" ? (
           <div className="text-center">
             <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[#FFF3E0]">
-              <AlertTriangle size={24} className="text-[#B97F10]" />
+              <AlertTriangle size={24} className="text-[#8A5A00]" />
             </div>
             <p className="text-sm text-[var(--text-secondary)]">
               Email này chưa được đăng ký. Vui lòng tạo tài khoản mới để sử dụng EduTest.

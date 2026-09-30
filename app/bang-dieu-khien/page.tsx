@@ -26,15 +26,15 @@ function getGreeting() {
 }
 
 function scoreColor(score: number) {
-  if (score >= 8)   return "text-[#189A6C]";
-  if (score >= 6.5) return "text-[#B97F10]";
-  return "text-[#E14D4D]";
+  if (score >= 8)   return "text-[#0E7350]";
+  if (score >= 6.5) return "text-[#8A5A00]";
+  return "text-[#BE3B3B]";
 }
 
 function scoreBg(score: number) {
-  if (score >= 8)   return { bg: "#E8F7F1", text: "#189A6C" };
-  if (score >= 6.5) return { bg: "#FCF3E2", text: "#B97F10" };
-  return { bg: "#FFECEC", text: "#E14D4D" };
+  if (score >= 8)   return { bg: "#E8F7F1", text: "#0E7350" };
+  if (score >= 6.5) return { bg: "#FCF3E2", text: "#8A5A00" };
+  return { bg: "#FFECEC", text: "#BE3B3B" };
 }
 
 /* ─────────────────────────────────────────── Student ─── */
@@ -98,8 +98,8 @@ async function StudentDashboard({ userId, name }: { userId: string; name: string
         </div>
         <div className="bg-[#FCF3E2] rounded-2xl p-4">
           <div className="flex items-center gap-2 mb-1">
-            <Trophy size={14} className="text-[#B97F10]" />
-            <span className="text-xs font-bold text-[#B97F10]">Điểm TB</span>
+            <Trophy size={14} className="text-[#8A5A00]" />
+            <span className="text-xs font-bold text-[#8A5A00]">Điểm TB</span>
           </div>
           <p className={`text-2xl font-black ${scoreColor(avgScore)}`}>
             {avgScore > 0 ? avgScore.toFixed(1) : "—"}
@@ -107,15 +107,15 @@ async function StudentDashboard({ userId, name }: { userId: string; name: string
         </div>
         <div className="bg-[#E8F7F1] rounded-2xl p-4">
           <div className="flex items-center gap-2 mb-1">
-            <Zap size={14} className="text-[#189A6C]" />
-            <span className="text-xs font-bold text-[#189A6C]">Bài trong 7 ngày</span>
+            <Zap size={14} className="text-[#0E7350]" />
+            <span className="text-xs font-bold text-[#0E7350]">Bài trong 7 ngày</span>
           </div>
           <p className="text-2xl font-black text-[#1C1917]">{weekSubs}</p>
         </div>
         <div className="bg-[#EAF3FC] rounded-2xl p-4">
           <div className="flex items-center gap-2 mb-1">
-            <BarChart3 size={14} className="text-[#2F80D8]" />
-            <span className="text-xs font-bold text-[#2F80D8]">Tiến độ</span>
+            <BarChart3 size={14} className="text-[#1A5FB0]" />
+            <span className="text-xs font-bold text-[#1A5FB0]">Tiến độ</span>
           </div>
           <Link href="/bang-dieu-khien/tien-do" className="text-xl font-black text-[#6C4CF1] hover:underline">
             Xem →
@@ -192,9 +192,9 @@ async function StudentDashboard({ userId, name }: { userId: string; name: string
               </div>
             </Link>
             <Link href="/bang-dieu-khien/lop-hoc">
-              <div className="bg-[var(--surface-card)] border border-[var(--surface-border)] rounded-2xl p-4 flex items-center gap-3 hover:border-[#189A6C]/40 hover:shadow-sm transition-all cursor-pointer h-full">
+              <div className="bg-[var(--surface-card)] border border-[var(--surface-border)] rounded-2xl p-4 flex items-center gap-3 hover:border-[#0E7350]/40 hover:shadow-sm transition-all cursor-pointer h-full">
                 <div className="w-10 h-10 rounded-xl bg-[#E8F7F1] flex items-center justify-center shrink-0">
-                  <BookOpen size={18} className="text-[#189A6C]" />
+                  <BookOpen size={18} className="text-[#0E7350]" />
                 </div>
                 <div>
                   <p className="text-sm font-black text-[var(--text-primary)]">Lớp học</p>
@@ -210,7 +210,7 @@ async function StudentDashboard({ userId, name }: { userId: string; name: string
           <Card padding="none">
             <div className="px-4 py-3.5 border-b border-[var(--surface-border)]">
               <h2 className="text-sm font-black text-[var(--text-primary)]">
-                <BarChart3 size={14} className="inline mr-1.5 text-[#2F80D8]" />
+                <BarChart3 size={14} className="inline mr-1.5 text-[#1A5FB0]" />
                 Tóm tắt
               </h2>
             </div>
@@ -308,16 +308,16 @@ async function TeacherDashboard({ userId, name }: { userId: string; name: string
         </div>
         <div className="bg-[#EAF3FC] rounded-2xl p-4">
           <div className="flex items-center gap-2 mb-1">
-            <BarChart3 size={14} className="text-[#2F80D8]" />
-            <span className="text-xs font-bold text-[#2F80D8]">Bài nộp</span>
+            <BarChart3 size={14} className="text-[#1A5FB0]" />
+            <span className="text-xs font-bold text-[#1A5FB0]">Bài nộp</span>
           </div>
           <p className="text-2xl font-black text-[#1C1917]">{totalSubmissions}</p>
-          {recentSubs > 0 && <p className="text-xs text-[#189A6C] font-bold">+{recentSubs} hôm nay</p>}
+          {recentSubs > 0 && <p className="text-xs text-[#0E7350] font-bold">+{recentSubs} hôm nay</p>}
         </div>
         <div className="bg-[#FCF3E2] rounded-2xl p-4">
           <div className="flex items-center gap-2 mb-1">
-            <Trophy size={14} className="text-[#B97F10]" />
-            <span className="text-xs font-bold text-[#B97F10]">Điểm TB</span>
+            <Trophy size={14} className="text-[#8A5A00]" />
+            <span className="text-xs font-bold text-[#8A5A00]">Điểm TB</span>
           </div>
           <p className={`text-2xl font-black ${scoreColor(avgScore)}`}>
             {avgScore > 0 ? avgScore.toFixed(1) : "—"}
@@ -325,8 +325,8 @@ async function TeacherDashboard({ userId, name }: { userId: string; name: string
         </div>
         <div className="bg-[#E8F7F1] rounded-2xl p-4">
           <div className="flex items-center gap-2 mb-1">
-            <CheckCircle2 size={14} className="text-[#189A6C]" />
-            <span className="text-xs font-bold text-[#189A6C]">Đang mở</span>
+            <CheckCircle2 size={14} className="text-[#0E7350]" />
+            <span className="text-xs font-bold text-[#0E7350]">Đang mở</span>
           </div>
           <p className="text-2xl font-black text-[#1C1917]">{activeExams.length}</p>
         </div>
@@ -414,14 +414,14 @@ async function TeacherDashboard({ userId, name }: { userId: string; name: string
           <Card padding="none">
             <div className="px-4 py-3.5 border-b border-[var(--surface-border)]">
               <h2 className="text-sm font-black text-[var(--text-primary)]">
-                <AlertCircle size={14} className="inline mr-1.5 text-[#E14D4D]" />
+                <AlertCircle size={14} className="inline mr-1.5 text-[#BE3B3B]" />
                 Cần chú ý
               </h2>
             </div>
             <div className="p-3 flex flex-col gap-2">
               {activeExams.length === 0 && noSubmissionExams.length === 0 ? (
                 <p className="text-xs text-[var(--text-muted)] flex items-center justify-center gap-1.5 py-6">
-                  <CheckCircle2 size={13} className="text-[#189A6C]" /> Không có gì cần chú ý
+                  <CheckCircle2 size={13} className="text-[#0E7350]" /> Không có gì cần chú ý
                 </p>
               ) : (
                 <>
@@ -431,10 +431,10 @@ async function TeacherDashboard({ userId, name }: { userId: string; name: string
                       href={`/bang-dieu-khien/de-thi/${exam.id}`}
                       className="flex items-center gap-2.5 p-2.5 rounded-xl bg-[#E8F7F1] hover:bg-[#D3EFE5] transition-colors"
                     >
-                      <CheckCircle2 size={14} className="text-[#189A6C] shrink-0" />
+                      <CheckCircle2 size={14} className="text-[#0E7350] shrink-0" />
                       <div className="min-w-0">
                         <p className="text-xs font-bold text-[#064E3B] truncate">{exam.title}</p>
-                        <p className="text-xs text-[#189A6C]">{exam._count.submissions} bài nộp</p>
+                        <p className="text-xs text-[#0E7350]">{exam._count.submissions} bài nộp</p>
                       </div>
                     </Link>
                   ))}
@@ -444,10 +444,10 @@ async function TeacherDashboard({ userId, name }: { userId: string; name: string
                       href={`/bang-dieu-khien/de-thi/${exam.id}`}
                       className="flex items-center gap-2.5 p-2.5 rounded-xl bg-[#FCF3E2] hover:bg-[#F5E5BC] transition-colors"
                     >
-                      <AlertCircle size={14} className="text-[#B97F10] shrink-0" />
+                      <AlertCircle size={14} className="text-[#8A5A00] shrink-0" />
                       <div className="min-w-0">
                         <p className="text-xs font-bold text-[#78350F] truncate">{exam.title}</p>
-                        <p className="text-xs text-[#B97F10]">Chưa có bài nộp</p>
+                        <p className="text-xs text-[#8A5A00]">Chưa có bài nộp</p>
                       </div>
                     </Link>
                   ))}
@@ -552,10 +552,10 @@ export default async function DashboardPage({
     <>
       {params.created && (
         <div className="mx-4 mt-4 lg:mx-8 lg:mt-6 rounded-2xl bg-[#E8F7F1] border border-[#A8E6D6] p-4 flex items-center gap-3 animate-bounce-in">
-          <CheckCircle2 size={18} className="text-[#189A6C] shrink-0" />
+          <CheckCircle2 size={18} className="text-[#0E7350] shrink-0" />
           <div>
             <p className="text-sm font-black text-[#064E3B]">Đã xuất bản đề thi!</p>
-            <p className="text-xs text-[#189A6C]">
+            <p className="text-xs text-[#0E7350]">
               Mã tham gia:{" "}
               <span className="font-mono font-black tracking-widest">{params.created}</span>
             </p>

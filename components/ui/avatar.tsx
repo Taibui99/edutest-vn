@@ -11,11 +11,11 @@ function getInitials(name: string) {
 
 const COLORS = [
   "bg-gradient-to-br from-[#6C4CF1] to-[#B9A5FA]",
-  "bg-gradient-to-br from-[#189A6C] to-[#2F80D8]",
-  "bg-gradient-to-br from-[#E14D4D] to-[#FFB199]",
-  "bg-gradient-to-br from-[#FCF3E2] to-[#B97F10]",
+  "bg-gradient-to-br from-[#0E7350] to-[#1A5FB0]",
+  "bg-gradient-to-br from-[#BE3B3B] to-[#FFB199]",
+  "bg-gradient-to-br from-[#FCF3E2] to-[#8A5A00]",
   "bg-gradient-to-br from-[#B9A5FA] to-[#6C4CF1]",
-  "bg-gradient-to-br from-[#059669] to-[#189A6C]",
+  "bg-gradient-to-br from-[#059669] to-[#0E7350]",
 ];
 
 function getColor(name: string) {

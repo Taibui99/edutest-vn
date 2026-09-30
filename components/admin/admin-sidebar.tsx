@@ -77,7 +77,7 @@ export function AdminSidebar({ user }: { user: { name: string; email: string; ro
               redirectTo="/bang-dieu-khien"
               label="Học sinh"
               active={false}
-              className="flex-1 flex items-center justify-center gap-1.5 px-2 py-2 rounded-xl text-xs font-bold text-[#189A6C] bg-[#E8F7F1] hover:bg-[#D2F0E3] transition-colors cursor-pointer"
+              className="flex-1 flex items-center justify-center gap-1.5 px-2 py-2 rounded-xl text-xs font-bold text-[#0E7350] bg-[#E8F7F1] hover:bg-[#D2F0E3] transition-colors cursor-pointer"
             >
               <BookOpen size={13} /> Học sinh
             </ModeSwitchButton>
@@ -86,7 +86,7 @@ export function AdminSidebar({ user }: { user: { name: string; email: string; ro
               redirectTo="/bang-dieu-khien"
               label="Giáo viên"
               active={false}
-              className="flex-1 flex items-center justify-center gap-1.5 px-2 py-2 rounded-xl text-xs font-bold text-[#2F80D8] bg-[#EAF3FC] hover:bg-[#D8EDFB] transition-colors cursor-pointer"
+              className="flex-1 flex items-center justify-center gap-1.5 px-2 py-2 rounded-xl text-xs font-bold text-[#1A5FB0] bg-[#EAF3FC] hover:bg-[#D8EDFB] transition-colors cursor-pointer"
             >
               <GraduationCap size={13} /> Giáo viên
             </ModeSwitchButton>

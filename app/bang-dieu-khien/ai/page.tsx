@@ -182,9 +182,10 @@ export default function AICoachPage() {
             <Sparkles size={16} className="text-[var(--primary)]" />
           </div>
           <div>
-            <h1 className="text-sm font-black text-[var(--text-primary)]">
+            <h1 className="sr-only">AI Tạo Đề</h1>
+            <h2 className="text-base font-black text-[var(--text-primary)]">
               {role === "teacher" ? "AI Tạo Đề" : "AI Study Coach"}
-            </h1>
+            </h2>
             <p className="text-xs text-[var(--text-muted)]">Powered by Gemini AI + Groq</p>
           </div>
         </div>

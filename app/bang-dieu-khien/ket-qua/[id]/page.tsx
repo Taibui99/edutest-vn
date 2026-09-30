@@ -42,7 +42,7 @@ interface Submission {
 
 function ScoreGauge({ score }: { score: number }) {
   const pct = (score / 10) * 100;
-  const color = score >= 8 ? "#189A6C" : score >= 6.5 ? "#B97F10" : "#E14D4D";
+  const color = score >= 8 ? "#0E7350" : score >= 6.5 ? "#8A5A00" : "#BE3B3B";
   const grade = score >= 8.5 ? "Xuất sắc" : score >= 7 ? "Khá" : score >= 5 ? "Trung bình" : "Yếu";
 
   return (
@@ -127,14 +127,14 @@ export default function ResultPage({ params }: { params: Promise<{ id: string }>
 
         <div className="grid grid-cols-3 gap-3 mt-2">
           <div className="rounded-xl bg-[#E8F7F1] p-3 dark:bg-[#0A2A20]">
-            <CheckCircle2 size={16} className="text-[#189A6C] mx-auto mb-1" />
+            <CheckCircle2 size={16} className="text-[#0E7350] mx-auto mb-1" />
             <p className="text-lg font-black text-[var(--text-primary)]">{sub.correctCount}</p>
-            <p className="text-xs text-[#189A6C] font-bold">Đúng</p>
+            <p className="text-xs text-[#0E7350] font-bold">Đúng</p>
           </div>
           <div className="rounded-xl bg-[#FFECEC] p-3 dark:bg-[#2B1616]">
-            <XCircle size={16} className="text-[#E14D4D] mx-auto mb-1" />
+            <XCircle size={16} className="text-[#BE3B3B] mx-auto mb-1" />
             <p className="text-lg font-black text-[var(--text-primary)]">{sub.totalQuestions - sub.correctCount}</p>
-            <p className="text-xs text-[#E14D4D] font-bold">Sai</p>
+            <p className="text-xs text-[#BE3B3B] font-bold">Sai</p>
           </div>
           <div className="rounded-xl bg-[var(--gray-100)] p-3">
             <Clock size={16} className="text-[var(--text-muted)] mx-auto mb-1" />
@@ -151,20 +151,20 @@ export default function ResultPage({ params }: { params: Promise<{ id: string }>
       {/* Strengths/weaknesses */}
       {wrongQuestions.length === 0 ? (
         <div className="rounded-2xl bg-[#E8F7F1] border border-[#A8E6D6] p-4 mb-5 flex items-center gap-3">
-          <Trophy size={20} className="text-[#189A6C] shrink-0" />
+          <Trophy size={20} className="text-[#0E7350] shrink-0" />
           <div>
             <p className="font-black text-[#064E3B]">Hoàn hảo! Bạn trả lời đúng tất cả câu!</p>
-            <p className="text-sm text-[#189A6C] mt-0.5">Tiếp tục duy trì phong độ nhé.</p>
+            <p className="text-sm text-[#0E7350] mt-0.5">Tiếp tục duy trì phong độ nhé.</p>
           </div>
         </div>
       ) : (
-        <div className="rounded-2xl bg-[#FCF3E2] border border-[#B97F1080] p-4 mb-5">
+        <div className="rounded-2xl bg-[#FCF3E2] border border-[#8A5A0080] p-4 mb-5">
           <p className="font-black text-[#78350F] mb-2 flex items-center gap-1.5">
             <PenLine size={14} /> Bạn sai {wrongQuestions.length} câu — cần ôn lại:
           </p>
           <div className="flex flex-wrap gap-2">
             {wrongQuestions.slice(0, 6).map((q) => (
-              <span key={q.id} className="text-xs bg-[var(--surface-card)] border border-[#B97F10] text-[var(--warning)] px-2 py-1 rounded-lg font-semibold">
+              <span key={q.id} className="text-xs bg-[var(--surface-card)] border border-[#8A5A00] text-[var(--warning)] px-2 py-1 rounded-lg font-semibold">
                 Câu {q.order}
               </span>
             ))}
@@ -201,8 +201,8 @@ export default function ResultPage({ params }: { params: Promise<{ id: string }>
                         isCorrect ? "bg-[#E8F7F1]" : "bg-[#FFECEC]"
                       }`}>
                         {isCorrect
-                          ? <CheckCircle2 size={13} className="text-[#189A6C]" />
-                          : <XCircle size={13} className="text-[#E14D4D]" />
+                          ? <CheckCircle2 size={13} className="text-[#0E7350]" />
+                          : <XCircle size={13} className="text-[#BE3B3B]" />
                         }
                       </span>
                       <p className="text-sm font-semibold text-[var(--text-primary)]">
@@ -226,14 +226,14 @@ export default function ResultPage({ params }: { params: Promise<{ id: string }>
                             }`}
                           >
                             <span className={`w-5 h-5 rounded-full text-xs font-black flex items-center justify-center shrink-0 ${
-                              isCorrectAnswer ? "bg-[#189A6C] text-white" :
-                              isUserPick && !isCorrect ? "bg-[#E14D4D] text-white" :
+                              isCorrectAnswer ? "bg-[#0E7350] text-white" :
+                              isUserPick && !isCorrect ? "bg-[#BE3B3B] text-white" :
                               "bg-[var(--gray-200)] text-[var(--text-muted)]"
                             }`}>
                               {letter}
                             </span>
                             {opt}
-                            {isCorrectAnswer && <CheckCircle2 size={13} className="ml-auto text-[#189A6C]" />}
+                            {isCorrectAnswer && <CheckCircle2 size={13} className="ml-auto text-[#0E7350]" />}
                           </div>
                         );
                       })}
