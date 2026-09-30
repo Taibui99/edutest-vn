@@ -32,7 +32,7 @@ export const DateField = forwardRef<HTMLInputElement, DateFieldProps>(
             id={inputId}
             type={type}
             className={cn(
-              "w-full h-9 rounded-lg border border-[var(--surface-border)] bg-[var(--surface-input)] pl-9 pr-3 text-sm text-[var(--text-primary)]",
+              "w-full h-11 sm:h-9 rounded-lg border border-[var(--surface-border)] bg-[var(--surface-input)] pl-9 pr-3 text-base sm:text-sm text-[var(--text-primary)]",
               "focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)] focus:border-[var(--primary)]",
               "disabled:bg-[var(--gray-100)] disabled:cursor-not-allowed",
               "motion-input",

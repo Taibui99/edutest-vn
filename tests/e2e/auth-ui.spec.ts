@@ -61,7 +61,7 @@ test.describe("AUTH UI — Form đăng ký & quên mật khẩu", () => {
     await expect(page.getByRole("heading", { name: /quên mật khẩu/i })).toBeVisible();
     await page.locator("#email").fill(email);
     await page.getByRole("button", { name: /gửi liên kết đặt lại/i }).click();
-    await expect(page.getByText(/nếu email tồn tại/i)).toBeVisible({ timeout: 15000 });
+    await expect(page.getByText(/chúng tôi đã gửi liên kết đặt lại mật khẩu/i)).toBeVisible({ timeout: 15000 });
     // SEC-02 đã vá (4b33879): UI không còn render demo link chứa token
     await expect(page.getByText(/doi-mat-khau\?token=/)).toHaveCount(0);
     // kiểm tra trực tiếp response API — không có trường resetLink
@@ -71,7 +71,7 @@ test.describe("AUTH UI — Form đăng ký & quên mật khẩu", () => {
     expect(json).not.toHaveProperty("resetLink");
     test.info().annotations.push({
       type: "note",
-      description: "SEC-02 đã vá: response API {ok:true} không chứa resetLink, UI chỉ hiện thông báo chung",
+      description: "SEC-02 đã vá: response API {ok:true} không chứa resetLink, UI không render link chứa token (copy đã đổi ở 36ccaaa)",
     });
   });
 
