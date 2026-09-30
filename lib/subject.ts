@@ -19,16 +19,16 @@ export interface SubjectColor {
 }
 
 const subjectMap: Record<string, SubjectColor> = {
-  "Toán":       { text: "#2563EB", bg: "#DBEAFE", border: "#BFDBFE" },
-  "Ngữ Văn":   { text: "#E11D48", bg: "#FFE4E6", border: "#FECDD3" },
+  "Toán":       { text: "#1A5FB0", bg: "#EAF3FC", border: "#C4DCF4" },
+  "Ngữ Văn":   { text: "#BE123C", bg: "#FFE4E6", border: "#FECDD3" },
   "Tiếng Anh": { text: "#6C4CF1", bg: "#F1EDFD", border: "#DCD4FA" },
-  "Vật Lý":    { text: "#D4A017", bg: "#FFF8E1", border: "#FFE8A0" },
-  "Hóa Học":   { text: "#059669", bg: "#D1FAE5", border: "#A7F3D0" },
-  "Sinh Học":  { text: "#0EA5E9", bg: "#E0F2FE", border: "#BAE6FD" },
-  "Lịch Sử":  { text: "#D97706", bg: "#FFFBEB", border: "#FDE68A" },
-  "Địa Lý":   { text: "#16A34A", bg: "#DCFCE7", border: "#BBF7D0" },
-  "GDCD":      { text: "#EA580C", bg: "#FFEDD5", border: "#FED7AA" },
-  "Tin Học":   { text: "#0891B2", bg: "#ECFEFF", border: "#A5F3FC" },
+  "Vật Lý":    { text: "#8A5A00", bg: "#FCF3E2", border: "#F3DFB8" },
+  "Hóa Học":   { text: "#0E7350", bg: "#E8F7F1", border: "#BCE5D6" },
+  "Sinh Học":  { text: "#1A5FB0", bg: "#EAF3FC", border: "#C4DCF4" },
+  "Lịch Sử":  { text: "#8A5A00", bg: "#FCF3E2", border: "#F3DFB8" },
+  "Địa Lý":   { text: "#0E7350", bg: "#E8F7F1", border: "#BCE5D6" },
+  "GDCD":      { text: "#B23C00", bg: "#FDEDE1", border: "#F8D5B8" },
+  "Tin Học":   { text: "#0E6E86", bg: "#E4F6FB", border: "#BCE3EE" },
 };
 
 const defaultColor: SubjectColor = { text: "#6C4CF1", bg: "#F1EDFD", border: "#DCD4FA" };

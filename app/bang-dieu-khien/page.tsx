@@ -517,7 +517,7 @@ function ModeSwitcher({ mode, role }: { mode: string; role: string }) {
                   {card.icon}
                 </span>
                 {active && (
-                  <span className="inline-flex items-center gap-1 text-[11px] font-bold text-[#6C4CF1] bg-white/70 dark:bg-white/10 rounded-full px-2 py-0.5">
+                  <span className="inline-flex items-center gap-1 text-[11px] font-bold text-[#4B31D0] bg-white/85 dark:bg-white/10 rounded-full px-2 py-0.5">
                     <Check size={12} /> Đang dùng
                   </span>
                 )}

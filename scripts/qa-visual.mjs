@@ -21,7 +21,39 @@ const audit = () => {
     });
     return 0.2126 * r + 0.7152 * g + 0.0722 * b;
   };
+  // Tailwind v4 sinh ra oklch()/color(srgb ...), parse rgb thuần se sai hoàn toàn.
+  const oklchToRgb = (L, C, H, a) => {
+    const h = (H * Math.PI) / 180;
+    const A = C * Math.cos(h);
+    const B = C * Math.sin(h);
+    const l_ = L + 0.3963377774 * A + 0.2158037573 * B;
+    const m_ = L - 0.1055613458 * A - 0.0638541728 * B;
+    const s_ = L - 0.0894841775 * A - 1.291485548 * B;
+    const l = l_ * l_ * l_, m = m_ * m_ * m_, s = s_ * s_ * s_;
+    const lin = [
+      4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s,
+      -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s,
+      -0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s,
+    ];
+    const enc = lin.map((v) => {
+      const c = v <= 0.0031308 ? 12.92 * v : 1.055 * Math.pow(Math.max(v, 0), 1 / 2.4) - 0.055;
+      return Math.round(Math.min(1, Math.max(0, c)) * 255);
+    });
+    return { rgb: enc, a };
+  };
   const parse = (c) => {
+    if (!c || c === "transparent" || c === "none") return null;
+    const ok = c.match(/oklch\(\s*([\d.]+)(%?)\s+([\d.]+)\s+([\d.]+)(?:deg)?\s*(?:\/\s*([\d.]+%?)\s*)?\)/);
+    if (ok) {
+      const L = ok[2] === "%" ? parseFloat(ok[1]) / 100 : parseFloat(ok[1]);
+      const a = ok[5] ? (ok[5].endsWith("%") ? parseFloat(ok[5]) / 100 : parseFloat(ok[5])) : 1;
+      return oklchToRgb(L, parseFloat(ok[3]), parseFloat(ok[4]), a);
+    }
+    const srgb = c.match(/color\(srgb\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)(?:\/\s*([\d.]+%?))?\)/);
+    if (srgb) {
+      const a = srgb[4] ? (srgb[4].endsWith("%") ? parseFloat(srgb[4]) / 100 : parseFloat(srgb[4])) : 1;
+      return { rgb: [srgb[1], srgb[2], srgb[3]].map((v) => Math.round(v * 255)), a };
+    }
     const m = c.match(/[\d.]+/g);
     if (!m) return null;
     const o = c.startsWith("rgba") && Number(m[3]) < 0.6 ? Number(m[3]) : 1;

@@ -220,10 +220,10 @@ export default function AICoachPage() {
 
       <div className="shrink-0 border-t border-[var(--surface-border)] bg-[var(--surface-bg)]/95 backdrop-blur-sm px-4 pt-3 pb-2 lg:pb-3">
         <div className="flex items-center justify-between gap-3 mb-2">
-          <span className="text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-wide">
+          <span className="text-[11px] font-bold text-[var(--text-secondary)] uppercase tracking-wide">
             Gợi ý cho bạn
           </span>
-          <span className="text-[10px] text-[var(--text-muted)] hidden sm:block">
+          <span className="text-[11px] text-[var(--text-secondary)] hidden sm:block">
             Chạm để gửi ngay
           </span>
         </div>
@@ -261,7 +261,7 @@ export default function AICoachPage() {
             {loading ? <Spinner size="sm" color="white" /> : <Send size={15} />}
           </button>
         </div>
-        <p className="text-center text-[11px] text-[var(--text-muted)] mt-2">
+        <p className="text-center text-[11px] text-[var(--text-secondary)] mt-2">
           AI có thể mắc lỗi. Kiểm tra thông tin quan trọng từ nguồn đáng tin cậy.
         </p>
       </div>
