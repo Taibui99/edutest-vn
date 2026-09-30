@@ -16,8 +16,7 @@ export async function Header() {
         </Link>
 
         <nav className="hidden md:flex items-center gap-6">
-          <Link href="/#tinh-nang" className="text-sm font-semibold" style={{ color: "var(--text-secondary)" }}>Tính năng</Link>
-          <Link href="/#huong-dan" className="text-sm font-semibold" style={{ color: "var(--text-secondary)" }}>Hướng dẫn</Link>
+          <Link href="/vao-thi" className="text-sm font-semibold" style={{ color: "var(--text-secondary)" }}>Vào thi</Link>
         </nav>
 
         <div className="flex items-center gap-2">

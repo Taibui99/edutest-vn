@@ -1,34 +1,25 @@
 import { test, expect } from "@playwright/test";
 
-test.describe("LANDING — Trang chủ", () => {
-  test("L-01: Landing hiển thị đầy đủ sections", async ({ page }) => {
+test.describe("LANDING — Trang chủ (tối giản)", () => {
+  test("L-01: Chỉ có hero + 2 lối vào", async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByRole("heading", { name: /tạo đề thi siêu tốc/i })).toBeVisible();
-    await expect(page.getByText(/dành cho học sinh/i)).toBeVisible();
-    await expect(page.getByText(/dành cho giáo viên/i)).toBeVisible();
-    await expect(page.getByText("Tham gia lớp học").first()).toBeVisible();
-    await expect(page.getByText("AI Study Coach").first()).toBeVisible();
-    await expect(page.getByText("Thống kê tiến độ").first()).toBeVisible();
-    await expect(page.getByText("Tạo đề trên một màn hình").first()).toBeVisible();
-    await expect(page.getByText("Đề thi đã tạo")).toBeVisible();
-    await expect(page.getByText("Bài nộp đã chấm")).toBeVisible();
-    await expect(page.getByRole("link", { name: /bắt đầu soạn đề miễn phí/i }).first()).toBeVisible();
+    await expect(page.getByRole("heading", { name: /soạn đề thi và chấm bài trực tuyến/i })).toBeVisible();
+    await expect(page.getByRole("link", { name: /tạo tài khoản giáo viên/i })).toBeVisible();
     await expect(page.getByRole("link", { name: /vào thi bằng mã/i }).first()).toBeVisible();
+    // Đã bỏ nội dung thừa
+    await expect(page.getByText(/AI Study Coach/i)).toHaveCount(0);
+    await expect(page.getByText(/Đề thi đã tạo/i)).toHaveCount(0);
+    await expect(page.getByText(/Hướng dẫn/i)).toHaveCount(0);
   });
 
-  test("L-02: Header đăng xuất → link Đăng nhập/Đăng ký + nav", async ({ page }) => {
+  test("L-02: Header đăng xuất → link Đăng nhập/Đăng ký", async ({ page }) => {
     await page.goto("/");
-    const isMobile = test.info().project.name === "mobile";
     const header = page.locator("header");
     await expect(header.getByRole("link", { name: "Đăng nhập" }).filter({ visible: true })).toBeVisible();
     await expect(header.getByRole("link", { name: "Đăng ký" }).filter({ visible: true })).toBeVisible();
-    if (!isMobile) {
-      await expect(header.getByRole("link", { name: "Tính năng" })).toBeVisible();
-      await expect(header.getByRole("link", { name: "Hướng dẫn" })).toBeVisible();
-    }
   });
 
-  test("L-03: Header đăng nhập → nút Bảng điều khiển + Đăng xuất", async ({ page }) => {
+  test("L-03: Header đăng nhập → nút Vào EduTest + Đăng xuất", async ({ page }) => {
     await page.goto("/dang-nhap");
     await page.locator("#email").fill("tester-gv-20260816@edutest.vn");
     await page.locator("#password").fill("Test@12345");
@@ -40,15 +31,9 @@ test.describe("LANDING — Trang chủ", () => {
     await expect(header.getByRole("button", { name: /đăng xuất/i })).toBeVisible();
   });
 
-  test("L-04: Nút Hướng dẫn cuộn tới hướng dẫn", async ({ page }) => {
-    await page.goto("/");
-    test.skip(test.info().project.name === "mobile", "Nav ẩn trên mobile");
-    await page.getByRole("link", { name: "Hướng dẫn" }).click();
-    await expect(page.getByRole("heading", { name: /từ ý tưởng đến đề thi hoàn chỉnh/i })).toBeVisible({ timeout: 10000 });
-  });
-
   test("L-05: Footer hiển thị", async ({ page }) => {
     await page.goto("/");
     await expect(page.getByText(/© 2026 EduTest.vn/)).toBeVisible();
+    await expect(page.getByRole("link", { name: "Điều khoản" })).toBeVisible();
   });
 });

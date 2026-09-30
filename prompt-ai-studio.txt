@@ -1,0 +1,43 @@
+# PROMPT DÁN THẲNG VÀO GEMINI / AI STUDIO (dùng được NGAY, không cần deploy)
+
+## Cách dùng
+1. Mở https://aistudio.google.com (Gemini) → New chat
+2. Chọn model **Gemini 2.5 Pro** (chất lượng tốt nhất) hoặc 2.5 Flash (nhanh)
+3. Dán **phần lý thuyết bạn đã lọc** vào (1 bản tin nhắn)
+4. Dán tiếp PROMPT bên dưới (1 bản tin nhắm riêng)
+5. AI trả về JSON. Copy toàn bộ khối JSON
+6. Vào EduTest → Tạo đề thi → Import đề → dán nội dung → AI soạn câu hỏi mới
+
+---
+
+## PROMPT (bỏ dấu ``` ngoài cùng)
+
+Hãy đọc kỹ phần lý thuyết tôi gửi và SOẠN MỚI câu hỏi từ đó.
+
+YÊU CẦU BẮT BUỘC:
+- Số câu: đúng 20 câu
+- Tỉ lệ độ khó: nhận biết 8 câu, thông hiểu 8 câu, vận dụng 4 câu
+- Loại câu: trắc nghiệm 4 đáp án A, B, C, D — chỉ có 1 đáp án đúng
+- Đáp án đúng phân bố cân bằng, không dồn cục (không để 3 câu liên tiếp cùng đáp án A)
+- 3 đáp án sai phải hợp lý, gây nhầm lẫn cho học sinh giỏi — KHÔNG vô lý, KHÔNG quá dễ
+- Câu hỏi tự đủ nghĩa, KHÔNG viết "theo tài liệu trên"
+- CHỈ dùng kiến thức có trong tài liệu. KHÔNG bịa công thức, số liệu, định nghĩa
+- Với câu vận dụng: yêu cầu tính toán hoặc áp dụng vào tình huống cụ thể
+
+TRẢ VỀ DUY NHẤT JSON THEO ĐÚNG MẪU NÀY (không thêm chữ nào ngoài JSON):
+
+{
+  "title": "Tên đề suy ra từ chủ đề chính",
+  "questions": [
+    {
+      "type": "mcq",
+      "question": "Nội dung câu hỏi?",
+      "options": ["A", "B", "C", "D"],
+      "answer": "B",
+      "points": 1
+    }
+  ]
+}
+
+Lưu ý: "options" chỉ chứa NỘI DUNG đáp án (không ghi chữ A. B. C. trước), "answer" là CHỮ cái của đáp án đúng.
+Sau khi trả về JSON, tự kiểm tra lại: đúng 20 câu, mỗi câu đủ 4 đáp án, đáp án đúng chỉ có 1, đáp án đúng phân bố cân bằng.
