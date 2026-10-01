@@ -130,6 +130,7 @@ Tất cả L1–L4 trong commit `6e0ad48` — verified live: robots.txt/sitemap.
 - [x] **MOB-2 Đồng bộ màu toàn hệ + tương phản WCAG AA** (commit `c3acc9d` + `7cd4ad6` + `8127a8a`) — user báo "giao diện mobile quá xấu". Đo contrast thật bằng `scripts/qa-visual.mjs`: `muted #6B7280` chỉ 4.46:1, `#2F80D8` 3.60:1, `#189A6C` ~3.2:1, `#B97F10` 3.44:1. Đã sửa 4 nhóm: (1) làm tối token trong `globals.css` (muted→`#5B6470`, blue→`#1A5FB0`, mint→`#0E7350`, yellow→`#8A5A00`, coral/danger→`#BE3B3B`) + **209 chỗ hex literal** trong 35 file không dùng token; (2) **85 class màu Tailwind mặc định** còn sót (blue/slate/red/amber/emerald...) trong 15 file → map sang token, hết "loạn tông" xanh/xám xen violet; (3) bảng môn trong `lib/subject.ts` 11 môn đổi sang bảng tối tương thích; (4) bổ sung token dark (`:root` chỉ có bản sáng) + nút disabled đổi từ chữ trắng trên nền lavender (1.42:1) sang nền xám + chữ muted. Sửa luôn `bg-black/70/45` sai cú pháp (scrim modal import vốn không hiện). Thêm `.text-gradient-brand` fallback màu đọc được, h1 `de-thi`/editor 20px→22px, AI đổi `h1` 14px thành `h2` + `sr-only h1`, hero mobile bỏ full-viewport (`72vh`) bớt trống. **Audit 390px còn 0 cảnh báo contrast** trên 8 route (guest + teacher).
 - [x] **QA-VIS Sửa script audit thị giác** (commit `8127a8a`) — script từng báo sai vì 3 lỗi: parse sai `oklab()` của Tailwind v4 (`bg-white/85` bị hiểu là đen 85%), đọc alpha sai (`rgba(255,255,255,.85)` → 100%), và không lấy nền từ `body`. Đã thêm đủ 3 nhánh chuyển đổi màu + `chainOf()` debug. Tách context guest/teacher trong `qa-mobile-shots.mjs` (trước login trước khi chụp nên ảnh route public bị redirect). `qa-shots/` đã git-ignore.
 - [ ] **MOB-3 Chỉnh lại bố cục/density theo feedback mắt của user** — sau khi MOB-2 xong, chờ user xem `qa-shots/` và chỉ điểm cụ thể cần làm đẹp thêm (card density, header, khoảng đệm, hierarchy). Không tự ý đổi layout lớn khi chưa có chỉ dẫn.
+- [x] **AI-4 AI tự dựng đề từ tài liệu (thay import đề)** — pipeline 1 lần: đọc tài liệu → nhận diện loại đề → nhận diện đáp án có sẵn → tự làm đáp án khi thiếu → **màn hình review để giáo viên duyệt trước khi nhập vào editor**. Ràng buộc: ưu tiên đáp án đúng 100% (đồng thuận 2 lượt + phá thế hoản, câu nào chưa chắc thì đánh dấu cho giáo viên xem); đề tự luận thì phân tích ra các mức độ khó để giáo viên chọn sau khi đã đọc đề. Chi tiết ở mục "AI đọc tài liệu & tự dựng đề" phía dưới.
 
 ## ✅ Đã xong (không cần làm lại)
 - Share/QR (§8, §14) — `chia-se-de/[joinCode]`: copy link, mã truy cập, QR + tải QR, native share
@@ -140,3 +141,28 @@ Tất cả L1–L4 trong commit `6e0ad48` — verified live: robots.txt/sitemap.
 - [x] **QA-1 E2E suite đầy đủ** — 22 spec / 192 test Playwright chạy trực tiếp trên https://edutest-vn.vercel.app, 2 project desktop 1366×768 + mobile 390×844: **189 passed + 2 flaky timing + 1 skip chủ ý**. Phủ: landing, auth (đăng ký/đăng nhập/validation), RBAC, dashboard, editor tạo đề, ngân hàng câu hỏi, chi tiết đề (stats/CSV/đóng-xóa), lớp học (tạo/tham gia/giao đề), làm bài student (guest, anti-cheat, autosave), kết quả/xem lại đáp án, hồ sơ, góc học tập (streak/task/flashcard/AI), chia sẻ đề (QR/link), AI Coach, admin UI (users/exams/reports/analytics/system/settings + chặn student).
 - [x] **QA-2 Bugs xác nhận** — BUG-01 P1 register nhận email sai định dạng; SEC-01 P1 token admin cũ thiếu claim `mode` vẫn gọi được API admin (đã vá bằng login thật); SEC-02 P2 forgot-password trả resetLink plaintext + demo link hiển thị trên UI.
 - [x] **QA-3 Dọn dữ liệu test** — xóa toàn bộ exam/lớp/tài khoản QA qua API (`scripts/cleanup-qa.js` giữ lại để dùng sau); production về trạng thái sạch, chỉ giữ 3 tài khoản: tester-gv/tester-hs/admin-p2.
+
+## 🤖 AI đọc tài liệu & tự dựng đề (AI-4, đang làm)
+
+**Yêu cầu của user (2026-10-01):** thay phần import đề bằng AI — đọc tài liệu rồi tự suy luận ra đề; đề lý thuyết thì phân tích câu hỏi và tạo các mức độ khó cho giáo viên chọn (sau khi đã đọc được đề); đề trắc nghiệm thì dò xem có phần đáp án ở sau không, nếu không có thì AI phải tự làm đáp án, ưu tiên đúng 100%.
+
+**Luồng chuẩn (1 lần chạy, không cần giáo viên chọn chế độ trước):**
+1. **Đọc tài liệu** — `.docx` (mammoth) / `.pdf` (pdf-parse, hỏng thì upload thẳng lên Gemini) / text dán.
+2. **Nhận diện** — `kind: "mcq" | "theory"`; tìm bảng đáp án (thường ở cuối tài liệu: `ĐÁP ÁN: 1.A 2.B`, bảng, hoặc đáp án nhúng ngay sau câu). Ghi rõ có/không tìm thấy để giáo viên thấy.
+3. **Trắc nghiệm có đáp án** — dùng đáp án trong tài liệu, đánh dấu nguồn = `tài liệu`.
+4. **Trắc nghiệm thiếu đáp án** — AI tự làm: **2 lượt độc lập** rồi đối chiếu; lệch nhau thì **phá thế hoản** (lượt 3, đưa cả 2 phương án + lập luận); vẫn không chắc → `needsReview` để giáo viên xem. Mục tiêu: không đoán bừa, đúng là chính.
+5. **Đề tự luận** — mỗi câu gán 1 mức độ khó (`nhận biết` / `thông hiểu` / `vận dụng`) + gợi ý biên chấm; giáo viên đổi mức độ khó ngay trên màn hình review.
+6. **Màn hình review** (bắt buộc, không auto-import) — xem loại đề, số câu, số đáp án lấy từ tài liệu vs AI tự làm, số câu đồng thuận / cần xem; từng câu: nội dung, đáp án, nguồn đáp án, chọn độ khó, bỏ câu không muốn lấy → bấm **"Áp dụng vào đề"** mới đổ vào editor.
+
+**Lưu độ khó:** ghi trong `grading.difficulty` (+ `grading.rubricPoints`, `grading.answerSource`, `grading.confidence`) — không cần migration DB, hiển thị lại được trong editor.
+
+### Đã triển khai (2026-10-01)
+- `lib/ai-exam-build.ts` — logic thuần: `normalizeDifficulty`, `normalizeMcqAnswer`, `detectAnswerKey` (dò bảng đáp án cuối tài liệu, chỉ nhận mẫu an toàn để tránh báo nhầm), `normalizeQuestion`, `reconcileAnswers` (đồng thuận 0.95 / sau tie-break 0.75 / chưa chắc 0.5), `computeStats`.
+- `app/api/gemini/route.ts` — `mode="smart"` là mặc định; prompt phân tích dựng lại đề + nhận diện đáp án; `solveMissingAnswers` chạy 2 lượt song song + tie-break cho câu lệch; PDF scan fallback qua Gemini Files API (`geminiReadScannedPdf`); stream `stage: solve` kèm `meta.done/total`; `meta.smart` trả thống kê về nền tảng.
+- `lib/import-exam.ts` — mode `smart`, stage `solve`, timeout client 420s, callback progress.
+- `components/exams/import-exam-modal.tsx` — 2 tab (AI đọc tài liệu dựng đề / AI soạn câu hỏi mới); màn hình **review**: thẻ tổng kết nguồn đáp án, cảnh báo "câu AI không chắc chắn 100%", badge đồng thuận, chỉnh sửa nội dung/đáp án, chọn độ khó, hiện ý chấm gợi ý, bỏ câu, bấm "Áp dụng N câu vào đề" mới đổ vào editor.
+- `app/bang-dieu-khien/tao-de-thi/editor.tsx` — `Grading` có `difficulty` + `rubricPoints`; `withAiMetadata` giữ metadata khi import và khi mở đề đã lưu; selector độ khó cho mọi câu.
+- `scripts/qa-ai-exam-build.mjs` — test thuần cho pipeline (13/13 pass, chạy: `node scripts/qa-ai-exam-build.mjs`).
+- Kiểm tra: `tsc --noEmit` 0 lỗi, eslint không cảnh báo, `next build` thành công.
+
+**Smoke test còn lại:** local `.env` có `GEMINI_API_KEY` giả (`len=5`) + DB dummy nên chưa chạy được end-to-end với Gemini thật — cần thử upload 1 file đề thật trên production sau khi push.

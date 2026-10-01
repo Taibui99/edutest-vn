@@ -16,10 +16,53 @@ import { ImportExamModal } from "@/components/exams/import-exam-modal";
 
 type QuestionType = "mcq" | "true_false" | "short_answer" | "essay";
 type Statement = { text: string; answer: boolean };
-interface Question { type: QuestionType; question: string; options: string[]; answer: string; grading?: { statements?: Statement[]; acceptedAnswers?: string[] }; points: number }
+type Difficulty = "nhận biết" | "thông hiểu" | "vận dụng";
+const DIFFICULTIES: Difficulty[] = ["nhận biết", "thông hiểu", "vận dụng"];
+const DEFAULT_DIFFICULTY: Difficulty = "nhận biết";
+/** Metadata AI sinh ra, lưu trong grading (không cần migration DB). */
+type Grading = {
+  statements?: Statement[];
+  acceptedAnswers?: string[];
+  difficulty?: Difficulty;
+  rubricPoints?: string[];
+};
+interface Question { type: QuestionType; question: string; options: string[]; answer: string; grading?: Grading; points: number }
 
-type ImportedQuestion = { type?: QuestionType; question?: unknown; questionText?: unknown; options?: unknown; answer?: unknown; grading?: unknown; points?: unknown };
+type ImportedQuestion = {
+  type?: QuestionType;
+  question?: unknown;
+  questionText?: unknown;
+  options?: unknown;
+  answer?: unknown;
+  grading?: Grading;
+  difficulty?: unknown;
+  rubricPoints?: unknown;
+  points?: unknown;
+};
 type DbQuestion = { type: string; text: string; options: string[]; answer: string; grading: unknown; points: number };
+
+function normalizeDifficulty(value: unknown): Difficulty | null {
+  const s = String(value ?? "").trim().toLowerCase();
+  return DIFFICULTIES.find((d) => d === s) ?? null;
+}
+
+/** Giữ metadata độ khó/rubric do AI gợi ý khi nhập hoặc khi mở đề đã lưu. */
+function withAiMetadata(q: Question, source: { grading?: Grading | null; difficulty?: unknown; rubricPoints?: unknown }): Question {
+  const fromGrading = (source.grading ?? {}) as Grading;
+  const rubric = Array.isArray(source.rubricPoints)
+    ? source.rubricPoints.map(String).filter(Boolean)
+    : Array.isArray(fromGrading.rubricPoints)
+      ? fromGrading.rubricPoints.filter(Boolean)
+      : [];
+  const difficulty = normalizeDifficulty(source.difficulty) ?? normalizeDifficulty(fromGrading.difficulty);
+  if (!difficulty && rubric.length === 0) return q;
+  q.grading = {
+    ...(q.grading ?? {}),
+    ...(difficulty ? { difficulty } : {}),
+    ...(rubric.length ? { rubricPoints: rubric } : {}),
+  };
+  return q;
+}
 
 const TYPE_OPTIONS = [
   { value: "mcq", label: "Trắc nghiệm" },
@@ -50,23 +93,23 @@ function importedToQuestion(raw: ImportedQuestion): Question {
     const acceptedAnswers = (raw.grading as { acceptedAnswers?: string[] } | undefined)?.acceptedAnswers;
     q.grading = { acceptedAnswers: Array.isArray(acceptedAnswers) && acceptedAnswers.length ? acceptedAnswers.map(String) : [String(raw.answer ?? "")] };
   }
-  return q;
+  return withAiMetadata(q, raw);
 }
 
 function dbToQuestion(raw: DbQuestion): Question {
   const type = ["mcq","true_false","short_answer","essay"].includes(raw.type) ? (raw.type as QuestionType) : "mcq";
   if (type === "true_false") {
     const statements = (raw.grading as { statements?: Statement[] } | null | undefined)?.statements;
-    return { type, question: raw.text, options: [], answer: raw.answer || "", grading: { statements: Array.isArray(statements) && statements.length ? statements : [{ text: "", answer: true }] }, points: raw.points };
+    return withAiMetadata({ type, question: raw.text, options: [], answer: raw.answer || "", grading: { statements: Array.isArray(statements) && statements.length ? statements : [{ text: "", answer: true }] }, points: raw.points }, { grading: raw.grading as Grading | null });
   }
   if (type === "short_answer") {
     const acceptedAnswers = (raw.grading as { acceptedAnswers?: string[] } | null | undefined)?.acceptedAnswers;
-    return { type, question: raw.text, options: [], answer: raw.answer || "", grading: { acceptedAnswers: Array.isArray(acceptedAnswers) && acceptedAnswers.length ? acceptedAnswers.map(String) : [raw.answer || ""] }, points: raw.points };
+    return withAiMetadata({ type, question: raw.text, options: [], answer: raw.answer || "", grading: { acceptedAnswers: Array.isArray(acceptedAnswers) && acceptedAnswers.length ? acceptedAnswers.map(String) : [raw.answer || ""] }, points: raw.points }, { grading: raw.grading as Grading | null });
   }
   if (type === "essay") {
-    return { type, question: raw.text, options: [], answer: raw.answer || "", points: raw.points };
+    return withAiMetadata({ type, question: raw.text, options: [], answer: raw.answer || "", points: raw.points }, { grading: raw.grading as Grading | null });
   }
-  return { type, question: raw.text, options: Array.isArray(raw.options) && raw.options.length ? raw.options : ["","","",""], answer: (raw.answer || "A").charAt(0).toUpperCase() || "A", points: raw.points };
+  return withAiMetadata({ type, question: raw.text, options: Array.isArray(raw.options) && raw.options.length ? raw.options : ["","","",""], answer: (raw.answer || "A").charAt(0).toUpperCase() || "A", points: raw.points }, { grading: raw.grading as Grading | null });
 }
 
 export interface InitialExam {
@@ -167,6 +210,20 @@ export function TaoDeThiEditor({ editId, initialExam }: { editId: string | null;
                 <div key={i} className="rounded-2xl border border-[var(--surface-border)] bg-[var(--surface-page)] p-4">
                   <div className="mb-3 flex items-center justify-between gap-3"><div className="flex items-center gap-2"><span className="grid h-7 w-7 place-items-center rounded-lg bg-[var(--primary-light)] text-xs font-black text-[var(--primary)]">{i+1}</span><Select value={q.type} onChange={(e) => changeType(i, e.target.value as QuestionType)} options={TYPE_OPTIONS}/></div><div className="flex items-center gap-2"><NumberInput value={q.points} onChange={(v)=>updateQuestion(i,{points:v})} min={0.25} max={20} step={0.25} className="w-24"/><button title="Xóa câu" onClick={() => removeQuestion(i)} className="grid h-10 sm:h-8 w-10 sm:w-8 place-items-center rounded-lg text-[var(--text-muted)] hover:bg-[var(--danger-light)] hover:text-[var(--danger)]"><Trash2 size={15}/></button></div></div>
                   <textarea value={q.question} onChange={(e) => updateQuestion(i,{question:e.target.value})} rows={3} placeholder="Nhập nội dung câu hỏi..." className="w-full rounded-xl border border-[var(--surface-border)] bg-[var(--surface-card)] p-3 text-sm outline-none"/>
+
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <span className="text-xs font-semibold text-[var(--text-secondary)]">Độ khó</span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {DIFFICULTIES.map((d) => (
+                        <button key={d} type="button" onClick={() => updateQuestion(i,{grading:{...q.grading, difficulty: d}})}
+                          aria-pressed={(q.grading?.difficulty ?? DEFAULT_DIFFICULTY) === d}
+                          className={cn("rounded-lg px-3 py-1.5 text-xs font-semibold transition", (q.grading?.difficulty ?? DEFAULT_DIFFICULTY) === d ? "bg-[var(--primary)] text-white" : "border border-[var(--surface-border)] bg-[var(--surface-card)] text-[var(--text-secondary)] hover:border-[var(--surface-border-strong)]")}>
+                          {d}
+                        </button>
+                      ))}
+                    </div>
+                    {q.grading?.rubricPoints?.length ? <span className="rounded-lg bg-[var(--gray-100)] px-2.5 py-1.5 text-xs text-[var(--text-muted)]">{q.grading.rubricPoints.length} ý chấm gợi ý</span> : null}
+                  </div>
 
                   {q.type === "mcq" && <div className="mt-3 grid gap-2 md:grid-cols-2">{q.options.map((opt, oi) => { const letter=String.fromCharCode(65+oi); const selected=q.answer===letter; return <div key={letter} className={cn("flex items-center gap-2 rounded-xl border p-3 sm:p-2.5", selected ? "border-[var(--success)] bg-[var(--success-light)]" : "border-[var(--surface-border)] bg-[var(--surface-card)]")}><button onClick={()=>updateQuestion(i,{answer:letter})} className={cn("grid h-10 sm:h-7 w-10 sm:w-7 place-items-center rounded-full text-xs font-black",selected?"bg-[var(--success)] text-white":"bg-[var(--gray-100)] text-[var(--text-secondary)]")}>{letter}</button><input value={opt} onChange={(e)=>{const options=[...q.options]; options[oi]=e.target.value; updateQuestion(i,{options});}} placeholder={`Đáp án ${letter}`} className="min-w-0 flex-1 bg-transparent text-sm outline-none"/></div>;})}</div>}
 

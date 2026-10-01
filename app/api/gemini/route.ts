@@ -7,6 +7,17 @@ import { prisma } from "@/lib/prisma";
 import { isTeacherAccess } from "@/lib/access";
 import { getSetting } from "@/lib/settings";
 import { generateWithRetry, withTimeout } from "@/lib/ai";
+import {
+  DIFFICULTY_LEVELS,
+  computeStats,
+  detectAnswerKey,
+  normalizeDifficulty,
+  normalizeMcqAnswer,
+  normalizeQuestion,
+  reconcileAnswers,
+  type SmartPayload,
+  type SmartQuestion,
+} from "@/lib/ai-exam-build";
 
 const geminiModel = process.env.EXAM_IMPORT_MODEL || "gemini-3.5-flash-lite";
 const MAX_FILE_BYTES = 50 * 1024 * 1024;
@@ -100,6 +111,52 @@ QUY TẮC:
 - Không giải bài, không giải thích, không thêm nội dung.
 - Trả về JSON đúng response schema.`;
 
+const smartSchema = {
+  type: "object",
+  properties: {
+    title: { type: "string" },
+    subject: { type: "string" },
+    kind: { type: "string", enum: ["mcq", "theory"] },
+    answerKeyFound: { type: "boolean" },
+    answerKeyNote: { type: "string" },
+    questions: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          type: { type: "string", enum: ["mcq", "true_false", "short_answer", "essay"] },
+          question: { type: "string" },
+          options: { type: "array", items: { type: "string" } },
+          answer: { type: "string" },
+          points: { type: "number" },
+          difficulty: { type: "string" },
+          answerSource: { type: "string", enum: ["document", "ai", "unknown"] },
+          confidence: { type: "number" },
+          needsReview: { type: "boolean" },
+          solveNote: { type: "string" },
+          rubricPoints: { type: "array", items: { type: "string" } },
+          grading: {
+            type: "object",
+            properties: {
+              statements: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: { text: { type: "string" }, answer: { type: "boolean" } },
+                  required: ["text", "answer"],
+                },
+              },
+              acceptedAnswers: { type: "array", items: { type: "string" } },
+            },
+          },
+        },
+        required: ["type", "question"],
+      },
+    },
+  },
+  required: ["title", "kind", "questions"],
+};
+
 const responseSchema = {
   type: "object",
   properties: {
@@ -136,6 +193,200 @@ const responseSchema = {
   },
   required: ["title", "questions"],
 };
+
+const analyzePrompt = `Bạn là chuyên gia phân tích đề thi Việt Nam. NHIỆM VỤ: đọc TÀI LIỆU và DỰNG LẠI ĐỀ THI đang có trong tài liệu (đây là đề sẵn có, KHÔNG tự soạn câu hỏi mới).
+
+BƯỚC 1 - NHẬN DIỆN:
+- kind: "mcq" nếu đa số câu là trắc nghiệm có lựa chọn A/B/C/D; "theory" nếu câu hỏi tự luận/tra lời ngắn (không có lựa chọn).
+- answerKeyFound: true nếu trong tài liệu CÓ phần đáp án (thường ở cuối: "ĐÁP ÂN", bảng đáp án, hoặc đáp án ghi ngay sau câu). Ghi rõ trong answerKeyNote là đáp án nằm ở đâu.
+
+BƯỚC 2 - DỰNG TỪNG CÂU:
+- Giữ nguyên nội dung câu hỏi, không tự diễn đạt lại, không thêm bớt.
+- mcq: options đúng 4 lựa chọn (bỏ tiền tố "A." trong text), answer là CHỮ CÁI đúng.
+  - answerSource = "document" NẾU đáp án có sẵn trong tài liệu (chắc chắn tuyệt đối).
+  - NẾU KHÔNG có đáp án: tự giải, answerSource = "ai", confidence = 0..1 (thận trọng, dưới 0.6 nếu chưa chắc), needsReview = true khi bạn không chắc chắn, solveNote ghi ngắn lý do.
+- true_false / short_answer / essay: grading theo đúng ý nghĩa (statements cho true_false, acceptedAnswers cho short_answer).
+- points: số điểm nếu tài liệu có ghi, ngược lại 1.
+
+BƯỚC 3 - ĐỘ KHÓ (bắt buộc với câu tự luận/trả lời ngắn, và với cả mcq nếu tiện):
+- difficulty chỉ chọn đúng 1 trong: ${DIFFICULTY_LEVELS.join(", ")}.
+- rubricPoints: các ý chính cần có trong bài làm, dùng để giáo viên chấm hoặc AI chấm sau này.
+
+Trả về JSON đúng response schema.`;
+
+const solvePrompt = (items: { n: number; question: string; options: string[] }[], run: string) => `Bạn là chuyên gia giải trắc nghiệm Việt Nam. Lượt ${run}.
+
+Với MỖI câu dưới đây, hãy TỰ GIẢI và chọn đáp án đúng duy nhất.
+- Suy luận từ kiến thức trong chính câu hỏi và các lựa chọn; nếu cần dùng kiến thức phổ thông của môn học đó.
+- Không đoán theo thói quen, không chọn đáp án ngẫu nhiên.
+- Chỉ trả về chữ cái đáp án.
+
+Trả về JSON: { "answers": [ { "n": <số thứ tự câu>, "answer": "A|B|C|D", "confidence": 0..1 } ] }`;
+
+const tieBreakPrompt = (q: { n: number; question: string; options: string[] }, cands: string[]) => `Hai lượt giải độc lập cho câu hỏi dưới đây đã cho hai đáp án khác nhau: ${cands.join(" và ")}.
+
+Câu ${q.n}: ${q.question}
+A. ${q.options[0] ?? ""}
+B. ${q.options[1] ?? ""}
+C. ${q.options[2] ?? ""}
+D. ${q.options[3] ?? ""}
+
+Hãy tự giải lại từ đầu, phân tích kỹ từng lựa chọn rồi chốt đáp án đúng.
+Trả về JSON: { "answer": "A|B|C|D", "confidence": 0..1 }`;
+
+const SOLVE_BATCH = 8;
+
+async function callJson<T>(model: string, contents: string, schema: unknown, timeoutMs = 70_000): Promise<T> {
+  const raw = await generateWithRetry(
+    (m) => ai.models.generateContent({ model: m, contents, config: { responseMimeType: "application/json", responseSchema: schema, maxOutputTokens: MAX_MODEL_OUTPUT } }).then((r) => r.text),
+    { attempts: 2, timeoutMs },
+  );
+  const cleaned = (raw || "").replace(/^```jsons*/i, "").replace(/```$/i, "").trim();
+  try {
+    return JSON.parse(cleaned) as T;
+  } catch {
+    throw new Error("AI trả về dữ liệu không đúng định dạng JSON");
+  }
+}
+
+const solveSchema = {
+  type: "object",
+  properties: {
+    answers: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: { n: { type: "number" }, answer: { type: "string" }, confidence: { type: "number" } },
+        required: ["n", "answer"],
+      },
+    },
+  },
+  required: ["answers"],
+};
+
+const oneSchema = {
+  type: "object",
+  properties: { answer: { type: "string" }, confidence: { type: "number" } },
+  required: ["answer"],
+};
+
+/**
+ * Tu lam dap an khi tai lieu khong co phan dap an:
+ * 2 luot giai doc lap -> doi chieu -> lech nhau thi pha the hoan (luot 3).
+ * Khong chay cho cau da co dap san trong tai lieu.
+ */
+async function solveMissingAnswers(
+  questions: SmartQuestion[],
+  onProgress?: (done: number, total: number) => void,
+): Promise<{ questions: SmartQuestion[]; agreed: number }> {
+  const todo = questions.filter((q) => q.type === "mcq" && !q.answer);
+  if (todo.length === 0) return { questions, agreed: 0 };
+
+  const votes = new Map<number, { a?: string; b?: string; tie?: string }>();
+  const totalSteps = todo.length * 2;
+  let step = 0;
+
+  for (let i = 0; i < todo.length; i += SOLVE_BATCH) {
+    const batch = todo.slice(i, i + SOLVE_BATCH).map((q, j) => ({ n: i + j + 1, question: q.question, options: q.options }));
+    const [runA, runB] = await Promise.all([
+      callJson<{ answers: { n: number; answer: string }[] }>(geminiModel, solvePrompt(batch, "1"), solveSchema),
+      callJson<{ answers: { n: number; answer: string }[] }>(geminiModel, solvePrompt(batch, "2"), solveSchema),
+    ]);
+    const pick = (res: { answers?: { n: number; answer: string }[] }, n: number) => {
+      const hit = res.answers?.find((x) => Number(x.n) === n);
+      return hit ? normalizeMcqAnswer(hit.answer, 4) ?? undefined : undefined;
+    };
+    for (const item of batch) {
+      const src = todo[item.n - 1];
+      const a = pick(runA, item.n);
+      const b = pick(runB, item.n);
+      votes.set(src.index, { a, b });
+      step += 2;
+      onProgress?.(Math.min(step, totalSteps), totalSteps);
+    }
+  }
+
+  const conflicts = todo.filter((q) => {
+    const v = votes.get(q.index);
+    return v?.a && v?.b && v.a !== v.b;
+  });
+  console.info(`[exam-smart] giải tay ${todo.length} câu; ${votes.size - conflicts.length} đồng thuận; ${conflicts.length} cần phá thế hoản`);
+  if (conflicts.length) {
+    step = todo.length * 2;
+    for (const q of conflicts) {
+      try {
+        const res = await callJson<{ answer: string }>(
+          geminiModel,
+          tieBreakPrompt({ n: q.index + 1, question: q.question, options: q.options }, [votes.get(q.index)!.a!, votes.get(q.index)!.b!]),
+          oneSchema,
+        );
+        votes.get(q.index)!.tie = normalizeMcqAnswer(res.answer, q.options.length) ?? undefined;
+      } catch (error) {
+        console.warn(`[exam-smart] phá thế hoản thất bại câu ${q.index + 1}`, error);
+      }
+      step += 1;
+      onProgress?.(Math.min(step, totalSteps + conflicts.length), totalSteps + conflicts.length);
+    }
+  }
+
+  const indexMap = new Map(todo.map((q) => [q.index, q]));
+  const solved = questions.map((q) => indexMap.get(q.index) ?? q);
+  return reconcileAnswers(solved, votes);
+}
+
+/** Pipeline "AI đọc tài liệu & tự dựng đề". */
+async function runSmartPipeline(
+  content: string,
+  opts: GenerateOptions,
+  onProgress?: (phase: string, done?: number, total?: number) => void,
+): Promise<{ payload: SmartPayload; stats: ReturnType<typeof computeStats> }> {
+  onProgress?.("analyze");
+  const chunks = chunkText(content.slice(0, MAX_TEXT_CHARS));
+  const merged: SmartPayload = { questions: [] };
+  const keyHeuristic = detectAnswerKey(content.slice(0, 60_000));
+
+  for (const chunk of chunks) {
+    const part = await callJson<SmartPayload>(geminiModel, `${analyzePrompt}
+
+NỘI DUNG TÀI LIỆU:
+${chunk}`, smartSchema, 90_000);
+    if (!merged.title && part.title) merged.title = part.title;
+    if (!merged.subject && part.subject) merged.subject = part.subject;
+    if (!merged.kind && part.kind) merged.kind = part.kind;
+    merged.answerKeyFound = merged.answerKeyFound || part.answerKeyFound === true;
+    if (!merged.answerKeyNote && part.answerKeyNote) merged.answerKeyNote = part.answerKeyNote;
+    for (const q of part.questions ?? []) merged.questions!.push(q);
+    onProgress?.("analyze", chunks.indexOf(chunk) + 1, chunks.length);
+  }
+
+  const questions = (merged.questions ?? []).map((q, i) => normalizeQuestion(q, i)).filter((q) => q.question.length > 0);
+  // De nghi tu do phat hien bang thuoc tinh dung chu quy, gan cho cau chua ro nguon dap an
+  for (const q of questions) {
+    if (q.type === "mcq" && q.answer && !q.answerSource) q.answerSource = "document";
+    if (q.type === "mcq" && !q.answer && keyHeuristic?.[q.index + 1]) {
+      q.answer = keyHeuristic[q.index + 1];
+      q.answerSource = "document";
+      q.needsReview = false;
+    }
+    if (q.difficulty) q.difficulty = normalizeDifficulty(q.difficulty) ?? q.difficulty;
+    const rubric = (q as unknown as { rubricPoints?: string[] }).rubricPoints;
+    if (Array.isArray(rubric) && rubric.length) q.grading = { ...(q.grading ?? {}), rubricPoints: rubric.map(String) };
+  }
+  merged.questions = questions;
+
+  const missing = questions.filter((q) => q.type === "mcq" && !q.answer).length;
+  if (missing > 0) {
+    onProgress?.("solve", 0, missing);
+    const { questions: solved, agreed } = await solveMissingAnswers(questions, (done, total) => onProgress?.("solve", done, total));
+    merged.questions = solved;
+    merged.answerKeyFound = merged.answerKeyFound === true && missing === 0;
+    if (!merged.answerKeyNote) merged.answerKeyNote = agreed > 0 ? "Tài liệu không có đáp án — AI đã tự làm và đối chiếu 2 lượt" : "Tài liệu không có đáp án — AI đã tự làm";
+    onProgress?.("solve", missing, missing);
+  }
+
+  const payload: SmartPayload = { ...merged, questions: merged.questions ?? [] };
+  return { payload, stats: computeStats(payload) };
+}
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 const generationConfig = () => ({ responseMimeType: "application/json", responseSchema, maxOutputTokens: MAX_MODEL_OUTPUT });
@@ -184,6 +435,45 @@ async function generatePdfFallback(buffer: Buffer, mimeType: string, fileName: s
 
 const CHUNK_CHARS = 40_000;
 const GENERATE_TIMEOUT_MS = 75_000;
+const SMART_TIMEOUT_MS = 90_000;
+
+/**
+ * PDF scan (không có lớp chữ): tải file lên Gemini Files API rồi bắt Gemini bóc tách
+ * thành văn bản thô để pipeline phân tích tiếp.
+ */
+async function geminiReadScannedPdf(file: File, mimeType: string): Promise<string> {
+  const safeBytes = new Uint8Array(await file.arrayBuffer());
+  const uploaded = await withTimeout(
+    ai.files.upload({ file: new Blob([safeBytes.buffer], { type: mimeType }), config: { displayName: file.name, mimeType } }),
+    AI_TIMEOUT_MS,
+    "Gemini tải PDF quá lâu",
+  );
+  let processed = uploaded;
+  const started = Date.now();
+  while (processed.state === "PROCESSING") {
+    if (Date.now() - started > AI_TIMEOUT_MS) throw new Error("Gemini xử lý PDF quá lâu");
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    processed = await ai.files.get({ name: uploaded.name! });
+  }
+  if (processed.state === "FAILED") throw new Error("Gemini không xử lý được file PDF");
+  try {
+    const text = await generateWithRetry(
+      (model) =>
+        ai.models.generateContent({
+          model,
+          contents: [
+            "Bóc tách TOÀN BỘ văn bản trong file PDF này thành văn bản thuần. Giữ nguyên câu hỏi, lựa chọn A/B/C/D, số thứ tự câu và phần đáp án nếu có. Không tóm tắt, không bỏ câu, không tự thêm câu mới.",
+            { fileData: { fileUri: processed.uri!, mimeType: processed.mimeType || mimeType } },
+          ],
+          config: { maxOutputTokens: MAX_MODEL_OUTPUT },
+        }).then((r) => r.text),
+      { attempts: 2, timeoutMs: SMART_TIMEOUT_MS },
+    );
+    return (text || "").replace(/^\`\`\`[a-z]*\s*/i, "").replace(/\`\`\`$/i, "").trim();
+  } finally {
+    try { if (processed.name) await ai.files.delete({ name: processed.name }); } catch {}
+  }
+}
 
 function chunkText(text: string, size = CHUNK_CHARS): string[] {
   const chunks: string[] = [];
@@ -246,7 +536,8 @@ export async function POST(request: NextRequest) {
 
   const formData = await request.formData();
   const file = formData.get("file") as File | null;
-  const mode = (formData.get("mode") as string | null) === "generate" ? "generate" : "extract";
+  const rawMode = formData.get("mode") as string | null;
+  const mode: "smart" | "generate" | "extract" = rawMode === "generate" ? "generate" : rawMode === "extract" ? "extract" : "smart";
   let options: GenerateOptions = {};
   try {
     const raw = formData.get("options");
@@ -266,6 +557,7 @@ export async function POST(request: NextRequest) {
 
   const encoder = new TextEncoder();
   let aiLogId: string | null = null;
+  let smartStats: ReturnType<typeof computeStats> | null = null;
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
       const send = (payload: unknown) => {
@@ -287,9 +579,51 @@ export async function POST(request: NextRequest) {
           aiLogId = log.id;
         } catch {}
         let resultText = "";
-        let source: "docx" | "pdf-text" | "pdf-gemini" | "text" | "generate" = "text";
+        let source: "docx" | "pdf-text" | "pdf-gemini" | "text" | "generate" | "smart" = "text";
 
-        if (mode === "generate") {
+        const readDocument = async (target: File): Promise<string> => {
+          const buffer = Buffer.from(await target.arrayBuffer());
+          if (!buffer.byteLength) return "";
+          const lowerName = target.name.toLowerCase();
+          if (lowerName.endsWith(".docx")) return (await mammoth.extractRawText({ buffer })).value.trim();
+          const parsed = await extractPdfText(buffer);
+          if (parsed) return parsed;
+          return (await target.text()).trim();
+        };
+
+        if (mode === "smart") {
+          send({ type: "stage", stage: "extract" });
+          let content = "";
+          let detected: "docx" | "pdf-text" | "pdf-gemini" | "text" = "text";
+          if (file) {
+            const lowerName = file.name.toLowerCase();
+            if (!lowerName.endsWith(".docx") && !lowerName.endsWith(".pdf") && !file.type.includes("text")) {
+              return send({ type: "error", error: "Chỉ hỗ trợ file PDF, Word (.docx) hoặc văn bản thuần" });
+            }
+            content = await readDocument(file);
+            detected = lowerName.endsWith(".docx") ? "docx" : "pdf-text";
+          } else {
+            content = prompt || "";
+          }
+          if (!content && file) {
+            // PDF scan (không có lớp chữ): nạp thẳng file cho Gemini đọc
+            try {
+              content = await geminiReadScannedPdf(file, mimeTypeFor(file));
+              detected = "pdf-gemini";
+            } catch (error) {
+              return send({ type: "error", error: mapError(error instanceof Error ? error.message : "lỗi không xác định") });
+            }
+          }
+          if (!content) return send({ type: "error", error: "Không đọc được nội dung tài liệu" });
+          console.info(`[exam-smart] content=${content.length} chars; model=${geminiModel}; source=${detected}`);
+          const { payload, stats } = await runSmartPipeline(content, options, (phase, done, total) =>
+            send({ type: "stage", stage: phase === "solve" ? "solve" : "analyze", meta: { done, total } }),
+          );
+          if (!payload.questions?.length) return send({ type: "error", error: "AI không tìm thấy câu hỏi nào trong tài liệu" });
+          resultText = JSON.stringify(payload);
+          source = "smart";
+          smartStats = stats;
+        } else if (mode === "generate") {
           let content = "";
           if (file) {
             const buffer = Buffer.from(await file.arrayBuffer());
@@ -372,12 +706,13 @@ export async function POST(request: NextRequest) {
 
         send({ type: "stage", stage: "check" });
         const elapsedMs = Date.now() - startedAt;
-        console.info(`[exam-import] completed in ${elapsedMs}ms; model=${geminiModel}; source=${source}`);
-        send({ type: "result", result: resultText, meta: { model: geminiModel, source, elapsedMs } });
+        console.info(`[exam-import] completed in ${elapsedMs}ms; model=${geminiModel}; source=${source}; smart=${JSON.stringify(smartStats)}`);
+        const smartMeta = smartStats ? { smart: smartStats } : {};
+        send({ type: "result", result: resultText, meta: { model: geminiModel, source, elapsedMs, ...smartMeta } });
         if (aiLogId) {
           await prisma.aiImportLog.update({
             where: { id: aiLogId },
-            data: { status: "success", meta: { source, elapsedMs } },
+            data: { status: "success", meta: { source, elapsedMs, ...smartMeta } },
           }).catch(() => {});
         }
       } catch (error) {

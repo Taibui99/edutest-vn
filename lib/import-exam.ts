@@ -1,6 +1,6 @@
-export type ImportStage = "upload" | "extract" | "analyze" | "check" | "done";
+export type ImportStage = "upload" | "extract" | "analyze" | "solve" | "check" | "done";
 
-export type ImportMode = "extract" | "generate";
+export type ImportMode = "smart" | "generate";
 
 export type GenerateOptions = {
   subject?: string;
@@ -12,8 +12,9 @@ export type GenerateOptions = {
   focus?: string;
 };
 
-const CLIENT_TIMEOUT_MS = 90_000;
 const GENERATE_TIMEOUT_MS = 240_000;
+// Smart import chạy nhiều lượt Gemini (đọc tài liệu → 2 lượt giải → phá thế hoản) nên cần thời gian dài hơn.
+const SMART_TIMEOUT_MS = 420_000;
 
 function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
   return Promise.race([
@@ -21,6 +22,8 @@ function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promi
     new Promise<T>((_, reject) => setTimeout(() => reject(new Error(message)), ms)),
   ]);
 }
+
+export type SmartProgress = { stage: ImportStage; done?: number; total?: number };
 
 type StreamEvent = {
   type?: string;
@@ -32,31 +35,29 @@ type StreamEvent = {
 
 export async function importExamFile(
   file: File | null,
-  onStage: (stage: ImportStage) => void,
+  onStage: (stage: ImportStage, progress?: { done?: number; total?: number }) => void,
   opts: { mode?: ImportMode; options?: GenerateOptions; text?: string } = {},
 ): Promise<{ result: string; meta?: Record<string, unknown> }> {
-  const mode = opts.mode ?? "extract";
-  const timeout = mode === "generate" ? GENERATE_TIMEOUT_MS : CLIENT_TIMEOUT_MS;
+  const mode = opts.mode ?? "smart";
+  const timeout = mode === "generate" ? GENERATE_TIMEOUT_MS : SMART_TIMEOUT_MS;
   onStage(mode === "generate" && file ? "upload" : "extract");
 
   const form = new FormData();
   if (file) form.append("file", file);
   if (opts.text?.trim()) form.append("prompt", opts.text.trim());
-  if (mode === "generate") {
-    form.append("mode", "generate");
-    form.append("options", JSON.stringify(opts.options ?? {}));
-  }
+  form.append("mode", mode);
+  if (mode === "generate") form.append("options", JSON.stringify(opts.options ?? {}));
 
   const res = await withTimeout(
     fetch("/api/gemini", { method: "POST", body: form }),
     timeout,
     mode === "generate"
       ? "AI soạn đề quá lâu. Thử giảm số câu hoặc rút gọn tài liệu."
-      : "Import mất quá nhiều thời gian, vui lòng thử lại.",
+      : "AI đọc tài liệu quá lâu. Tài liệu càng dài càng mất nhiều thời gian, thử chia nhỏ tài liệu.",
   );
 
   if (!res.ok || !res.body) {
-    let msg = mode === "generate" ? "Không thể soạn đề" : "Không thể import đề";
+    let msg = mode === "generate" ? "Không thể soạn đề" : "Không thể đọc tài liệu";
     try {
       const data = await res.json();
       if (data?.error) msg = String(data.error);
@@ -89,8 +90,10 @@ export async function importExamFile(
       } catch {
         continue;
       }
-      if (evt.type === "stage" && evt.stage) onStage(evt.stage);
-      else if (evt.type === "error") throw new Error(evt.error || "Tạo đề thất bại");
+      if (evt.type === "stage" && evt.stage) {
+        const meta = (evt.meta ?? {}) as { done?: number; total?: number };
+        onStage(evt.stage, { done: meta.done, total: meta.total });
+      } else if (evt.type === "error") throw new Error(evt.error || "Tạo đề thất bại");
       else if (evt.type === "result") {
         result = evt.result ?? null;
         meta = evt.meta;
