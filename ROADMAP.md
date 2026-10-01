@@ -165,4 +165,12 @@ Tất cả L1–L4 trong commit `6e0ad48` — verified live: robots.txt/sitemap.
 - `scripts/qa-ai-exam-build.mjs` — test thuần cho pipeline (13/13 pass, chạy: `node scripts/qa-ai-exam-build.mjs`).
 - Kiểm tra: `tsc --noEmit` 0 lỗi, eslint không cảnh báo, `next build` thành công.
 
-**Smoke test còn lại:** local `.env` có `GEMINI_API_KEY` giả (`len=5`) + DB dummy nên chưa chạy được end-to-end với Gemini thật — cần thử upload 1 file đề thật trên production sau khi push.
+### Đã verify trên production (2026-10-01, commit `fd435bd`)
+- `scripts/verify-ai-smart-live.mjs` — login giáo viên, mở modal trên production: nút import, 2 tab, smart mặc định (`aria-pressed=true`), selector độ khó trong editor. **0 lỗi console.**
+- `scripts/smoke-ai-smart.mjs` — chạy pipeline thật với Gemini:
+  - `--solve` (đề thiếu đáp án): 3 câu → **3 câu "2 lượt đồng thuận"**, 0 câu "cần kiểm tra", 3 đáp án được chọn, áp dụng vào editor → "3 câu · Đã kiểm tra". ~7s.
+  - mặc định (đề có sẵn `ĐÁP ÁN: 1.A 2.C 3.B`): 3 câu → **"3 câu lấy từ tài liệu"**, đáp án chọn đúng A, C, B, AI không tự giai lại. ~6s.
+
+**Bug đã phát hiện và vá trong lúc verify:** `solvePrompt` ban đầu không render danh sách câu hỏi vào prompt → AI không thấy đề nên cả 3 câu bị đánh dấu "chưa chắc". Đã sửa ở `fd435bd`, đồng thời tách bộ đếm đồng thuận khỏi `reconcileAnswers` và ép đánh dấu `needsReview` khi không lấy được đáp án nào.
+
+**Còn lại (không chặn AI-4):** chưa thử với file PDF/Word thật (mới smoke-test bằng text dán) và chưa có E2E test tự động cho luồng này.
