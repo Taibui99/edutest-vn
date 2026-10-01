@@ -202,9 +202,10 @@ BƯỚC 1 - NHẬN DIỆN:
 
 BƯỚC 2 - DỰNG TỪNG CÂU:
 - Giữ nguyên nội dung câu hỏi, không tự diễn đạt lại, không thêm bớt.
-- mcq: options đúng 4 lựa chọn (bỏ tiền tố "A." trong text), answer là CHỮ CÁI đúng.
-  - answerSource = "document" NẾU đáp án có sẵn trong tài liệu (chắc chắn tuyệt đối).
-  - NẾU KHÔNG có đáp án: tự giải, answerSource = "ai", confidence = 0..1 (thận trọng, dưới 0.6 nếu chưa chắc), needsReview = true khi bạn không chắc chắn, solveNote ghi ngắn lý do.
+- mcq: options đúng 4 lựa chọn (bỏ tiền tố "A." trong text).
+  - NẾU đáp án CÓ SẴN trong tài liệu: answer = chữ cái đúng, answerSource = "document", confidence = 1, needsReview = false.
+  - NẾU KHÔNG có đáp án trong tài liệu: ĐỂ TRỐNG answer = "", answerSource = "unknown", needsReview = true.
+    (Bước sau hệ thống sẽ tự giải bằng 2 lượt độc lập rồi đối chiếu — BẠN KHÔNG cần tự đoán ở bước này.)
 - true_false / short_answer / essay: grading theo đúng ý nghĩa (statements cho true_false, acceptedAnswers cho short_answer).
 - points: số điểm nếu tài liệu có ghi, ngược lại 1.
 
@@ -216,10 +217,19 @@ Trả về JSON đúng response schema.`;
 
 const solvePrompt = (items: { n: number; question: string; options: string[] }[], run: string) => `Bạn là chuyên gia giải trắc nghiệm Việt Nam. Lượt ${run}.
 
-Với MỖI câu dưới đây, hãy TỰ GIẢI và chọn đáp án đúng duy nhất.
+DANH SÁCH CÂU HỎI CẦN GIẢI (giữ nguyên số thứ tự "n"):
+${items
+  .map(
+    (it) => `[n=${it.n}]
+${it.question}
+${it.options.map((o, i) => `${String.fromCharCode(65 + i)}. ${o}`).join("\n")}`,
+  )
+  .join("\n\n")}
+
+Với MỖI câu trên, hãy TỰ GIẢI và chọn đáp án đúng duy nhất.
 - Suy luận từ kiến thức trong chính câu hỏi và các lựa chọn; nếu cần dùng kiến thức phổ thông của môn học đó.
 - Không đoán theo thói quen, không chọn đáp án ngẫu nhiên.
-- Chỉ trả về chữ cái đáp án.
+- PHẢI trả lời đủ cho mọi câu, giữ đúng trường "n" đã cho.
 
 Trả về JSON: { "answers": [ { "n": <số thứ tự câu>, "answer": "A|B|C|D", "confidence": 0..1 } ] }`;
 
@@ -329,9 +339,12 @@ async function solveMissingAnswers(
     }
   }
 
-  const indexMap = new Map(todo.map((q) => [q.index, q]));
-  const solved = questions.map((q) => indexMap.get(q.index) ?? q);
-  return reconcileAnswers(solved, votes);
+  const { questions: solved, agreed } = reconcileAnswers(questions, votes);
+  const unanswered = solved.filter((q) => q.type === "mcq" && !q.answer).length;
+  if (unanswered > 0) {
+    console.warn(`[exam-smart] còn ${unanswered} câu không lấy được đáp án nào; đánh dấu cho giáo viên xem lại`);
+  }
+  return { questions: solved, agreed };
 }
 
 /** Pipeline "AI đọc tài liệu & tự dựng đề". */
@@ -345,7 +358,7 @@ async function runSmartPipeline(
   const merged: SmartPayload = { questions: [] };
   const keyHeuristic = detectAnswerKey(content.slice(0, 60_000));
 
-  for (const chunk of chunks) {
+  for (const [chunkIndex, chunk] of chunks.entries()) {
     const part = await callJson<SmartPayload>(geminiModel, `${analyzePrompt}
 
 NỘI DUNG TÀI LIỆU:
@@ -356,13 +369,14 @@ ${chunk}`, smartSchema, 90_000);
     merged.answerKeyFound = merged.answerKeyFound || part.answerKeyFound === true;
     if (!merged.answerKeyNote && part.answerKeyNote) merged.answerKeyNote = part.answerKeyNote;
     for (const q of part.questions ?? []) merged.questions!.push(q);
-    onProgress?.("analyze", chunks.indexOf(chunk) + 1, chunks.length);
+    onProgress?.("analyze", chunkIndex + 1, chunks.length);
   }
 
   const questions = (merged.questions ?? []).map((q, i) => normalizeQuestion(q, i)).filter((q) => q.question.length > 0);
   // De nghi tu do phat hien bang thuoc tinh dung chu quy, gan cho cau chua ro nguon dap an
   for (const q of questions) {
     if (q.type === "mcq" && q.answer && !q.answerSource) q.answerSource = "document";
+    if (q.type === "mcq" && !q.answer) q.answerSource = "unknown";
     if (q.type === "mcq" && !q.answer && keyHeuristic?.[q.index + 1]) {
       q.answer = keyHeuristic[q.index + 1];
       q.answerSource = "document";
@@ -375,17 +389,24 @@ ${chunk}`, smartSchema, 90_000);
   merged.questions = questions;
 
   const missing = questions.filter((q) => q.type === "mcq" && !q.answer).length;
+  let agreed = 0;
   if (missing > 0) {
     onProgress?.("solve", 0, missing);
-    const { questions: solved, agreed } = await solveMissingAnswers(questions, (done, total) => onProgress?.("solve", done, total));
-    merged.questions = solved;
-    merged.answerKeyFound = merged.answerKeyFound === true && missing === 0;
-    if (!merged.answerKeyNote) merged.answerKeyNote = agreed > 0 ? "Tài liệu không có đáp án — AI đã tự làm và đối chiếu 2 lượt" : "Tài liệu không có đáp án — AI đã tự làm";
+    const solved = await solveMissingAnswers(questions, (done, total) => onProgress?.("solve", done, total));
+    merged.questions = solved.questions;
+    agreed = solved.agreed;
+    if (!merged.answerKeyNote) {
+      merged.answerKeyNote = agreed > 0
+        ? `Tài liệu không có đủ đáp án — AI đã tự làm và đối chiếu ${agreed}/${missing} câu`
+        : "Tài liệu không có đủ đáp án — AI đã tự làm";
+    }
     onProgress?.("solve", missing, missing);
   }
+  // answerKeyFound chi lien quan dap an trong TAI LIEU, khong gan boi so cau AI tu giai.
+  merged.answerKeyFound = merged.answerKeyFound === true || keyHeuristic !== null;
 
   const payload: SmartPayload = { ...merged, questions: merged.questions ?? [] };
-  return { payload, stats: computeStats(payload) };
+  return { payload, stats: computeStats(payload, agreed) };
 }
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
