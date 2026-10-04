@@ -29,17 +29,17 @@ export default function RegisterPage() {
         </>
       }
     >
-      <RegisterForm />
       {googleEnabled && (
         <>
+          <GoogleButton />
           <div className="my-4 flex items-center gap-3">
             <div className="h-px flex-1 bg-[var(--surface-border)]" />
             <span className="text-[13px] font-medium text-[var(--text-muted)]">hoặc</span>
             <div className="h-px flex-1 bg-[var(--surface-border)]" />
           </div>
-          <GoogleButton />
         </>
       )}
+      <RegisterForm />
     </AuthCard>
   );
 }
