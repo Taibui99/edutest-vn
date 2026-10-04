@@ -112,12 +112,14 @@ add("Chu trang tren nut primary", WHITE, "--primary");
 add("Chu trang tren nut primary hover", WHITE, "--primary-hover");
 add("Primary tren nen nhat primary", "--primary", "--primary-light");
 
-// Secondary / accent
-add("Secondary tren nen trang", "--secondary", "--surface-card");
-add("Chu trang tren nut secondary", WHITE, "--secondary");
-add("Chu trang nen accent (logo)", WHITE, "--accent");
-add("Accent tren nen trang tang", "--accent", "--surface-bg");
-add("Secondary tren nen nhat secondary", "--secondary", "--secondary-light");
+// Secondary / accent — hai màu này giờ CHỈ dùng làm nền, nên phải kiểm cặp
+// chữ-trên-nền đúng như bản gốc: nút gold/cyan đều đặt chữ navy.
+add("Secondary-dark tren nen trang", "--secondary-dark", "--surface-card");
+add("Secondary-dark tren nen nhat secondary", "--secondary-dark", "--secondary-light");
+add("Accent-dark tren nen trang", "--accent-dark", "--surface-card");
+add("Accent-dark tren nen nhat accent", "--accent-dark", "--accent-light");
+add("Chu navy tren nut gold (logo/badge)", "--primary-dark", "--accent");
+add("Chu navy tren nut cyan", "--primary-dark", "--secondary");
 
 // Trang thai
 add("Success tren nen trang", "--success", "--surface-card");

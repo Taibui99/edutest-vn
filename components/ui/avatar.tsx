@@ -10,14 +10,14 @@ function getInitials(name: string) {
 }
 
 /** Chữ cái luôn màu trắng nên CẢ HAI đầu gradient đều phải đủ tối (≥4.5:1).
- *  Bảng cũ kết thúc ở các sắc rất sáng (#B9A5FA, #FFB199) khiến chữ gần như
- *  chìm — mọi endpoint ở đây đều là token dả 600–800. */
+ *  Cyan `--secondary` (2.81:1) và gold `--accent` (1.73:1) quá sáng để đứng ở
+ *  đầu gradient có chữ trắng, nên ở đây dùng bản `-dark` của chúng. */
 const COLORS = [
   "bg-gradient-to-br from-[var(--primary)] to-[var(--blue)]",
   "bg-gradient-to-br from-[var(--success)] to-[var(--primary)]",
-  "bg-gradient-to-br from-[var(--danger)] to-[var(--accent)]",
-  "bg-gradient-to-br from-[var(--warning)] to-[var(--secondary)]",
-  "bg-gradient-to-br from-[var(--secondary)] to-[var(--primary-hover)]",
+  "bg-gradient-to-br from-[var(--danger)] to-[var(--accent-dark)]",
+  "bg-gradient-to-br from-[var(--warning)] to-[var(--secondary-dark)]",
+  "bg-gradient-to-br from-[var(--secondary-dark)] to-[var(--primary-hover)]",
   "bg-gradient-to-br from-[var(--info)] to-[var(--success)]",
 ];
 

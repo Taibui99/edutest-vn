@@ -420,7 +420,7 @@ export function ImportExamModal({
                     e.preventDefault();
                     void start(e.dataTransfer.files?.[0] ?? null);
                   }}
-                  className="group flex w-full items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-violet-200 bg-violet-50/50 px-5 py-4 text-center hover:border-violet-400 hover:bg-violet-50"
+                  className="group flex w-full items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-[var(--primary-muted)] bg-[var(--primary-light)] px-5 py-4 text-center hover:border-[var(--primary)] hover:bg-[var(--primary-light)]"
                 >
                   <UploadCloud size={24} className="text-[var(--primary)]" />
                   <span className="text-left">
@@ -470,7 +470,7 @@ export function ImportExamModal({
             {view === "processing" || view === "error" ? (
               <div className="rounded-2xl border border-[var(--surface-border)] bg-[var(--surface-bg)] p-5 sm:p-6">
                 <div className="flex items-start gap-4">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-violet-100 text-[var(--primary)]">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[var(--primary-light)] text-[var(--primary)]">
                     {view === "error" ? <X size={24} /> : <Loader2 size={25} className="animate-spin" />}
                   </div>
                   <div className="min-w-0 flex-1">
@@ -516,7 +516,7 @@ export function ImportExamModal({
                       })}
                     </ol>
                     <div className="mt-4 flex flex-wrap items-center justify-center gap-2 rounded-xl bg-white px-4 py-3 text-sm text-[var(--text-muted)] ring-1 ring-[var(--surface-border)]">
-                      <Clock3 size={15} className="text-violet-500" /> Đã chạy {elapsed}s
+                      <Clock3 size={15} className="text-[var(--secondary-dark)]" /> Đã chạy {elapsed}s
                       {mode === "smart" ? (
                         <span>— tài liệu dài và nhiều câu thiếu đáp án sẽ mất vài phút</span>
                       ) : (
