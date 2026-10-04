@@ -20,6 +20,9 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // PRE-2: bật <ViewTransition> của React để chuyển trang mở tròn từ điểm bấm.
+  // Cờ này chỉ bật component, không ép React sang experimental channel.
+  experimental: { viewTransition: true },
   async headers() {
     return [
       { source: "/(.*)", headers: securityHeaders },

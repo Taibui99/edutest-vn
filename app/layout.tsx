@@ -1,9 +1,12 @@
 import type { Metadata } from "next";
 import { Be_Vietnam_Pro, Inter } from "next/font/google";
+import { ViewTransition } from "react";
 import "./globals.css";
 import { auth } from "@/auth";
 import { getSetting } from "@/lib/settings";
 import { MaintenanceGate } from "@/components/maintenance-gate";
+import { Preloader } from "@/app/components/preloader";
+import { PageTransition } from "@/app/components/page-transition";
 import { ThemeProvider } from "@/components/theme/theme-provider";
 import { ToastProvider } from "@/components/ui/toast";
 
@@ -53,8 +56,23 @@ export default async function RootLayout({
             __html: `(function(){try{document.documentElement.classList.remove("dark")}catch(e){}})();`,
           }}
         />
+        {/* PRE-1: preloader cần JS mới tắt được. Không có JS thì ẩn luôn,
+            đừng để người dùng bị một lớp phủ trắng vĩnh viễn che mất trang.
+            Script này chạy trước khi body vẽ: đã xem preloader trong phiên này
+            thì đánh dấu để CSS ẩn ngay, không chớp sáng một khung hình.
+            `?preload=1` để xem lại hiệu ứng. */}
+        <noscript>
+          <style>{"#a6-preloader{display:none!important}"}</style>
+        </noscript>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{if(!/[?&]preload=1/.test(location.search)&&sessionStorage.getItem("a6-preloader-seen")==="1")document.documentElement.classList.add("a6-preloader-off")}catch(e){}})();`,
+          }}
+        />
       </head>
       <body className="min-h-full flex flex-col">
+        <Preloader />
+        <PageTransition />
         <a
           href="#main-content"
           className="skip-link"
@@ -67,7 +85,12 @@ export default async function RootLayout({
               maintenanceOn={maintenance === "true"}
               isAdmin={session?.user?.role === "admin"}
             >
-              {children}
+              {/* PRE-2: bọc ở layout vì app không có <ViewTransition> nào ở page
+                  (lồng VT thì enter/exit của page im lặng không chạy). enter/exit
+                  ở đây là của `children` — nó đổi theo từng lần điều hướng. */}
+              <ViewTransition enter="page-reveal" exit="page-out">
+                {children}
+              </ViewTransition>
             </MaintenanceGate>
           </ToastProvider>
         </ThemeProvider>

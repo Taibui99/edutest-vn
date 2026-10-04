@@ -348,3 +348,277 @@ input[type="date"], input[type="time"], input[type="datetime-local"] {
     color: transparent;
   }
 }
+
+/* ══════════════════════════════════════════════════════════════════════
+   PRE-1 · Preloader "burst"
+   Dựa trên bản demo user gửi. Mọi màu lấy từ token bảng sáng BRAND-1, không
+   dùng hex pastel của demo. Xét về an toàn: ai bật prefers-reduced-motion thì
+   preloader bị ẩn hoàn toàn (JS cũng bỏ qua), và overlay có @keyframes failsafe
+   tự mờ sau 6s nểu JS lỗi — không có đường nào để trang bị kẹt dưới một lớp phủ
+   không tắt được.
+   ══════════════════════════════════════════════════════════════════════ */
+#a6-preloader {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: var(--surface-bg);
+  /* Lưới an toàn: nếu JS chết trước khi gắn data-burst (lỗi hydration, bundle
+     hỏng, ...) overlay không được phép kẹt vĩnh viễn che kín trang. Sau 6s
+     tự ẩn. Không đủ để thay <noscript>, nhưng đủ để trang không bị kẹt. */
+  animation: a6-pl-failsafe 0.2s linear 6s forwards;
+}
+
+.a6-pl-ambient {
+  position: absolute;
+  width: 600px;
+  height: 600px;
+  border-radius: 50%;
+  background: radial-gradient(circle,
+    rgba(0, 168, 204, 0.08) 0%,
+    rgba(255, 184, 0, 0.04) 50%,
+    transparent 70%);
+  animation: a6-pl-ambient 8s ease-in-out infinite alternate;
+}
+
+/* Cột chất lỏng: chiều cao do inline style ghi mỗi khung hình, không transition
+   — transition trên một giá trị đổi liên tục sẽ bị hoãn hoàn toàn và tạo độ trễ. */
+.a6-pl-liquid {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: 0%;
+  background: linear-gradient(180deg, rgba(0, 168, 204, 0.30) 0%, rgba(15, 76, 129, 0.72) 100%);
+  z-index: 1;
+}
+
+.a6-pl-wave {
+  position: absolute;
+  top: -28px;
+  left: 0;
+  width: 200%;
+  height: 30px;
+  fill: rgba(0, 168, 204, 0.32);
+  animation: a6-pl-wave 3s linear infinite;
+}
+
+.a6-pl-ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: radial-gradient(circle,
+    rgba(0, 168, 204, 0.8) 0%,
+    rgba(15, 76, 129, 0.5) 50%,
+    transparent 100%);
+  transform: translate(-50%, -50%) scale(0);
+  opacity: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.a6-pl-card {
+  position: relative;
+  z-index: 2;
+  width: min(92vw, 420px);
+  padding: 40px 36px;
+  text-align: center;
+  border-radius: var(--radius-2xl);
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.96);
+  box-shadow: 0 16px 40px rgba(15, 76, 129, 0.06), 0 2px 6px rgba(15, 76, 129, 0.02);
+  transition: transform 420ms var(--ease-smooth), opacity 420ms ease, filter 420ms ease;
+}
+
+.a6-pl-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 24px;
+}
+
+.a6-pl-badge {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  background: #FFFFFF;
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 20px rgba(0, 168, 204, 0.12);
+  animation: a6-pl-float 3s ease-in-out infinite alternate;
+}
+
+.a6-pl-pct {
+  font-size: 3rem;
+  font-weight: 900;
+  color: var(--primary);
+  letter-spacing: -0.03em;
+  line-height: 1;
+  margin-bottom: 6px;
+}
+
+/* Demo tô % bằng gold #FFB800 — 1.73:1, dưới cả ngưỡng 3:1 cho chữ cỡ lớn.
+   Ở đây dùng --accent-dark (7.09:1). */
+.a6-pl-unit {
+  font-size: 1.6rem;
+  color: var(--accent-dark);
+  margin-left: 2px;
+}
+
+.a6-pl-status {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+@keyframes a6-pl-ambient {
+  from { transform: translate(-20px, -20px) scale(0.95); }
+  to   { transform: translate(20px, 20px) scale(1.05); }
+}
+@keyframes a6-pl-wave {
+  to { transform: translateX(-50%); }
+}
+@keyframes a6-pl-float {
+  to { transform: translateY(-5px); }
+}
+
+/* ── Cú bùm: lớp phủ bị cắt thành hình tròn thu về 0, lộ nội dung trang ── */
+@keyframes a6-pl-burst {
+  from { clip-path: circle(150% at 50% 50%); opacity: 1; }
+  to   { clip-path: circle(0% at 50% 50%);   opacity: 0; }
+}
+@keyframes a6-pl-burst-ring {
+  0%   { transform: translate(-50%, -50%) scale(0);  opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(40); opacity: 0; }
+}
+/* Failsafe: chạy cả khi JS chết, để overlay không kẹt vĩnh viễn che trang.
+   Dùng `opacity` (nội suy liên tục, chắc chắn tới 0) chứ không dựa vào
+   `visibility` — visibility animate theo kiểu rời rạc, với thời lượng cực ngắn
+   Chromium không nội suy tới giá trị cuối nên overlay vẫn hiện.
+
+   Không tranh chấp với a6-pl-burst: trong rule `data-burst` failsafe đứng TRƯỚC
+   burst, mà animation sau thắng property trùng nhau. Cùng đụng opacity là có chủ
+   đích — lúc bùm cần opacity của burst, lúc chết JS mới cần của failsafe. */
+@keyframes a6-pl-failsafe {
+  from { opacity: 1; }
+  to   { opacity: 0; visibility: hidden; pointer-events: none; }
+}
+
+#a6-preloader[data-burst="true"] {
+  animation:
+    a6-pl-failsafe 0.2s linear 6s forwards,
+    a6-pl-burst 650ms cubic-bezier(0.7, 0, 0.84, 0) forwards;
+}
+#a6-preloader[data-burst="true"] .a6-pl-ring {
+  animation: a6-pl-burst-ring 650ms cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
+}
+#a6-preloader[data-burst="true"] .a6-pl-card {
+  transform: scale(1.15);
+  opacity: 0;
+  filter: blur(10px);
+}
+
+/* Nội dung trang mờ dần khi lớp phủ đang bùm. Chỉ animate opacity — transform/filter
+   trên một ancestor sẽ biến mọi `position: fixed` bên trong thành tương đối với
+   nó, làm vỡ modal/toast. Lớp này được gỡ khi animation kết thúc. */
+@keyframes a6-pl-page-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+html.a6-reveal body > *:not(#a6-preloader) {
+  animation: a6-pl-page-in 560ms var(--ease-smooth) both;
+}
+
+@media (max-width: 520px) {
+  .a6-pl-card { padding: 32px 20px; }
+}
+
+/* Đã xem preloader trong phiên này (script trong <head> đánh dấu) hoặc bật
+   reduced-motion → không hiện lớp phủ. `!important` vì phải thắng cả
+   `#a6-preloader{display:grid}` và mọi utility của Tailwind. */
+html.a6-preloader-off #a6-preloader {
+  display: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #a6-preloader { display: none !important; }
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   PRE-2 · Chuyển trang bung tròn từ điểm bấm + sóng nước trên nút
+   Dịch đúng `openCircleReveal()` của bản demo sang View Transitions API.
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* Sóng nước khi bấm. Gắn vào <body> nên không bị overflow/bo góc của nút cắt mất. */
+.a6-ripple {
+  position: fixed;
+  z-index: 9998;
+  border-radius: 50%;
+  pointer-events: none;
+  background: radial-gradient(circle, rgba(0, 168, 204, 0.45) 0%, rgba(15, 76, 129, 0.22) 55%, transparent 72%);
+  animation: a6-ripple 600ms linear forwards;
+}
+
+@keyframes a6-ripple {
+  from { transform: scale(0);   opacity: 0.85; }
+  to   { transform: scale(1);   opacity: 0; }
+}
+
+/* ── View Transition: trang mới bung tròn ra từ đúng toạ độ con trỏ ──
+   Mặc định trình duyệt cross-fade hai ảnh với `mix-blend-mode: plus-lighter`
+   (dùng cho morph ảnh). Ở đây cần trang mới che hẳn trang cũ nên phải tắt
+   blend và animation mặc định đi.
+
+   Selector `(*)` phải đứng TRƯỚC selector `(root)`: React còn sinh thêm các
+   view-transition không tên (`_t_0_`, ...) cho phần enter/exit nội dung. Nếu để
+   chúng giữ animation mặc định, lớp `plus-lighter` phủ toàn viewport sẽ làm
+   cả khung chuyển cảnh bị nhạt màu. Ở đây chỉ `root` được phép chuyển động. */
+::view-transition-old(*),
+::view-transition-new(*) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+::view-transition-old(root) {
+  animation: a6-page-out 460ms var(--ease-smooth) forwards;
+}
+
+::view-transition-new(root) {
+  animation: a6-page-reveal 620ms var(--ease-smooth) forwards;
+}
+
+@keyframes a6-page-reveal {
+  from { clip-path: circle(0%   at var(--click-x, 50%) var(--click-y, 50%)); }
+  to   { clip-path: circle(150% at var(--click-x, 50%) var(--click-y, 50%)); }
+}
+
+/* Trang cũ lùi + mờ đi: tạo cảm giác trang mới đi "ra từ trong" trang cũ. */
+@keyframes a6-page-out {
+  from { transform: scale(1);    opacity: 1; }
+  to   { transform: scale(0.94); opacity: 0.25; }
+}
+
+/* Phòng thi (/thi/*): xem `PageTransition` — có đếm ngược, chuyển cảnh chậm
+   gây lãng phí. Ở đây chuyển tức thì, không để lại hai lớp ảnh chồng nhau. */
+html.a6-no-vt::view-transition-old(*),
+html.a6-no-vt::view-transition-new(*) {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Không có hiệu ứng chuyển cảnh nào cho người bật reduced-motion. */
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+  .a6-ripple { display: none; }
+}
