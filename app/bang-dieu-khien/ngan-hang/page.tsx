@@ -244,7 +244,7 @@ export default function QuestionBankPage() {
           <button
             key={key}
             onClick={() => setTab(key)}
-            className={`rounded-lg px-4 py-2.5 sm:py-2 text-sm font-bold transition ${tab === key ? "bg-white text-[var(--primary)] shadow-sm dark:bg-[#46309F] dark:text-white" : "text-[var(--text-muted)]"}`}
+            className={`rounded-lg px-4 py-2.5 sm:py-2 text-sm font-bold transition ${tab === key ? "bg-white text-[var(--primary)] shadow-sm dark:bg-[var(--primary)] dark:text-white" : "text-[var(--text-muted)]"}`}
           >
             {label}
           </button>
@@ -287,8 +287,8 @@ export default function QuestionBankPage() {
                               const letter = String.fromCharCode(65 + idx);
                               const isCorrect = item.answer === letter;
                               return (
-                                <div key={letter} className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs ${isCorrect ? "bg-[#E8F7F1] text-[#064E3B] font-semibold" : "bg-[var(--gray-100)] text-[var(--text-secondary)]"}`}>
-                                  <span className={`w-4 h-4 rounded-full text-[10px] font-black flex items-center justify-center shrink-0 ${isCorrect ? "bg-[#0E7350] text-white" : "bg-[var(--gray-200)] text-[var(--text-muted)]"}`}>{letter}</span>
+                                <div key={letter} className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs ${isCorrect ? "bg-[var(--success-light)] text-[var(--success-dark)] font-semibold" : "bg-[var(--gray-100)] text-[var(--text-secondary)]"}`}>
+                                  <span className={`w-4 h-4 rounded-full text-[10px] font-black flex items-center justify-center shrink-0 ${isCorrect ? "bg-[var(--success)] text-white" : "bg-[var(--gray-200)] text-[var(--text-muted)]"}`}>{letter}</span>
                                   {opt}
                                 </div>
                               );
@@ -298,7 +298,7 @@ export default function QuestionBankPage() {
                         {item.type === "true_false" && (
                           <div className="flex flex-wrap gap-1.5 mt-2.5">
                             {(item.grading?.statements || []).map((s, i) => (
-                              <span key={i} className={`rounded-md px-2 py-0.5 text-xs ${s.answer ? "bg-[#E8F7F1] text-[#064E3B]" : "bg-[#FFECEC] text-[#9B1C1C]"}`}>
+                              <span key={i} className={`rounded-md px-2 py-0.5 text-xs ${s.answer ? "bg-[var(--success-light)] text-[var(--success-dark)]" : "bg-[var(--danger-light)] text-[var(--danger-dark)]"}`}>
                                 {String.fromCharCode(97 + i)}) {s.text} — {s.answer ? "Đúng" : "Sai"}
                               </span>
                             ))}

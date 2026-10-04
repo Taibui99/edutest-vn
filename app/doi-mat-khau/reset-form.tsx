@@ -46,13 +46,13 @@ export function ResetPasswordForm({ token }: { token: string }) {
   if (done) {
     return (
       <div className="text-center">
-        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[#E8F7F1]">
-          <CheckCircle2 size={24} className="text-[#0E7350]" />
+        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--success-light)]">
+          <CheckCircle2 size={24} className="text-[var(--success)]" />
         </div>
         <p className="text-sm text-[var(--text-secondary)]">Mật khẩu đã được đặt lại thành công.</p>
         <Link
           href="/dang-nhap"
-          className="mt-6 inline-flex w-full justify-center rounded-lg bg-[#6C4CF1] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#5A3BD8]"
+          className="mt-6 inline-flex w-full justify-center rounded-lg bg-[var(--primary)] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[var(--primary-hover)]"
         >
           Đăng nhập với mật khẩu mới
         </Link>

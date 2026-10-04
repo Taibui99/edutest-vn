@@ -191,7 +191,7 @@ export default function ProfilePage() {
           <h2 className="font-black text-[var(--text-primary)] text-lg truncate">{profile.name}</h2>
           <p className="text-sm text-[var(--text-muted)] truncate">{profile.email}</p>
           <span className={`inline-block mt-1 text-xs font-bold px-2.5 py-0.5 rounded-full ${
-            profile.role === "teacher" ? "bg-[#EAF3FC] text-[#1A5FB0]" : "bg-[#E8F7F1] text-[#0E7350]"
+            profile.role === "teacher" ? "bg-[var(--blue-light)] text-[var(--blue)]" : "bg-[var(--success-light)] text-[var(--success)]"
           }`}>
             {profile.role === "teacher" ? "Giáo viên" : "Học sinh"}
           </span>
@@ -296,15 +296,15 @@ export default function ProfilePage() {
 
       {profile.role === "admin" && (
         <Link href="/admin">
-          <div className="flex items-center gap-4 p-5 bg-gradient-to-r from-[#F1EDFD] to-[#F4F2FD] dark:from-[#1C1917] dark:to-[#21383A] rounded-2xl border border-[#6C4CF1]/30 hover:border-[#6C4CF1] transition-all cursor-pointer">
-            <span className="w-10 h-10 rounded-xl bg-[#6C4CF1] text-white flex items-center justify-center shrink-0">
+          <div className="flex items-center gap-4 p-5 bg-gradient-to-r from-[var(--primary-light)] to-[var(--surface-hover)] dark:from-[var(--gray-900)] dark:to-[var(--gray-900)] rounded-2xl border border-[var(--primary)]/30 hover:border-[var(--primary)] transition-all cursor-pointer">
+            <span className="w-10 h-10 rounded-xl bg-[var(--primary)] text-white flex items-center justify-center shrink-0">
               <ShieldCheck size={18} />
             </span>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-black text-[var(--text-primary)]">Khu vực quản trị</p>
               <p className="text-xs text-[var(--text-muted)]">Quản lý người dùng, đề thi, báo cáo hệ thống</p>
             </div>
-            <ArrowRight size={16} className="text-[#6C4CF1] shrink-0" />
+            <ArrowRight size={16} className="text-[var(--primary)] shrink-0" />
           </div>
         </Link>
       )}

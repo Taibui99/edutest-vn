@@ -119,7 +119,7 @@ export default function AdminExams() {
   return (
     <div className="p-4 lg:p-8 max-w-6xl mx-auto">
       <h1 className="text-xl font-black text-[var(--text-primary)] mb-6 flex items-center gap-2">
-        <FileText size={20} className="text-[#6C4CF1]" /> Đề thi toàn hệ thống
+        <FileText size={20} className="text-[var(--primary)]" /> Đề thi toàn hệ thống
         <span className="text-xs font-bold text-[var(--text-muted)]">({total} đề)</span>
       </h1>
 
@@ -130,13 +130,13 @@ export default function AdminExams() {
             value={q}
             onChange={(e) => { setQ(e.target.value); setPage(1); }}
             placeholder="Tìm theo tên đề..."
-            className="w-full rounded-lg border border-[var(--surface-border)] pl-9 pr-3 py-2 text-sm focus:border-[#6C4CF1] focus:outline-none"
+            className="w-full rounded-lg border border-[var(--surface-border)] pl-9 pr-3 py-2 text-sm focus:border-[var(--primary)] focus:outline-none"
           />
         </div>
         <select
           value={status}
           onChange={(e) => { setStatus(e.target.value); setPage(1); }}
-          className="rounded-lg border border-[var(--surface-border)] px-3 py-2 text-sm focus:border-[#6C4CF1] focus:outline-none"
+          className="rounded-lg border border-[var(--surface-border)] px-3 py-2 text-sm focus:border-[var(--primary)] focus:outline-none"
         >
           <option value="">Tất cả trạng thái</option>
           <option value="published">Đang mở</option>
@@ -157,7 +157,7 @@ export default function AdminExams() {
         </button>
       </div>
 
-      {error && <p className="mb-3 text-sm text-[#BE3B3B]">{error}</p>}
+      {error && <p className="mb-3 text-sm text-[var(--danger)]">{error}</p>}
 
       {loading ? (
         <div className="flex items-center justify-center py-32"><Spinner /></div>
@@ -201,11 +201,11 @@ export default function AdminExams() {
                       </td>
                       <td className="px-4 py-3 text-xs text-[var(--text-secondary)]">{e.teacher.name}<br /><span className="text-[var(--text-muted)]">{e.teacher.email}</span></td>
                       <td className="px-4 py-3">
-                        <span className={`text-[11px] font-bold px-2 py-0.5 rounded-lg ${e.status === "published" ? "bg-[#E8F7F1] text-[#0E7350]" : "bg-[var(--gray-100)] text-[var(--text-secondary)]"}`}>
+                        <span className={`text-[11px] font-bold px-2 py-0.5 rounded-lg ${e.status === "published" ? "bg-[var(--success-light)] text-[var(--success)]" : "bg-[var(--gray-100)] text-[var(--text-secondary)]"}`}>
                           {e.status === "published" ? "Đang mở" : "Bản nháp"}
                         </span>
                         {e._count.reports > 0 && (
-                          <Link href={`/admin/reports`} className="ml-1.5 inline-flex items-center gap-0.5 text-[10px] font-bold text-[#BE3B3B] bg-[#FFECEC] px-1.5 py-0.5 rounded">
+                          <Link href={`/admin/reports`} className="ml-1.5 inline-flex items-center gap-0.5 text-[10px] font-bold text-[var(--danger)] bg-[var(--danger-light)] px-1.5 py-0.5 rounded">
                             <Flag size={10} /> {e._count.reports}
                           </Link>
                         )}
@@ -218,7 +218,7 @@ export default function AdminExams() {
                             <button
                               disabled={busyId === e.id}
                               onClick={() => patch(e, { restore: true })}
-                              className="inline-flex items-center gap-1 rounded-lg bg-[#E8F7F1] px-2.5 py-1 text-xs font-bold text-[#0E7350] hover:bg-[#D3EFE5] disabled:opacity-50"
+                              className="inline-flex items-center gap-1 rounded-lg bg-[var(--success-light)] px-2.5 py-1 text-xs font-bold text-[var(--success)] hover:bg-[var(--success-light)] disabled:opacity-50"
                             >
                               <RotateCcw size={11} /> Khôi phục
                             </button>
@@ -226,21 +226,21 @@ export default function AdminExams() {
                             <>
                               <Link
                                 href={`/bang-dieu-khien/de-thi/${e.id}`}
-                                className="rounded-lg bg-[#F1EDFD] px-2.5 py-1 text-xs font-bold text-[#6C4CF1] hover:bg-[#D5F2EC]"
+                                className="rounded-lg bg-[var(--primary-light)] px-2.5 py-1 text-xs font-bold text-[var(--primary)] hover:bg-[var(--success-light)]"
                               >
                                 Xem
                               </Link>
                               <button
                                 disabled={busyId === e.id}
                                 onClick={() => patch(e, { hidden: !e.hidden })}
-                                className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-bold disabled:opacity-50 ${e.hidden ? "bg-[#E8F7F1] text-[#0E7350] hover:bg-[#D3EFE5]" : "bg-[var(--gray-100)] text-[var(--text-secondary)] hover:bg-[var(--gray-200)]"}`}
+                                className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-bold disabled:opacity-50 ${e.hidden ? "bg-[var(--success-light)] text-[var(--success)] hover:bg-[var(--success-light)]" : "bg-[var(--gray-100)] text-[var(--text-secondary)] hover:bg-[var(--gray-200)]"}`}
                               >
                                 {e.hidden ? <><Eye size={11} /> Hiện</> : <><EyeOff size={11} /> Ẩn</>}
                               </button>
                               <button
                                 disabled={busyId === e.id}
                                 onClick={() => setDeleting(e)}
-                                className="rounded-lg bg-[#FFECEC] px-2.5 py-1 text-xs font-bold text-[#BE3B3B] hover:bg-[#FFDDDD] disabled:opacity-50"
+                                className="rounded-lg bg-[var(--danger-light)] px-2.5 py-1 text-xs font-bold text-[var(--danger)] hover:bg-[var(--danger-hover)] disabled:opacity-50"
                               >
                                 Xóa
                               </button>

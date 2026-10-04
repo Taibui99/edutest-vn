@@ -38,7 +38,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   }, [dismiss]);
 
   const icon = (type: ToastType) =>
-    type === "success" ? <CheckCircle2 size={16} className="text-[var(--mint)] shrink-0" /> : type === "error" ? <AlertCircle size={16} className="text-[var(--danger)] shrink-0" /> : <Info size={16} className="text-[#1A5FB0] shrink-0" />;
+    type === "success" ? <CheckCircle2 size={16} className="text-[var(--mint)] shrink-0" /> : type === "error" ? <AlertCircle size={16} className="text-[var(--danger)] shrink-0" /> : <Info size={16} className="text-[var(--blue)] shrink-0" />;
 
   return (
     <ToastContext.Provider value={{ toast }}>

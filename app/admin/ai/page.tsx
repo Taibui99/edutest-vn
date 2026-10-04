@@ -30,15 +30,15 @@ export default function AdminAi() {
   }, []);
 
   const statusColor = (s: string) =>
-    s === "success" ? "bg-[#E8F7F1] text-[#0E7350]"
-      : s === "failed" ? "bg-[#FFECEC] text-[#BE3B3B]"
-        : s === "running" ? "bg-[#EAF3FC] text-[#1A5FB0]"
+    s === "success" ? "bg-[var(--success-light)] text-[var(--success)]"
+      : s === "failed" ? "bg-[var(--danger-light)] text-[var(--danger)]"
+        : s === "running" ? "bg-[var(--blue-light)] text-[var(--blue)]"
           : "bg-[var(--gray-100)] text-[var(--text-secondary)]";
 
   return (
     <div className="p-4 lg:p-8 max-w-5xl mx-auto">
       <h1 className="text-xl font-black text-[var(--text-primary)] mb-6 flex items-center gap-2">
-        <Sparkles size={20} className="text-[#6C4CF1]" /> Nhật ký AI Import
+        <Sparkles size={20} className="text-[var(--primary)]" /> Nhật ký AI Import
       </h1>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
@@ -54,7 +54,7 @@ export default function AdminAi() {
         </div>
       </div>
 
-      {error && <p className="mb-3 text-sm text-[#BE3B3B]">{error}</p>}
+      {error && <p className="mb-3 text-sm text-[var(--danger)]">{error}</p>}
 
       {loading ? (
         <div className="flex items-center justify-center py-32"><Spinner /></div>

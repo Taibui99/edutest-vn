@@ -23,7 +23,7 @@ interface Analytics {
 }
 
 const DIST_LABELS = ["< 4", "4 – 5.9", "6 – 6.9", "7 – 8.4", "8.5 – 10"];
-const DIST_COLORS = ["#BE3B3B", "#8A5A00", "#0E7350", "#1A5FB0", "#6C4CF1"];
+const DIST_COLORS = ["var(--danger)", "var(--warning)", "var(--success)", "var(--blue)", "var(--primary)"];
 
 function MiniBar({ value, max, color }: { value: number; max: number; color: string }) {
   const pct = max > 0 ? (value / max) * 100 : 0;
@@ -35,9 +35,9 @@ function MiniBar({ value, max, color }: { value: number; max: number; color: str
 }
 
 function scoreColor(score: number) {
-  if (score >= 8) return "#0E7350";
-  if (score >= 6.5) return "#8A5A00";
-  return "#BE3B3B";
+  if (score >= 8) return "var(--success)";
+  if (score >= 6.5) return "var(--warning)";
+  return "var(--danger)";
 }
 
 export default function StatisticsPage() {
@@ -83,14 +83,14 @@ export default function StatisticsPage() {
           { label: "TG làm TB", value: avgMins > 0 ? `${avgMins} phút` : "—", icon: <Clock size={14} />, color: "c4" },
         ].map(({ label, value, icon, color }) => (
           <div key={label} className={`rounded-2xl p-4 ${
-            color === "c1" ? "bg-[#F1EDFD]" :
-            color === "c2" ? "bg-[#EAF3FC]" :
-            color === "c3" ? "bg-[#FCF3E2]" : "bg-[#E8F7F1]"
+            color === "c1" ? "bg-[var(--primary-light)]" :
+            color === "c2" ? "bg-[var(--blue-light)]" :
+            color === "c3" ? "bg-[var(--warning-light)]" : "bg-[var(--success-light)]"
           }`}>
             <div className={`flex items-center gap-2 mb-1 ${
-              color === "c1" ? "text-[#6C4CF1]" :
-              color === "c2" ? "text-[#1A5FB0]" :
-              color === "c3" ? "text-[#8A5A00]" : "text-[#0E7350]"
+              color === "c1" ? "text-[var(--primary)]" :
+              color === "c2" ? "text-[var(--blue)]" :
+              color === "c3" ? "text-[var(--warning)]" : "text-[var(--success)]"
             }`}>
               {icon}
               <span className="text-xs font-bold">{label}</span>

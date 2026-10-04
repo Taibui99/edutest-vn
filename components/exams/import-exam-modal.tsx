@@ -599,7 +599,7 @@ export function ImportExamModal({
                   {reviewed.map((q, i) => (
                     <div
                       key={i}
-                      className={`rounded-2xl border p-4 ${q.needsReview ? "border-[var(--warning)] bg-[var(--warning-light)]/40" : "border-[var(--surface-border)] bg-[var(--surface-page)]"}`}
+                      className={`rounded-2xl border p-4 ${q.needsReview ? "border-[var(--warning)] bg-[var(--warning-light)]/40" : "border-[var(--surface-border)] bg-[var(--surface-bg)]"}`}
                     >
                       <div className="mb-2 flex items-start justify-between gap-3">
                         <div className="flex flex-wrap items-center gap-2">

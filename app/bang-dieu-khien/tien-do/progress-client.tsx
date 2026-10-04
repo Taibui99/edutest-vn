@@ -43,12 +43,12 @@ function LineChart({ data }: { data: { label: string; score: number }[] }) {
           <text x={0} y={y(g) + 3} fontSize="9" fill="var(--text-muted)">{g}</text>
         </g>
       ))}
-      <path d={path} fill="none" stroke="#6C4CF1" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d={path} fill="none" stroke="var(--primary)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
       {data.map((d, i) => (
         <g key={d.label + i}>
-          <circle cx={x(i)} cy={y(d.score)} r="4" fill="#6C4CF1" stroke="white" strokeWidth="2" />
+          <circle cx={x(i)} cy={y(d.score)} r="4" fill="var(--primary)" stroke="white" strokeWidth="2" />
           <text x={x(i)} y={H - 8} fontSize="9" fill="var(--text-muted)" textAnchor="middle">{d.label}</text>
-          <text x={x(i)} y={y(d.score) - 9} fontSize="9" fontWeight="bold" fill="#6C4CF1" textAnchor="middle">{d.score.toFixed(1)}</text>
+          <text x={x(i)} y={y(d.score) - 9} fontSize="9" fontWeight="bold" fill="var(--primary)" textAnchor="middle">{d.score.toFixed(1)}</text>
         </g>
       ))}
     </svg>
@@ -87,7 +87,7 @@ export function ProgressClient({ submissions }: {
   return (
     <div className="p-4 lg:p-8 max-w-5xl mx-auto animate-fade-in">
       <h1 className="text-xl font-black text-[var(--text-primary)] mb-6 flex items-center gap-2">
-        <TrendingUp size={20} className="text-[#6C4CF1]" /> Tiến độ học tập
+        <TrendingUp size={20} className="text-[var(--primary)]" /> Tiến độ học tập
       </h1>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
@@ -98,10 +98,10 @@ export function ProgressClient({ submissions }: {
           { label: "Môn đã học", value: bySubject.length, icon: <Layers size={14} />, color: "c4" },
         ].map(({ label, value, icon, color }) => (
           <div key={label} className={`rounded-2xl p-4 ${
-            color === "c1" ? "bg-[#F1EDFD] dark:bg-[#46309F]" : color === "c2" ? "bg-[#EAF3FC] dark:bg-[#0D2A3E]" : color === "c3" ? "bg-[#FFF7E6] dark:bg-[#2B2410]" : "bg-[#E8F7F1] dark:bg-[#0A2A20]"
+            color === "c1" ? "bg-[var(--primary-light)] dark:bg-[var(--primary)]" : color === "c2" ? "bg-[var(--blue-light)] dark:bg-[var(--gray-900)]" : color === "c3" ? "bg-[var(--warning-hover)] dark:bg-[var(--gray-900)]" : "bg-[var(--success-light)] dark:bg-[var(--gray-900)]"
           }`}>
             <div className={`flex items-center gap-2 mb-1 ${
-              color === "c1" ? "text-[#6C4CF1]" : color === "c2" ? "text-[#1A5FB0]" : color === "c3" ? "text-[#8A5A00]" : "text-[#0E7350]"
+              color === "c1" ? "text-[var(--primary)]" : color === "c2" ? "text-[var(--blue)]" : color === "c3" ? "text-[var(--warning)]" : "text-[var(--success)]"
             }`}>
               {icon}
               <span className="text-xs font-bold">{label}</span>
@@ -134,7 +134,7 @@ export function ProgressClient({ submissions }: {
                       <p className="text-sm font-semibold text-[var(--text-primary)]">{subject}</p>
                       <p className="text-xs text-[var(--text-muted)]">{count} bài · cao nhất {best.toFixed(1)}</p>
                     </div>
-                    <span className="text-sm font-black" style={{ color: avg >= 8 ? "#0E7350" : avg >= 6.5 ? "#8A5A00" : "#BE3B3B" }}>
+                    <span className="text-sm font-black" style={{ color: avg >= 8 ? "var(--success)" : avg >= 6.5 ? "var(--warning)" : "var(--danger)" }}>
                       {avg.toFixed(1)}
                     </span>
                   </div>
@@ -162,7 +162,7 @@ export function ProgressClient({ submissions }: {
                       {s.subject} · {new Date(s.submittedAt).toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" })}
                     </p>
                   </div>
-                  <span className={`text-sm font-black ${s.score >= 8 ? "text-[#0E7350]" : s.score >= 6.5 ? "text-[#8A5A00]" : "text-[#BE3B3B]"}`}>
+                  <span className={`text-sm font-black ${s.score >= 8 ? "text-[var(--success)]" : s.score >= 6.5 ? "text-[var(--warning)]" : "text-[var(--danger)]"}`}>
                     {s.score.toFixed(1)}
                   </span>
                 </div>

@@ -31,18 +31,18 @@ export function MobileTopbar({ user }: { user: { name: string; role: string; mod
   return (
     <header className="lg:hidden flex items-center justify-between px-4 h-14 bg-[var(--surface-sidebar)] border-b border-[var(--surface-border)] sticky top-0 z-40">
       <span className="text-lg font-black tracking-tight">
-        <span className="text-[#6C4CF1]">Edu</span><span className="text-[var(--text-primary)]">Test</span>
+        <span className="text-[var(--primary)]">Edu</span><span className="text-[var(--text-primary)]">Test</span>
       </span>
       <div className="flex items-center gap-2">
         <span className={cn(
           "text-[11px] font-bold px-2 py-1 rounded-full",
-          mode === "teacher" ? "bg-[#EAF3FC] text-[#1A5FB0]" : "bg-[#E8F7F1] text-[#0E7350]"
+          mode === "teacher" ? "bg-[var(--blue-light)] text-[var(--blue)]" : "bg-[var(--success-light)] text-[var(--success)]"
         )}>
           {mode === "teacher" ? "Giáo viên" : "Học sinh"}
         </span>
         <ThemeToggle />
         <NotificationBell />
-        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#6C4CF1] to-[#9B7FF7] flex items-center justify-center text-white text-xs font-bold">
+        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[var(--primary)] to-[var(--primary-muted)] flex items-center justify-center text-white text-xs font-bold">
           {user.name.charAt(0).toUpperCase()}
         </div>
       </div>
@@ -69,13 +69,13 @@ export function MobileBottomNav({ user }: { user: { name: string; role: string; 
             href={item.href}
             className={cn(
               "relative flex-1 flex flex-col items-center justify-center gap-0.5 text-xs font-semibold transition-colors",
-              active ? "text-[#6C4CF1]" : "text-[var(--text-muted)]"
+              active ? "text-[var(--primary)]" : "text-[var(--text-muted)]"
             )}
             aria-current={active ? "page" : undefined}
           >
             <span className={cn("transition-transform", active && "scale-110")}>{item.icon}</span>
             <span className="text-[11px]">{item.label}</span>
-            {active && <span className="absolute bottom-1 w-1 h-1 rounded-full bg-[#6C4CF1]" />}
+            {active && <span className="absolute bottom-1 w-1 h-1 rounded-full bg-[var(--primary)]" />}
           </Link>
         );
       })}

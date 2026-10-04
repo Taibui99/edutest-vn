@@ -35,42 +35,42 @@ export default function QuenMatKhauPage() {
   };
 
   return (
-    <div className="min-h-screen grid place-items-center bg-[var(--bg-page)] p-4">
+    <div className="min-h-screen grid place-items-center bg-[var(--surface-bg)] p-4">
       <AuthCard
         title="Quên mật khẩu"
         subtitle="Nhập email đăng ký, chúng tôi sẽ gửi liên kết đặt lại mật khẩu"
         footer={
-          <Link href="/dang-nhap" className="font-semibold text-[#6C4CF1] hover:text-[#5A3BD8] inline-flex items-center gap-1.5">
+          <Link href="/dang-nhap" className="font-semibold text-[var(--primary)] hover:text-[var(--primary-hover)] inline-flex items-center gap-1.5">
             <ArrowLeft size={14} /> Quay lại đăng nhập
           </Link>
         }
       >
         {state === "sent" ? (
           <div className="text-center">
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[#E8F7F1]">
-              <CheckCircle2 size={24} className="text-[#0E7350]" />
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--success-light)]">
+              <CheckCircle2 size={24} className="text-[var(--success)]" />
             </div>
             <p className="text-sm text-[var(--text-secondary)]">
               Chúng tôi đã gửi liên kết đặt lại mật khẩu. Vui lòng kiểm tra hộp thư.
             </p>
             <Link
               href="/dang-nhap"
-              className="mt-6 inline-flex w-full justify-center rounded-lg bg-[#6C4CF1] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#5A3BD8]"
+              className="mt-6 inline-flex w-full justify-center rounded-lg bg-[var(--primary)] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[var(--primary-hover)]"
             >
               Về trang đăng nhập
             </Link>
           </div>
         ) : state === "not-found" ? (
           <div className="text-center">
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[#FFF3E0]">
-              <AlertTriangle size={24} className="text-[#8A5A00]" />
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--warning-hover)]">
+              <AlertTriangle size={24} className="text-[var(--warning)]" />
             </div>
             <p className="text-sm text-[var(--text-secondary)]">
               Email này chưa được đăng ký. Vui lòng tạo tài khoản mới để sử dụng EduTest.
             </p>
             <Link
               href="/dang-ky"
-              className="mt-6 inline-flex w-full justify-center rounded-lg bg-[#6C4CF1] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#5A3BD8]"
+              className="mt-6 inline-flex w-full justify-center rounded-lg bg-[var(--primary)] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[var(--primary-hover)]"
             >
               Tạo tài khoản
             </Link>

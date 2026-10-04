@@ -57,7 +57,7 @@ export default function AdminAudit() {
   return (
     <div className="p-4 lg:p-8 max-w-5xl mx-auto">
       <h1 className="text-xl font-black text-[var(--text-primary)] mb-6 flex items-center gap-2">
-        <ScrollText size={20} className="text-[#6C4CF1]" /> Nhật ký quản trị
+        <ScrollText size={20} className="text-[var(--primary)]" /> Nhật ký quản trị
       </h1>
 
       <div className="relative mb-4 max-w-sm">
@@ -66,14 +66,14 @@ export default function AdminAudit() {
           value={q}
           onChange={(e) => { setQ(e.target.value); setPage(1); }}
           placeholder="Tìm theo nội dung nhật ký..."
-          className="w-full rounded-lg border border-[var(--surface-border)] pl-9 pr-3 py-2 text-sm focus:border-[#6C4CF1] focus:outline-none"
+          className="w-full rounded-lg border border-[var(--surface-border)] pl-9 pr-3 py-2 text-sm focus:border-[var(--primary)] focus:outline-none"
         />
       </div>
 
       <div className="flex gap-2 mb-4 flex-wrap">
         <button
           onClick={() => { setFilter(""); setPage(1); }}
-          className={`rounded-lg px-3 py-1.5 text-xs font-bold ${filter === "" ? "bg-[#6C4CF1] text-white" : "bg-[var(--surface-card)] border border-[var(--surface-border)] text-[var(--text-secondary)]"}`}
+          className={`rounded-lg px-3 py-1.5 text-xs font-bold ${filter === "" ? "bg-[var(--primary)] text-white" : "bg-[var(--surface-card)] border border-[var(--surface-border)] text-[var(--text-secondary)]"}`}
         >
           Tất cả
         </button>
@@ -81,7 +81,7 @@ export default function AdminAudit() {
           <button
             key={t.type}
             onClick={() => { setFilter(t.type); setPage(1); }}
-            className={`rounded-lg px-3 py-1.5 text-xs font-bold ${filter === t.type ? "bg-[#6C4CF1] text-white" : "bg-[var(--surface-card)] border border-[var(--surface-border)] text-[var(--text-secondary)]"}`}
+            className={`rounded-lg px-3 py-1.5 text-xs font-bold ${filter === t.type ? "bg-[var(--primary)] text-white" : "bg-[var(--surface-card)] border border-[var(--surface-border)] text-[var(--text-secondary)]"}`}
           >
             {t.type} ({t._count._all})
           </button>
@@ -95,7 +95,7 @@ export default function AdminAudit() {
         </button>
       </div>
 
-      {error && <p className="mb-3 text-sm text-[#BE3B3B]">{error}</p>}
+      {error && <p className="mb-3 text-sm text-[var(--danger)]">{error}</p>}
 
       {loading ? (
         <div className="flex items-center justify-center py-32"><Spinner /></div>
@@ -108,7 +108,7 @@ export default function AdminAudit() {
           <div className="rounded-2xl bg-[var(--surface-card)] border border-[var(--surface-border)] divide-y divide-[var(--surface-border)]">
             {logs.map((l) => (
               <div key={l.id} className="px-5 py-3.5 flex items-start gap-3">
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-[#F1EDFD] text-[#6C4CF1] shrink-0 mt-0.5">
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-[var(--primary-light)] text-[var(--primary)] shrink-0 mt-0.5">
                   {l.type}
                 </span>
                 <div className="flex-1 min-w-0">

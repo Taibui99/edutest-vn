@@ -12,7 +12,7 @@ const variantStyles: Record<Variant, string> = {
   default: "bg-[var(--gray-100)] text-[var(--gray-600)]",
   primary: "bg-[var(--primary-light)] text-[var(--primary)]",
   success: "bg-[var(--success-light)] text-[var(--success)]",
-  warning: "bg-[var(--warning-light)] text-[#8A5A00]",
+  warning: "bg-[var(--warning-light)] text-[var(--warning)]",
   danger: "bg-[var(--danger-light)] text-[var(--danger)]",
   secondary: "bg-[var(--blue-light)] text-[var(--blue)]",
 };

@@ -66,7 +66,7 @@ export default function ShareExamPage() {
   };
 
   if (error) {
-    return <div className="min-h-screen grid place-items-center p-6 text-sm text-[#BE3B3B]">{error}</div>;
+    return <div className="min-h-screen grid place-items-center p-6 text-sm text-[var(--danger)]">{error}</div>;
   }
 
   if (!data) {
@@ -76,7 +76,7 @@ export default function ShareExamPage() {
   const previewUrl = `${data.shareUrl}${data.shareUrl.includes("?") ? "&" : "?"}preview=1`;
 
   return (
-    <main className="min-h-screen bg-[var(--surface-page)] px-4 py-6 lg:px-8 lg:py-10">
+    <main className="min-h-screen bg-[var(--surface-bg)] px-4 py-6 lg:px-8 lg:py-10">
       <div className="mx-auto max-w-3xl">
         <button type="button" onClick={() => router.push("/bang-dieu-khien")} className="mb-5 inline-flex items-center gap-2 text-sm font-semibold text-[var(--text-muted)] hover:text-[var(--text-primary)]">
           <ArrowLeft size={16} /> Quay lại bảng điều khiển
@@ -101,7 +101,7 @@ export default function ShareExamPage() {
               <h2 className="text-lg font-black text-[var(--text-primary)]">Chia sẻ cho học sinh</h2>
               <p className="mt-1 text-sm text-[var(--text-muted)]">Học sinh chỉ cần quét QR hoặc mở link. Không cần nhớ mã đề.</p>
 
-              <div className="mt-5 rounded-2xl border border-[var(--surface-border)] bg-[var(--surface-page)] p-4">
+              <div className="mt-5 rounded-2xl border border-[var(--surface-border)] bg-[var(--surface-bg)] p-4">
                 <p className="mb-2 text-xs font-semibold text-[var(--text-muted)]">Link tham gia</p>
                 <div className="flex items-center gap-2">
                   <input readOnly value={data.shareUrl} className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-[var(--text-primary)] outline-none" />

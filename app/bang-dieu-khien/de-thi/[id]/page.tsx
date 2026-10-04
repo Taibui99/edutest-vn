@@ -152,10 +152,10 @@ export default async function ExamDetailPage({ params }: { params: Promise<{ id:
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         {[
-          { label: "Bài nộp", value: subs.length, color: "bg-[#F1EDFD] dark:bg-[#2B2358] text-[#6C4CF1]" },
-          { label: "Điểm TB", value: avgScore !== null ? avgScore.toFixed(1) : "—", color: "bg-[#FCF3E2] dark:bg-[#2B2410] text-[#8A5A00]" },
-          { label: "Điểm cao nhất", value: highest !== null ? highest.toFixed(1) : "—", color: "bg-[#E8F7F1] dark:bg-[#0A2A20] text-[#0E7350]" },
-          { label: "Tỉ lệ đậu", value: subs.length > 0 ? `${Math.round((passCount / subs.length) * 100)}%` : "—", color: "bg-[#EAF3FC] dark:bg-[#0D2A3E] text-[#1A5FB0]" },
+          { label: "Bài nộp", value: subs.length, color: "bg-[var(--primary-light)] dark:bg-[var(--gray-900)] text-[var(--primary)]" },
+          { label: "Điểm TB", value: avgScore !== null ? avgScore.toFixed(1) : "—", color: "bg-[var(--warning-light)] dark:bg-[var(--gray-900)] text-[var(--warning)]" },
+          { label: "Điểm cao nhất", value: highest !== null ? highest.toFixed(1) : "—", color: "bg-[var(--success-light)] dark:bg-[var(--gray-900)] text-[var(--success)]" },
+          { label: "Tỉ lệ đậu", value: subs.length > 0 ? `${Math.round((passCount / subs.length) * 100)}%` : "—", color: "bg-[var(--blue-light)] dark:bg-[var(--gray-900)] text-[var(--blue)]" },
         ].map(({ label, value, color }) => (
           <div key={label} className={`rounded-2xl p-4 ${color.split(" ").slice(0, 2).join(" ")}`}>
             <p className={`text-xs font-bold mb-1 ${color.split(" ").slice(-1)[0]}`}>{label}</p>
@@ -189,7 +189,7 @@ export default async function ExamDetailPage({ params }: { params: Promise<{ id:
                         className="h-full rounded-full transition-all"
                         style={{
                           width: `${(dist[i] / maxDist) * 100}%`,
-                          background: ["#BE3B3B","#8A5A00","#0E7350","#1A5FB0","#6C4CF1"][i]
+                          background: ["var(--danger)","var(--warning)","var(--success)","var(--blue)","var(--primary)"][i]
                         }}
                       />
                     </div>
@@ -220,7 +220,7 @@ export default async function ExamDetailPage({ params }: { params: Promise<{ id:
                           {question.text}
                         </p>
                         {pct !== null && (
-                          <span className={`shrink-0 text-xs font-black ${pct >= 70 ? "text-[#0E7350]" : pct >= 40 ? "text-[#8A5A00]" : "text-[#BE3B3B]"}`}>
+                          <span className={`shrink-0 text-xs font-black ${pct >= 70 ? "text-[var(--success)]" : pct >= 40 ? "text-[var(--warning)]" : "text-[var(--danger)]"}`}>
                             {pct}%
                           </span>
                         )}
@@ -230,7 +230,7 @@ export default async function ExamDetailPage({ params }: { params: Promise<{ id:
                           className="h-full rounded-full transition-all"
                           style={{
                             width: `${pct ?? 0}%`,
-                            background: pct === null ? "#CBD5E1" : pct >= 70 ? "#0E7350" : pct >= 40 ? "#8A5A00" : "#BE3B3B",
+                            background: pct === null ? "var(--gray-300)" : pct >= 70 ? "var(--success)" : pct >= 40 ? "var(--warning)" : "var(--danger)",
                           }}
                         />
                       </div>
@@ -246,15 +246,15 @@ export default async function ExamDetailPage({ params }: { params: Promise<{ id:
 
           {subs.length > 0 && (
             <div className="grid grid-cols-2 gap-2">
-              <div className="rounded-xl bg-[#E8F7F1] p-3 text-center dark:bg-[#0A2A20]">
-                <CheckCircle2 size={16} className="text-[#0E7350] mx-auto mb-1" />
+              <div className="rounded-xl bg-[var(--success-light)] p-3 text-center dark:bg-[var(--gray-900)]">
+                <CheckCircle2 size={16} className="text-[var(--success)] mx-auto mb-1" />
                 <p className="text-lg font-black text-[var(--text-primary)]">{passCount}</p>
-                <p className="text-xs text-[#0E7350] font-bold">Đậu (≥ 5)</p>
+                <p className="text-xs text-[var(--success)] font-bold">Đậu (≥ 5)</p>
               </div>
-              <div className="rounded-xl bg-[#FFECEC] p-3 text-center dark:bg-[#2B1616]">
-                <XCircle size={16} className="text-[#BE3B3B] mx-auto mb-1" />
+              <div className="rounded-xl bg-[var(--danger-light)] p-3 text-center dark:bg-[var(--gray-900)]">
+                <XCircle size={16} className="text-[var(--danger)] mx-auto mb-1" />
                 <p className="text-lg font-black text-[var(--text-primary)]">{subs.length - passCount}</p>
-                <p className="text-xs text-[#BE3B3B] font-bold">Rớt (&lt; 5)</p>
+                <p className="text-xs text-[var(--danger)] font-bold">Rớt (&lt; 5)</p>
               </div>
             </div>
           )}

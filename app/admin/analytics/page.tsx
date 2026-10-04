@@ -25,7 +25,7 @@ function MiniBar({ data }: { data: { day: string; count: number }[] }) {
       {data.map((d) => (
         <div key={d.day} className="flex-1 flex flex-col items-center gap-1">
           <span className="text-[10px] font-bold text-[var(--text-secondary)]">{d.count > 0 ? d.count : ""}</span>
-          <div className="w-full rounded-t-md bg-[#6C4CF1] opacity-80" style={{ height: `${Math.max((d.count / max) * 100, 4)}%` }} />
+          <div className="w-full rounded-t-md bg-[var(--primary)] opacity-80" style={{ height: `${Math.max((d.count / max) * 100, 4)}%` }} />
           <span className="text-[9px] text-[var(--text-muted)] font-semibold">{d.day}</span>
         </div>
       ))}
@@ -58,7 +58,7 @@ export default function AdminAnalytics() {
       .catch(() => setError("Không tải được dữ liệu"));
   }, []);
 
-  if (error) return <div className="p-10 text-center text-sm text-[#BE3B3B]">{error}</div>;
+  if (error) return <div className="p-10 text-center text-sm text-[var(--danger)]">{error}</div>;
   if (!data) return <div className="flex items-center justify-center py-32"><Spinner /></div>;
 
   const maxSubject = Math.max(...data.subjects.map((s) => s.count), 1);
@@ -66,19 +66,19 @@ export default function AdminAnalytics() {
   return (
     <div className="p-4 lg:p-8 max-w-6xl mx-auto">
       <h1 className="text-xl font-black text-[var(--text-primary)] mb-6 flex items-center gap-2">
-        <BarChart3 size={20} className="text-[#6C4CF1]" /> Phân tích & thống kê
+        <BarChart3 size={20} className="text-[var(--primary)]" /> Phân tích & thống kê
       </h1>
 
       <div className="grid lg:grid-cols-2 gap-5 mb-5">
         <div className="rounded-2xl bg-[var(--surface-card)] border border-[var(--surface-border)] p-5">
           <h2 className="text-sm font-black text-[var(--text-primary)] mb-4 flex items-center gap-2">
-            <TrendingUp size={14} className="text-[#6C4CF1]" /> Bài nộp 7 ngày
+            <TrendingUp size={14} className="text-[var(--primary)]" /> Bài nộp 7 ngày
           </h2>
           <MiniBar data={data.subsGrowth} />
         </div>
         <div className="rounded-2xl bg-[var(--surface-card)] border border-[var(--surface-border)] p-5">
           <h2 className="text-sm font-black text-[var(--text-primary)] mb-4 flex items-center gap-2">
-            <TrendingUp size={14} className="text-[#6C4CF1]" /> Người dùng mới 7 ngày
+            <TrendingUp size={14} className="text-[var(--primary)]" /> Người dùng mới 7 ngày
           </h2>
           <MiniBar data={data.usersGrowth} />
         </div>
@@ -87,7 +87,7 @@ export default function AdminAnalytics() {
       <div className="grid lg:grid-cols-2 gap-5 mb-5">
         <div className="rounded-2xl bg-[var(--surface-card)] border border-[var(--surface-border)] p-5">
           <h2 className="text-sm font-black text-[var(--text-primary)] mb-4 flex items-center gap-2">
-            <Flag size={14} className="text-[#BE3B3B]" /> Báo cáo theo trạng thái
+            <Flag size={14} className="text-[var(--danger)]" /> Báo cáo theo trạng thái
           </h2>
           <div className="flex flex-wrap gap-2">
             {Object.entries(REPORT_LABEL).map(([k, label]) => (
@@ -99,7 +99,7 @@ export default function AdminAnalytics() {
         </div>
         <div className="rounded-2xl bg-[var(--surface-card)] border border-[var(--surface-border)] p-5">
           <h2 className="text-sm font-black text-[var(--text-primary)] mb-4 flex items-center gap-2">
-            <Sparkles size={14} className="text-[#1A5FB0]" /> AI Import theo trạng thái
+            <Sparkles size={14} className="text-[var(--blue)]" /> AI Import theo trạng thái
           </h2>
           <div className="flex flex-wrap gap-2">
             {Object.entries(AI_LABEL).map(([k, label]) => (
@@ -141,7 +141,7 @@ export default function AdminAnalytics() {
                 <div key={s.subject} className="flex items-center gap-3">
                   <span className="w-24 text-xs font-semibold text-[var(--text-secondary)] truncate">{s.subject}</span>
                   <div className="flex-1 h-2 rounded-full bg-[var(--gray-100)] overflow-hidden">
-                    <div className="h-full rounded-full bg-[#6C4CF1]" style={{ width: `${(s.count / maxSubject) * 100}%` }} />
+                    <div className="h-full rounded-full bg-[var(--primary)]" style={{ width: `${(s.count / maxSubject) * 100}%` }} />
                   </div>
                   <span className="text-xs font-black text-[var(--text-secondary)] w-6 text-right">{s.count}</span>
                 </div>
@@ -152,7 +152,7 @@ export default function AdminAnalytics() {
       </div>
 
       <p className="text-[11px] text-[var(--text-muted)]">
-        <Link href="/admin" className="text-[#6C4CF1] font-semibold hover:underline">← Về tổng quan</Link> · Dữ liệu lấy trực tiếp từ database.
+        <Link href="/admin" className="text-[var(--primary)] font-semibold hover:underline">← Về tổng quan</Link> · Dữ liệu lấy trực tiếp từ database.
       </p>
     </div>
   );

@@ -194,7 +194,7 @@ export function TaoDeThiEditor({ editId, initialExam }: { editId: string | null;
   };
 
   return (
-    <div className="min-h-full bg-[var(--surface-page)] px-4 py-5 lg:px-7 lg:py-7">
+    <div className="min-h-full bg-[var(--surface-bg)] px-4 py-5 lg:px-7 lg:py-7">
       <div className="mx-auto max-w-7xl">
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3"><Link href={backHref}><button className="grid h-10 sm:h-9 w-10 sm:w-9 place-items-center rounded-xl border border-[var(--surface-border)] bg-[var(--surface-card)]"><ArrowLeft size={17}/></button></Link><div><h1 className="text-[22px] sm:text-xl font-black text-[var(--text-primary)]">{editId ? "Sửa đề thi" : "Tạo đề thi"}</h1><p className="text-xs text-[var(--text-muted)]">{editId ? "Chỉnh sửa nội dung và cấu hình, sau đó lưu thay đổi" : "Soạn, import, cấu hình và xuất bản trên một màn hình"}</p></div></div>
@@ -207,7 +207,7 @@ export function TaoDeThiEditor({ editId, initialExam }: { editId: string | null;
             <div className="flex items-center justify-between border-b border-[var(--surface-border)] px-5 py-4"><div className="flex items-center gap-2"><FileText size={17} className="text-[var(--primary)]"/><div><h2 className="text-sm font-black text-[var(--text-primary)]">Câu hỏi</h2><p className="text-xs text-[var(--text-muted)]">{stats.total} câu · {stats.errors ? `${stats.errors} lỗi cần sửa` : "Đã kiểm tra"}</p></div></div><Button size="sm" variant="outline" onClick={() => addQuestion() } icon={<Plus size={14}/>}>Thêm câu</Button></div>
             <div className="flex flex-col gap-4 p-5">
               {questions.map((q, i) => (
-                <div key={i} className="rounded-2xl border border-[var(--surface-border)] bg-[var(--surface-page)] p-4">
+                <div key={i} className="rounded-2xl border border-[var(--surface-border)] bg-[var(--surface-bg)] p-4">
                   <div className="mb-3 flex items-center justify-between gap-3"><div className="flex items-center gap-2"><span className="grid h-7 w-7 place-items-center rounded-lg bg-[var(--primary-light)] text-xs font-black text-[var(--primary)]">{i+1}</span><Select value={q.type} onChange={(e) => changeType(i, e.target.value as QuestionType)} options={TYPE_OPTIONS}/></div><div className="flex items-center gap-2"><NumberInput value={q.points} onChange={(v)=>updateQuestion(i,{points:v})} min={0.25} max={20} step={0.25} className="w-24"/><button title="Xóa câu" onClick={() => removeQuestion(i)} className="grid h-10 sm:h-8 w-10 sm:w-8 place-items-center rounded-lg text-[var(--text-muted)] hover:bg-[var(--danger-light)] hover:text-[var(--danger)]"><Trash2 size={15}/></button></div></div>
                   <textarea value={q.question} onChange={(e) => updateQuestion(i,{question:e.target.value})} rows={3} placeholder="Nhập nội dung câu hỏi..." className="w-full rounded-xl border border-[var(--surface-border)] bg-[var(--surface-card)] p-3 text-sm outline-none"/>
 
@@ -231,7 +231,7 @@ export function TaoDeThiEditor({ editId, initialExam }: { editId: string | null;
 
                   {q.type === "short_answer" && <div className="mt-3"><p className="mb-2 text-xs font-semibold text-[var(--text-secondary)]">Đáp án chấp nhận</p>{(q.grading?.acceptedAnswers||[""]).map((a,ai)=><div key={ai} className="mb-2 flex gap-2"><input value={a} onChange={(e)=>{const arr=[...(q.grading?.acceptedAnswers||[])]; arr[ai]=e.target.value; updateQuestion(i,{grading:{...q.grading,acceptedAnswers:arr}})}} placeholder="Ví dụ: 42 hoặc 42.0" className="flex-1 rounded-xl border border-[var(--surface-border)] bg-[var(--surface-card)] p-2.5 text-sm outline-none focus:border-[var(--primary)]"/></div>)}<Button size="sm" variant="outline" onClick={()=>updateQuestion(i,{grading:{...q.grading,acceptedAnswers:[...(q.grading?.acceptedAnswers||[]),""]}})}>+ Thêm đáp án</Button></div>}
 
-                  {q.type === "essay" && <div className="mt-3 rounded-xl bg-[var(--warning-light)] p-3 text-xs text-[#B45309]">Câu tự luận sẽ được giáo viên chấm thủ công.</div>}
+                  {q.type === "essay" && <div className="mt-3 rounded-xl bg-[var(--warning-light)] p-3 text-xs text-[var(--warning)]">Câu tự luận sẽ được giáo viên chấm thủ công.</div>}
                 </div>
               ))}
             </div>

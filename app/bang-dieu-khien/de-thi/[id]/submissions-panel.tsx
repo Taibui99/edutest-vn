@@ -39,9 +39,9 @@ const SORT_OPTIONS: { key: SortKey; label: string }[] = [
 ];
 
 function scoreColor(score: number) {
-  if (score >= 8) return { text: "#0E7350", bg: "#E8F7F1" };
-  if (score >= 6.5) return { text: "#8A5A00", bg: "#FCF3E2" };
-  return { text: "#BE3B3B", bg: "#FFECEC" };
+  if (score >= 8) return { text: "var(--success)", bg: "var(--success-light)" };
+  if (score >= 6.5) return { text: "var(--warning)", bg: "var(--warning-light)" };
+  return { text: "var(--danger)", bg: "var(--danger-light)" };
 }
 
 function renderAnswer(q: SubQuestion, selected: AnswerValue | undefined) {
@@ -182,7 +182,7 @@ export function SubmissionsPanel({ subs, questions }: { subs: SubRow[]; question
         {sorted.map((sub, i) => {
           const sc = scoreColor(sub.score);
           const open = expanded === sub.id;
-          const badge = i === 0 ? "bg-[#FCF3E2] text-[#8A5A00]" : null;
+          const badge = i === 0 ? "bg-[var(--warning-light)] text-[var(--warning)]" : null;
           return (
             <div key={sub.id}>
               <button
@@ -219,7 +219,7 @@ export function SubmissionsPanel({ subs, questions }: { subs: SubRow[]; question
               {open && (
                 <div className="bg-[var(--gray-50)]/60 px-5 py-4 border-t border-[var(--surface-border)]">
                   <p className="mb-3 flex items-center gap-1.5 text-xs font-black text-[var(--text-primary)]">
-                    <Trophy size={13} className="text-[#8A5A00]" /> Chi tiết đáp án
+                    <Trophy size={13} className="text-[var(--warning)]" /> Chi tiết đáp án
                   </p>
                   <div className="flex flex-col gap-2.5">
                     {questions.map((q) => {
@@ -228,7 +228,7 @@ export function SubmissionsPanel({ subs, questions }: { subs: SubRow[]; question
                       const auto = isAutoGraded(q);
                       const answered = selected !== undefined && selected !== null;
                       const Icon = !answered ? MinusCircle : correct ? CheckCircle2 : XCircle;
-                      const iconColor = !answered ? "#94A3B8" : correct ? "#0E7350" : "#BE3B3B";
+                      const iconColor = !answered ? "var(--gray-400)" : correct ? "var(--success)" : "var(--danger)";
                       return (
                         <div key={q.id} className="rounded-xl border border-[var(--surface-border)] bg-[var(--surface-card)] p-3">
                           <div className="flex items-start gap-2.5">
@@ -260,8 +260,8 @@ export function SubmissionsPanel({ subs, questions }: { subs: SubRow[]; question
                             <span
                               className="shrink-0 text-[11px] font-black px-2 py-0.5 rounded-md"
                               style={{
-                                background: !answered ? "#E7E5E0" : correct ? "#E8F7F1" : "#FFECEC",
-                                color: !answered ? "#5B6470" : correct ? "#0E7350" : "#BE3B3B",
+                                background: !answered ? "var(--surface-border)" : correct ? "var(--success-light)" : "var(--danger-light)",
+                                color: !answered ? "var(--text-muted)" : correct ? "var(--success)" : "var(--danger)",
                               }}
                             >
                               {!answered ? "Bỏ trống" : correct ? "Đúng" : "Sai"}

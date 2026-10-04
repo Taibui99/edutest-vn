@@ -7,8 +7,8 @@ export default function manifest(): MetadataRoute.Manifest {
     description: "Tạo đề thi siêu tốc, chấm bài tự động, theo dõi tiến độ học tập cho giáo viên và học sinh Việt Nam.",
     start_url: "/",
     display: "standalone",
-    background_color: "#F6F5FB",
-    theme_color: "#6C4CF1",
+    background_color: "#F5F7FB",
+    theme_color: "#0369A1",
     lang: "vi",
   };
 }

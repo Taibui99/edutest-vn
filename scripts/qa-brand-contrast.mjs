@@ -1,61 +1,75 @@
 /**
- * BRAND-1 — Kiem tra do phan biet WCAG cho bang mau A6Class Education (nen sang).
+ * BRAND-1 — Kiem tra do phan biet WCAG AA cho bang mau A6Class Education (nen sang).
  *
  * Mau goc cua A6Class la nen TOI navy nen gia tri raw (#38BDF8 sky-400, #FBBF24
  * amber-400, #FB7185 rose-400) chi dat ~1.9:1 tren nen sang -> khong du lam
  * mau chu. Script nay kiem chung cac bien theo khop sang mau da dam lai,
  * de khong ship mot bang mau that bai o che do sang.
  *
+ * Doc truc tiep `app/globals.css` (khoi `:root`) chu khong hardcode gia tri:
+ * script va bang mau la mot, nen ho khong the tro ch nhau.
+ *
  * Chay: node scripts/qa-brand-contrast.mjs
  */
 
-const PALETTE = {
-  surfaceBg: "#F5F7FB",
-  surfaceCard: "#FFFFFF",
-  surfaceHover: "#EEF3FA",
-  surfaceBorder: "#DFE5F0",
-  surfaceBorderStrong: "#7C8CA8",
+import { readFileSync } from "node:fs";
 
-  textPrimary: "#0F1729",
-  textSecondary: "#33415F",
-  textMuted: "#5B6B8C",
+const CSS = "app/globals.css";
 
-  primary: "#0369A1",
-  primaryHover: "#075985",
-  primaryLight: "#E0F2FE",
-  secondary: "#6D28D9",
-  secondaryLight: "#EDE9FE",
-  accent: "#B45309",
-  accentLight: "#FEF3C7",
+/** Lay cac bien trong khoi `:root` dau tien (che do sang — thu tu uu tien ship). */
+function readLightTokens(file) {
+  const css = readFileSync(file, "utf8");
+  const root = css.match(/(^|[;}\s])@theme\s+inline\s*\{|:root\s*\{/g);
+  if (!root) throw new Error(`Khong tim thay khoi :root trong ${file}`);
 
-  success: "#047857",
-  successLight: "#D1FAE5",
-  warning: "#B45309",
-  warningLight: "#FEF3C7",
-  danger: "#BE123C",
-  dangerLight: "#FFE4E6",
-  info: "#1D4ED8",
-  infoLight: "#DBEAFE",
-};
+  const start = css.indexOf(":root");
+  let depth = 0;
+  let end = start;
+  for (let i = start; i < css.length; i++) {
+    if (css[i] === "{") depth++;
+    else if (css[i] === "}") {
+      depth--;
+      if (depth === 0) {
+        end = i;
+        break;
+      }
+    }
+  }
 
-/** Mon mau the he A6Class (dang duoi 700 de dat AA tren nen sang). */
-const SUBJECTS = {
-  "subject-toan": { fg: "#0369A1", bg: "#E0F2FE" },
-  "subject-van": { fg: "#BE123C", bg: "#FFE4E6" },
-  "subject-anh": { fg: "#6D28D9", bg: "#EDE9FE" },
-  "subject-ly": { fg: "#B45309", bg: "#FEF3C7" },
-  "subject-hoa": { fg: "#047857", bg: "#D1FAE5" },
-  "subject-sinh": { fg: "#0F766E", bg: "#CCFBF1" },
-};
+  const body = css.slice(start, end);
+  const tokens = {};
+  for (const m of body.matchAll(/(--[\w-]+)\s*:\s*([^;]+);/g)) {
+    tokens[m[1]] = m[2].trim();
+  }
+  return tokens;
+}
 
-function hexToRgb(hex) {
-  const h = hex.replace("#", "");
-  const full = h.length === 3 ? h.split("").map((c) => c + c).join("") : h;
+const T = readLightTokens(CSS);
+
+function hex(name) {
+  const v = T[name];
+  if (!v) throw new Error(`Thieu token ${name} trong ${CSS}`);
+  if (!/^#[0-9A-Fa-f]{6}$/.test(v)) throw new Error(`Token ${name} khong phai hex 6 ky tu: ${v}`);
+  return v;
+}
+
+/** Mon mau: token `--subject-xxx` + `--subject-xxx-bg` deu ton tai trong globals.css. */
+function subjectTokens() {
+  const out = {};
+  for (const [name, value] of Object.entries(T)) {
+    const m = name.match(/^--subject-([a-z]+)$/);
+    if (m && T[`--subject-${m[1]}-bg`]) out[m[1]] = { fg: value, bg: T[`--subject-${m[1]}-bg`] };
+  }
+  return out;
+}
+
+function hexToRgb(h) {
+  const full = h.replace("#", "");
   return [0, 2, 4].map((i) => parseInt(full.slice(i, i + 2), 16));
 }
 
-function luminance(hex) {
-  const [r, g, b] = hexToRgb(hex).map((v) => {
+function luminance(hexValue) {
+  const [r, g, b] = hexToRgb(hexValue).map((v) => {
     const s = v / 255;
     return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
   });
@@ -71,74 +85,86 @@ function contrast(a, b) {
 
 /** AA: 4.5:1 cho chu binh thuong, 3:1 cho chu lon (>=18.66px bold hoac >=24px). */
 const AA_TEXT = 4.5;
-const AA_LARGE = 3.0;
 const AA_NON_TEXT = 3.0;
+const WHITE = "#FFFFFF";
 
-const P = PALETTE;
-const checks = [
-  ["Chu chinh tren nen trang", P.textPrimary, P.surfaceCard, AA_TEXT],
-  ["Chu chinh tren nen trang tang", P.textPrimary, P.surfaceBg, AA_TEXT],
-  ["Chu phu tren nen trang", P.textSecondary, P.surfaceCard, AA_TEXT],
-  ["Chu phu tren nen trang tang", P.textSecondary, P.surfaceBg, AA_TEXT],
-  ["Chu mo tren nen trang", P.textMuted, P.surfaceCard, AA_TEXT],
-  ["Chu mo tren nen trang tang", P.textMuted, P.surfaceBg, AA_TEXT],
-  ["Chu mo tren nen hover", P.textMuted, P.surfaceHover, AA_TEXT],
+const checks = [];
+const add = (name, fgToken, bgToken, min = AA_TEXT) => {
+  const fg = fgToken.startsWith("#") ? fgToken : hex(fgToken);
+  const bg = bgToken.startsWith("#") ? bgToken : hex(bgToken);
+  checks.push([name, fg, bg, min]);
+};
 
-  ["Primary tren nen trang", P.primary, P.surfaceCard, AA_TEXT],
-  ["Primary tren nen trang tang", P.primary, P.surfaceBg, AA_TEXT],
-  ["Hover primary tren nen trang", P.primaryHover, P.surfaceCard, AA_TEXT],
-  ["Chu trang tren nut primary", "#FFFFFF", P.primary, AA_TEXT],
-  ["Chu trang tren nut primary hover", "#FFFFFF", P.primaryHover, AA_TEXT],
+// Chu
+add("Chu chinh tren nen trang", "--text-primary", "--surface-card");
+add("Chu chinh tren nen trang tang", "--text-primary", "--surface-bg");
+add("Chu phu tren nen trang", "--text-secondary", "--surface-card");
+add("Chu phu tren nen trang tang", "--text-secondary", "--surface-bg");
+add("Chu mo tren nen trang", "--text-muted", "--surface-card");
+add("Chu mo tren nen trang tang", "--text-muted", "--surface-bg");
+add("Chu mo tren nen hover", "--text-muted", "--surface-hover");
 
-  ["Secondary tren nen trang", P.secondary, P.surfaceCard, AA_TEXT],
-  ["Chu trang tren nut secondary", "#FFFFFF", P.secondary, AA_TEXT],
-  ["Chu trang nen accent (logo)", "#FFFFFF", "#B45309", AA_TEXT],
-  ["Accent tren nen trang tang", P.accent, P.surfaceBg, AA_TEXT],
+// Primary
+add("Primary tren nen trang", "--primary", "--surface-card");
+add("Primary tren nen trang tang", "--primary", "--surface-bg");
+add("Hover primary tren nen trang", "--primary-hover", "--surface-card");
+add("Chu trang tren nut primary", WHITE, "--primary");
+add("Chu trang tren nut primary hover", WHITE, "--primary-hover");
+add("Primary tren nen nhat primary", "--primary", "--primary-light");
 
-  ["Success tren nen trang", P.success, P.surfaceCard, AA_TEXT],
-  ["Success tren nen nhat success", P.success, P.successLight, AA_TEXT],
-  ["Warning tren nen trang", P.warning, P.surfaceCard, AA_TEXT],
-  ["Warning tren nen nhat warning", P.warning, P.warningLight, AA_TEXT],
-  ["Danger tren nen trang", P.danger, P.surfaceCard, AA_TEXT],
-  ["Danger tren nen nhat danger", P.danger, P.dangerLight, AA_TEXT],
-  ["Info tren nen trang", P.info, P.surfaceCard, AA_TEXT],
-  ["Info tren nen nhat info", P.info, P.infoLight, AA_TEXT],
+// Secondary / accent
+add("Secondary tren nen trang", "--secondary", "--surface-card");
+add("Chu trang tren nut secondary", WHITE, "--secondary");
+add("Chu trang nen accent (logo)", WHITE, "--accent");
+add("Accent tren nen trang tang", "--accent", "--surface-bg");
+add("Secondary tren nen nhat secondary", "--secondary", "--secondary-light");
 
-  ["Primary tren nen nhat primary", P.primary, P.primaryLight, AA_TEXT],
-  ["Secondary tren nen nhat secondary", P.secondary, P.secondaryLight, AA_TEXT],
+// Trang thai
+add("Success tren nen trang", "--success", "--surface-card");
+add("Success tren nen nhat success", "--success", "--success-light");
+add("Warning tren nen trang", "--warning", "--surface-card");
+add("Warning tren nen nhat warning", "--warning", "--warning-light");
+add("Danger tren nen trang", "--danger", "--surface-card");
+add("Danger tren nen nhat danger", "--danger", "--danger-light");
+add("Info tren nen trang", "--info", "--surface-card");
+add("Info tren nen nhat info", "--info", "--info-light");
 
-  // WCAG 1.4.11 chi yeu cau 3:1 cho vung phan dinh nghiep, khong ap cho
-  // duong phan cach trang trinh.nen nen --surface-border chi mang tinh
-  // trang trinh nen khong co nguong; --surface-borderStrong (vien o nhap,
-  // checkbox, vien control) moi phai dat 3:1 tren ca 3 nen.
-  ["Vien control tren nen trang", P.surfaceBorderStrong, P.surfaceCard, AA_NON_TEXT],
-  ["Vien control tren nen trang tang", P.surfaceBorderStrong, P.surfaceBg, AA_NON_TEXT],
-  ["Vien control tren nen hover", P.surfaceBorderStrong, P.surfaceHover, AA_NON_TEXT],
-];
+// Sắc tối + nền hover. Cần giữ riêng vì nếu gộp chung, hover biến mất và
+// các nhãn trạng thái mất độ phân biệt so với chữ chính.
+add("Success-dark tren nen trang", "--success-dark", "--surface-card");
+add("Warning-dark tren nen trang", "--warning-dark", "--surface-card");
+add("Danger-dark tren nen trang", "--danger-dark", "--surface-card");
+add("Danger tren nen hover danger", "--danger", "--danger-hover");
+add("Warning-dark tren nen hover warning", "--warning-dark", "--warning-hover");
 
-for (const [name, s] of Object.entries(SUBJECTS)) {
-  checks.push([`${name} tren nen nhat`, s.fg, s.bg, AA_TEXT]);
+// WCAG 1.4.11 chi yeu cau 3:1 cho vung phan dinh nghiep, khong ap cho duong
+// phan cach trang trinh. Nen --surface-border chi mang tinh trang trinh nen
+// khong co nguong; --surface-border-strong (vien o nhap, checkbox, vien
+// control) moi phai dat 3:1 tren ca 3 nen.
+add("Vien control tren nen trang", "--surface-border-strong", "--surface-card", AA_NON_TEXT);
+add("Vien control tren nen trang tang", "--surface-border-strong", "--surface-bg", AA_NON_TEXT);
+add("Vien control tren nen hover", "--surface-border-strong", "--surface-hover", AA_NON_TEXT);
+
+for (const [slug, s] of Object.entries(subjectTokens())) {
+  add(`Mon ${slug} tren nen nhat`, s.fg, s.bg);
 }
 
 let failed = 0;
-const rows = checks.map(([name, fg, bg, min]) => {
+const pad = (v, n) => String(v).padEnd(n);
+
+console.log("\n=== BRAND-1 — Do phan biet WCAG AA (A6Class Education, nen sang) ===");
+console.log(`Nguon: ${CSS} · ${Object.keys(subjectTokens()).length} cap mau mon\n`);
+
+for (const [name, fg, bg, min] of checks) {
   const ratio = contrast(fg, bg);
   const pass = ratio >= min;
   if (!pass) failed += 1;
-  return { name, fg, bg, ratio, min, pass };
-});
-
-const pad = (v, n) => String(v).padEnd(n);
-console.log("\n=== BRAND-1 — Do phan biet WCAG AA (A6Class Education, nen sang) ===\n");
-for (const r of rows) {
-  const mark = r.pass ? "PASS" : "FAIL";
-  const val = r.ratio.toFixed(2).padStart(6);
   console.log(
-    `${mark}  ${pad(r.name, 36)} ${r.fg} / ${r.bg}  ${val}:1  (can >= ${r.min})`,
+    `${pass ? "PASS" : "FAIL"}  ${pad(name, 36)} ${fg} / ${bg}  ${ratio.toFixed(2).padStart(6)}:1  (can >= ${min})`,
   );
 }
 
-console.log(`\n${rows.length - failed}/${rows.length} khop dat.`);
+console.log(`\n${checks.length - failed}/${checks.length} khop dat.`);
 if (failed > 0) {
   console.log(`\n${failed} khop KHONG dat — can dam chu hon hoac sang nen hon.`);
   process.exit(1);

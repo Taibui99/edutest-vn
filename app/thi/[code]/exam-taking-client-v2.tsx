@@ -295,21 +295,21 @@ export function ExamTakingClientV2({ exam, preview = false, backHref }: { exam: 
 
       {preview && <div className="bg-[var(--primary-light)] border-b border-[var(--primary-muted)] px-4 py-2 text-center text-xs font-semibold text-[var(--primary)]">Đây là chế độ xem trước. Lựa chọn của bạn sẽ không được nộp.</div>}
       {!preview && violations > 0 && (
-        <div className={`border-b px-4 py-2 text-center text-xs font-bold ${violations >= MAX_VIOLATIONS ? "bg-[var(--danger)] text-white" : "bg-[#FCF3E2] border-[#F5E5BC] text-[#8A5A00]"}`}>
+        <div className={`border-b px-4 py-2 text-center text-xs font-bold ${violations >= MAX_VIOLATIONS ? "bg-[var(--danger)] text-white" : "bg-[var(--warning-light)] border-[var(--warning-border)] text-[var(--warning)]"}`}>
           {violations >= MAX_VIOLATIONS
             ? "Bạn đã rời khỏi trang thi quá nhiều lần. Bài thi đã được nộp tự động."
             : `Cảnh báo ${violations}/${MAX_VIOLATIONS}: Không rời khỏi trang thi. Rời khỏi trang ${MAX_VIOLATIONS} lần sẽ bị nộp bài tự động!`}
         </div>
       )}
-      {!preview && warnVisible && violations < MAX_VIOLATIONS && <div className="bg-[#FCF3E2] border-b border-[#F5E5BC] px-4 py-1.5 text-center text-[11px] font-bold text-[#8A5A00]">Bạn đã rời khỏi trang thi (lần {violations}). Vui lòng quay lại làm bài ngay!</div>}
+      {!preview && warnVisible && violations < MAX_VIOLATIONS && <div className="bg-[var(--warning-light)] border-b border-[var(--warning-border)] px-4 py-1.5 text-center text-[11px] font-bold text-[var(--warning)]">Bạn đã rời khỏi trang thi (lần {violations}). Vui lòng quay lại làm bài ngay!</div>}
       {!preview && restored && <div className="bg-[var(--primary-light)] border-b border-[var(--primary-muted)] px-4 py-2 text-center text-xs font-semibold text-[var(--primary)]">Đã khôi phục bài làm trước đó của bạn</div>}
       {offline && !preview && (
-        <div role="status" className="bg-[#FCF3E2] border-b border-[#F5E5BC] px-4 py-2 text-center text-xs font-bold text-[#8A5A00]">
+        <div role="status" className="bg-[var(--warning-light)] border-b border-[var(--warning-border)] px-4 py-2 text-center text-xs font-bold text-[var(--warning)]">
           Mất kết nối mạng — bài làm vẫn được lưu cục bộ. Kiểm tra lại mạng để nộp bài.
         </div>
       )}
       {!preview && remaining <= 60 && remaining > 0 && <div className="bg-[var(--danger-light)] border-b border-[var(--danger-light)] px-4 py-2 text-center text-xs font-bold text-[var(--danger)] animate-pulse">Còn {formatTime(remaining)} — sắp hết giờ!</div>}
-      {!preview && remaining <= 300 && remaining > 60 && <div className="bg-[#FCF3E2] border-b border-[#F5E5BC] px-4 py-2 text-center text-xs font-bold text-[#8A5A00]">Còn {Math.ceil(remaining / 60)} phút để hoàn thành bài thi</div>}
+      {!preview && remaining <= 300 && remaining > 60 && <div className="bg-[var(--warning-light)] border-b border-[var(--warning-border)] px-4 py-2 text-center text-xs font-bold text-[var(--warning)]">Còn {Math.ceil(remaining / 60)} phút để hoàn thành bài thi</div>}
       <div className="h-1 bg-[var(--gray-100)]"><div className="h-full bg-[var(--primary)] transition-all" style={{ width: `${progress}%` }}/></div>
 
       <div className="flex-1 w-full max-w-5xl mx-auto flex flex-col lg:flex-row gap-5 p-4 pt-6">
@@ -318,8 +318,8 @@ export function ExamTakingClientV2({ exam, preview = false, backHref }: { exam: 
             <div className="flex items-center justify-between gap-2 mb-4">
             <div className="flex items-center gap-2 min-w-0"><span className="text-xs font-bold text-white bg-[var(--primary)] rounded-md px-2.5 py-1">Câu {current + 1}/{totalQuestions}</span><span className="text-xs font-semibold text-[var(--text-secondary)]">{question?.type === "mcq" ? "Trắc nghiệm" : question?.type === "true_false" ? "Đúng / Sai" : question?.type === "short_answer" ? "Trả lời ngắn" : "Tự luận"}</span></div>
             {!preview && (
-              <button type="button" onClick={toggleMark} className={cn("inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-bold transition shrink-0", marked[question?.id] ? "border-[#E9D8A6] bg-[#FCF3E2] text-[#8A5A00]" : "border-[var(--surface-border)] text-[var(--text-secondary)] hover:bg-[var(--gray-100)]")}>
-                <Flag size={12} className={marked[question?.id] ? "fill-[#8A5A00] text-[#8A5A00]" : ""} />{marked[question?.id] ? "Đã đánh dấu" : "Đánh dấu"}
+              <button type="button" onClick={toggleMark} className={cn("inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-bold transition shrink-0", marked[question?.id] ? "border-[var(--warning-border)] bg-[var(--warning-light)] text-[var(--warning)]" : "border-[var(--surface-border)] text-[var(--text-secondary)] hover:bg-[var(--gray-100)]")}>
+                <Flag size={12} className={marked[question?.id] ? "fill-[var(--warning)] text-[var(--warning)]" : ""} />{marked[question?.id] ? "Đã đánh dấu" : "Đánh dấu"}
               </button>
             )}
           </div>
@@ -332,13 +332,13 @@ export function ExamTakingClientV2({ exam, preview = false, backHref }: { exam: 
 
             {question?.type === "short_answer" && <div><input value={typeof currentAnswer === "string" ? currentAnswer : ""} onChange={(e) => setShortAnswer(e.target.value)} placeholder="Nhập câu trả lời..." className="w-full rounded-xl border border-[var(--surface-border)] p-4 text-sm outline-none focus:border-[var(--primary)]"/><p className="mt-2 text-xs text-[var(--text-muted)]">Hãy nhập câu trả lời ngắn gọn.</p></div>}
 
-            {question?.type === "essay" && <div><textarea value={typeof currentAnswer === "string" ? currentAnswer : ""} onChange={(e) => setEssay(e.target.value)} rows={8} placeholder="Nhập câu trả lời của bạn..." className="w-full rounded-xl border border-[var(--surface-border)] p-4 text-sm outline-none resize-y focus:border-[var(--primary)]"/><p className="mt-2 text-xs text-[#8A5A00]">Câu tự luận sẽ được giáo viên chấm thủ công.</p></div>}
+            {question?.type === "essay" && <div><textarea value={typeof currentAnswer === "string" ? currentAnswer : ""} onChange={(e) => setEssay(e.target.value)} rows={8} placeholder="Nhập câu trả lời của bạn..." className="w-full rounded-xl border border-[var(--surface-border)] p-4 text-sm outline-none resize-y focus:border-[var(--primary)]"/><p className="mt-2 text-xs text-[var(--warning)]">Câu tự luận sẽ được giáo viên chấm thủ công.</p></div>}
           </div>
 
           <div className="flex items-center justify-between gap-3"><Button variant="outline" onClick={() => setCurrent((v) => Math.max(0, v - 1))} disabled={current === 0}><ArrowLeft size={16}/> Trước</Button>{current < totalQuestions - 1 ? <Button onClick={() => setCurrent((v) => v + 1)}>Tiếp <ArrowRight size={16}/></Button> : <Button onClick={() => submitExam(false)} loading={submitting} disabled={preview || totalQuestions === 0}><Send size={16}/> {preview ? "Không nộp trong xem trước" : "Nộp bài"}</Button>}</div>
         </main>
 
-        <aside className="lg:w-56 lg:shrink-0"><div className="bg-[var(--surface-card)] rounded-2xl border border-[var(--surface-border)] p-4 lg:sticky lg:top-24"><p className="text-xs font-bold text-[var(--text-muted)] mb-3">CÂU HỎI</p><div className="grid grid-cols-5 gap-1.5 mb-3">{orderedQuestions.map((q, i) => <button key={q.id} onClick={() => setCurrent(i)} className={cn("aspect-square rounded-lg text-xs font-bold", current === i ? "bg-[var(--primary)] text-white" : marked[q.id] ? "bg-[#FCF3E2] text-[#8A5A00] border border-[#E9D8A6]" : answers[q.id] ? "bg-[var(--success-light)] text-[var(--success)] border border-[var(--success-light)]" : "bg-[var(--gray-100)] text-[var(--text-muted)] border border-[var(--surface-border)]")}>{i + 1}</button>)}</div><div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-[var(--text-secondary)] mb-3"><span className="flex items-center gap-1"><span className="w-3 h-3 rounded border border-[#E9D8A6] bg-[#FCF3E2] inline-block" /> Xem lại</span><span className="flex items-center gap-1"><span className="w-3 h-3 rounded border border-[var(--success-light)] bg-[var(--success-light)] inline-block" /> Đã trả lời</span></div><Button className="w-full" onClick={() => submitExam(false)} disabled={preview || totalQuestions === 0} loading={submitting}>{preview ? "Xem trước" : "Nộp bài"}</Button></div></aside>
+        <aside className="lg:w-56 lg:shrink-0"><div className="bg-[var(--surface-card)] rounded-2xl border border-[var(--surface-border)] p-4 lg:sticky lg:top-24"><p className="text-xs font-bold text-[var(--text-muted)] mb-3">CÂU HỎI</p><div className="grid grid-cols-5 gap-1.5 mb-3">{orderedQuestions.map((q, i) => <button key={q.id} onClick={() => setCurrent(i)} className={cn("aspect-square rounded-lg text-xs font-bold", current === i ? "bg-[var(--primary)] text-white" : marked[q.id] ? "bg-[var(--warning-light)] text-[var(--warning)] border border-[var(--warning-border)]" : answers[q.id] ? "bg-[var(--success-light)] text-[var(--success)] border border-[var(--success-light)]" : "bg-[var(--gray-100)] text-[var(--text-muted)] border border-[var(--surface-border)]")}>{i + 1}</button>)}</div><div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-[var(--text-secondary)] mb-3"><span className="flex items-center gap-1"><span className="w-3 h-3 rounded border border-[var(--warning-border)] bg-[var(--warning-light)] inline-block" /> Xem lại</span><span className="flex items-center gap-1"><span className="w-3 h-3 rounded border border-[var(--success-light)] bg-[var(--success-light)] inline-block" /> Đã trả lời</span></div><Button className="w-full" onClick={() => submitExam(false)} disabled={preview || totalQuestions === 0} loading={submitting}>{preview ? "Xem trước" : "Nộp bài"}</Button></div></aside>
       </div>
 
       {showConfirm && <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4"><div className="bg-[var(--surface-card)] rounded-2xl p-6 max-w-sm w-full"><h3 className="font-bold mb-2">Xác nhận nộp bài?</h3><p className="text-sm text-[var(--text-secondary)] mb-5">Bạn còn {totalQuestions - answeredCount} câu chưa trả lời. Vẫn nộp bài?</p><div className="flex gap-3"><Button variant="outline" className="flex-1" onClick={() => setShowConfirm(false)}>Làm tiếp</Button><Button className="flex-1" onClick={() => submitExam(true)} loading={submitting}>Nộp bài</Button></div></div></div>}

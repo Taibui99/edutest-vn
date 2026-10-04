@@ -15,24 +15,36 @@ export const SUBJECTS = [
 export interface SubjectColor {
   text: string;
   bg: string;
-  border: string;
 }
 
-const subjectMap: Record<string, SubjectColor> = {
-  "Toán":       { text: "#1A5FB0", bg: "#EAF3FC", border: "#C4DCF4" },
-  "Ngữ Văn":   { text: "#BE123C", bg: "#FFE4E6", border: "#FECDD3" },
-  "Tiếng Anh": { text: "#6C4CF1", bg: "#F1EDFD", border: "#DCD4FA" },
-  "Vật Lý":    { text: "#8A5A00", bg: "#FCF3E2", border: "#F3DFB8" },
-  "Hóa Học":   { text: "#0E7350", bg: "#E8F7F1", border: "#BCE5D6" },
-  "Sinh Học":  { text: "#1A5FB0", bg: "#EAF3FC", border: "#C4DCF4" },
-  "Lịch Sử":  { text: "#8A5A00", bg: "#FCF3E2", border: "#F3DFB8" },
-  "Địa Lý":   { text: "#0E7350", bg: "#E8F7F1", border: "#BCE5D6" },
-  "GDCD":      { text: "#B23C00", bg: "#FDEDE1", border: "#F8D5B8" },
-  "Tin Học":   { text: "#0E6E86", bg: "#E4F6FB", border: "#BCE3EE" },
+/** Tên môn → slug token trong `app/globals.css`. Màu nằm ở CSS, không nhân bản ở đây. */
+const SLUG: Record<string, string> = {
+  "Toán": "toan",
+  "Ngữ Văn": "van",
+  "Tiếng Anh": "anh",
+  "Vật Lý": "ly",
+  "Hóa Học": "hoa",
+  "Sinh Học": "sinh",
+  "Lịch Sử": "su",
+  "Địa Lý": "dia",
+  "GDCD": "gdcd",
+  "Tin Học": "tin",
 };
 
-const defaultColor: SubjectColor = { text: "#6C4CF1", bg: "#F1EDFD", border: "#DCD4FA" };
+/**
+ * Object trả về phải giữ nguyên tham chiếu giữa các lần render để các component
+ * con dùng `React.memo` / `useMemo` theo object này không bị re-render thừa.
+ */
+const cache = new Map<string, SubjectColor>();
 
 export function getSubjectColor(subject: string): SubjectColor {
-  return subjectMap[subject] ?? defaultColor;
+  const hit = cache.get(subject);
+  if (hit) return hit;
+  const slug = SLUG[subject] ?? "khac";
+  const color: SubjectColor = {
+    text: `var(--subject-${slug})`,
+    bg: `var(--subject-${slug}-bg)`,
+  };
+  cache.set(subject, color);
+  return color;
 }

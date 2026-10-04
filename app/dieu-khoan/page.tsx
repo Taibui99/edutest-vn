@@ -55,9 +55,9 @@ const SECTIONS: { title: string; items: string[] }[] = [
 
 export default function DieuKhoanPage() {
   return (
-    <div className="min-h-screen bg-[var(--bg-page)]">
+    <div className="min-h-screen bg-[var(--surface-bg)]">
       <div className="max-w-3xl mx-auto px-4 py-10">
-        <Link href="/" className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#6C4CF1] hover:text-[#5A3BD8] mb-8">
+        <Link href="/" className="inline-flex items-center gap-1.5 text-sm font-semibold text-[var(--primary)] hover:text-[var(--primary-hover)] mb-8">
           <ArrowLeft size={15} /> Về trang chủ
         </Link>
         <h1 className="text-2xl font-black text-[var(--text-primary)] mb-2">Điều khoản sử dụng</h1>
@@ -68,7 +68,7 @@ export default function DieuKhoanPage() {
               <h2 className="text-base font-bold text-[var(--text-primary)] mb-2.5">{s.title}</h2>
               <ul className="flex flex-col gap-2">
                 {s.items.map((item, i) => (
-                  <li key={i} className="text-sm leading-relaxed text-[var(--text-secondary)] pl-4 relative before:content-['•'] before:absolute before:left-0 before:text-[#6C4CF1]">
+                  <li key={i} className="text-sm leading-relaxed text-[var(--text-secondary)] pl-4 relative before:content-['•'] before:absolute before:left-0 before:text-[var(--primary)]">
                     {item}
                   </li>
                 ))}

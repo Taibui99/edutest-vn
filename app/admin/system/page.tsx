@@ -46,17 +46,17 @@ export default function AdminSystem() {
     <div className="p-4 lg:p-8 max-w-4xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-xl font-black text-[var(--text-primary)] flex items-center gap-2">
-          <Activity size={20} className="text-[#6C4CF1]" /> Kiểm tra hệ thống
+          <Activity size={20} className="text-[var(--primary)]" /> Kiểm tra hệ thống
         </h1>
         <button
           onClick={() => { setRefreshing(true); load(); }}
-          className="rounded-lg bg-[#6C4CF1] px-3 py-1.5 text-xs font-bold text-white hover:opacity-90"
+          className="rounded-lg bg-[var(--primary)] px-3 py-1.5 text-xs font-bold text-white hover:opacity-90"
         >
           Chạy lại kiểm tra
         </button>
       </div>
 
-      {error && <p className="mb-3 text-sm text-[#BE3B3B]">{error}</p>}
+      {error && <p className="mb-3 text-sm text-[var(--danger)]">{error}</p>}
 
       {loading ? (
         <div className="flex items-center justify-center py-32"><Spinner /></div>
@@ -68,15 +68,15 @@ export default function AdminSystem() {
               return (
                 <div key={c.key} className="rounded-2xl bg-[var(--surface-card)] border border-[var(--surface-border)] p-5 flex items-center gap-3">
                   {check?.ok ? (
-                    <CheckCircle2 size={22} className="text-[#0E7350] shrink-0" />
+                    <CheckCircle2 size={22} className="text-[var(--success)] shrink-0" />
                   ) : (
-                    <XCircle size={22} className="text-[#BE3B3B] shrink-0" />
+                    <XCircle size={22} className="text-[var(--danger)] shrink-0" />
                   )}
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-bold text-[var(--text-primary)]">{c.label}</p>
                     <p className="text-xs text-[var(--text-muted)] truncate">{check?.ok ? "Hoạt động bình thường" : (check?.detail ?? "Không có phản hồi")}</p>
                   </div>
-                  <span className={`text-[11px] font-bold px-2 py-0.5 rounded-lg ${check?.ok ? "bg-[#E8F7F1] text-[#0E7350]" : "bg-[#FFECEC] text-[#BE3B3B]"}`}>
+                  <span className={`text-[11px] font-bold px-2 py-0.5 rounded-lg ${check?.ok ? "bg-[var(--success-light)] text-[var(--success)]" : "bg-[var(--danger-light)] text-[var(--danger)]"}`}>
                     {check?.ok ? "OK" : "LỖI"}
                   </span>
                 </div>
@@ -105,7 +105,7 @@ export default function AdminSystem() {
             <h2 className="text-sm font-black text-[var(--text-primary)] mb-3">AI import gần nhất</h2>
             {data.lastAiImport ? (
               <div className="flex items-center gap-2 text-sm">
-                <span className={`text-[11px] font-bold px-2 py-0.5 rounded-lg ${data.lastAiImport.status === "success" ? "bg-[#E8F7F1] text-[#0E7350]" : data.lastAiImport.status === "running" ? "bg-[#EAF3FC] text-[#1A5FB0]" : "bg-[#FFECEC] text-[#BE3B3B]"}`}>
+                <span className={`text-[11px] font-bold px-2 py-0.5 rounded-lg ${data.lastAiImport.status === "success" ? "bg-[var(--success-light)] text-[var(--success)]" : data.lastAiImport.status === "running" ? "bg-[var(--blue-light)] text-[var(--blue)]" : "bg-[var(--danger-light)] text-[var(--danger)]"}`}>
                   {data.lastAiImport.status === "success" ? "Thành công" : data.lastAiImport.status === "running" ? "Đang chạy" : "Thất bại"}
                 </span>
                 <span className="font-bold text-[var(--text-secondary)]">{data.lastAiImport.model ?? "gemini"}</span>
