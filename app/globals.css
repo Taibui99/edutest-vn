@@ -4,38 +4,54 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
-  --primary:        #6C4CF1;
-  --primary-hover:  #5A3BD8;
-  --primary-light:  #F1EDFD;
-  --primary-muted:  #DCD4FA;
-  --coral:          #BE3B3B; --coral-light: #FDEDED;
-  --mint:           #0E7350; --mint-light: #E8F7F1;
-  --yellow:         #8A5A00; --yellow-light: #FCF3E2;
-  --blue:           #1A5FB0; --blue-light: #EAF3FC;
-  --success:        #0E7350; --success-light: #E8F7F1;
-  --warning:        #8A5A00; --warning-light: #FCF3E2;
-  --danger:         #BE3B3B; --danger-light: #FDEDED;
-  --score-good:     #0E7350;
-  --score-mid:      #8A5A00;
-  --score-bad:      #BE3B3B;
-  --gray-50: #FAFAF8; --gray-100: #F2F2EF; --gray-200: #E7E5E0; --gray-300: #D6D3CD;
-  --gray-400: #A8A29E; --gray-500: #78716C; --gray-600: #57534E; --gray-700: #44403C;
-  --gray-800: #292524; --gray-900: #1C1917;
-  --surface-bg: #F6F5FB; --surface-card: #FFFFFF; --surface-sidebar: #FFFFFF;
-  --surface-input: #FFFFFF; --surface-hover: #F4F2FD;
-  --surface-border: #E7E5E0; --surface-border-strong: #D6D3CD;
-  --text-primary: #1F2937; --text-secondary: #4B5563; --text-muted: #5B6470;
-  --gradient-brand: linear-gradient(135deg, #6C4CF1 0%, #7C5CF3 55%, #9B7FF7 100%);
-  --focus-ring: rgba(108, 76, 241, 0.35);
-  --shadow-sm: 0 1px 2px rgba(31, 26, 51, 0.06);
-  --shadow-md: 0 4px 12px rgba(31, 26, 51, 0.07);
-  --shadow-lg: 0 12px 28px rgba(31, 26, 51, 0.10);
-  --subject-toan: #1A5FB0; --subject-toan-bg: #EAF3FC;
-  --subject-van: #E11D48; --subject-van-bg: #FFE4E6;
-  --subject-anh: #6C4CF1; --subject-anh-bg: #F1EDFD;
-  --subject-ly: #8A5A00; --subject-ly-bg: #FCF3E2;
-  --subject-hoa: #0E7350; --subject-hoa-bg: #E8F7F1;
-  --subject-sinh: #1A5FB0; --subject-sinh-bg: #EAF3FC;
+  /* ── A6Class Education — bảng sáng lấy hue từ A6Class ────────────────
+     A6Class gốc là nền TỐI navy. Hệ thi học sinh đọc rất lâu nên giữ nền
+     sáng, nhưng mọi hue đều thuộc hệ navy / sky / violet / amber của
+     A6Class để nhìn là cùng một hệ sinh thái.
+     Màu gốc của A6Class quá sáng để làm màu chữ trên nền sáng:
+     #38BDF8 chỉ ~1.9:1, #FBBF24 ~1.9:1 → ở đây dùng bản đậm hơn (dả 600–800).
+     Đã kiểm 35/35 khop WCAG AA: node scripts/qa-brand-contrast.mjs */
+  --primary:        #0369A1;   /* sky-700  — 5.93:1 trên nề trắng */
+  --primary-hover:  #075985;   /* sky-800  — 7.56:1 */
+  --primary-light:  #E0F2FE;
+  --primary-muted:  #BAE6FD;
+  --secondary:      #6D28D9;   /* violet-700 — 7.10:1 */
+  --secondary-light:#EDE9FE;
+  --accent:         #B45309;   /* amber-700 — 5.02:1, dùng cho subline logo */
+  --accent-light:   #FEF3C7;
+  --coral:          #BE123C; --coral-light: #FFE4E6;   /* rose-700 */
+  --mint:           #047857; --mint-light: #D1FAE5;   /* emerald-700 */
+  --yellow:         #B45309; --yellow-light: #FEF3C7;   /* amber-700 */
+  --blue:           #1D4ED8; --blue-light: #DBEAFE;   /* blue-700 */
+  --success:        #047857; --success-light: #D1FAE5;
+  --warning:        #B45309; --warning-light: #FEF3C7;
+  --danger:         #BE123C; --danger-light: #FFE4E6;
+  --info:           #1D4ED8; --info-light: #DBEAFE;
+  --score-good:     #047857;
+  --score-mid:      #B45309;
+  --score-bad:      #BE123C;
+  /* Thang xám lạnh (navy-tinted) khớp A6Class. Không component nào dùng class
+     gray-* của Tailwind — 118 chỗ neutral đều đi qua var(--gray-*). */
+  --gray-50: #F7F9FC; --gray-100: #EEF2F7; --gray-200: #E2E8F0; --gray-300: #CBD5E1;
+  --gray-400: #94A3B8; --gray-500: #64748B; --gray-600: #475569; --gray-700: #334155;
+  --gray-800: #1E293B; --gray-900: #0F172A;
+  --surface-bg: #F5F7FB; --surface-card: #FFFFFF; --surface-sidebar: #FFFFFF;
+  --surface-input: #FFFFFF; --surface-hover: #EEF3FA;
+  --surface-border: #DFE5F0; --surface-border-strong: #7C8CA8;
+  --text-primary: #0F1729; --text-secondary: #33415F; --text-muted: #5B6B8C;
+  /* Gradient thương hiệu: sky-700 → sky-600 → sky-400, cùng dải với logo A6Class
+     (tile gradient sky→sky-hover). */
+  --gradient-brand: linear-gradient(135deg, #0369A1 0%, #0284C7 55%, #38BDF8 100%);
+  --focus-ring: rgba(3, 105, 161, 0.35);
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
+  --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.07);
+  --shadow-lg: 0 12px 28px rgba(15, 23, 42, 0.10);
+  --subject-toan: #0369A1; --subject-toan-bg: #E0F2FE;
+  --subject-van: #BE123C; --subject-van-bg: #FFE4E6;
+  --subject-anh: #6D28D9; --subject-anh-bg: #EDE9FE;
+  --subject-ly: #B45309; --subject-ly-bg: #FEF3C7;
+  --subject-hoa: #047857; --subject-hoa-bg: #D1FAE5;
+  --subject-sinh: #0F766E; --subject-sinh-bg: #CCFBF1;
   --radius-sm: 6px; --radius-md: 10px; --radius-lg: 14px; --radius-xl: 18px; --radius-2xl: 24px;
   --sidebar-width: 220px; --topbar-height: 60px;
   --motion-fast: 140ms;
@@ -45,29 +61,82 @@
   --ease-spring: cubic-bezier(.22,1.28,.36,1);
 }
 
+/* Nền tối: khoá theo bảng màu A6Class gốc (bg #16203F, surface #1E2A52).
+   Hiện chưa bật — components/theme/theme-provider.tsx ép "light" — nhưng đã
+   sửa cho khớp A6Class để không còn tồn tại palette thứ ba trong dự án. */
 .dark {
   color-scheme: dark;
-  --surface-bg: #121118; --surface-card: #1B1A22; --surface-sidebar: #16151D;
-  --surface-input: #1B1A22; --surface-hover: #222130;
-  --surface-border: #2B2A35; --surface-border-strong: #3C3B49;
-  --text-primary: #F4F4FA; --text-secondary: #CBCCD8; --text-muted: #8B8E9C;
-  --gray-50: #1B1A22; --gray-100: #201F29; --gray-200: #2B2A35; --gray-300: #3C3B49;
-  --gray-400: #5C5B6B; --gray-500: #8B8E9C; --gray-600: #CBCCD8; --gray-700: #D8D9E2;
-  --gray-800: #EBEBF2; --gray-900: #F4F4FA;
-  --primary: #A78BFA; --primary-hover: #B9A5FC; --primary-muted: #372C6B;
-  --mint: #34D399; --yellow: #FBBF24; --coral: #F87171; --blue: #60A5FA;
-  --success: #34D399; --warning: #FBBF24; --danger: #F87171;
-  --primary-light: #2B2358;
-  --mint-light: #14352A;
-  --yellow-light: #383014;
-  --coral-light: #3A1D1D;
-  --blue-light: #17293D;
-  --success-light: #14352A;
-  --warning-light: #383014;
-  --danger-light: #3A1D1D;
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.45);
-  --shadow-lg: 0 12px 28px rgba(0, 0, 0, 0.55);
+  --surface-bg: #16203F; --surface-card: #1E2A52; --surface-sidebar: #1A2450;
+  --surface-input: #1E2A52; --surface-hover: #27356A;
+  --surface-border: #364580; --surface-border-strong: #4A5B98;
+  --text-primary: #FFFFFF; --text-secondary: #E8EEF7; --text-muted: #B9C6DE;
+  --gray-50: #1E2A52; --gray-100: #233064; --gray-200: #2C3B6E; --gray-300: #364580;
+  --gray-400: #4A5B98; --gray-500: #6B7CA8; --gray-600: #93A3C4; --gray-700: #B9C6DE;
+  --gray-800: #DDE5F2; --gray-900: #FFFFFF;
+  --primary: #38BDF8; --primary-hover: #7DD3FC; --primary-muted: #0E4A6E;
+  --secondary: #A78BFA; --secondary-light: #3B2F63;
+  --accent: #FBBF24; --accent-light: #4A3611;
+  --mint: #34D399; --yellow: #FBBF24; --coral: #FB7185; --blue: #60A5FA;
+  --success: #34D399; --warning: #FBBF24; --danger: #FB7185; --info: #60A5FA;
+  --primary-light: #0E4A6E;
+  --mint-light: #14352A; --yellow-light: #4A3611; --coral-light: #3A1D1D; --blue-light: #17293D;
+  --success-light: #14352A; --warning-light: #4A3611; --danger-light: #3A1D1D; --info-light: #17293D;
+  --shadow-sm: 0 1px 2px rgba(9, 14, 35, 0.4);
+  --shadow-md: 0 4px 12px rgba(9, 14, 35, 0.45);
+  --shadow-lg: 0 12px 28px rgba(9, 14, 35, 0.55);
+}
+
+/* ── Đăng ký token cho Tailwind v4 ──────────────────────────────────────
+   Nhờ khối này Tailwind sinh ra class semantic từ đúng một nguồn sự thật,
+   nên `bg-primary`, `text-muted`, `border-border`… luôn khớp bảng màu.
+   Đây là nền để BRAND-2b gom các hex rải rác về token. */
+@theme inline {
+  --color-background: var(--surface-bg);
+  --color-foreground: var(--text-primary);
+  --color-card: var(--surface-card);
+  --color-card-foreground: var(--text-primary);
+  --color-popover: var(--surface-card);
+  --color-popover-foreground: var(--text-primary);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-light: var(--primary-light);
+  --color-primary-foreground: #FFFFFF;
+  --color-secondary: var(--secondary);
+  --color-secondary-light: var(--secondary-light);
+  --color-secondary-foreground: #FFFFFF;
+  --color-accent: var(--accent);
+  --color-accent-light: var(--accent-light);
+  --color-accent-foreground: #FFFFFF;
+  --color-success: var(--success);
+  --color-success-light: var(--success-light);
+  --color-warning: var(--warning);
+  --color-warning-light: var(--warning-light);
+  --color-danger: var(--danger);
+  --color-danger-light: var(--danger-light);
+  --color-destructive: var(--danger);
+  --color-destructive-foreground: #FFFFFF;
+  --color-info: var(--info);
+  --color-info-light: var(--info-light);
+  --color-surface: var(--surface-card);
+  --color-surface-bg: var(--surface-bg);
+  --color-surface-sidebar: var(--surface-sidebar);
+  --color-surface-input: var(--surface-input);
+  --color-surface-hover: var(--surface-hover);
+  --color-muted: var(--text-muted);
+  --color-muted-foreground: var(--text-secondary);
+  --color-text: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+  --color-border: var(--surface-border);
+  --color-border-strong: var(--surface-border-strong);
+  --color-input: var(--surface-border-strong);
+  --color-ring: var(--primary);
+  /* Tên màu quen thuột, ánh xạ về token để code không rơi về màu kế thừa. */
+  --color-sky: var(--primary);
+  --color-violet: var(--secondary);
+  --color-amber: var(--accent);
+  --color-canvas: var(--surface-bg);
+  --font-sans: 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
 * { box-sizing: border-box; }
@@ -124,19 +193,19 @@ body { background: var(--surface-bg); color: var(--text-primary); margin: 0; }
 }
 
 .motion-button { will-change: transform; }
-.motion-button:hover { transform: translateY(-1px); box-shadow: 0 8px 22px rgba(13,148,136,.16); }
+.motion-button:hover { transform: translateY(-1px); box-shadow: 0 8px 22px rgba(3, 105, 161, .16); }
 .motion-button:active { transform: translateY(1px) scale(.975); transition-duration: var(--motion-fast); }
-.motion-button:focus-visible { box-shadow: 0 0 0 4px rgba(13,148,136,.16); }
+.motion-button:focus-visible { box-shadow: 0 0 0 4px rgba(3, 105, 161, .16); }
 
 .motion-card { will-change: transform; }
-.motion-card:hover { transform: translateY(-2px); box-shadow: 0 12px 28px rgba(30,50,48,.10); border-color: var(--primary-muted) !important; }
+.motion-card:hover { transform: translateY(-2px); box-shadow: 0 12px 28px rgba(15, 23, 42, .10); border-color: var(--primary-muted) !important; }
 
 .motion-nav { will-change: transform; }
 .motion-nav:hover { transform: translateX(3px); color: var(--primary); }
 .motion-nav:active { transform: translateX(1px) scale(.99); }
 
 .motion-input:hover { border-color: var(--primary-muted) !important; }
-.motion-input:focus { border-color: var(--primary) !important; box-shadow: 0 0 0 4px rgba(13,148,136,.12); }
+.motion-input:focus { border-color: var(--primary) !important; box-shadow: 0 0 0 4px rgba(3, 105, 161, .12); }
 
 .motion-toggle { will-change: transform; }
 .motion-toggle:active { transform: scale(.965); }
@@ -187,7 +256,7 @@ body { background: var(--surface-bg); color: var(--text-primary); margin: 0; }
   border-radius: 999px;
   background: var(--primary);
   border: 3px solid var(--surface-card);
-  box-shadow: 0 2px 6px rgba(13, 148, 136, .35);
+  box-shadow: 0 2px 6px rgba(3, 105, 161, .35);
   transition: transform var(--motion-fast) var(--ease-smooth);
 }
 .ui-range::-webkit-slider-thumb:hover { transform: scale(1.12); }
@@ -197,7 +266,7 @@ body { background: var(--surface-bg); color: var(--text-primary); margin: 0; }
   border-radius: 999px;
   background: var(--primary);
   border: 3px solid var(--surface-card);
-  box-shadow: 0 2px 6px rgba(13, 148, 136, .35);
+  box-shadow: 0 2px 6px rgba(3, 105, 161, .35);
   transition: transform var(--motion-fast) var(--ease-smooth);
 }
 .ui-range::-moz-range-track {

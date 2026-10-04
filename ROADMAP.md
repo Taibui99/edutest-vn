@@ -174,3 +174,74 @@ Tất cả L1–L4 trong commit `6e0ad48` — verified live: robots.txt/sitemap.
 **Bug đã phát hiện và vá trong lúc verify:** `solvePrompt` ban đầu không render danh sách câu hỏi vào prompt → AI không thấy đề nên cả 3 câu bị đánh dấu "chưa chắc". Đã sửa ở `fd435bd`, đồng thời tách bộ đếm đồng thuận khỏi `reconcileAnswers` và ép đánh dấu `needsReview` khi không lấy được đáp án nào.
 
 **Còn lại (không chặn AI-4):** chưa thử với file PDF/Word thật (mới smoke-test bằng text dán) và chưa có E2E test tự động cho luồng này.
+
+## 🔐 Chống gian lận khi thi (đã chốt hướng 2026-10-04)
+
+**Yêu cầu của user:** hành vi gian lận của học sinh hiện rất tinh vi, cần vá lại hệ thống chống gian lận.
+
+**Quyết định đã chốt:** chỉ **ghi log + gắn cờ rủi ro**, giáo viên xem timeline rồi tự quyết — **không** tự 0 điểm, **không** từ chối nộp bài. Giáo viên **chọn chế độ** siết (nghiêm / nhẹ / tắt). **Không** dùng webcam/micro.
+
+### 🚨 Lỗ hổng nghiêm trọng nhất — đáp án đúng đang lộ xuống máy học sinh
+`app/thi/[code]/page.tsx:28` serialize **toàn bộ đáp án** (`q.answer`) + `grading.acceptedAnswers` xuống client cho **mọi học sinh**, không riêng giáo viên preview. Đây là prop của React Server Component nên nằm ngay trong payload RSC → học sinh chỉ cần View Source hoặc tab Network là đọc được đáp án toàn đề, **không cần DevTools**. Trong khi đó client không hề dùng `question.answer` để làm gì (`exam-taking-client-v2.tsx:247-253`), điểm do server chấm ở `app/api/submissions/route.ts:59`.
+→ **Mọi biện pháp rào trình duyệt hiện tại đều vô nghĩa** vì bài đã bị lộ trước khi học sinh làm bất cứ điều gì. Phải sửa cái này trước.
+
+### Các hạng mục
+- [ ] **GĐ0 Cắt rò đáp án (P0)** — tách `mapQuestions()` ở `app/thi/[code]/page.tsx:28` thành `forStudent` (không `answer`, không `acceptedAnswers`) và `forPreview` (giữ nguyên). Áp cho cả 3 nhánh: khách `:69`, preview giáo viên `:72`, học sinh `:79`. Logic chấm điểm ở `app/api/submissions/route.ts:59` giữ nguyên. **Test chống hồi quy bắt buộc:** Playwright đăng nhập học sinh, đọc payload RSC, assert không chứa đáp án đúng của một câu đã biết.
+- [ ] **GĐ1 Attempt do server quản lý (P0)** — model `Attempt` (`deadlineAt` do server tự tính, `seed` + `questionOrder`/`optionOrder` lưu server thay vì `Math.random()` ở client, `activeKey @unique` chặn thi song song). `POST /api/submissions` bắt buộc có `attemptId`; bỏ việc đọc `durationSeconds` từ client (`route.ts:20,65`); chấm bằng `submittedAt - startedAt`; trừ grace 30s cho học sinh bị lag mạng. Client đồng bộ đồng hồ qua `/api/attempts/[id]`.
+- [ ] **GĐ2 Nhật ký vi phạm + risk score + UI giáo viên (P0/P1)** — model `ProctorEvent` (`type`, `severity`, `detail`). `lib/integrity.ts` tính risk score (test thuần theo pattern `scripts/qa-*.mjs`). `Submission` += `attemptId`, `violationCount`, `riskScore`, `riskLevel`, `autoSubmitted`, `ipHash`. `submissions-panel.tsx` thêm cột cảnh báo + badge `riskLevel` + drawer timeline + filter + 2 cột vào CSV export (`:123`).
+- [ ] **GĐ3 Rào trình duyệt (P1)** — `Exam.proctorMode: "off" | "light" | "strict"` (mặc định `off` để không phá đề cũ). Chặn copy/paste/contextmenu, F12/Ctrl+Shift+I/Ctrl+P/Ctrl+U/PrintScreen, bắt buộc fullscreen (`fullscreenchange`), `beforeunload`, `BroadcastChannel` phát hiện nhiều tab, phát hiện `getDisplayMedia` + `window.print`. Tự hạ cấp strict→light khi thi trên điện thoại, có ghi chú cho học sinh.
+- [ ] **GĐ4 Bẫu đánh giá độ tin cậy (P2)** — vài câu nhận dạng tự động chèn, kết hợp điểm + vi phạm → gợi ý mức độ đáng ngờ. Không tính vào điểm.
+
+### Trung thực về giới hạn
+GĐ3 **luôn bypass được** (trình duyệt khác, VM, điện thoại). Chỉ **GĐ0 + GĐ1 + GĐ2** mới thực sự có tác dụng vì server không còn phải "tin" học sinh.
+
+### Việc chưa làm (đã rà, cần xử lý)
+- `ROADMAP.md` mục P2-5 ghi "Anti-cheat — tab detection, **fullscreen**" nhưng **fullscreen chưa hề được implement** → sửa lại mô tả cho đúng.
+- Chưa có E2E test nào cho auto-submit khi đạt ngưỡng vi phạm, server-side rejection, hay kiểm tra thời gian thi. `tests/e2e/student-take-exam.spec.ts:70-76` chỉ phủ 1 trường hợp blur lần 1.
+
+## 🎓 Đổi thương hiệu → A6Class Education (đã chốt hướng 2026-10-04)
+
+**Yêu cầu của user:** toàn bộ EduTest sẽ đồng bộ với web tổng của lớp (`https://a6class.vercel.app/`) → đổi thành **A6Class Education**.
+
+**Quyết định đã chốt:**
+- Tên hiển thị: **A6Class Education**.
+- Giao diện: **nền SÁNG**, lấy màu của A6Class làm màu nhấn (A6Class gốc là nền tối navy; hệ thi đọc lâu nên giữ sáng).
+- Làm **tuần tự từng bước, dừng để user xem live** sau mỗi bước.
+- Domain: user muốn đổi Vercel project `edutest-vn` → `a6edutest` để ra `a6edutest.vercel.app`.
+
+**Nguồn thiết kế chuẩn:** `D:\A6Class\src\app\globals.css` + `D:\A6Class\src\components\layout\logo.tsx`.
+
+**Đã đối chiếu 2 hệ thống:**
+
+| | EduTest | A6Class | Kết quả |
+|---|---|---|---|
+| Tailwind | v4 | v4 | ✅ giống |
+| Font | Be Vietnam Pro 400–800 | Be Vietnam Pro 400–800 | ✅ giống hệt |
+| Radii | 6/10/14/18/24 | 6/10/14/18/24 | ✅ giống |
+| Motion | 140/220/340ms + easing y hệt | y hệt | ✅ giống |
+| Cấu trúc thư mục | `app/` | `src/` | ⚠️ giữ `app/` cho ít rủi ro |
+
+→ Khác biệt gần như **chỉ nằm ở màu**. Không phải viết lại từ đầu.
+
+**Bảng màu A6Class chính thức:** `primary #38BDF8` · `secondary #A78BFA` · `accent #FBBF24` · `success #34D399` · `danger #FB7185` · `bg #16203F` · `surface #1E2A52` · `surface-hover #27356A` · `border #364580` / `#4A5B98`.
+
+**Logo A6Class:** tile bo góc gradient sky→sky, chữ trắng extrabold, subline **amber** (`text-amber-300`, tracking rộng).
+
+### Phạm vi rà soát
+- **77 file** chứa chuỗi `edutest` (~74 file source + 3 SQL backup gitignored).
+- **Logo viết tách rời `Edu` + `Test` + `.vn`** ở **8 file** → grep `edutest` sẽ **bỏ sót**, phải tìm `>Edu<`.
+- **Không route nào chứa tên thương hiệu** → đổi tên **không cần redirect route**.
+- **`#6C4CF1` (tím cũ) xuất hiện 126 lần ở 32 file** → phải gom về token, nếu không lần đổi màu sau lại sửa 32 file.
+- Cookie/storage gắn thương hiệu: `edutest_guest_${exam.id}` (`:48` guest-attempts, `:50` submissions, `:63` page thi), `edutest-draft-${exam.id}` (`exam-taking-client-v2.tsx:93` + `continue-draft.tsx:17`), `edutest-ai-chat-v2:` (`bang-dieu-khien/ai/page.tsx:18`), `edutest-theme` (`theme-provider.tsx:6`).
+- 11/19 file E2E chứa brand, trong đó có **2 assertion chữ** sẽ đỏ: `tests/e2e/landing.spec.ts:30` (`/vào edutest/i`) và `:36` (`/© 2026 EduTest.vn/`).
+- DB: **không có seed file**. `SystemSetting` và `Notification` **sạch**, không có brand. Chỉ **1 dòng `User.name = 'Admin EduTest'`** cần `UPDATE`. 277 dòng `AppLog` chứa "EduTest" nhưng là log bất biến → **không** sửa.
+- `design-system/edutest/MASTER.md` đang mô tả hệ màu **teal `#0D9488`** hoàn toàn **không khớp code** (code vẫn tím) → phải viết lại, không nên tin.
+
+### Các bước
+- [ ] **BRAND-1 Bảng màu + kiểm tra contrast** — dựng bảng màu A6Class bản sáng, chạy script kiểm tra WCAG AA (màu A6Class gốc `#38BDF8`/`#FBBF24` chỉ đạt ~1.9:1 trên nền sáng → **không dùng nguyên bản cho chữ**, phải đậm hơn).
+- [ ] **BRAND-2 Nền tảng token** — viết lại `app/globals.css`: token sáng lấy hue A6Class + thêm khối `@theme inline` để Tailwind v4 sinh class semantic. Giữ tên token EduTest đang dùng để không phá component.
+- [ ] **BRAND-2b Gom hex về token** — thay 126 `#6C4CF1` ở 32 file bằng token.
+- [ ] **BRAND-3 Logo + thương hiệu** — 8 file logo tách rời (`app/components/logo.tsx`, `components/ui/logo.tsx`, `app/components/header.tsx`, `app/components/footer.tsx`, `app/(auth)/layout.tsx`, `app/admin/layout.tsx`, `components/admin/admin-sidebar.tsx`, `components/layout/sidebar.tsx`, `components/layout/mobile-nav.tsx`) → **A6Class Education**.
+- [ ] **BRAND-4 Copy & hệ thống** — 15 file metadata, `app/manifest.ts` (`theme_color`), `app/sitemap.ts:4` (URL cứng), 2 trang pháp lý, `lib/email.ts` (From/subject/footer), **4 prompt AI** (`ai-coach/route.ts:207,211,237`, `ai-router/route.ts:13,15,16`, `gemini/route.ts:99`, `bang-dieu-khien/ai/page.tsx:15`), Web Share (`:62`), 3 API error message.
+- [ ] **BRAND-5 Test + QA** — `tests/e2e/helpers.ts:3,6,12`, `landing.spec.ts:30,36`, 5 spec hardcode `baseURL`, `playwright.config.ts:10`, 9 script QA trong `scripts/`.
+- [ ] **BRAND-6 Hạ tầng + docs** — `design-system/edutest/` → `design-system/a6class-education/` viết lại theo token thật; hướng dẫn đổi tên Vercel project sang `a6edutest` (**URL cũ `edutest-vn.vercel.app` sẽ chết** — phải sửa 16 file test/QA cùng lúc); cập nhật `User.name='Admin EduTest'` trong DB; cập nhật `AGENTS.md`, `HANDOFF_FOR_AI.md`, `README.md` (README đang nói sai là dùng Geist/`next/font`).
