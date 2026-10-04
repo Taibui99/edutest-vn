@@ -9,6 +9,7 @@ import {
 import { cn } from "@/lib/cn";
 import { ThemeToggle } from "@/components/theme/theme-provider";
 import { ModeSwitchButton } from "@/components/mode-switch";
+import { Logo } from "@/components/brand/logo";
 
 const items = [
   { href: "/admin", label: "Tổng quan", icon: <LayoutDashboard size={17} />, exact: true },
@@ -29,11 +30,7 @@ export function AdminSidebar({ user }: { user: { name: string; email: string; ro
     <>
       <aside className="hidden lg:flex flex-col w-[230px] shrink-0 border-r border-[var(--surface-border)] bg-[var(--surface-sidebar)] h-screen sticky top-0 overflow-y-auto">
         <div className="flex items-center justify-between px-5 h-[60px] border-b border-[var(--surface-border)] shrink-0">
-          <span className="text-xl font-black tracking-tight">
-            <span className="text-[var(--primary)]">Edu</span>
-            <span className="text-[var(--text-primary)]">Test</span>
-            <span className="text-[var(--text-muted)] font-semibold text-sm">.vn</span>
-          </span>
+<Logo size="md" />
           <div className="flex items-center gap-1.5">
             <ThemeToggle />
             <ShieldCheck size={16} className="text-[var(--primary)]" />

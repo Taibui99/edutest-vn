@@ -9,6 +9,7 @@ import {
 import { cn } from "@/lib/cn";
 import { NotificationBell } from "@/components/ui/notification-bell";
 import { ThemeToggle } from "@/components/theme/theme-provider";
+import { Logo } from "@/components/brand/logo";
 
 const studentMobileNav = [
   { href: "/bang-dieu-khien",         label: "Home",   icon: <LayoutDashboard size={20} />, exact: true },
@@ -30,9 +31,7 @@ export function MobileTopbar({ user }: { user: { name: string; role: string; mod
   const mode = user.mode === "student" ? "student" : "teacher";
   return (
     <header className="lg:hidden flex items-center justify-between px-4 h-14 bg-[var(--surface-sidebar)] border-b border-[var(--surface-border)] sticky top-0 z-40">
-      <span className="text-lg font-black tracking-tight">
-        <span className="text-[var(--primary)]">Edu</span><span className="text-[var(--text-primary)]">Test</span>
-      </span>
+      <Logo size="sm" />
       <div className="flex items-center gap-2">
         <span className={cn(
           "text-[11px] font-bold px-2 py-1 rounded-full",

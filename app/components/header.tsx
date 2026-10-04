@@ -2,6 +2,7 @@ import Link from "next/link";
 import { auth } from "@/auth";
 import { logoutAction } from "@/app/actions/auth";
 import { ThemeToggle } from "@/components/theme/theme-provider";
+import { Logo } from "@/components/brand/logo";
 
 export async function Header() {
   const session = await auth();
@@ -9,11 +10,7 @@ export async function Header() {
   return (
     <header className="sticky top-0 z-50" style={{ background: "var(--surface-card)", backdropFilter: "blur(12px)", borderBottom: "1px solid var(--surface-border)" }}>
       <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-5">
-        <Link href={session?.user ? "/bang-dieu-khien" : "/"} className="inline-flex items-center py-2 text-xl font-black tracking-tight">
-          <span style={{ color: "var(--primary)" }}>Edu</span>
-          <span style={{ color: "var(--coral)" }}>Test</span>
-          <span style={{ color: "var(--text-muted)", fontWeight: 600, fontSize: "0.8em" }}>.vn</span>
-        </Link>
+        <Logo size="sm" href={session?.user ? "/bang-dieu-khien" : "/"} />
 
         <nav className="hidden md:flex items-center gap-6">
           <Link href="/vao-thi" className="inline-flex h-10 items-center text-sm font-semibold" style={{ color: "var(--text-secondary)" }}>Vào thi</Link>

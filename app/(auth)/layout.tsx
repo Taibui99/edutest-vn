@@ -6,7 +6,7 @@ import {
   Sparkles,
   Timer,
 } from "lucide-react";
-import { Logo } from "../components/logo";
+import { Logo } from "@/components/brand/logo";
 import { ThemeToggle } from "@/components/theme/theme-provider";
 
 const BENEFITS = [
@@ -31,7 +31,7 @@ export default function AuthLayout({
         <div className="relative">
           <div className="flex items-center gap-2 text-white">
             <Sparkles className="h-5 w-5" />
-            <span className="text-sm font-bold text-white/80">EduTest.vn</span>
+            <Logo size="md" tone="inverse" />
           </div>
           <h2 className="mt-8 text-4xl font-black leading-tight text-white">
             Học tập, kiểm tra
@@ -72,7 +72,7 @@ export default function AuthLayout({
 
         <header className="relative z-10 flex items-center justify-between px-4 py-6 sm:px-8">
           <div className="lg:hidden">
-            <Logo />
+            <Logo size="sm" href="/" />
           </div>
           <div className="hidden lg:block" />
           <ThemeToggle />
