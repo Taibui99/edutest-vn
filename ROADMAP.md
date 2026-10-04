@@ -239,8 +239,8 @@ GĐ3 **luôn bypass được** (trình duyệt khác, VM, điện thoại). Ch�
 
 ### Các bước
 - [ ] **BRAND-1 Bảng màu + kiểm tra contrast** — dựng bảng màu A6Class bản sáng, chạy script kiểm tra WCAG AA (màu A6Class gốc `#38BDF8`/`#FBBF24` chỉ đạt ~1.9:1 trên nền sáng → **không dùng nguyên bản cho chữ**, phải đậm hơn).
-- [ ] **BRAND-2 Nền tảng token** — viết lại `app/globals.css`: token sáng lấy hue A6Class + thêm khối `@theme inline` để Tailwind v4 sinh class semantic. Giữ tên token EduTest đang dùng để không phá component.
-- [ ] **BRAND-2b Gom hex về token** — thay 126 `#6C4CF1` ở 32 file bằng token.
+- [x] **BRAND-2 Nền tảng token** (`e6fc0a4`) — viết lại `app/globals.css`: token sáng lấy hue A6Class + thêm khối `@theme inline` để Tailwind v4 sinh class semantic. Giữ tên token EduTest đang dùng để không phá component.
+- [x] **BRAND-2b Gom hex về token** (`aa63786`) — 549 hex hardcode ở 68 file → `var(--token)`. Thêm token hover/dark (`--danger-hover/-dark`, `--warning-border/-hover/-dark`, `--success-border/-dark`) và 11 cặp màu môn. Sửa 3 bug có sẵn phát hiện khi quét: `--bg-page`/`--surface-page` chưa khai báo, gradient avatar mờ chữ, hover đổi hue.
 - [ ] **BRAND-3 Logo + thương hiệu** — 8 file logo tách rời (`app/components/logo.tsx`, `components/ui/logo.tsx`, `app/components/header.tsx`, `app/components/footer.tsx`, `app/(auth)/layout.tsx`, `app/admin/layout.tsx`, `components/admin/admin-sidebar.tsx`, `components/layout/sidebar.tsx`, `components/layout/mobile-nav.tsx`) → **A6Class Education**.
 - [ ] **BRAND-4 Copy & hệ thống** — 15 file metadata, `app/manifest.ts` (`theme_color`), `app/sitemap.ts:4` (URL cứng), 2 trang pháp lý, `lib/email.ts` (From/subject/footer), **4 prompt AI** (`ai-coach/route.ts:207,211,237`, `ai-router/route.ts:13,15,16`, `gemini/route.ts:99`, `bang-dieu-khien/ai/page.tsx:15`), Web Share (`:62`), 3 API error message.
 - [ ] **BRAND-5 Test + QA** — `tests/e2e/helpers.ts:3,6,12`, `landing.spec.ts:30,36`, 5 spec hardcode `baseURL`, `playwright.config.ts:10`, 9 script QA trong `scripts/`.
