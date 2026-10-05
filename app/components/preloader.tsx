@@ -105,18 +105,20 @@ export function Preloader() {
       if (settled) return;
       const elapsed = performance.now() - t0;
 
-      if (ready) {
-        // Vẫn giữ tối thiểu MIN_MS để cột chất lỏng kịp dâng và hiệu ứng bùm kịp chạy.
-        if (elapsed >= MIN_MS) {
-          finish();
-          return;
-        }
-      } else {
-        const t = Math.min(1, elapsed / RAMP_MS);
-        const eased = 1 - Math.pow(1 - t, 3);
-        // Một chữ số thập phân: cột chất lỏng dâng mượt, không giật từng bước 1%.
-        setPct(Math.round(eased * EASED_MAX * 10) / 10);
+      if (ready && elapsed >= MIN_MS) {
+        finish();
+        return;
       }
+
+      // Cột % PHẢI chạy vô điều kiện tới EASED_MAX. Bản cũ đặt nó trong nhánh
+      // `else` của `if (ready)`, nên khi `document.fonts.ready` xong sớm (font
+      // đã cache, chỉ mất vài chục ms) `ready` thành true gần như tức thì: con số
+      // đóng băng ở ~1% rồi nhảy thẳng lên 100 — đúng triệu chứng "đứng ở 1% rồi
+      // đùng vào web". Tài nguyên xong hay chưa chỉ quyết định lúc NHẢY 100,
+      // không quyết định việc con số có chạy hay không.
+      const t = Math.min(1, elapsed / RAMP_MS);
+      const eased = 1 - Math.pow(1 - t, 3);
+      setPct(Math.round(eased * EASED_MAX * 10) / 10);
 
       raf = requestAnimationFrame(step);
     };
