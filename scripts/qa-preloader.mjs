@@ -101,15 +101,16 @@ const browser = await chromium.launch();
   const clickX = box.x + box.width / 2;
   const clickY = box.y + box.height / 2;
 
-  // Bấm rồi dò liên tục: transition ngắn, chỉ lấy một mốc sẽ hụt.
+  // Bấm rồi dò liên tục. Cửa sổ phải rộng: trên production, transition bắt đầu
+  // chậm (~800ms) vì độ trễ mạng + cold start, đoàn trước chỉ lấy ~2s nên tụt mất.
   await link.click({ noWaitAfter: true });
 
   const samples = [];
-  for (let i = 0; i < 40; i++) {
+  for (let i = 0; i < 100; i++) {
     const s = await readReveal(page);
     if (s) samples.push(s);
-    if (samples.length >= 6) break;
-    await page.waitForTimeout(30);
+    if (samples.length >= 4) break;
+    await page.waitForTimeout(40);
   }
 
   check("PRE-2 · có view transition chạy khi điều hướng", samples.length > 0, `${samples.length} mẫu`);
