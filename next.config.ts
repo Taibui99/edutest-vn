@@ -20,9 +20,10 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
-  // PRE-2: bật <ViewTransition> của React để chuyển trang mở tròn từ điểm bấm.
-  // Cờ này chỉ bật component, không ép React sang experimental channel.
-  experimental: { viewTransition: true },
+  // PRE-2 không bật `experimental.viewTransition` nữa: chuyển màn hình giờ do
+  // lớp phủ của `PageTransition` đảm nhiệm. Bản cũ dùng `::view-transition`
+  // (ảnh chụp trang cũ/mới) nhưng hai lớp ảnh chồng nhau làm hiệu ứng nhờ nhờ
+  // và mất ~1080ms mỗi lần chuyển.
   async headers() {
     return [
       { source: "/(.*)", headers: securityHeaders },

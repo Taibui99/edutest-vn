@@ -1,5 +1,5 @@
 /**
- * QA cho PRE-1 (preloader burst) + PRE-2 (chuyển trang bung tròn từ nút + ripple).
+ * QA cho PRE-1 (preloader burst) + PRE-2 (lớp phủ chuyển màn hình + ripple).
  *
  * Chạy: node scripts/qa-preloader.mjs [baseUrl]
  * Cần production build: `npx next build && npx next start`.
@@ -8,7 +8,7 @@
  * trước/sau KHÔNG dùng được ở đây — landing và /dang-ky đều nền trắng nhạt,
  * ở thang xám hai trang gần như không phân biệt được (thử thực tế: 57% màn
  * hình bị gán nhầm là "trang mới"). Cách đúng là đọc thẳng computed style của
- * pseudo-element `::view-transition-new(root)`: nó cho ra
+ * lớp phủ `.a6-cover`: nó cho ra
  * `clip-path: circle(<bán kính>% at <x> <y>)` — đúng thứ cần kiểm tra, không
  * phải suy luận.
  */
@@ -26,20 +26,25 @@ const check = (name, pass, detail = "") => {
 };
 
 /**
- * Đọc `clip-path` đang chạy trên `::view-transition-new(root)`.
- * Trả null nếu không có view transition nào đang diễn ra.
+ * Đọc `clip-path` đang chạy trên lớp phủ `.a6-cover`.
+ * Trả null nếu lớp phủ không tồn tại (tức đang không chuyển màn hình).
+ *
+ * Cơ chế đã đổi: bản cũ đọc `::view-transition-new(root)`. Nay đọc thẳng
+ * `<div class="a6-cover">` — vẫn là computed style thật, không suy luận từ ảnh.
  */
 const readReveal = (page) =>
   page.evaluate(() => {
-    const el = document.documentElement;
-    const s = getComputedStyle(el, "::view-transition-new(root)");
+    const el = document.querySelector(".a6-cover");
+    if (!el) return null;
+    const s = getComputedStyle(el);
     const m = /circle\(\s*([\d.]+)%\s+at\s+(-?[\d.]+)px\s+(-?[\d.]+)px\s*\)/.exec(s.clipPath ?? "");
     if (!m) return null;
     return {
       radius: Number(m[1]),
       x: Number(m[2]),
       y: Number(m[3]),
-      varX: getComputedStyle(el).getPropertyValue("--click-x").trim(),
+      phase: el.getAttribute("data-phase"),
+      opacity: Number(s.opacity),
     };
   });
 
@@ -65,26 +70,28 @@ const browser = await chromium.launch();
   await page.waitForSelector("#a6-preloader", { state: "detached", timeout: 8000 });
   check("PRE-1 · tự gỡ khỏi DOM sau khi bùm", true);
 
-  // Câu chữ trạng thái không được nói dối (bản demo ghi "Tải ngân hàng đề thi"
-  // dù không tải gì).
-  const seenLabel = await page.evaluate(() => sessionStorage.getItem("a6-preloader-seen"));
-  check("PRE-1 · đánh dấu đã xem trong phiên", seenLabel === "1", `value=${seenLabel}`);
+  // Không còn cờ sessionStorage: preloader phải hiện MỌI lần tải trang.
+  // Người dùng phàn nàn là "loading đứng ở 1% rồi đùng vào web luôn".
+  const seenFlag = await page.evaluate(() => sessionStorage.getItem("a6-preloader-seen"));
+  check("PRE-1 · không còn cờ ẩn preloader theo phiên", seenFlag === null, `value=${seenFlag}`);
 
   await page.screenshot({ path: `${SHOTS}/02-landing.png` });
   check("PRE-1 · không có lỗi console", errors.length === 0, errors.join(" | "));
 
-  // Lần 2 trong cùng phiên: script <head> phải ẩn ngay, không chớp sáng.
+  // Lần 2 trong cùng phiên: phải hiện LẠI. Đây là yêu cầu hiện tại.
   await page.goto(BASE, { waitUntil: "commit" });
-  const off = await page.evaluate(() => {
-    const el = document.querySelector("#a6-preloader");
-    return el ? getComputedStyle(el).display : "absent";
-  });
-  check("PRE-1 · lần 2 trong phiên bị ẩn ngay", off === "none" || off === "absent", `display=${off}`);
+  let second = 0;
+  for (let i = 0; i < 80; i++) {
+    second = await page.locator("#a6-preloader").count();
+    if (second > 0) break;
+    await page.waitForTimeout(25);
+  }
+  check("PRE-1 · lần 2 trong cùng phiên vẫn hiện lại", second === 1, `count=${second}`);
 
   await ctx.close();
 }
 
-// ── 2. Chuyển trang bung tròn TỪ NÚT ─────────────────────────────────
+// ── 2. Lớp phủ chuyển màn hình bung TỪ NÚT ───────────────────────────
 {
   const ctx = await browser.newContext({ viewport: { width: 1366, height: 768 } });
   const page = await ctx.newPage();
@@ -101,19 +108,18 @@ const browser = await chromium.launch();
   const clickX = box.x + box.width / 2;
   const clickY = box.y + box.height / 2;
 
-  // Bấm rồi dò liên tục. Cửa sổ phải rộng: trên production, transition bắt đầu
-  // chậm (~800ms) vì độ trễ mạng + cold start, đoàn trước chỉ lấy ~2s nên tụt mất.
+  // Bấm rồi dò liên tục cho tới khi đủ mẫu.
   await link.click({ noWaitAfter: true });
 
   const samples = [];
-  for (let i = 0; i < 100; i++) {
+  for (let i = 0; i < 160; i++) {
     const s = await readReveal(page);
     if (s) samples.push(s);
-    if (samples.length >= 4) break;
+    if (samples.length >= 8) break;
     await page.waitForTimeout(40);
   }
 
-  check("PRE-2 · có view transition chạy khi điều hướng", samples.length > 0, `${samples.length} mẫu`);
+  check("PRE-2 · có lớp phủ chạy khi điều hướng", samples.length > 0, `${samples.length} mẫu`);
 
   if (samples.length) {
     const s = samples[0];
@@ -131,10 +137,27 @@ const browser = await chromium.launch();
       grew,
       `${samples[0].radius.toFixed(1)}% → ${samples[samples.length - 1].radius.toFixed(1)}%`,
     );
+
+    // Điểm mấu chốt của thiết kế mới: lớp phủ phải KÍN, điều hướng diễn ra
+    // dưới nó. Bán kính 150% mới phủ hết góc xa nhất (100% chỉ vừa chạm mép).
+    const maxRadius = Math.max(...samples.map((x) => x.radius));
+    check(
+      "PRE-2 · lớp phủ mở ra tới 150% (phủ kín, không hở góc)",
+      maxRadius >= 149,
+      `bán kính lớn nhất ${maxRadius.toFixed(1)}%`,
+    );
   }
 
   await page.waitForURL("**/dang-ky", { timeout: 8000 });
   check("PRE-2 · đã tới /dang-ky", page.url().includes("/dang-ky"), page.url());
+
+  // Quan trọng nhất: lớp phủ phải tự mở. Một lớp đặc kín không mở là lỗi nghiêm
+  // trọng hơn nhiều so với việc không có hiệu ứng.
+  const stuck = await page
+    .waitForSelector(".a6-cover", { state: "detached", timeout: 4000 })
+    .then(() => false)
+    .catch(() => true);
+  check("PRE-2 · lớp phủ tự mở sau khi tới trang mới (không kẹt màn hình)", !stuck);
   await page.screenshot({ path: `${SHOTS}/03-dang-ky.png` });
 
   // Ripple trên mọi nút.
@@ -225,13 +248,26 @@ const browser = await chromium.launch();
   const ruleExists = await page.evaluate(() =>
     [...document.styleSheets].some((sheet) => {
       try {
-        return [...sheet.cssRules].some((r) => r.cssText?.includes("a6-no-vt") && r.cssText.includes("view-transition"));
+        return [...sheet.cssRules].some((r) => r.cssText?.includes("a6-no-vt") && r.cssText.includes("a6-cover"));
       } catch {
         return false;
       }
     }),
   );
-  check("PRE-2 · có CSS tắt chuyển cảnh cho a6-no-vt", ruleExists);
+  check("PRE-2 · có CSS tắt lớp phủ cho a6-no-vt", ruleExists);
+
+  // Cơ chế cũ đã bỏ: còn sót `::view-transition` ở đâu đó là dấu hiệu chưa dọn
+  // hết, và nó sẽ chồng animation lên lớp phủ.
+  const leftover = await page.evaluate(() =>
+    [...document.styleSheets].some((sheet) => {
+      try {
+        return [...sheet.cssRules].some((r) => r.cssText?.includes("view-transition"));
+      } catch {
+        return false;
+      }
+    }),
+  );
+  check("PRE-2 · đã dọn sạch CSS ::view-transition", !leftover);
   await ctx.close();
 }
 

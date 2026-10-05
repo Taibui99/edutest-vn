@@ -18,10 +18,13 @@ import { Logo, LogoMark } from "@/components/brand/logo";
  *    nhảy lên 100 — và câu chữ trạng thái nói đúng việc đang xảy ra.
  * 2. **Không kẹt người dùng.** Trần thời gian cứng 3.5s, cộng thêm một
  *    `@keyframes` failsafe trong CSS tự ẩn overlay sau 6s phòng khi JS lỗi.
- * 3. **Một lần mỗi phiên.** Inline script trong `<head>` đọc `sessionStorage`
- *    ngay trước khi body vẽ, nên người dùng quay lại trong cùng phiên không
- *    thấy lớp phủ — cũng không bị chớp sáng một khung hình như nếu để React tự
- *    quyết định trong effect. `?preload=1` để xem lại khi cần.
+ * 3. **Mọi lần tải trang, không phải một lần mỗi phiên.** Trước đây có cờ
+ *    `sessionStorage` để lần sau vào thẳng web — người dùng phàn nàn là
+ *    "loading đứng ở 1% rồi đùng vào web luôn" và muốn thấy loading mọi lúc.
+ *    Bỏ cờ. Lưu ý phạm vi: component này nằm trong root layout nên Next giữ
+ *    nó sống suốt phiên, chuyển màn hình trong app **không** làm nó chạy lại
+ *    (đó là việc của lớp phủ trong `PageTransition`). Preloader chạy ở mỗi lần
+ *    tải trang đầy đủ: mở site, F5, bấm link ngoài vào thẳng một URL.
  * 4. **Dùng chữ an toàn.** Demo tô % bằng gold `#FFB800` (1.73:1, dưới cả
  *    ngưỡng 3:1 cho chữ cỡ lớn) — ở đây dùng `--accent-dark` (7.09:1). Logo
  *    lấy từ component `Logo` chứ không vẽ `<text>` trong SVG: font chưa tải
@@ -53,14 +56,6 @@ function messageFor(pct: number) {
   return text;
 }
 
-function rememberSeen() {
-  try {
-    window.sessionStorage.setItem("a6-preloader-seen", "1");
-  } catch {
-    // Safari private mode chặn storage — chỉ mất hiệu ứng "1 lần mỗi phiên".
-  }
-}
-
 export function Preloader() {
   const [pct, setPct] = useState(0);
   const [burst, setBurst] = useState(false);
@@ -69,13 +64,12 @@ export function Preloader() {
   useEffect(() => {
     if (gone) return;
 
-    const alreadySeen = document.documentElement.classList.contains("a6-preloader-off");
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-    // Lớp phủ đã bị ẩn sẵn từ <head> hoặc bằng CSS nên không có chớp sáng ở đây,
-    // chỉ cần gỡ khỏi DOM. setState nằm trong callback rAF chứ không nằm trong thân
-    // effect, tránh dựng thêm một vòng render ngay sau khi hydrate.
-    if (alreadySeen || reduced) {
+    // Người bật reduced-motion thì không thấy preloader này: cả JS lẫn CSS đều
+    // bỏ qua. setState nằm trong callback rAF chứ không nằm trong thân effect,
+    // tránh dựng thêm một vòng render ngay sau khi hydrate.
+    if (reduced) {
       const t = requestAnimationFrame(() => setGone(true));
       return () => cancelAnimationFrame(t);
     }
@@ -146,7 +140,6 @@ export function Preloader() {
     const t = window.setTimeout(() => {
       root.classList.remove("a6-reveal");
       setGone(true);
-      rememberSeen();
     }, 700);
 
     return () => {

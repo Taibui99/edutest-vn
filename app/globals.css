@@ -553,8 +553,10 @@ html.a6-preloader-off #a6-preloader {
 }
 
 /* ══════════════════════════════════════════════════════════════════════
-   PRE-2 · Chuyển trang bung tròn từ điểm bấm + sóng nước trên nút
-   Dịch đúng `openCircleReveal()` của bản demo sang View Transitions API.
+   PRE-2 · Lớp phủ chuyển màn hình + sóng nước trên nút
+   Lớp phủ phủ KÍN viewport rồi mới mở ra trên trang mới. Cơ chế cũ dùng
+   `::view-transition` (ảnh chụp trang cũ/mới) bị bỏ — xem ghi chú ở
+   `app/components/page-transition.tsx`.
    ══════════════════════════════════════════════════════════════════════ */
 
 /* Sóng nước khi bấm. Gắn vào <body> nên không bị overflow/bo góc của nút cắt mất. */
@@ -572,53 +574,46 @@ html.a6-preloader-off #a6-preloader {
   to   { transform: scale(1);   opacity: 0; }
 }
 
-/* ── View Transition: trang mới bung tròn ra từ đúng toạ độ con trỏ ──
-   Mặc định trình duyệt cross-fade hai ảnh với `mix-blend-mode: plus-lighter`
-   (dùng cho morph ảnh). Ở đây cần trang mới che hẳn trang cũ nên phải tắt
-   blend và animation mặc định đi.
+/* ── Lớp phủ ────────────────────────────────────────────────────────────
+   Chỉ tồn tại trong lúc chuyển (`PageTransition` render khi phase khác
+   "idle"). 150% là bán kính đủ để phủ kín cả góc xa nhất tính từ điểm bấm —
+   100% chỉ vừa chạm mép, sẽ hở góc ở màn hình rộng.
 
-   Selector `(*)` phải đứng TRƯỚC selector `(root)`: React còn sinh thêm các
-   view-transition không tên (`_t_0_`, ...) cho phần enter/exit nội dung. Nếu để
-   chúng giữ animation mặc định, lớp `plus-lighter` phủ toàn viewport sẽ làm
-   cả khung chuyển cảnh bị nhạt màu. Ở đây chỉ `root` được phép chuyển động. */
-::view-transition-old(*),
-::view-transition-new(*) {
-  animation: none;
-  mix-blend-mode: normal;
+   Dùng `animation` chứ không phải `transition`: transition cần trạng thái 0%
+   có sẵn từ khung hình trước mới bắt đầu, mà ở đây element được mount thẳng
+   nên không có khung hình trước — transition sẽ nhảy thẳng tới đích và không
+   thấy hiệu ứng bung. `animation` tự chạy từ khung hình `from`. */
+.a6-cover {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: auto;
+  background: var(--primary-dark);
+  animation: a6-cover-in var(--a6-cover-in, 340ms) var(--ease-smooth) forwards;
 }
 
-::view-transition-old(root) {
-  animation: a6-page-out 460ms var(--ease-smooth) forwards;
+@keyframes a6-cover-in {
+  from { clip-path: circle(0%   at var(--a6-cover-x, 50%) var(--a6-cover-y, 50%)); }
+  to   { clip-path: circle(150% at var(--a6-cover-x, 50%) var(--a6-cover-y, 50%)); }
 }
 
-::view-transition-new(root) {
-  animation: a6-page-reveal 620ms var(--ease-smooth) forwards;
+/* Đã che kín: giữ nguyên 150% rồi mờ dần để lộ trang mới bên dưới. */
+.a6-cover[data-phase="reveal"] {
+  animation: a6-cover-out var(--a6-cover-out, 380ms) var(--ease-smooth) forwards;
 }
 
-@keyframes a6-page-reveal {
-  from { clip-path: circle(0%   at var(--click-x, 50%) var(--click-y, 50%)); }
-  to   { clip-path: circle(150% at var(--click-x, 50%) var(--click-y, 50%)); }
-}
-
-/* Trang cũ lùi + mờ đi: tạo cảm giác trang mới đi "ra từ trong" trang cũ. */
-@keyframes a6-page-out {
-  from { transform: scale(1);    opacity: 1; }
-  to   { transform: scale(0.94); opacity: 0.25; }
+@keyframes a6-cover-out {
+  from { clip-path: circle(150% at var(--a6-cover-x, 50%) var(--a6-cover-y, 50%)); opacity: 1; }
+  to   { clip-path: circle(150% at var(--a6-cover-x, 50%) var(--a6-cover-y, 50%)); opacity: 0; }
 }
 
 /* Phòng thi (/thi/*): xem `PageTransition` — có đếm ngược, chuyển cảnh chậm
-   gây lãng phí. Ở đây chuyển tức thì, không để lại hai lớp ảnh chồng nhau. */
-html.a6-no-vt::view-transition-old(*),
-html.a6-no-vt::view-transition-new(*) {
-  animation: none;
-}
+   gây lãng phí. Ở đây không cho dựng lớp phủ ngay từ đầu, phòng kịch bản JS
+   hỏng vẫn còn một người bấm nhầm. */
+html.a6-no-vt .a6-cover { display: none; }
 
 @media (prefers-reduced-motion: reduce) {
   /* Không có hiệu ứng chuyển cảnh nào cho người bật reduced-motion. */
-  ::view-transition-group(*),
-  ::view-transition-old(*),
-  ::view-transition-new(*) {
-    animation: none !important;
-  }
+  .a6-cover { display: none; }
   .a6-ripple { display: none; }
 }

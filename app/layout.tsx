@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Be_Vietnam_Pro, Inter } from "next/font/google";
-import { ViewTransition } from "react";
 import "./globals.css";
 import { auth } from "@/auth";
 import { getSetting } from "@/lib/settings";
@@ -58,17 +57,13 @@ export default async function RootLayout({
         />
         {/* PRE-1: preloader cần JS mới tắt được. Không có JS thì ẩn luôn,
             đừng để người dùng bị một lớp phủ trắng vĩnh viễn che mất trang.
-            Script này chạy trước khi body vẽ: đã xem preloader trong phiên này
-            thì đánh dấu để CSS ẩn ngay, không chớp sáng một khung hình.
-            `?preload=1` để xem lại hiệu ứng. */}
+
+            KHÔNG dùng cờ sessionStorage nữa: preloader phải hiện mỗi lần tải
+            trang. Chuyển màn hình trong app thì không tải lại layout nên không
+            cần preloader — lớp phủ của `PageTransition` lo phần đó. */}
         <noscript>
           <style>{"#a6-preloader{display:none!important}"}</style>
         </noscript>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `(function(){try{if(!/[?&]preload=1/.test(location.search)&&sessionStorage.getItem("a6-preloader-seen")==="1")document.documentElement.classList.add("a6-preloader-off")}catch(e){}})();`,
-          }}
-        />
       </head>
       <body className="min-h-full flex flex-col">
         <Preloader />
@@ -85,12 +80,9 @@ export default async function RootLayout({
               maintenanceOn={maintenance === "true"}
               isAdmin={session?.user?.role === "admin"}
             >
-              {/* PRE-2: bọc ở layout vì app không có <ViewTransition> nào ở page
-                  (lồng VT thì enter/exit của page im lặng không chạy). enter/exit
-                  ở đây là của `children` — nó đổi theo từng lần điều hướng. */}
-              <ViewTransition enter="page-reveal" exit="page-out">
-                {children}
-              </ViewTransition>
+              {/* PRE-2 không bọc <ViewTransition> ở đây nữa: chuyển màn hình do
+                  lớp phủ của `PageTransition` đảm nhiệm, xem file đó. */}
+              {children}
             </MaintenanceGate>
           </ToastProvider>
         </ThemeProvider>
