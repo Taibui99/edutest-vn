@@ -6,13 +6,17 @@ import { ArrowLeft, ArrowRight, CheckCircle2, Clock, Eye, Flag, Send, Trophy } f
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 
+/* GĐ0: `answer` và `statements[].answer`/`acceptedAnswers` KHÔNG còn được gửi cho
+   học sinh (xem `page.tsx`) — payload RSC đọc được bằng mắt thường nên không
+   được để đáp án lọt xuống. Chỉ xem trước của giáo viên mới có. Component này có
+   thật sự không đọc chỗ này, nên để optional cho khớp cả hai bên. */
 type Question = {
   id: string;
   type: "mcq" | "true_false" | "short_answer" | "essay" | string;
   text: string;
   options: string[];
-  answer: string;
-  grading?: { statements?: Array<{ text: string; answer: boolean }>; acceptedAnswers?: string[] } | null;
+  answer?: string;
+  grading?: { statements?: Array<{ text: string; answer?: boolean }>; acceptedAnswers?: string[] } | null;
   order: number;
 };
 
