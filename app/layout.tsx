@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Be_Vietnam_Pro, Inter } from "next/font/google";
+import { ViewTransition } from "react";
 import "./globals.css";
 import { auth } from "@/auth";
 import { getSetting } from "@/lib/settings";
@@ -80,9 +81,13 @@ export default async function RootLayout({
               maintenanceOn={maintenance === "true"}
               isAdmin={session?.user?.role === "admin"}
             >
-              {/* PRE-2 không bọc <ViewTransition> ở đây nữa: chuyển màn hình do
-                  lớp phủ của `PageTransition` đảm nhiệm, xem file đó. */}
-              {children}
+              {/* PRE-2: PHẢI có component này thì React mới gọi
+                  `document.startViewTransition()` khi đổi route. Chỉ bật cờ
+                  `experimental.viewTransition` trong next.config.ts là không
+                  đủ — đo bằng cách vá thẳng `document.startViewTransition`:
+                  không bọc component thì số lần gọi đứng yên ở 0, trang đổi
+                  tức thì, CSS trượt không có gì để áp dụng. */}
+              <ViewTransition>{children}</ViewTransition>
             </MaintenanceGate>
           </ToastProvider>
         </ThemeProvider>

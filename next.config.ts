@@ -20,10 +20,11 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
-  // PRE-2 không bật `experimental.viewTransition` nữa: chuyển màn hình giờ do
-  // lớp phủ của `PageTransition` đảm nhiệm. Bản cũ dùng `::view-transition`
-  // (ảnh chụp trang cũ/mới) nhưng hai lớp ảnh chồng nhau làm hiệu ứng nhờ nhờ
-  // và mất ~1080ms mỗi lần chuyển.
+  // PRE-2: cần cờ này để React gọi `document.startViewTransition()` khi đổi
+  // route, nhờ đó trình duyệt chụp được cả trang cũ lẫn trang mới để CSS trượt
+  // ngang (kiểu Canva) có gì mà trượt. Không bật thì transition không bao giờ
+  // khởi động — xem `app/components/page-transition.tsx`.
+  experimental: { viewTransition: true },
   async headers() {
     return [
       { source: "/(.*)", headers: securityHeaders },

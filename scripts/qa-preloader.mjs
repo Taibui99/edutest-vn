@@ -1,16 +1,19 @@
 /**
- * QA cho PRE-1 (preloader burst) + PRE-2 (lớp phủ chuyển màn hình + ripple).
+ * QA cho PRE-1 (preloader burst) + PRE-2 (trượt ngang kiểu Canva + ripple).
  *
  * Chạy: node scripts/qa-preloader.mjs [baseUrl]
  * Cần production build: `npx next build && npx next start`.
  *
- * Về việc kiểm chứng: cố đo vị trí vòng tròn bằng cách so pixel với ảnh chụp
- * trước/sau KHÔNG dùng được ở đây — landing và /dang-ky đều nền trắng nhạt,
- * ở thang xám hai trang gần như không phân biệt được (thử thực tế: 57% màn
- * hình bị gán nhầm là "trang mới"). Cách đúng là đọc thẳng computed style của
- * lớp phủ `.a6-cover`: nó cho ra
- * `clip-path: circle(<bán kính>% at <x> <y>)` — đúng thứ cần kiểm tra, không
- * phải suy luận.
+ * Về việc kiểm chứng: **không thể dùng ảnh chụp để kiểm trang có trượt hay
+ * không.** `page.screenshot()` của Playwright KHÔNG chụp lớp render của View
+ * Transitions API — thử thực tế: ép `::view-transition-old(root)` thành màu đỏ
+ * đậm, giữ animation 6s rồi chụp giữa chừng → 0 pixel đỏ trong ảnh, trong khi
+ * `document.getAnimations()` báo animation đang `running`. Hệ quả là mọi so sánh
+ * pixel trước đây đều vô hiệu và từng kết luận nhầm "không trượt".
+ *
+ * Cách đúng: đọc thẳng computed transform của `::view-transition-old/new(root)`
+ * (trả `matrix(1, 0, 0, 1, tx, ty)`) và đếm animation còn bám pseudo-element.
+ * Đo bằng px chứ không suy luận từ ảnh chụp.
  */
 import { chromium } from "playwright";
 import { mkdirSync } from "node:fs";
@@ -26,25 +29,27 @@ const check = (name, pass, detail = "") => {
 };
 
 /**
- * Đọc `clip-path` đang chạy trên lớp phủ `.a6-cover`.
- * Trả null nếu lớp phủ không tồn tại (tức đang không chuyển màn hình).
+ * Đọc transform trên ảnh chụp trang cũ/mới của View Transitions API.
+ * Trả null nếu không có transition nào đang diễn ra.
  *
- * Cơ chế đã đổi: bản cũ đọc `::view-transition-new(root)`. Nay đọc thẳng
- * `<div class="a6-cover">` — vẫn là computed style thật, không suy luận từ ảnh.
+ * `getComputedStyle` trả về `matrix(1, 0, 0, 1, tx, ty)` — lấy cột e (vị trí
+ * thứ 5) làm dịch chuyển ngang. Đo bằng px chứ không suy luận từ ảnh chụp.
  */
-const readReveal = (page) =>
+const readSlide = (page) =>
   page.evaluate(() => {
-    const el = document.querySelector(".a6-cover");
-    if (!el) return null;
-    const s = getComputedStyle(el);
-    const m = /circle\(\s*([\d.]+)%\s+at\s+(-?[\d.]+)px\s+(-?[\d.]+)px\s*\)/.exec(s.clipPath ?? "");
-    if (!m) return null;
+    const el = document.documentElement;
+    const tx = (pseudo) => {
+      const s = getComputedStyle(el, pseudo);
+      const m = /matrix\(([^)]+)\)/.exec(s.transform ?? "");
+      if (!m) return { tx: null, anim: s.animationName };
+      const p = m[1].split(",").map((v) => parseFloat(v.trim()));
+      return { tx: p[4], anim: s.animationName };
+    };
     return {
-      radius: Number(m[1]),
-      x: Number(m[2]),
-      y: Number(m[3]),
-      phase: el.getAttribute("data-phase"),
-      opacity: Number(s.opacity),
+      nw: tx("::view-transition-new(root)"),
+      ol: tx("::view-transition-old(root)"),
+      slide: document.documentElement.getAttribute("data-slide"),
+      vw: window.innerWidth,
     };
   });
 
@@ -91,12 +96,26 @@ const browser = await chromium.launch();
   await ctx.close();
 }
 
-// ── 2. Lớp phủ chuyển màn hình bung TỪ NÚT ───────────────────────────
+// ── 2. Trượt ngang khi chuyển màn hình + ripple ───────────────────────
 {
   const ctx = await browser.newContext({ viewport: { width: 1366, height: 768 } });
   const page = await ctx.newPage();
   const errors = [];
-  page.on("console", (m) => m.type() === "error" && errors.push(m.text()));
+  // Local không chạy Postgres nên vài API (vd. `prisma.user.count()`) trả 500
+  // "Can't reach database server at localhost:5432". Đó là môi trường, không phải
+  // lỗi UI — chỉ bỏ qua khi đích là localhost, còn chạy production vẫn kiểm
+  // nghiêm ngặt. Danh sách URL bị 500 vẫn in riêng để không che giấu gì.
+  const isLocal = /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])/.test(BASE);
+  const serverErrors = [];
+  page.on("response", (r) => {
+    if (r.status() >= 500) serverErrors.push(`${r.status()} ${r.url()}`);
+  });
+  page.on("console", (m) => {
+    if (m.type() !== "error") return;
+    const text = m.text();
+    if (isLocal && /status of 500/.test(text) && serverErrors.length) return;
+    errors.push(text);
+  });
   page.on("pageerror", (e) => errors.push(String(e)));
 
   await page.goto(BASE, { waitUntil: "load" });
@@ -104,61 +123,115 @@ const browser = await chromium.launch();
 
   const link = page.locator('a[href="/dang-ky"]').first();
   await link.waitFor({ state: "visible", timeout: 5000 });
-  const box = await link.boundingBox();
-  const clickX = box.x + box.width / 2;
-  const clickY = box.y + box.height / 2;
 
-  // Bấm rồi dò liên tục cho tới khi đủ mẫu.
+  // Bấm rồi dò liên tục cho tới khi đủ mẫu HỢP LỆ.
+  // Mẫu hợp lệ = animationName khác "none" VÀ transform đọc ra matrix. Lúc
+  // pseudo-element vừa mới sinh ra (hoặc vừa biến mất) getComputedStyle trả
+  // chuỗi rỗng → tx=null; nếu bỏ sót thì Math.round(null)=0 làm hỏng mọi
+  // assert (trước đây "trang mới vào TỪ PHẢI" bị báo sai là 0px → 322px).
   await link.click({ noWaitAfter: true });
 
   const samples = [];
-  for (let i = 0; i < 160; i++) {
-    const s = await readReveal(page);
-    if (s) samples.push(s);
-    if (samples.length >= 8) break;
-    await page.waitForTimeout(40);
+  for (let i = 0; i < 240; i++) {
+    const s = await readSlide(page);
+    if (s.nw.anim !== "none" && s.nw.tx !== null && s.ol.tx !== null) samples.push(s);
+    if (samples.length >= 12) break;
+    await page.waitForTimeout(30);
   }
 
-  check("PRE-2 · có lớp phủ chạy khi điều hướng", samples.length > 0, `${samples.length} mẫu`);
+  check(
+    "PRE-2 · có animation trượt khi điều hướng",
+    samples.length > 0,
+    samples.length ? `${samples.length} mẫu` : "animationName=none ở cả 160 lần đo",
+  );
 
   if (samples.length) {
-    const s = samples[0];
-    const dx = Math.abs(s.x - clickX);
-    const dy = Math.abs(s.y - clickY);
+    const vw = samples[0].vw;
+    const newTx = samples.map((s) => s.nw.tx);
+    const oldTx = samples.map((s) => s.ol.tx);
+    const first = newTx[0];
+    const last = newTx[newTx.length - 1];
+
     check(
-      "PRE-2 · tâm vòng tròn TRÙNG nút đã bấm",
-      dx < 2 && dy < 2,
-      `tâm=(${s.x}, ${s.y}) nút=(${Math.round(clickX)}, ${Math.round(clickY)}) lệch ${dx.toFixed(1)}/${dy.toFixed(1)}px`,
+      "PRE-2 · trang mới vào TỪ PHẢI (translateX dương → 0)",
+      first > 100 && last < first,
+      `${Math.round(first)}px → ${Math.round(last)}px (viewport=${vw}px)`,
     );
 
-    const grew = samples[samples.length - 1].radius > samples[0].radius;
     check(
-      "PRE-2 · bán kính nở ra (không phải tức thì 150%)",
-      grew,
-      `${samples[0].radius.toFixed(1)}% → ${samples[samples.length - 1].radius.toFixed(1)}%`,
+      "PRE-2 · trang cũ ra BÊN TRÁI (0 → translateX âm)",
+      oldTx[oldTx.length - 1] < oldTx[0] && oldTx[oldTx.length - 1] < -100,
+      `${Math.round(oldTx[0])}px → ${Math.round(oldTx[oldTx.length - 1])}px`,
     );
 
-    // Điểm mấu chốt của thiết kế mới: lớp phủ phải KÍN, điều hướng diễn ra
-    // dưới nó. Bán kính 150% mới phủ hết góc xa nhất (100% chỉ vừa chạm mép).
-    const maxRadius = Math.max(...samples.map((x) => x.radius));
+    // Invariant quan trọng nhất: hai ảnh phải luôn liền mép. Khoảng cách giữa
+    // mép phải đúng bằng bề rộng viewport ở MỌI mốc thời gian, nếu lệch nghĩa
+    // là có khoảng trống hở ra giữa hai trang.
+    const maxDrift = Math.max(
+      ...samples.map((s) => Math.abs(s.nw.tx - s.ol.tx - s.vw)),
+    );
     check(
-      "PRE-2 · lớp phủ mở ra tới 150% (phủ kín, không hở góc)",
-      maxRadius >= 149,
-      `bán kính lớn nhất ${maxRadius.toFixed(1)}%`,
+      "PRE-2 · hai trang liền mép suốt quá trình trượt (không hở khe)",
+      maxDrift < 2,
+      `lệch lớn nhất ${maxDrift.toFixed(2)}px`,
+    );
+
+    check(
+      "PRE-2 · hướng trượt = next khi bấm link",
+      samples[samples.length - 1].slide === "next",
+      `data-slide=${samples[samples.length - 1].slide}`,
     );
   }
 
   await page.waitForURL("**/dang-ky", { timeout: 8000 });
   check("PRE-2 · đã tới /dang-ky", page.url().includes("/dang-ky"), page.url());
 
-  // Quan trọng nhất: lớp phủ phải tự mở. Một lớp đặc kín không mở là lỗi nghiêm
-  // trọng hơn nhiều so với việc không có hiệu ứng.
-  const stuck = await page
-    .waitForSelector(".a6-cover", { state: "detached", timeout: 4000 })
-    .then(() => false)
-    .catch(() => true);
-  check("PRE-2 · lớp phủ tự mở sau khi tới trang mới (không kẹt màn hình)", !stuck);
+  // Transition phải kết thúc — không để lại pseudo-element treo.
+  // KHÔNG đọc `animationName` để phán "đã xong": khi pseudo-element biến mất,
+  // `getComputedStyle(el, "::view-transition-new(root)")` vẫn trả về tên animation
+  // theo CSS rule (test thực tế: giữ nguyên "a6-slide-in-next" vô hạn), nên kiểu
+  // kiểm `=== "none"` không bao giờ đúng. Tín hiệu đáng tin là không còn animation
+  // nào bám vào pseudo-element của view-transition nữa.
+  const ended = await page
+    .waitForFunction(
+      () =>
+        !document
+          .getAnimations()
+          .some((a) => (a.effect?.pseudoElement ?? "").startsWith("::view-transition")),
+      null,
+      { timeout: 4000 },
+    )
+    .then(() => true)
+    .catch(() => false);
+  check("PRE-2 · transition tự kết thúc (không treo)", ended);
   await page.screenshot({ path: `${SHOTS}/03-dang-ky.png` });
+
+  // ── Quay lại: phải ghi hướng NGƯỢC ──
+  // Kiểm thực tế: React CHƯA gọi `document.startViewTransition()` khi bấm back
+  // của trình duyệt (đo bằng cách vá thẳng API: số lần gọi đứng yên ở 1 sau
+  // `history.back()`), nên không có ảnh chụp để đọc toạ độ. Cái kiểm được là
+  // hướng đã ghi đúng và CSS trượt ngược có thật sự nối với `data-slide="prev"`
+  // — nếu React bật VT cho popstate thì mọi thứ tự chạy.
+  const prevSamples = [];
+  await page.goBack({ waitUntil: "commit" }).catch(() => {});
+  for (let i = 0; i < 60; i++) {
+    const s = await readSlide(page);
+    if (s.nw.anim && s.nw.anim !== "none") prevSamples.push(s);
+    if (prevSamples.length >= 6) break;
+    await page.waitForTimeout(30);
+  }
+  check(
+    "PRE-2 · back → data-slide=prev",
+    prevSamples.length > 0 && prevSamples[0].slide === "prev",
+    prevSamples.length ? `data-slide=${prevSamples[0].slide}` : "không đọc được hướng",
+  );
+  if (prevSamples.length) {
+    check(
+      "PRE-2 · back → CSS trượt ngược nối với data-slide=prev",
+      prevSamples[0].nw.anim === "a6-slide-in-prev",
+      `animationName=${prevSamples[0].nw.anim}`,
+    );
+  }
 
   // Ripple trên mọi nút.
   const btn = page.locator('button:not([disabled])').first();
@@ -169,7 +242,11 @@ const browser = await chromium.launch();
   }
 
   // Điều hướng bằng bàn phím cũng phải có hiệu ứng (bấm giữa nút bằng Enter).
-  check("PRE-2 · không có lỗi console", errors.length === 0, errors.join(" | "));
+  check(
+    "PRE-2 · không có lỗi console",
+    errors.length === 0,
+    errors.length ? errors.join(" | ") : serverErrors.length ? `(500 local: ${serverErrors.join(", ")})` : "",
+  );
   await ctx.close();
 }
 
@@ -191,9 +268,14 @@ const browser = await chromium.launch();
   const link = page.locator('a[href="/dang-ky"]').first();
   if (await link.count()) {
     await link.click({ noWaitAfter: true });
-    await page.waitForTimeout(120);
-    const s = await readReveal(page);
-    check("PRE-2 · reduced-motion → không bung tròn", s === null, s ? `vẫn bung ${s.radius}%` : "không có clip-path");
+    await page.waitForTimeout(150);
+    const s = await readSlide(page);
+    const animating = s.nw.anim !== "none";
+    check(
+      "PRE-2 · reduced-motion → không trượt",
+      !animating,
+      animating ? `vẫn chạy ${s.nw.anim}` : "animationName=none",
+    );
   }
   await ctx.close();
 }
@@ -248,26 +330,42 @@ const browser = await chromium.launch();
   const ruleExists = await page.evaluate(() =>
     [...document.styleSheets].some((sheet) => {
       try {
-        return [...sheet.cssRules].some((r) => r.cssText?.includes("a6-no-vt") && r.cssText.includes("a6-cover"));
+        return [...sheet.cssRules].some(
+          (r) => r.cssText?.includes("a6-no-vt") && r.cssText.includes("view-transition"),
+        );
       } catch {
         return false;
       }
     }),
   );
-  check("PRE-2 · có CSS tắt lớp phủ cho a6-no-vt", ruleExists);
+  check("PRE-2 · có CSS tắt chuyển cảnh cho a6-no-vt", ruleExists);
 
-  // Cơ chế cũ đã bỏ: còn sót `::view-transition` ở đâu đó là dấu hiệu chưa dọn
-  // hết, và nó sẽ chồng animation lên lớp phủ.
-  const leftover = await page.evaluate(() =>
+  // Cơ chế lớp phủ tròn bung ra toàn màn hình đã bị user yêu cầu xóa. Sót lại
+  // là dấu hiệu chưa dọn hết — và nó sẽ chồng một lớp đặc đè lên transition.
+  const coverLeft = await page.evaluate(() =>
     [...document.styleSheets].some((sheet) => {
       try {
-        return [...sheet.cssRules].some((r) => r.cssText?.includes("view-transition"));
+        return [...sheet.cssRules].some((r) => r.cssText?.includes("a6-cover"));
       } catch {
         return false;
       }
     }),
   );
-  check("PRE-2 · đã dọn sạch CSS ::view-transition", !leftover);
+  check("PRE-2 · đã xóa hết CSS lớp phủ bung tròn", !coverLeft);
+
+  // Trong khi đó rules trượt phải tồn tại.
+  const slideRules = await page.evaluate(() =>
+    [...document.styleSheets].some((sheet) => {
+      try {
+        return [...sheet.cssRules].some(
+          (r) => r.cssText?.includes("a6-slide") || r.cssText?.includes("view-transition-old(root)"),
+        );
+      } catch {
+        return false;
+      }
+    }),
+  );
+  check("PRE-2 · có CSS trượt ngang", slideRules);
   await ctx.close();
 }
 
