@@ -4,7 +4,8 @@ import dynamic from "next/dynamic";
 import { cookies } from "next/headers";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { Trophy, ArrowLeft, UserRound, Clock } from "lucide-react";
+import { startAttempt, studentActiveKey, guestActiveKey } from "@/lib/attempt";
+import { Trophy, ArrowLeft, UserRound, Clock, MonitorX } from "lucide-react";
 
 const ExamTakingClientV2 = dynamic(() => import("./exam-taking-client-v2").then((m) => m.ExamTakingClientV2));
 const GuestJoin = dynamic(() => import("./guest-join").then((m) => m.GuestJoin));
@@ -35,6 +36,24 @@ type StudentQuestion = {
 };
 
 type PreviewQuestion = StudentQuestion & { answer: string; grading: ClientGrading };
+
+/** Một người chỉ được mở MỘT attempt tại một thời điểm (khóa `activeKey`).
+ *  Nếu đang giữ attempt của bài khác mà vào bài này → chặn. */
+function BusyElsewhere() {
+  return (
+    <div className="min-h-screen grid place-items-center bg-[var(--surface-bg)] p-4">
+      <div className="max-w-md w-full rounded-2xl bg-white p-8 text-center">
+        <MonitorX size={34} className="mx-auto mb-4 text-[var(--warning)]" />
+        <h1 className="text-xl font-bold">Bạn đang làm bài thi khác</h1>
+        <p className="mt-2 text-sm text-[var(--text-muted)]">Hãy hoàn thành bài thi đang mở trước khi vào đề này. Mỗi người chỉ được mở một bài tại một thời điểm.</p>
+        <Link href="/bang-dieu-khien/de-thi" className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[var(--primary)] px-5 py-2.5 text-sm font-semibold text-white">
+          <ArrowLeft size={14}/> Về danh sách đề thi
+        </Link>
+      </div>
+    </div>
+  );
+}
+
 
 export default async function ThiPage({ params, searchParams }: { params: Promise<{ code: string }>; searchParams: Promise<{ preview?: string }> }) {
   const { code } = await params;
@@ -111,15 +130,22 @@ export default async function ThiPage({ params, searchParams }: { params: Promis
     const guest = await prisma.guestParticipant.findFirst({ where: { examId: exam.id, tokenHash: createHash("sha256").update(token).digest("hex") } });
     if (!guest) return <GuestJoin code={exam.joinCode} title={exam.title} />;
     if (guest.submittedAt) { const sub = await prisma.submission.findUnique({ where: { guestParticipantId: guest.id } }); if (sub) return <div className="min-h-screen grid place-items-center bg-[var(--surface-bg)] p-4"><div className="rounded-2xl bg-white p-8 text-center"><Trophy className="mx-auto mb-4 text-[var(--success)]"/><p className="text-sm font-semibold">Đã nộp bài</p><p className="mt-2 text-3xl font-black text-[var(--success)]">{sub.score}/10</p><p className="mt-1 text-sm text-[var(--text-muted)]">{guest.name} · {guest.className}</p></div></div>; }
-    return <ExamTakingClientV2 backHref="/vao-thi" exam={{ id: exam.id, title: exam.title, subject: exam.subject, durationMinutes: exam.durationMinutes, joinCode: exam.joinCode, isGuest: true, showScoreImmediately: exam.showScoreImmediately, participantName: guest.name, participantClass: guest.className, shuffleQuestions: exam.shuffleQuestions, shuffleAnswers: exam.shuffleAnswers, questions: mapQuestionsForStudent() }} />;
+    const started = await startAttempt({ exam, studentId: null, guestParticipantId: guest.id, activeKey: guestActiveKey(token), questions: exam.questions });
+    // Khách không bị chặn theo số lượt nên chỉ có thể rơi vào "đang làm bài khác".
+    if (started.status !== "ok") return <BusyElsewhere />;
+    return <ExamTakingClientV2 attempt={started.attempt} backHref="/vao-thi" exam={{ id: exam.id, title: exam.title, subject: exam.subject, durationMinutes: exam.durationMinutes, joinCode: exam.joinCode, isGuest: true, showScoreImmediately: exam.showScoreImmediately, participantName: guest.name, participantClass: guest.className, questions: mapQuestionsForStudent() }} />;
   }
 
   if (preview === "1" && session.user.role === "teacher") return <ExamTakingClientV2 preview backHref={`/bang-dieu-khien/de-thi/${exam.id}`} exam={{ id: exam.id, title: exam.title, subject: exam.subject, durationMinutes: exam.durationMinutes, joinCode: exam.joinCode, isGuest: false, showScoreImmediately: exam.showScoreImmediately, questions: mapQuestionsForPreview() }} />;
   if (session.user.role !== "student") return <div className="min-h-screen grid place-items-center bg-[var(--surface-bg)] p-4"><div className="rounded-2xl bg-white p-8 text-center"><p className="font-semibold text-[var(--warning)]">Tài khoản này không phải học sinh</p><Link href="/bang-dieu-khien" className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-[var(--primary)]"><ArrowLeft size={14}/> Về trang chủ</Link></div></div>;
-  const [attemptsUsed, latestSubmission] = await Promise.all([
-    prisma.submission.count({ where: { examId: exam.id, studentId: session.user.id } }),
-    prisma.submission.findFirst({ where: { examId: exam.id, studentId: session.user.id }, orderBy: { submittedAt: "desc" } }),
-  ]);
-  if (attemptsUsed >= exam.maxAttempts) return <div className="min-h-screen grid place-items-center bg-[var(--surface-bg)] p-4"><div className="rounded-2xl bg-white p-8 text-center"><Trophy className="mx-auto mb-4 text-[var(--success)]"/><p className="text-sm font-semibold">Bạn đã hết số lần làm bài</p>{latestSubmission && <p className="mt-2 text-3xl font-black text-[var(--success)]">{latestSubmission.score}/10</p>}<p className="mt-2 text-xs text-[var(--text-muted)]">Đã làm {attemptsUsed}/{exam.maxAttempts} lượt</p><Link href="/bang-dieu-khien" className="mt-5 inline-flex items-center gap-2 rounded-lg bg-[var(--primary)] px-5 py-2.5 text-sm font-semibold text-white"><ArrowLeft size={14}/> Về trang chủ</Link></div></div>;
-  return <ExamTakingClientV2 backHref="/bang-dieu-khien/de-thi" exam={{ id: exam.id, title: exam.title, subject: exam.subject, durationMinutes: exam.durationMinutes, joinCode: exam.joinCode, isGuest: false, shuffleQuestions: exam.shuffleQuestions, shuffleAnswers: exam.shuffleAnswers, showScoreImmediately: exam.showScoreImmediately, questions: mapQuestionsForStudent() }} />;
+  const started = await startAttempt({ exam, studentId: session.user.id, guestParticipantId: null, activeKey: studentActiveKey(session.user.id), questions: exam.questions });
+  if (started.status === "active_elsewhere") return <BusyElsewhere />;
+  if (started.status === "max_attempts") {
+    const [attemptsUsed, latestSubmission] = await Promise.all([
+      prisma.submission.count({ where: { examId: exam.id, studentId: session.user.id } }),
+      prisma.submission.findFirst({ where: { examId: exam.id, studentId: session.user.id }, orderBy: { submittedAt: "desc" } }),
+    ]);
+    return <div className="min-h-screen grid place-items-center bg-[var(--surface-bg)] p-4"><div className="rounded-2xl bg-white p-8 text-center"><Trophy className="mx-auto mb-4 text-[var(--success)]"/><p className="text-sm font-semibold">Bạn đã hết số lần làm bài</p>{latestSubmission && <p className="mt-2 text-3xl font-black text-[var(--success)]">{latestSubmission.score}/10</p>}<p className="mt-2 text-xs text-[var(--text-muted)]">Đã làm {attemptsUsed}/{exam.maxAttempts} lượt</p><Link href="/bang-dieu-khien" className="mt-5 inline-flex items-center gap-2 rounded-lg bg-[var(--primary)] px-5 py-2.5 text-sm font-semibold text-white"><ArrowLeft size={14}/> Về trang chủ</Link></div></div>;
+  }
+  return <ExamTakingClientV2 attempt={started.attempt} backHref="/bang-dieu-khien/de-thi" exam={{ id: exam.id, title: exam.title, subject: exam.subject, durationMinutes: exam.durationMinutes, joinCode: exam.joinCode, isGuest: false, showScoreImmediately: exam.showScoreImmediately, questions: mapQuestionsForStudent() }} />;
 }

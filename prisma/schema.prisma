@@ -28,6 +28,7 @@ model User {
 
   exams              Exam[]
   submissions        Submission[]
+  attempts           Attempt[]
   notifications      Notification[]
   classroomsAsTeacher Classroom[]       @relation("TeacherClassrooms")
   classroomsAsMember  ClassMember[]
@@ -102,6 +103,7 @@ model Exam {
   teacher            User     @relation(fields: [teacherId], references: [id], onDelete: Cascade)
   questions          Question[]
   submissions        Submission[]
+  attempts           Attempt[]
   guestParticipants  GuestParticipant[]
   assignments        ExamAssignment[]
   reports            Report[]
@@ -139,7 +141,54 @@ model GuestParticipant {
   submittedAt  DateTime?
   createdAt    DateTime @default(now())
   submission   Submission?
+  attempts     Attempt[]
   @@index([examId])
+}
+
+/// GĐ1 — Một lần làm bài, do SERVER quản lý hoàn toàn.
+///
+/// Trước đây thời gian, thứ tự câu và thứ tự đáp án đều do client quyết định
+/// (`Math.random()` ở client, `durationSeconds` gửi lên khi nộp) nên server
+/// không có cách nào kiểm chứng. Model này là nguồn sự thật:
+///
+/// - `startedAt` / `deadlineAt`: server tính lúc bắt đầu, client chỉ được ĐỌC.
+/// - `seed` + `questionOrder` / `optionOrder`: server sinh (Fisher–Yates có
+///   seed), client chỉ render đúng thứ tự đó.
+/// - `activeKey`: khoá UNIQUE bắt buộc chỉ được có MỘT attempt đang mở cho một
+///   học sinh — chặn thi song song. Khi xong thì xoá (`null`); Postgres cho
+///   phép nhiều `null` trong cột UNIQUE nên attempt đã nộp vẫn giữ nguyên.
+model Attempt {
+  id                 String            @id @default(cuid())
+  examId             String
+  exam               Exam              @relation(fields: [examId], references: [id], onDelete: Cascade)
+  studentId          String?
+  student            User?             @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  guestParticipantId String?           @unique
+  guestParticipant   GuestParticipant? @relation(fields: [guestParticipantId], references: [id], onDelete: Cascade)
+
+  /// Số sinh hoán vị — cùng seed ⇒ cùng thứ tự câu/đáp án.
+  seed          Int
+  /// `Int[]` — thứ tự hiển thị các câu (index vào danh sách câu gốc).
+  questionOrder Json
+  /// `{ [questionId]: Int[] }` — thứ tự hiển thị đáp án của từng câu.
+  optionOrder   Json?
+
+  startedAt     DateTime @default(now())
+  /// Server cộng thêm `Exam.durationMinutes` — client không được tự tính.
+  deadlineAt    DateTime
+  /// Đã nộp chưa (NULL = vẫn đang làm).
+  submittedAt   DateTime?
+  /// Khóa chặn thi song song: `student:<id>` hoặc `guest:<tokenHash>`.
+  activeKey     String?  @unique
+
+  submission    Submission?
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([examId, studentId])
+  @@index([examId])
+  @@index([activeKey])
 }
 
 model Submission {
@@ -150,6 +199,9 @@ model Submission {
   student            User?             @relation(fields: [studentId], references: [id], onDelete: Cascade)
   guestParticipantId String?           @unique
   guestParticipant   GuestParticipant? @relation(fields: [guestParticipantId], references: [id], onDelete: Cascade)
+  /// Liên kết về lần làm bài — trước GĐ1 không có nên để nullable.
+  attemptId          String?           @unique
+  attempt            Attempt?          @relation(fields: [attemptId], references: [id], onDelete: SetNull)
   answers            Json
   score              Float
   correctCount       Int

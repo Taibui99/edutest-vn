@@ -29,10 +29,20 @@ type Exam = {
   isGuest: boolean;
   participantName?: string;
   participantClass?: string;
-  shuffleQuestions?: boolean;
-  shuffleAnswers?: boolean;
   showScoreImmediately?: boolean;
   questions: Question[];
+};
+
+/* GĐ1 — lần làm bài do server sinh: thứ tự câu/đáp án và mốc thời gian đều đọc
+   từ đây, client không tự xáo trộn (`Math.random`) cũng không tự tính thời gian. */
+type Attempt = {
+  id: string;
+  questionOrder: number[];
+  optionOrder: Record<string, number[]>;
+  deadlineAt: Date;
+  startedAt: Date;
+  remainingSeconds: number;
+  submittedAt: Date | null;
 };
 
 type SubmissionResult = { score: number; correctCount: number; totalQuestions: number; durationSeconds: number };
@@ -49,29 +59,25 @@ function scoreColor(score: number) {
   return "var(--score-bad)";
 }
 
-function shuffledRange(n: number) {
-  const arr = Array.from({ length: n }, (_, i) => i);
-  for (let i = n - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
-  }
-  return arr;
-}
-
-export function ExamTakingClientV2({ exam, preview = false, backHref }: { exam: Exam; preview?: boolean; backHref: string }) {
+export function ExamTakingClientV2({ exam, attempt, preview = false, backHref }: { exam: Exam; attempt?: Attempt; preview?: boolean; backHref: string }) {
   const router = useRouter();
-  const [remaining, setRemaining] = useState(exam.durationMinutes * 60);
+  // Đồng hồ khởi động từ số giây SERVER tính lúc render — không tự suy ra từ
+  // `durationMinutes` nữa. Các lần đồng bộ sau lấy từ `/api/attempts/[id]`.
+  const [remaining, setRemaining] = useState(() => attempt?.remainingSeconds ?? exam.durationMinutes * 60);
   const [answers, setAnswers] = useState<Record<string, AnswerValue>>({});
   const [marked, setMarked] = useState<Record<string, boolean>>({});
   const [restored, setRestored] = useState(false);
+  const [expired, setExpired] = useState(false);
+  // Bài nháp đã vào state xong chưa — xem chú thích ở khối tự nộp khi hết giờ.
+  const [draftLoaded, setDraftLoaded] = useState(false);
   const [lastSaved, setLastSaved] = useState<number | null>(null);
   const [current, setCurrent] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<SubmissionResult | null>(null);
   const [showConfirm, setShowConfirm] = useState(false);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
-  const [questionOrder, setQuestionOrder] = useState<number[] | null>(null);
-  const optionShuffleRef = useRef<Record<string, number[]>>({});
+  const [questionOrder, setQuestionOrder] = useState<number[] | null>(() => attempt?.questionOrder ?? null);
+  const optionShuffleRef = useRef<Record<string, number[]>>(attempt?.optionOrder ?? {});
   const [violations, setViolations] = useState(0);
   const [warnVisible, setWarnVisible] = useState(false);
   const [offline, setOffline] = useState(() => typeof navigator === "undefined" ? false : !navigator.onLine);
@@ -95,12 +101,14 @@ export function ExamTakingClientV2({ exam, preview = false, backHref }: { exam: 
   const totalQuestions = exam.questions.length;
 
   const draftKey = `edutest-draft-${exam.id}`;
-  const draftRef = useRef<{ answers: Record<string, unknown>; marked: Record<string, boolean>; remaining: number; shuffle: number[] | null; optionShuffle: Record<string, number[]>; meta: null | { title: string; joinCode: string; subject: string; totalQuestions: number } } | null>(null);
+  /* Bài nháp CHỈ giữ lời làm + cờ đánh dấu. Thứ tự câu/đáp án và thời gian do
+   * server giữ (`Attempt`), không còn lưu trong localStorage nữa. */
+  const draftRef = useRef<{ answers: Record<string, unknown>; marked: Record<string, boolean>; meta: null | { title: string; joinCode: string; subject: string; totalQuestions: number } } | null>(null);
   const submittedRef = useRef(false);
 
   useEffect(() => {
-    draftRef.current = { answers, marked, remaining, shuffle: questionOrder, optionShuffle: optionShuffleRef.current, meta: { title: exam.title, joinCode: exam.joinCode, subject: exam.subject, totalQuestions: exam.questions.length } };
-  }, [answers, marked, remaining, questionOrder, optionShuffleRef, exam.title, exam.joinCode, exam.subject, exam.questions.length]);
+    draftRef.current = { answers, marked, meta: { title: exam.title, joinCode: exam.joinCode, subject: exam.subject, totalQuestions: exam.questions.length } };
+  }, [answers, marked, exam.title, exam.joinCode, exam.subject, exam.questions.length]);
 
   const saveDraft = useCallback(() => {
     if (preview || submittedRef.current) return;
@@ -124,6 +132,7 @@ export function ExamTakingClientV2({ exam, preview = false, backHref }: { exam: 
 
   const submitExam = useCallback(async (auto = false) => {
     if (preview || submitting || result) return;
+    if (!attempt) return;
     if (!auto && answeredCount < totalQuestions && !showConfirm) {
       setShowConfirm(true);
       return;
@@ -134,74 +143,118 @@ export function ExamTakingClientV2({ exam, preview = false, backHref }: { exam: 
       const res = await fetch("/api/submissions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ examId: exam.id, answers, durationSeconds: exam.durationMinutes * 60 - remaining }),
+        // GĐ1: KHÔNG gửi `durationSeconds` — server tự chốt từ `Attempt`.
+        body: JSON.stringify({ examId: exam.id, attemptId: attempt.id, answers }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Không thể nộp bài");
+      if (!res.ok) {
+        // Server đã chốt attempt vì quá hạn: đóng nháp, hiện màn hết giờ.
+        if (data?.timedOut) {
+          submittedRef.current = true;
+          clearDraft();
+          setExpired(true);
+          setSubmitting(false);
+          return;
+        }
+        throw new Error(data?.error || "Không thể nộp bài");
+      }
       submittedRef.current = true;
       clearDraft();
       if (data.resultLink) {
         router.push(data.resultLink);
         return;
       }
-      setResult({ ...data.submission, durationSeconds: exam.durationMinutes * 60 - remaining });
+      setResult(data.submission);
     } catch (err) {
       alert(err instanceof Error ? err.message : "Không thể nộp bài");
       setSubmitting(false);
     }
-  }, [answers, answeredCount, clearDraft, exam.durationMinutes, exam.id, preview, remaining, result, router, showConfirm, submitting, totalQuestions]);
+  }, [answers, attempt, answeredCount, clearDraft, exam.id, preview, result, router, showConfirm, submitting, totalQuestions]);
 
+  // Đồng hồ: chỉ đếm ngược. Việc tự nộp khi về 0 nằm ở effect riêng bên dưới,
+  // không đặt trong hàm updater của setState (updater phải thuần, không side-effect).
   useEffect(() => {
     if (preview || result) return;
     const timer = window.setInterval(() => {
       setRemaining((s) => {
         if (s <= 1) {
           window.clearInterval(timer);
-          void submitExam(true);
           return 0;
         }
         return s - 1;
       });
     }, 1000);
     return () => window.clearInterval(timer);
-  }, [preview, result, submitExam]);
+  }, [preview, result]);
 
   useEffect(() => {
     if (preview) {
       setQuestionOrder(Array.from({ length: exam.questions.length }, (_, i) => i)); // eslint-disable-line react-hooks/set-state-in-effect
+      setDraftLoaded(true);
       return;
     }
-    const identity = Array.from({ length: exam.questions.length }, (_, i) => i);
+    // Thứ tự câu/đáp án lấy từ Attempt (server) — client không sinh nữa.
+    if (attempt) {
+      setQuestionOrder(attempt.questionOrder.length ? attempt.questionOrder : Array.from({ length: exam.questions.length }, (_, i) => i));
+      optionShuffleRef.current = attempt.optionOrder || {};
+    } else {
+      setQuestionOrder(Array.from({ length: exam.questions.length }, (_, i) => i));
+    }
     try {
       const raw = localStorage.getItem(draftKey);
       const d = raw ? JSON.parse(raw) : null;
-      if (d && Array.isArray(d.shuffle) && d.shuffle.length === exam.questions.length) {
-        setQuestionOrder(d.shuffle);
-        optionShuffleRef.current = d.optionShuffle && typeof d.optionShuffle === "object" ? d.optionShuffle : {};
-        if (d.answers && typeof d.answers === "object") {
-          const savedAt = typeof d.savedAt === "number" ? d.savedAt : Date.now();
-          const elapsed = Math.max(0, Math.floor((Date.now() - savedAt) / 1000));
-          const restoredRemaining = typeof d.remaining === "number" ? Math.max(0, d.remaining - elapsed) : exam.durationMinutes * 60;
-          setAnswers((prev) => ({ ...prev, ...(d.answers || {}) }));
-          setMarked((prev) => ({ ...prev, ...(d.marked || {}) }));
-          setRemaining(restoredRemaining);
-          if (Object.keys(d.answers).length > 0) setRestored(true);
-        }
-        return;
+      // Nháp CHỈ khôi phục lời làm. Thời gian còn lại do server tính từ
+      // `deadlineAt` — không đọc `d.remaining`/`d.shuffle` như trước nữa.
+      if (d && d.answers && typeof d.answers === "object") {
+        setAnswers((prev) => ({ ...prev, ...(d.answers || {}) }));
+        if (d.marked && typeof d.marked === "object") setMarked((prev) => ({ ...prev, ...(d.marked || {}) }));
+        if (Object.keys(d.answers).length > 0) setRestored(true);
       }
     } catch {
       /* corrupt draft */
     }
-    setQuestionOrder(exam.shuffleQuestions ? shuffledRange(exam.questions.length) : identity);
-    if (exam.shuffleAnswers) {
-      const perms: Record<string, number[]> = {};
-      for (const q of exam.questions) if (q.type === "mcq" && q.options.length > 1) perms[q.id] = shuffledRange(q.options.length);
-      optionShuffleRef.current = perms;
-    } else {
-      optionShuffleRef.current = {};
-    }
+    setDraftLoaded(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  /* Hết giờ → tự nộp. Chờ `draftLoaded` để không nộp khi đáp án trong localStorage
+   * chưa kịp vào state (trường hợp mở lại trang khi đã quá hạn). */
+  useEffect(() => {
+    if (preview || result || expired || !draftLoaded) return;
+    if (remaining > 0 || submittedRef.current) return;
+    void submitExam(true);
+  }, [draftLoaded, expired, preview, result, remaining, submitExam]);
+
+  /* GĐ1 — đồng bộ đồng hồ với server. Sửa lệch múi giờ/đồng hồ máy khách và phát
+   * hiện bài đã bị chốt ở nơi khác (tab khác, giáo viên, hết giờ) để ngừng đếm. */
+  useEffect(() => {
+    if (preview || result || !attempt?.id) return;
+    let cancelled = false;
+    const sync = async () => {
+      try {
+        const res = await fetch(`/api/attempts/${attempt.id}`, { cache: "no-store" });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (cancelled || submittedRef.current) return;
+        if (data.submittedAt) {
+          submittedRef.current = true;
+          clearDraft();
+          if (data.submission) setResult(data.submission);
+          return;
+        }
+        if (typeof data.remainingSeconds === "number") setRemaining(data.remainingSeconds);
+      } catch {
+        /* offline — đồng hồ vẫn chạy local, lần sync sau sẽ tự sửa */
+      }
+    };
+    const timer = window.setInterval(sync, 20_000);
+    window.addEventListener("focus", sync);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+      window.removeEventListener("focus", sync);
+    };
+  }, [attempt?.id, clearDraft, preview, result]);
 
   useEffect(() => {
     if (preview) return;
@@ -256,6 +309,19 @@ export function ExamTakingClientV2({ exam, preview = false, backHref }: { exam: 
   const setShortAnswer = (value: string) => setAnswers((prev) => ({ ...prev, [question.id]: value }));
   const setEssay = (value: string) => setAnswers((prev) => ({ ...prev, [question.id]: value }));
   const toggleMark = () => setMarked((prev) => ({ ...prev, [question?.id]: !prev[question?.id] }));
+
+  if (expired) {
+    return (
+      <div className="min-h-screen bg-[var(--surface-bg)] flex items-center justify-center p-4">
+        <div className="bg-[var(--surface-card)] rounded-2xl border border-[var(--surface-border)] p-8 max-w-md w-full text-center">
+          <div className="w-20 h-20 rounded-full mx-auto mb-5 flex items-center justify-center bg-[var(--danger-light)] text-[var(--danger)] text-3xl">⏰</div>
+          <h1 className="text-2xl font-bold mb-2 text-[var(--text-primary)]">Đã hết thời gian làm bài</h1>
+          <p className="text-[var(--text-secondary)] text-sm mb-5">Bài làm của bạn không được ghi nhận vì đã quá thời hạn nộp.</p>
+          <Button className="w-full" onClick={() => router.push(exam.isGuest ? backHref : "/bang-dieu-khien/de-thi")}>Về danh sách đề thi</Button>
+        </div>
+      </div>
+    );
+  }
 
   if (result) {
     const col = scoreColor(result.score);

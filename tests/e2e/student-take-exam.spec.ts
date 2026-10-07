@@ -1,11 +1,11 @@
 import { test, expect, request as pwRequest } from "@playwright/test";
-import { STUDENT, TEACHER, login } from "./helpers";
+import { STUDENT, TEACHER, login, BASE_URL } from "./helpers";
 
 let CODE = "43WTBE";
 
 test.beforeAll(async () => {
   // Tạo exam riêng cho Playwright với maxAttempts cao để không vướng dữ liệu cũ
-  const req = await pwRequest.newContext({ baseURL: "https://edutest-vn.vercel.app" });
+  const req = await pwRequest.newContext({ baseURL: BASE_URL });
   const csrf = (await (await req.get("/api/auth/csrf")).json()).csrfToken;
   await req.post("/api/auth/callback/credentials", {
     form: { csrfToken: csrf, email: TEACHER.email, password: TEACHER.password },
@@ -70,8 +70,20 @@ test.describe("STUDENT — Làm bài thi", () => {
   test("S-05: Anti-cheat — blur 1 lần → cảnh báo", async ({ page }) => {
     await login(page, STUDENT.email, STUDENT.password);
     await page.goto(`/thi/${CODE}`);
-    await expect(page.getByText(/QA-PW-Exam/i).first()).toBeVisible();
+    await expect(page.getByText(/QA-PW-Exam/i).first()).toBeVisible({ timeout: 15000 });
+    // HTML render từ server hiện title TRƯỚC khi React hydrate — listener `blur`
+    // chỉ gắn sau khi client chạy. Chờ đồng hồ nhảy 1 nhịp rồi mới bắn blur,
+    // nếu không event bị bắn vào lúc chưa có người nghe → mất vô hại.
+    const timer = page.locator("header").getByText(/^\d{1,2}:\d{2}$/).first();
+    await expect(timer).toBeVisible({ timeout: 15000 });
+    const firstTick = (await timer.textContent()) ?? "";
+    await expect(timer).not.toHaveText(firstTick, { timeout: 8000 });
     await page.evaluate(() => window.dispatchEvent(new Event("blur")));
     await expect(page.getByText(/cảnh báo|rời khỏi trang thi/i).first()).toBeVisible({ timeout: 8000 });
+    // Nộp bài để giải phóng activeKey — attempt đang mở (chưa nộp) sẽ chặn lần
+    // thi sau: project kia chạy cùng tài khoản, hoặc lần chạy kế tiếp.
+    await page.getByRole("button", { name: /nộp bài/i }).first().click();
+    await page.getByRole("button", { name: "Nộp bài" }).last().click();
+    await expect(page.getByText(/đã nộp|nộp bài thành công|\/10/i).first()).toBeVisible({ timeout: 20000 });
   });
 });

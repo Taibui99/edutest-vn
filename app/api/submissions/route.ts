@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { isQuestionCorrect, isAutoGraded, type AnswerValue } from "@/lib/grading";
+import { ATTEMPT_GRACE_SECONDS } from "@/lib/attempt";
 import { NextRequest, NextResponse } from "next/server";
 import { rateLimit, clientIp } from "@/lib/rate-limit";
 
@@ -14,11 +15,15 @@ export async function POST(request: NextRequest) {
   const rl = rateLimit(`submit:${clientIp(request)}`, 20, 60_000);
   if (!rl.ok) return NextResponse.json({ error: "Bạn nộp bài quá nhanh. Thử lại sau 1 phút." }, { status: 429 });
   const session = await auth();
-  const body = await request.json() as { examId?: unknown; answers?: unknown; durationSeconds?: unknown };
+  const body = await request.json() as { examId?: unknown; attemptId?: unknown; answers?: unknown };
   const examId = typeof body.examId === "string" ? body.examId : "";
+  const attemptId = typeof body.attemptId === "string" ? body.attemptId : "";
   const answers = (body.answers && typeof body.answers === "object" ? body.answers : {}) as AnswerMap;
-  const durationSeconds = Math.max(0, Number(body.durationSeconds || 0));
   if (!examId) return NextResponse.json({ error: "Thiếu mã đề thi" }, { status: 400 });
+  /* GĐ1: thời gian do server chốt từ `Attempt.startedAt`/`deadlineAt`.
+   * Không nhận `durationSeconds` từ client nữa — trước đây client gửi con số
+   * tự tính nên server không cách nào kiểm chứng. */
+  if (!attemptId) return NextResponse.json({ error: "Thiếu mã lần làm bài. Vui lòng tải lại trang." }, { status: 400 });
 
   const exam = await prisma.exam.findUnique({ where: { id: examId }, include: { questions: { orderBy: { order: "asc" } } } });
   if (!exam || exam.status !== "published" || exam.hidden || exam.deletedAt) return NextResponse.json({ error: "Không tìm thấy đề thi" }, { status: 404 });
@@ -56,20 +61,41 @@ export async function POST(request: NextRequest) {
     participantName = guest.name;
   }
 
-  const correctCount = exam.questions.reduce((count, question) => isQuestionCorrect(question, answers[question.id]) ? count + 1 : count, 0);
+  /* GĐ1 — kiểm chứng lần làm bài TRƯỚC khi chấm điểm.
+   * Attempt là nguồn sự thật duy nhất về thời gian: `startedAt`/`deadlineAt`
+   * do server sinh lúc bắt đầu, client không gửi và cũng không tính được. */
+  const attempt = await prisma.attempt.findUnique({ where: { id: attemptId } });
+  if (!attempt || attempt.examId !== examId) return NextResponse.json({ error: "Lần làm bài không hợp lệ. Vui lòng tải lại trang." }, { status: 400 });
+  if (attempt.studentId !== studentId || attempt.guestParticipantId !== guestParticipantId) return NextResponse.json({ error: "Bạn không sở hữu lần làm bài này." }, { status: 403 });
+  if (attempt.submittedAt) return NextResponse.json({ error: "Bài thi đã được nộp." }, { status: 409 });
+
+  const elapsedSeconds = Math.floor((now.getTime() - attempt.startedAt.getTime()) / 1000);
+  const allowedSeconds = exam.durationMinutes * 60 + ATTEMPT_GRACE_SECONDS;
+  /* Quá hạn chót (deadline + grace): không nhận câu trả lời nữa, nhưng VẪN chốt
+   * attempt với bài làm rỗng. Nếu chỉ từ chối không chốt thì attempt giữ `activeKey`
+   * vĩnh viễn → học sinh kẹt, không vào lại được đề nào. */
+  const timedOut = elapsedSeconds > allowedSeconds;
+  const durationSeconds = Math.max(0, Math.min(elapsedSeconds, allowedSeconds));
+  const gradedAnswers = timedOut ? ({} as AnswerMap) : answers;
+
+  const correctCount = exam.questions.reduce((count, question) => isQuestionCorrect(question, gradedAnswers[question.id]) ? count + 1 : count, 0);
   const totalQuestions = exam.questions.length;
   const autoGradedCount = exam.questions.filter((q) => isAutoGraded(q)).length;
   const score = autoGradedCount > 0 ? Number(((correctCount / autoGradedCount) * 10).toFixed(2)) : 0;
 
   const submission = await prisma.$transaction(async (tx) => {
-    const created = await tx.submission.create({ data: { examId, studentId, guestParticipantId, answers, correctCount, totalQuestions, score, durationSeconds } });
-    if (guestParticipantId) await tx.guestParticipant.update({ where: { id: guestParticipantId }, data: { submittedAt: new Date() } });
+    const created = await tx.submission.create({ data: { examId, studentId, guestParticipantId, attemptId, answers: gradedAnswers, correctCount, totalQuestions, score, durationSeconds } });
+    // Đóng attempt: xoá `activeKey` (mở lại lượt mới) và ghi mốc đã nộp.
+    await tx.attempt.update({ where: { id: attempt.id }, data: { submittedAt: now, activeKey: null } });
+    if (guestParticipantId) await tx.guestParticipant.update({ where: { id: guestParticipantId }, data: { submittedAt: now } });
     return created;
   });
 
   try {
-    await prisma.notification.create({ data: { userId: exam.teacherId, type: "exam_result", title: "Có người vừa nộp bài", message: `${participantName} vừa nộp bài "${exam.title}" — Điểm: ${score}/10`, link: `/bang-dieu-khien/de-thi/${exam.id}` } });
+    await prisma.notification.create({ data: { userId: exam.teacherId, type: "exam_result", title: timedOut ? "Học sinh hết giờ" : "Có người vừa nộp bài", message: timedOut ? `${participantName} đã hết giờ "${exam.title}"` : `${participantName} vừa nộp bài "${exam.title}" — Điểm: ${score}/10`, link: `/bang-dieu-khien/de-thi/${exam.id}` } });
   } catch { /* ignore notification errors */ }
+
+  if (timedOut) return NextResponse.json({ error: "Đã hết thời gian làm bài. Bài làm của bạn không được ghi nhận.", timedOut: true, submission }, { status: 409 });
 
   return NextResponse.json({ submission, isGuest: Boolean(guestParticipantId), resultLink: guestParticipantId ? null : `/bang-dieu-khien/ket-qua/${submission.id}` });
 }

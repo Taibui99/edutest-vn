@@ -1,5 +1,5 @@
 import { test, expect, request as pwRequest } from "@playwright/test";
-import { STUDENT, TEACHER, login } from "./helpers";
+import { STUDENT, TEACHER, login, startAttempt, BASE_URL } from "./helpers";
 
 /**
  * GĐ0 — chống rò đáp án.
@@ -22,7 +22,7 @@ let Q_TRUE_FALSE = "";
 let Q_SHORT_ANSWER = "";
 const STATEMENT_TEXT = `Mệnh đề kiểm tra rò đáp án ${Date.now()}`;
 
-const baseURL = "https://edutest-vn.vercel.app";
+const baseURL = BASE_URL;
 
 test.beforeAll(async () => {
   const req = await pwRequest.newContext({ baseURL });
@@ -114,9 +114,11 @@ test.describe("GĐ0 — Đáp án không lọt xuống máy học sinh", () => {
       form: { csrfToken: csrf, email: STUDENT.email, password: STUDENT.password },
     });
 
+    const attemptId = await startAttempt(req, EXAM_ID);
     const res = await req.post("/api/submissions", {
       data: {
         examId: EXAM_ID,
+        attemptId,
         answers: {
           // mcq -> đúng "B"
           [Q_MCQ]: "B",
@@ -125,7 +127,6 @@ test.describe("GĐ0 — Đáp án không lọt xuống máy học sinh", () => {
           // short_answer -> đúng chuỗi CHỈ server biết
           [Q_SHORT_ANSWER]: LEAK_MARKER,
         },
-        durationSeconds: 60,
       },
     });
 
@@ -137,11 +138,13 @@ test.describe("GĐ0 — Đáp án không lọt xuống máy học sinh", () => {
     expect(payload.submission.score, "3/3 câu đúng phải ra 10 điểm").toBe(10);
 
     // Nộp sai để chắc chắng điểm không phải do may mắn hay bị hardcode.
+    // Nộp lần nữa = lần làm bài mới (attemptId là khoá UNIQUE, mỗi attempt một bài).
+    const attemptId2 = await startAttempt(req, EXAM_ID);
     const wrong = await req.post("/api/submissions", {
       data: {
         examId: EXAM_ID,
+        attemptId: attemptId2,
         answers: { [Q_MCQ]: "A", [Q_TRUE_FALSE]: { "0": false, "1": true }, [Q_SHORT_ANSWER]: "sai" },
-        durationSeconds: 60,
       },
     });
     expect(wrong.status()).toBe(200);

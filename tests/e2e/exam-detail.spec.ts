@@ -1,9 +1,9 @@
 import { test, expect, request as pwRequest } from "@playwright/test";
-import { TEACHER, login } from "./helpers";
+import { TEACHER, login, startAttempt, BASE_URL } from "./helpers";
 
 // Tạo 1 exam + 1 submission qua API để test trang detail
 async function setupExam() {
-  const req = await pwRequest.newContext({ baseURL: "https://edutest-vn.vercel.app" });
+  const req = await pwRequest.newContext({ baseURL: BASE_URL });
   const csrf = (await (await req.get("/api/auth/csrf")).json()).csrfToken;
   await req.post("/api/auth/callback/credentials", {
     form: { csrfToken: csrf, email: TEACHER.email, password: TEACHER.password },
@@ -24,13 +24,14 @@ async function setupExam() {
   const { exam } = await res.json();
   const detail = await (await req.get(`/api/exams/${exam.id}`)).json();
   // student nộp bài
-  const req2 = await pwRequest.newContext({ baseURL: "https://edutest-vn.vercel.app" });
+  const req2 = await pwRequest.newContext({ baseURL: BASE_URL });
   const csrf2 = (await (await req2.get("/api/auth/csrf")).json()).csrfToken;
   await req2.post("/api/auth/callback/credentials", {
     form: { csrfToken: csrf2, email: "tester-hs-20260816@edutest.vn", password: "Test@12345" },
   });
   const qid = detail.exam.questions[0].id;
-  await req2.post("/api/submissions", { data: { examId: exam.id, answers: { [qid]: "B" }, durationSeconds: 60 } });
+  const attemptId = await startAttempt(req2, exam.id);
+  await req2.post("/api/submissions", { data: { examId: exam.id, attemptId, answers: { [qid]: "B" } } });
   await req.dispose();
   await req2.dispose();
   return exam;

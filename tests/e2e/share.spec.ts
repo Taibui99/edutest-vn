@@ -1,10 +1,10 @@
 import { test, expect, request as pwRequest } from "@playwright/test";
-import { TEACHER, login } from "./helpers";
+import { TEACHER, login, BASE_URL } from "./helpers";
 
 let CODE = "";
 
 test.beforeAll(async () => {
-  const req = await pwRequest.newContext({ baseURL: "https://edutest-vn.vercel.app" });
+  const req = await pwRequest.newContext({ baseURL: BASE_URL });
   const csrf = (await (await req.get("/api/auth/csrf")).json()).csrfToken;
   await req.post("/api/auth/callback/credentials", {
     form: { csrfToken: csrf, email: TEACHER.email, password: TEACHER.password },

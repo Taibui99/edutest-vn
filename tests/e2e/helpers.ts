@@ -1,6 +1,8 @@
-import { Page, expect } from "@playwright/test";
+import { Page, expect, type APIRequestContext } from "@playwright/test";
 
-export const BASE_URL = "https://edutest-vn.vercel.app";
+/** Chạy trên production mặc định; trỏ sang local bằng `PLAYWRIGHT_BASE_URL`.
+ *  (ROADMAP BRAND-6 sẽ đổi tên domain — khi đó chỉ cần sửa một chỗ này.) */
+export const BASE_URL = process.env.PLAYWRIGHT_BASE_URL || "https://edutest-vn.vercel.app";
 
 export const TEACHER = {
   email: "tester-gv-20260816@edutest.vn",
@@ -44,4 +46,19 @@ export async function expectVisible(page: Page, text: string | RegExp) {
 
 export function timestamp() {
   return Date.now();
+}
+
+/**
+ * GĐ1 — `POST /api/submissions` bắt buộc có `attemptId` (server tự chốt thời
+ * gian, không nhận `durationSeconds` từ client nữa). Gọi API này TRƯỚC khi nộp.
+ *
+ * Gọi nhiều lần vẫn chỉ trả về một lần làm bài đang mở; sau khi đã nộp xong,
+ * lần gọi kế tiếp sẽ mở lần làm bài mới (nếu đề còn lượt).
+ */
+export async function startAttempt(req: APIRequestContext, examId: string): Promise<string> {
+  const res = await req.post("/api/attempts", { data: { examId } });
+  expect(res.status(), await res.text()).toBe(201);
+  const data = await res.json();
+  expect(typeof data.id).toBe("string");
+  return data.id;
 }

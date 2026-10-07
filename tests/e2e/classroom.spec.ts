@@ -1,8 +1,8 @@
 import { test, expect, request as pwRequest } from "@playwright/test";
-import { TEACHER, STUDENT, login } from "./helpers";
+import { TEACHER, STUDENT, login, BASE_URL } from "./helpers";
 
 async function setupClassroom() {
-  const req = await pwRequest.newContext({ baseURL: "https://edutest-vn.vercel.app" });
+  const req = await pwRequest.newContext({ baseURL: BASE_URL });
   const csrf = (await (await req.get("/api/auth/csrf")).json()).csrfToken;
   await req.post("/api/auth/callback/credentials", {
     form: { csrfToken: csrf, email: TEACHER.email, password: TEACHER.password },
@@ -10,7 +10,7 @@ async function setupClassroom() {
   const res = await req.post("/api/classrooms", { data: { name: `QA-Lop-${Date.now()}` } });
   const classroom = (await res.json());
   // student join
-  const req2 = await pwRequest.newContext({ baseURL: "https://edutest-vn.vercel.app" });
+  const req2 = await pwRequest.newContext({ baseURL: BASE_URL });
   const csrf2 = (await (await req2.get("/api/auth/csrf")).json()).csrfToken;
   await req2.post("/api/auth/callback/credentials", {
     form: { csrfToken: csrf2, email: STUDENT.email, password: STUDENT.password },
