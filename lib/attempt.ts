@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import type { Submission } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
 /**
@@ -64,6 +65,11 @@ export function remainingSecondsOf(deadlineAt: Date, now: Date = new Date()): nu
   return Math.max(0, Math.floor((deadlineAt.getTime() - now.getTime()) / 1000));
 }
 
+/** Đã qua hạn chót (+ grace) chưa — attempt qua hạn mà chưa nộp coi như đã chốt. */
+export function isPastGrace(a: { deadlineAt: Date }, now: Date = new Date()): boolean {
+  return now.getTime() > a.deadlineAt.getTime() + ATTEMPT_GRACE_SECONDS * 1000;
+}
+
 type QuestionForShuffle = { id: string; type: string; options: string[] };
 
 function toSnapshot(a: {
@@ -113,10 +119,25 @@ export async function startAttempt(opts: {
   activeKey: string;
   questions: QuestionForShuffle[];
 }): Promise<{ status: "ok"; attempt: AttemptSnapshot } | { status: "active_elsewhere" } | { status: "max_attempts" }> {
-  const existing = await prisma.attempt.findUnique({ where: { activeKey: opts.activeKey }, select: { id: true, examId: true } });
-  if (existing && existing.examId !== opts.exam.id) return { status: "active_elsewhere" };
+  let existing = await prisma.attempt.findUnique({ where: { activeKey: opts.activeKey } });
 
-  if (!existing && opts.studentId) {
+  /* Attempt đang giữ activeKey nhưng thuộc MỘT BÀI KHÁC và đã quá hạn mà chưa
+   * ai nộp: nếu giữ nguyên thì người này kẹt vĩnh viễn ở màn "bạn đang làm bài
+   * thi khác" (không còn ai gọi được đường tự nộp để nhả khoá). Chốt nó đúng
+   * như đường tự nộp muộn ở `/api/submissions` — bài rỗng, 0 điểm, nhả khoá —
+   * rồi coi như không có attempt mở nào.
+   *
+   * CÙNG một đề thì KHÔNG chốt ở đây: trả attempt cũ cho client để client tự
+   * nộp khi đồng hồ về 0. Chốt tại đây sẽ cấp cho họ một đồng hồ mới → thi lại
+   * không mất lượt cho lần nào hết giờ. */
+  if (existing && existing.examId !== opts.exam.id && isPastGrace(existing)) {
+    await finalizeTimedOutAttempt(existing.id);
+    existing = null;
+  }
+
+  if (existing) {
+    if (existing.examId !== opts.exam.id) return { status: "active_elsewhere" };
+  } else if (opts.studentId) {
     const used = await prisma.submission.count({ where: { examId: opts.exam.id, studentId: opts.studentId } });
     if (used >= opts.exam.maxAttempts) return { status: "max_attempts" };
   }
@@ -198,4 +219,80 @@ export async function createOrResumeAttempt(opts: {
     }
     throw err;
   }
+}
+
+/**
+ * Chốt một lần làm bài đã quá hạn (deadline + grace) mà CHƯA ai nộp.
+ *
+ * Kết quả giống hệt việc học sinh bấm nộp khi đồng hồ đã về 0: bài rỗng, 0
+ * điểm, giải phóng `activeKey` (mở lại lượt và mở được đề khác), ghi mốc cho
+ * khách và báo giáo viên "hết giờ".
+ *
+ * Hai nơi gọi: đường tự nộp muộn ở `POST /api/submissions`, và `startAttempt`
+ * khi attempt cũ đang giữ `activeKey` của MỘT BÀI KHÁC. Idempotent — attempt
+ * không tồn tại hoặc đã nộp rồi thì trả `null`.
+ */
+export async function finalizeTimedOutAttempt(attemptId: string): Promise<Submission | null> {
+  const attempt = await prisma.attempt.findUnique({ where: { id: attemptId } });
+  if (!attempt || attempt.submittedAt) return null;
+
+  const now = new Date();
+  const exam = await prisma.exam.findUnique({
+    where: { id: attempt.examId },
+    include: { questions: { orderBy: { order: "asc" } } },
+  });
+  if (!exam) {
+    // Đề đã bị xoá thật (cascade sẽ xoá luôn attempt, đây chỉ là phòng hờ):
+    // vẫn nhả khoá để người này không kẹt, không tạo submission mồ côi.
+    await prisma.attempt.update({ where: { id: attempt.id }, data: { submittedAt: now, activeKey: null } });
+    return null;
+  }
+
+  const elapsed = Math.floor((now.getTime() - attempt.startedAt.getTime()) / 1000);
+  const allowed = exam.durationMinutes * 60 + ATTEMPT_GRACE_SECONDS;
+  const durationSeconds = Math.max(0, Math.min(elapsed, allowed));
+
+  let participantName = "Học sinh";
+  if (attempt.studentId) {
+    const u = await prisma.user.findUnique({ where: { id: attempt.studentId }, select: { name: true } });
+    participantName = u?.name || "Học sinh";
+  } else if (attempt.guestParticipantId) {
+    const g = await prisma.guestParticipant.findUnique({ where: { id: attempt.guestParticipantId }, select: { name: true } });
+    participantName = g?.name || "Học sinh";
+  }
+
+  const submission = await prisma.$transaction(async (tx) => {
+    const created = await tx.submission.create({
+      data: {
+        examId: exam.id,
+        studentId: attempt.studentId,
+        guestParticipantId: attempt.guestParticipantId,
+        attemptId: attempt.id,
+        answers: {},
+        score: 0,
+        correctCount: 0,
+        totalQuestions: exam.questions.length,
+        durationSeconds,
+      },
+    });
+    await tx.attempt.update({ where: { id: attempt.id }, data: { submittedAt: now, activeKey: null } });
+    if (attempt.guestParticipantId) {
+      await tx.guestParticipant.update({ where: { id: attempt.guestParticipantId }, data: { submittedAt: now } });
+    }
+    return created;
+  });
+
+  try {
+    await prisma.notification.create({
+      data: {
+        userId: exam.teacherId,
+        type: "exam_result",
+        title: "Học sinh hết giờ",
+        message: `${participantName} đã hết giờ "${exam.title}"`,
+        link: `/bang-dieu-khien/de-thi/${exam.id}`,
+      },
+    });
+  } catch { /* lỗi thông báo không được làm hỏng lần chốt */ }
+
+  return submission;
 }
