@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, CheckCircle2, Clock, Eye, Flag, Send, Trophy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
+import { MAX_VIOLATIONS, type ProctorEventType } from "@/lib/integrity";
 
 /* GĐ0: `answer` và `statements[].answer`/`acceptedAnswers` KHÔNG còn được gửi cho
    học sinh (xem `page.tsx`) — payload RSC đọc được bằng mắt thường nên không
@@ -81,7 +82,6 @@ export function ExamTakingClientV2({ exam, attempt, preview = false, backHref }:
   const [violations, setViolations] = useState(0);
   const [warnVisible, setWarnVisible] = useState(false);
   const [offline, setOffline] = useState(() => typeof navigator === "undefined" ? false : !navigator.onLine);
-  const MAX_VIOLATIONS = 3;
   const violationsRef = useRef(0);
 
   useEffect(() => {
@@ -277,27 +277,46 @@ export function ExamTakingClientV2({ exam, attempt, preview = false, backHref }:
 
   useEffect(() => {
     if (preview || result || submittedRef.current) return;
-    const flag = () => {
+    /* GĐ2 — mỗi lần rời tab đều báo cho server ghi vào nhật ký của lần làm bài,
+     * để giáo viên có timeline "vì sao bài này bị gắn cờ".
+     *
+     * Lần vi phạm CUỐI cùng phải CHỜ server ghi xong rồi mới nộp: nộp trước
+     * thì server đếm thiếu → không gán được `autoSubmitted` (server tự suy ra
+     * từ số sự kiện, không tin cờ do client gửi). Báo lỗi mạng vẫn nộp, không
+     * để mất bài chỉ vì đường ghi nhật ký. */
+    const flag = (type: ProctorEventType) => {
       if (submittedRef.current || result || violationsRef.current >= MAX_VIOLATIONS) return;
       violationsRef.current += 1;
       setViolations(violationsRef.current);
       setWarnVisible(true);
       window.setTimeout(() => setWarnVisible(false), 5000);
-      if (violationsRef.current >= MAX_VIOLATIONS) {
-        void submitExam(true);
-      }
+
+      const report = async () => {
+        if (!attempt?.id) return;
+        try {
+          await fetch("/api/proctor-events", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ attemptId: attempt.id, type }),
+          });
+        } catch {
+          /* mạng lỗi — bỏ qua, không để mất bài vì đường ghi nhật ký */
+        }
+      };
+
+      if (violationsRef.current >= MAX_VIOLATIONS) void report().then(() => submitExam(true));
     };
     const onVis = () => {
-      if (document.visibilityState === "hidden") flag();
+      if (document.visibilityState === "hidden") flag("visibility_hidden");
     };
-    const onBlur = () => flag();
+    const onBlur = () => flag("tab_blur");
     document.addEventListener("visibilitychange", onVis);
     window.addEventListener("blur", onBlur);
     return () => {
       document.removeEventListener("visibilitychange", onVis);
       window.removeEventListener("blur", onBlur);
     };
-  }, [preview, result, submitExam]);
+  }, [preview, result, submitExam, attempt?.id]);
 
   const leaveExam = () => router.push(backHref);
 

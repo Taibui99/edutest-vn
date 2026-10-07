@@ -182,6 +182,7 @@ model Attempt {
   activeKey     String?  @unique
 
   submission    Submission?
+  proctorEvents ProctorEvent[]
 
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -207,11 +208,43 @@ model Submission {
   correctCount       Int
   totalQuestions     Int
   durationSeconds    Int
+  /// GĐ2 — cờ rủi ro do `lib/integrity.ts` tính lúc nộp. Chỉ để giáo viên xem:
+  /// KHÔNG trừ điểm, KHÔNG từ chối nộp bài (ROADMAP — Chống gian lận).
+  violationCount Int     @default(0)
+  /// Thang 0–100, cộng dồn theo mức nghiêm trọng của từng sự kiện.
+  riskScore      Int     @default(0)
+  /// `none` | `low` | `medium` | `high`.
+  riskLevel      String  @default("none")
+  /// Bị nộp tự động vì đạt ngưỡng vi phạm — server tự suy ra từ `violationCount`.
+  autoSubmitted  Boolean @default(false)
+  /// SHA-256 của IP gộp muối — chỉ để gom cùng một người, không lưu IP thô.
+  ipHash         String?
   submittedAt        DateTime          @default(now())
   @@index([studentId])
   @@index([examId, studentId])
   @@index([examId])
   @@index([submittedAt])
+}
+
+/// GĐ2 — nhật ký vi phạm trong một lần làm bài.
+///
+/// Chỉ ghi log + gắn cờ cho giáo viên xem timeline: **không** tự 0 điểm,
+/// **không** từ chối nộp bài (ROADMAP — "Chống gian lận khi thi").
+model ProctorEvent {
+  id        String   @id @default(cuid())
+  attemptId String
+  attempt   Attempt  @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+
+  /// Tên sự kiện — phải nằm trong whitelist `ProctorEventType` của `lib/integrity.ts`.
+  type      String
+  /// `low` | `medium` | `high` — server tự suy ra từ `type`, không nhận từ client.
+  severity  String
+  /// Chi tiết phụ (vd: số lần, nhãn sự kiện) — không chứa dữ liệu nhạy cảm.
+  detail    String?
+  createdAt DateTime @default(now())
+
+  @@index([attemptId])
+  @@index([type])
 }
 
 model Notification {

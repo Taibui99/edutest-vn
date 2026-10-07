@@ -1,11 +1,12 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Download, ChevronDown, ChevronRight, Trophy, CheckCircle2, XCircle, MinusCircle } from "lucide-react";
+import { Download, ChevronDown, ChevronRight, Trophy, CheckCircle2, XCircle, MinusCircle, ShieldAlert } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Users } from "lucide-react";
 import { isQuestionCorrect, isAutoGraded, type AnswerValue } from "@/lib/grading";
+import { labelOf, MAX_VIOLATIONS } from "@/lib/integrity";
 
 export type SubRow = {
   id: string;
@@ -17,6 +18,13 @@ export type SubRow = {
   durationSeconds: number;
   submittedAt: string;
   answers: Record<string, AnswerValue>;
+  /* GĐ2 — cờ rủi ro do SERVER tính lúc chốt bài (`lib/integrity.ts`).
+   * Chỉ để giáo viên xem, không ảnh hưởng điểm. */
+  violationCount: number;
+  riskScore: number;
+  riskLevel: string;
+  autoSubmitted: boolean;
+  events: { id: string; type: string; severity: string; at: string }[];
 };
 
 export type SubQuestion = {
@@ -42,6 +50,39 @@ function scoreColor(score: number) {
   if (score >= 8) return { text: "var(--success)", bg: "var(--success-light)" };
   if (score >= 6.5) return { text: "var(--warning)", bg: "var(--warning-light)" };
   return { text: "var(--danger)", bg: "var(--danger-light)" };
+}
+
+const RISK_STYLES: Record<string, { text: string; bg: string; label: string }> = {
+  low: { text: "var(--blue)", bg: "var(--blue-light)", label: "Thấp" },
+  medium: { text: "var(--warning)", bg: "var(--warning-light)", label: "Vừa" },
+  high: { text: "var(--danger)", bg: "var(--danger-light)", label: "Cao" },
+};
+
+function riskStyle(level: string) {
+  return RISK_STYLES[level] ?? { text: "var(--text-muted)", bg: "var(--gray-100)", label: level };
+}
+
+const SEVERITY_DOT: Record<string, string> = {
+  low: "var(--blue)",
+  medium: "var(--warning)",
+  high: "var(--danger)",
+};
+
+/* Chồng cờ chỉ hiện khi THẬT SỰ có vi phạm — bài sạch không cần thêm chi tiết. */
+function RiskChip({ sub }: { sub: SubRow }) {
+  if (sub.riskLevel === "none") return null;
+  const r = riskStyle(sub.riskLevel);
+  return (
+    <span
+      className="inline-flex shrink-0 items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-black"
+      style={{ background: r.bg, color: r.text }}
+      title={sub.autoSubmitted ? "Đạt ngưỡng vi phạm nên hệ thống tự nộp bài" : "Có nhật ký vi phạm — giáo viên tự quyết định cách xử lý"}
+    >
+      <ShieldAlert size={10} />
+      {r.label} · {sub.riskScore}
+      {sub.autoSubmitted ? " · tự nộp" : ""}
+    </span>
+  );
 }
 
 function renderAnswer(q: SubQuestion, selected: AnswerValue | undefined) {
@@ -109,19 +150,23 @@ function formatDur(s: number) {
 
 export function SubmissionsPanel({ subs, questions }: { subs: SubRow[]; questions: SubQuestion[] }) {
   const [sort, setSort] = useState<SortKey>("latest");
+  // GĐ2 — lọc nhanh bài có cờ để giáo viên soi từng nhóm thay vì cuộn hết bảng.
+  const [riskFilter, setRiskFilter] = useState<"all" | "flagged">("all");
   const [expanded, setExpanded] = useState<string | null>(null);
 
+  const flaggedCount = useMemo(() => subs.filter((s) => s.riskLevel !== "none").length, [subs]);
+
   const sorted = useMemo(() => {
-    const arr = [...subs];
+    const arr = subs.filter((s) => riskFilter === "all" || s.riskLevel !== "none");
     if (sort === "scoreDesc") arr.sort((a, b) => b.score - a.score);
     else if (sort === "scoreAsc") arr.sort((a, b) => a.score - b.score);
     else if (sort === "fastest") arr.sort((a, b) => a.durationSeconds - b.durationSeconds);
     else arr.sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime());
     return arr;
-  }, [subs, sort]);
+  }, [subs, sort, riskFilter]);
 
   const exportCsv = () => {
-    const header = ["STT", "Tên", "Lớp", "Điểm", "Đúng", "Tổng câu", "Thời gian", "Ngày nộp"];
+    const header = ["STT", "Tên", "Lớp", "Điểm", "Đúng", "Tổng câu", "Thời gian", "Ngày nộp", "Cờ rủi ro", "Số lần vi phạm"];
     const rows = sorted.map((s, i) => [
       i + 1,
       s.studentName,
@@ -131,6 +176,8 @@ export function SubmissionsPanel({ subs, questions }: { subs: SubRow[]; question
       s.totalQuestions,
       formatDur(s.durationSeconds),
       new Date(s.submittedAt).toLocaleString("vi-VN"),
+      s.riskLevel === "none" ? "—" : `${riskStyle(s.riskLevel).label} (${s.riskScore})`,
+      s.violationCount,
     ]);
     const csv = [header, ...rows].map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\r\n");
     const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" });
@@ -160,8 +207,21 @@ export function SubmissionsPanel({ subs, questions }: { subs: SubRow[]; question
         <div className="flex items-center gap-2">
           <h2 className="text-sm font-black text-[var(--text-primary)]">Danh sách bài nộp</h2>
           <span className="text-xs text-[var(--text-muted)]">{subs.length} học sinh</span>
+          {flaggedCount > 0 && (
+            <span className="inline-flex items-center gap-1 rounded-md bg-[var(--warning-light)] px-1.5 py-0.5 text-[10px] font-black text-[var(--warning)]">
+              <ShieldAlert size={10} /> {flaggedCount} bài có cờ
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-2">
+          <select
+            value={riskFilter}
+            onChange={(e) => setRiskFilter(e.target.value as "all" | "flagged")}
+            className="rounded-lg border border-[var(--surface-border)] bg-[var(--surface-card)] px-2.5 py-1.5 text-xs font-semibold text-[var(--text-secondary)] focus:outline-none focus:border-[var(--primary)]"
+          >
+            <option value="all">Tất cả bài nộp</option>
+            <option value="flagged">Chỉ bài có cờ</option>
+          </select>
           <select
             value={sort}
             onChange={(e) => setSort(e.target.value as SortKey)}
@@ -179,6 +239,9 @@ export function SubmissionsPanel({ subs, questions }: { subs: SubRow[]; question
       </div>
 
       <div className="divide-y divide-[var(--surface-border)]">
+        {sorted.length === 0 && (
+          <p className="px-5 py-8 text-center text-xs text-[var(--text-muted)]">Không có bài nào khớp bộ lọc.</p>
+        )}
         {sorted.map((sub, i) => {
           const sc = scoreColor(sub.score);
           const open = expanded === sub.id;
@@ -200,6 +263,7 @@ export function SubmissionsPanel({ subs, questions }: { subs: SubRow[]; question
                   <p className="text-sm font-semibold text-[var(--text-primary)] truncate flex items-center gap-1.5">
                     {sub.studentName}
                     {sub.studentClass && <span className="text-[11px] font-medium text-[var(--text-muted)]">· {sub.studentClass}</span>}
+                    <RiskChip sub={sub} />
                   </p>
                   <p className="text-xs text-[var(--text-muted)]">
                     {sub.correctCount}/{sub.totalQuestions} đúng · {formatDur(sub.durationSeconds)} phút
@@ -218,6 +282,41 @@ export function SubmissionsPanel({ subs, questions }: { subs: SubRow[]; question
 
               {open && (
                 <div className="bg-[var(--gray-50)]/60 px-5 py-4 border-t border-[var(--surface-border)]">
+                  {/* GĐ2 — timeline vi phạm. CHỈ gợi ý cho giáo viên: không trừ
+                      điểm, không ràng buộc cách xử lý. */}
+                  <div className="mb-4">
+                    <p className="mb-2 flex flex-wrap items-center gap-1.5 text-xs font-black text-[var(--text-primary)]">
+                      <ShieldAlert size={13} className="text-[var(--warning)]" /> Nhật ký vi phạm
+                      <span className="font-semibold text-[var(--text-muted)]">
+                        · {sub.events.length} sự kiện · điểm rủi ro {sub.riskScore}/100
+                      </span>
+                    </p>
+                    {sub.events.length === 0 ? (
+                      <p className="text-xs text-[var(--text-muted)]">Không ghi nhận vi phạm nào trong lần làm bài này.</p>
+                    ) : (
+                      <ol className="flex flex-col gap-1.5">
+                        {sub.events.map((e) => (
+                          <li key={e.id} className="flex items-center gap-2 text-xs">
+                            <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: SEVERITY_DOT[e.severity] ?? "var(--gray-400)" }} />
+                            <span className="font-semibold text-[var(--text-secondary)]">{labelOf(e.type)}</span>
+                            <span className="text-[var(--text-muted)]">· mức {e.severity}</span>
+                            <span className="ml-auto shrink-0 tabular-nums text-[var(--text-muted)]">
+                              {new Date(e.at).toLocaleTimeString("vi-VN")}
+                            </span>
+                          </li>
+                        ))}
+                      </ol>
+                    )}
+                    {sub.autoSubmitted && (
+                      <p className="mt-2 rounded-lg bg-[var(--danger-light)] px-3 py-2 text-[11px] font-bold text-[var(--danger)]">
+                        Đạt ngưỡng {MAX_VIOLATIONS} lần vi phạm nên hệ thống đã tự nộp bài. Giáo viên tự quyết định cách xử lý.
+                      </p>
+                    )}
+                    <p className="mt-2 text-[11px] text-[var(--text-muted)]">
+                      Cờ này chỉ để tham khảo — điểm bài làm không bị thay đổi.
+                    </p>
+                  </div>
+
                   <p className="mb-3 flex items-center gap-1.5 text-xs font-black text-[var(--text-primary)]">
                     <Trophy size={13} className="text-[var(--warning)]" /> Chi tiết đáp án
                   </p>

@@ -30,6 +30,8 @@ export default async function ExamDetailPage({ params }: { params: Promise<{ id:
         include: {
           student: { select: { id: true, name: true, email: true, grade: true } },
           guestParticipant: { select: { name: true, className: true } },
+          // GĐ2 — nhật ký vi phạm để giáo viên xem timeline khi mở dòng bài nộp.
+          attempt: { include: { proctorEvents: { orderBy: { createdAt: "asc" } } } },
         },
         orderBy: { submittedAt: "desc" },
       },
@@ -67,6 +69,17 @@ export default async function ExamDetailPage({ params }: { params: Promise<{ id:
     durationSeconds: s.durationSeconds,
     submittedAt: s.submittedAt.toISOString(),
     answers: (s.answers as Record<string, AnswerValue>) || {},
+    // GĐ2 — cờ rủi ro server đã tính lúc chốt bài + timeline nhật ký vi phạm.
+    violationCount: s.violationCount,
+    riskScore: s.riskScore,
+    riskLevel: s.riskLevel,
+    autoSubmitted: s.autoSubmitted,
+    events: (s.attempt?.proctorEvents ?? []).map((e) => ({
+      id: e.id,
+      type: e.type,
+      severity: e.severity,
+      at: e.createdAt.toISOString(),
+    })),
   }));
 
   const serializedQuestions: SubQuestion[] = exam.questions.map((q) => ({

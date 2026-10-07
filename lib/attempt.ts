@@ -1,6 +1,8 @@
 import { createHash } from "node:crypto";
 import type { Submission } from "@prisma/client";
+import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
+import { computeRisk } from "@/lib/integrity";
 
 /**
  * GĐ1 — Toàn bộ "lần làm bài" do SERVER quyết định.
@@ -68,6 +70,35 @@ export function remainingSecondsOf(deadlineAt: Date, now: Date = new Date()): nu
 /** Đã qua hạn chót (+ grace) chưa — attempt qua hạn mà chưa nộp coi như đã chốt. */
 export function isPastGrace(a: { deadlineAt: Date }, now: Date = new Date()): boolean {
   return now.getTime() > a.deadlineAt.getTime() + ATTEMPT_GRACE_SECONDS * 1000;
+}
+
+/**
+ * GĐ2 — Băm IP để giáo viên gom các bài của cùng một người, KHÔNG lưu IP thô.
+ * Muối lấy từ `PROCTOR_IP_SALT` (đặt ở Vercel) để băm không đoán ngược được
+ * từ bảng hash. Cắt 16 ký tự đầu: chỉ cần gom nhóm, không cần chống va chạm.
+ */
+export function hashIp(ip: string): string {
+  const salt = process.env.PROCTOR_IP_SALT || "edutest-proctor-v1";
+  return createHash("sha256").update(`${ip}|${salt}`).digest("hex").slice(0, 16);
+}
+
+/** IP của request hiện tại (đọc `x-forwarded-for` như `clientIp`), đã băm.
+ *  Ngoài phạm vi request (script nền, test) thì trả `null`. */
+export async function currentIpHash(): Promise<string | null> {
+  try {
+    const h = await headers();
+    const raw = h.get("x-forwarded-for")?.split(",")[0]?.trim() || h.get("x-real-ip") || "";
+    return raw ? hashIp(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** GĐ2 — Đọc nhật ký vi phạm của lần làm bài và tính điểm rủi ro.
+ *  `lib/integrity.ts` thuần hàm (test được bằng script); hàm này chỉ lo đọc DB. */
+export async function riskOfAttempt(attemptId: string) {
+  const events = await prisma.proctorEvent.findMany({ where: { attemptId }, select: { type: true } });
+  return computeRisk(events);
 }
 
 type QuestionForShuffle = { id: string; type: string; options: string[] };
@@ -252,6 +283,11 @@ export async function finalizeTimedOutAttempt(attemptId: string): Promise<Submis
   const allowed = exam.durationMinutes * 60 + ATTEMPT_GRACE_SECONDS;
   const durationSeconds = Math.max(0, Math.min(elapsed, allowed));
 
+  // GĐ2 — chốt cùng lúc cờ rủi ro: bài hết giờ vẫn được ghi nhật ký để giáo
+  // viên thấy vì sao học sinh không kịp nộp.
+  const risk = await riskOfAttempt(attempt.id);
+  const ipHash = await currentIpHash();
+
   let participantName = "Học sinh";
   if (attempt.studentId) {
     const u = await prisma.user.findUnique({ where: { id: attempt.studentId }, select: { name: true } });
@@ -273,6 +309,11 @@ export async function finalizeTimedOutAttempt(attemptId: string): Promise<Submis
         correctCount: 0,
         totalQuestions: exam.questions.length,
         durationSeconds,
+        violationCount: risk.violationCount,
+        riskScore: risk.riskScore,
+        riskLevel: risk.riskLevel,
+        autoSubmitted: risk.autoSubmitted,
+        ipHash,
       },
     });
     await tx.attempt.update({ where: { id: attempt.id }, data: { submittedAt: now, activeKey: null } });

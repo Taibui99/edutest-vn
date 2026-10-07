@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { isQuestionCorrect, isAutoGraded, type AnswerValue } from "@/lib/grading";
-import { ATTEMPT_GRACE_SECONDS, finalizeTimedOutAttempt } from "@/lib/attempt";
+import { ATTEMPT_GRACE_SECONDS, finalizeTimedOutAttempt, riskOfAttempt, currentIpHash } from "@/lib/attempt";
 import { NextRequest, NextResponse } from "next/server";
 import { rateLimit, clientIp } from "@/lib/rate-limit";
 
@@ -86,13 +86,35 @@ export async function POST(request: NextRequest) {
 
   const durationSeconds = Math.max(0, elapsedSeconds);
 
+  /* GĐ2 — chốt cờ rủi ro cùng lúc với bài làm. Đọc nhật ký vi phạm đã ghi
+   * trong lúc thi rồi cộng điểm: chỉ để giáo viên xem, KHÔNG trừ điểm,
+   * KHÔNG làm mất bài làm (ROADMAP — "Chống gian lận khi thi"). */
+  const [risk, ipHash] = await Promise.all([riskOfAttempt(attempt.id), currentIpHash()]);
+
   const correctCount = exam.questions.reduce((count, question) => isQuestionCorrect(question, answers[question.id]) ? count + 1 : count, 0);
   const totalQuestions = exam.questions.length;
   const autoGradedCount = exam.questions.filter((q) => isAutoGraded(q)).length;
   const score = autoGradedCount > 0 ? Number(((correctCount / autoGradedCount) * 10).toFixed(2)) : 0;
 
   const submission = await prisma.$transaction(async (tx) => {
-    const created = await tx.submission.create({ data: { examId, studentId, guestParticipantId, attemptId, answers, correctCount, totalQuestions, score, durationSeconds } });
+    const created = await tx.submission.create({
+      data: {
+        examId,
+        studentId,
+        guestParticipantId,
+        attemptId,
+        answers,
+        correctCount,
+        totalQuestions,
+        score,
+        durationSeconds,
+        violationCount: risk.violationCount,
+        riskScore: risk.riskScore,
+        riskLevel: risk.riskLevel,
+        autoSubmitted: risk.autoSubmitted,
+        ipHash,
+      },
+    });
     // Đóng attempt: xoá `activeKey` (mở lại lượt mới) và ghi mốc đã nộp.
     await tx.attempt.update({ where: { id: attempt.id }, data: { submittedAt: now, activeKey: null } });
     if (guestParticipantId) await tx.guestParticipant.update({ where: { id: guestParticipantId }, data: { submittedAt: now } });
