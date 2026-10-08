@@ -658,6 +658,37 @@ html.a6-no-vt::view-transition-new(*) {
   animation: none;
 }
 
+/* ── Điều hướng cố định không trượt cùng nội dung (MOB-4) ────────────────
+   `MobileTopbar` (sticky) và `MobileBottomNav` (fixed) được đặt tên
+   `view-transition-name` riêng trong `mobile-nav.tsx`, nên trình duyệt
+   tách chúng khỏi ảnh chụp `root`. Giữ hai nhóm này đứng yên: chỉ nội dung
+   giữa chúng trượt, thanh trên/dưới không trượt ra/vào mỗi lần đổi màn hình.
+
+   Ảnh MỚI giữ nguyên độ mờ (đứng trên ảnh cũ vốn giống hệt), ảnh CŨ mờ dần:
+   khi cả hai trang đều có nav thì lớp mới phủ kín nên trông như đứng yên;
+   khi chỉ trang cũ có nav (rời khỏi khu điều khiển) thì nav mờ đi, không để
+   lại "bóng ma" đứng đè lên trang mới. */
+::view-transition-group(a6-topbar),
+::view-transition-new(a6-topbar),
+::view-transition-group(a6-bottomnav),
+::view-transition-new(a6-bottomnav) {
+  animation: none;
+}
+
+::view-transition-old(a6-topbar),
+::view-transition-old(a6-bottomnav) {
+  animation: a6-vt-nav-out var(--a6-slide-ms) var(--a6-slide-ease) forwards;
+}
+
+@keyframes a6-vt-nav-out {
+  to { opacity: 0; }
+}
+
+/* Mobile: quãng đường ngắn hơn + ảnh chụp nhỏ hơn nên trượt 600ms hơi ì. */
+@media (max-width: 1023px) {
+  :root { --a6-slide-ms: 420ms; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   /* Không có hiệu ứng chuyển cảnh nào cho người bật reduced-motion. */
   ::view-transition-group(*),

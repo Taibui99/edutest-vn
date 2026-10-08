@@ -1,21 +1,25 @@
 import { Spinner } from "@/app/components/spinner";
 
+/**
+ * MOB-4 — Skeleton tải cho trang chi tiết đề. Xem ghi chú ở
+ * `app/bang-dieu-khien/loading.tsx`: file này render bên trong layout khu điều
+ * khiển nên không được tự vẽ header/min-h-screen.
+ */
 export default function ExamDetailLoading() {
   return (
-    <div className="min-h-screen bg-[var(--surface-bg)]">
-      <header className="border-b border-[var(--primary-muted)] bg-white sticky top-0 z-10">
-        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          <div className="h-6 w-32 animate-pulse rounded bg-[var(--gray-200)]" />
-          <div className="h-4 w-28 animate-pulse rounded bg-[var(--gray-100)]" />
-        </div>
-      </header>
+    <div className="p-4 lg:p-8 max-w-5xl mx-auto">
+      <div className="mb-6 h-8 w-40 animate-pulse rounded bg-[var(--gray-200)]" />
 
-      <main className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-center gap-2 py-24 text-[var(--text-muted)]">
-          <Spinner className="h-5 w-5" />
-          <span className="text-sm">Đang tải đề thi...</span>
-        </div>
-      </main>
+      <div className="grid gap-4 sm:grid-cols-3">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="h-24 animate-pulse rounded-2xl bg-[var(--gray-100)]" />
+        ))}
+      </div>
+
+      <div className="mt-6 flex items-center justify-center gap-2 py-10 text-[var(--text-muted)]">
+        <Spinner className="h-5 w-5" />
+        <span className="text-sm">Đang tải đề thi...</span>
+      </div>
     </div>
   );
 }

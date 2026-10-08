@@ -30,7 +30,10 @@ const teacherMobileNav = [
 export function MobileTopbar({ user }: { user: { name: string; role: string; mode: string } }) {
   const mode = user.mode === "student" ? "student" : "teacher";
   return (
-    <header className="lg:hidden flex items-center justify-between px-4 h-14 bg-[var(--surface-sidebar)] border-b border-[var(--surface-border)] sticky top-0 z-40">
+    <header
+      className="lg:hidden flex items-center justify-between px-4 h-14 bg-[var(--surface-sidebar)] border-b border-[var(--surface-border)] sticky top-0 z-40"
+      style={{ viewTransitionName: "a6-topbar" }}
+    >
       <Logo size="sm" />
       <div className="flex items-center gap-2">
         <span className={cn(
@@ -56,6 +59,7 @@ export function MobileBottomNav({ user }: { user: { name: string; role: string; 
   return (
     <nav
       className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-[var(--surface-sidebar)] border-t border-[var(--surface-border)] flex items-stretch h-[60px]"
+      style={{ viewTransitionName: "a6-bottomnav" }}
       aria-label="Mobile navigation"
     >
       {nav.map((item) => {
