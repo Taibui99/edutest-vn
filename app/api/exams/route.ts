@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { isTeacherAccess } from "@/lib/access";
 import { getSetting } from "@/lib/settings";
+import { isProctorMode } from "@/lib/integrity";
 import { NextRequest, NextResponse } from "next/server";
 import { normalizeQuestions, validateQuestion } from "./exam-helpers";
 
@@ -50,6 +51,7 @@ export async function POST(request: NextRequest) {
   const maxAttempts = Math.max(1, Number(body.maxAttempts || 1));
   const showAnswers = body.showAnswers === undefined ? true : Boolean(body.showAnswers);
   const showScoreImmediately = body.showScoreImmediately === undefined ? true : Boolean(body.showScoreImmediately);
+  const proctorMode = body.proctorMode === undefined ? "off" : String(body.proctorMode);
   const openAt = body.openAt ? new Date(String(body.openAt)) : null;
   const closeAt = body.closeAt ? new Date(String(body.closeAt)) : null;
   const status = body.status === "draft" ? "draft" : "published";
@@ -59,6 +61,7 @@ export async function POST(request: NextRequest) {
   if (!subject) return NextResponse.json({ error: "Vui lòng chọn môn học" }, { status: 400 });
   if (!Number.isInteger(durationMinutes) || durationMinutes < 1) return NextResponse.json({ error: "Thời gian làm bài không hợp lệ" }, { status: 400 });
   if (!Number.isInteger(maxAttempts) || maxAttempts < 1) return NextResponse.json({ error: "Số lần làm tối đa không hợp lệ" }, { status: 400 });
+  if (!isProctorMode(proctorMode)) return NextResponse.json({ error: "Chế độ chống gian lận không hợp lệ" }, { status: 400 });
   if (questions.length === 0) return NextResponse.json({ error: "Đề thi cần có ít nhất 1 câu hỏi" }, { status: 400 });
 
   const invalid = questions.map(validateQuestion).find(Boolean);
@@ -78,6 +81,7 @@ export async function POST(request: NextRequest) {
       maxAttempts,
       showAnswers,
       showScoreImmediately,
+      proctorMode,
       status,
       openAt,
       closeAt,

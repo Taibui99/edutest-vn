@@ -30,6 +30,7 @@ export default async function TaoDeThiPage({ searchParams }: { searchParams: Pro
           maxAttempts: true,
           showAnswers: true,
           showScoreImmediately: true,
+          proctorMode: true,
           openAt: true,
           closeAt: true,
           status: true,

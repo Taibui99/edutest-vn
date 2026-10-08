@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import { cookies } from "next/headers";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { isProctorMode, type ProctorMode } from "@/lib/integrity";
 import { startAttempt, studentActiveKey, guestActiveKey } from "@/lib/attempt";
 import { Trophy, ArrowLeft, UserRound, Clock, MonitorX } from "lucide-react";
 
@@ -93,6 +94,10 @@ export default async function ThiPage({ params, searchParams }: { params: Promis
 
   if (!exam || exam.status !== "published" || exam.hidden || exam.deletedAt) return <div className="min-h-screen grid place-items-center bg-[var(--surface-bg)] p-4"><div className="rounded-2xl bg-white p-8 text-center"><h1 className="text-xl font-bold">Mã tham gia không hợp lệ</h1><Link href="/vao-thi" className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-[var(--primary)]"><ArrowLeft size={14}/> Nhập mã khác</Link></div></div>;
 
+  // GĐ3 — chế độ chống gian lận giáo viên chọn (mặc định "off"). Xem trước của
+  // giáo viên KHÔNG gắn rào (không truyền proctorMode xuống client).
+  const proctorMode: ProctorMode = isProctorMode(exam.proctorMode) ? exam.proctorMode : "off";
+
   const now = new Date();
   const notStarted = exam.openAt ? now < exam.openAt : false;
   const expired = exam.closeAt ? now > exam.closeAt : false;
@@ -133,7 +138,7 @@ export default async function ThiPage({ params, searchParams }: { params: Promis
     const started = await startAttempt({ exam, studentId: null, guestParticipantId: guest.id, activeKey: guestActiveKey(token), questions: exam.questions });
     // Khách không bị chặn theo số lượt nên chỉ có thể rơi vào "đang làm bài khác".
     if (started.status !== "ok") return <BusyElsewhere />;
-    return <ExamTakingClientV2 attempt={started.attempt} backHref="/vao-thi" exam={{ id: exam.id, title: exam.title, subject: exam.subject, durationMinutes: exam.durationMinutes, joinCode: exam.joinCode, isGuest: true, showScoreImmediately: exam.showScoreImmediately, participantName: guest.name, participantClass: guest.className, questions: mapQuestionsForStudent() }} />;
+    return <ExamTakingClientV2 attempt={started.attempt} backHref="/vao-thi" exam={{ id: exam.id, title: exam.title, subject: exam.subject, durationMinutes: exam.durationMinutes, joinCode: exam.joinCode, isGuest: true, proctorMode, showScoreImmediately: exam.showScoreImmediately, participantName: guest.name, participantClass: guest.className, questions: mapQuestionsForStudent() }} />;
   }
 
   if (preview === "1" && session.user.role === "teacher") return <ExamTakingClientV2 preview backHref={`/bang-dieu-khien/de-thi/${exam.id}`} exam={{ id: exam.id, title: exam.title, subject: exam.subject, durationMinutes: exam.durationMinutes, joinCode: exam.joinCode, isGuest: false, showScoreImmediately: exam.showScoreImmediately, questions: mapQuestionsForPreview() }} />;
@@ -147,5 +152,5 @@ export default async function ThiPage({ params, searchParams }: { params: Promis
     ]);
     return <div className="min-h-screen grid place-items-center bg-[var(--surface-bg)] p-4"><div className="rounded-2xl bg-white p-8 text-center"><Trophy className="mx-auto mb-4 text-[var(--success)]"/><p className="text-sm font-semibold">Bạn đã hết số lần làm bài</p>{latestSubmission && <p className="mt-2 text-3xl font-black text-[var(--success)]">{latestSubmission.score}/10</p>}<p className="mt-2 text-xs text-[var(--text-muted)]">Đã làm {attemptsUsed}/{exam.maxAttempts} lượt</p><Link href="/bang-dieu-khien" className="mt-5 inline-flex items-center gap-2 rounded-lg bg-[var(--primary)] px-5 py-2.5 text-sm font-semibold text-white"><ArrowLeft size={14}/> Về trang chủ</Link></div></div>;
   }
-  return <ExamTakingClientV2 attempt={started.attempt} backHref="/bang-dieu-khien/de-thi" exam={{ id: exam.id, title: exam.title, subject: exam.subject, durationMinutes: exam.durationMinutes, joinCode: exam.joinCode, isGuest: false, showScoreImmediately: exam.showScoreImmediately, questions: mapQuestionsForStudent() }} />;
+  return <ExamTakingClientV2 attempt={started.attempt} backHref="/bang-dieu-khien/de-thi" exam={{ id: exam.id, title: exam.title, subject: exam.subject, durationMinutes: exam.durationMinutes, joinCode: exam.joinCode, isGuest: false, proctorMode, showScoreImmediately: exam.showScoreImmediately, questions: mapQuestionsForStudent() }} />;
 }

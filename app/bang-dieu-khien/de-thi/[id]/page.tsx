@@ -5,9 +5,10 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import {
   ArrowLeft, Users, Clock, FileText,
-  CheckCircle2, XCircle, BarChart3, Share2, QrCode,
+  CheckCircle2, XCircle, BarChart3, Share2, QrCode, ShieldCheck,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
+import { proctorModeLabel } from "@/lib/integrity";
 import { ExamActions } from "./exam-actions";
 import { CopyJoinCode } from "./copy-join-code";
 import { getSubjectColor } from "@/lib/subject";
@@ -138,6 +139,7 @@ export default async function ExamDetailPage({ params }: { params: Promise<{ id:
             <span className="flex items-center gap-1.5"><FileText size={13} /> {exam.questions.length} câu hỏi</span>
             <span className="flex items-center gap-1.5"><Clock size={13} /> {exam.durationMinutes} phút</span>
             <span className="flex items-center gap-1.5"><Users size={13} /> {subs.length} bài nộp</span>
+            {exam.proctorMode !== "off" && <span className="flex items-center gap-1.5"><ShieldCheck size={13} /> Chống gian lận: {proctorModeLabel(exam.proctorMode)}</span>}
           </div>
         </div>
       </div>

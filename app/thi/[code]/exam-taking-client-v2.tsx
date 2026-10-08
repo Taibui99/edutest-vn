@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, CheckCircle2, Clock, Eye, Flag, Send, Trophy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
-import { MAX_VIOLATIONS, type ProctorEventType } from "@/lib/integrity";
+import { MAX_VIOLATIONS, resolveProctorMode, type ProctorEventType, type ProctorMode } from "@/lib/integrity";
 
 /* GĐ0: `answer` và `statements[].answer`/`acceptedAnswers` KHÔNG còn được gửi cho
    học sinh (xem `page.tsx`) — payload RSC đọc được bằng mắt thường nên không
@@ -31,6 +31,8 @@ type Exam = {
   participantName?: string;
   participantClass?: string;
   showScoreImmediately?: boolean;
+  // GĐ3 — chế độ giáo viên chọn: "off" | "light" | "strict" (mặc định "off").
+  proctorMode?: ProctorMode;
   questions: Question[];
 };
 
@@ -82,7 +84,10 @@ export function ExamTakingClientV2({ exam, attempt, preview = false, backHref }:
   const [violations, setViolations] = useState(0);
   const [warnVisible, setWarnVisible] = useState(false);
   const [offline, setOffline] = useState(() => typeof navigator === "undefined" ? false : !navigator.onLine);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [strictActive, setStrictActive] = useState(false);
   const violationsRef = useRef(0);
+  const multiTabRef = useRef(false);
 
   useEffect(() => {
     const goOffline = () => setOffline(true);
@@ -170,6 +175,34 @@ export function ExamTakingClientV2({ exam, attempt, preview = false, backHref }:
       setSubmitting(false);
     }
   }, [answers, attempt, answeredCount, clearDraft, exam.id, preview, result, router, showConfirm, submitting, totalQuestions]);
+
+  /* GĐ2/GĐ3 — báo MỘT sự kiện vi phạm cho server ghi vào nhật ký của lần làm bài.
+   * Mọi sự kiện đều được ghi để giáo viên có timeline đầy đủ. Riêng sự kiện chạm
+   * ngưỡng `MAX_VIOLATIONS` phải CHỜ server ghi xong rồi mới nộp — nộp trước thì
+   * server đếm thiếu → không gán được `autoSubmitted` (server tự suy ra, không tin
+   * cờ do client gửi). Lỗi mạng vẫn nộp, không để mất bài chỉ vì đường ghi nhật ký. */
+  const flag = useCallback((type: ProctorEventType) => {
+    if (submittedRef.current || result || violationsRef.current >= MAX_VIOLATIONS) return;
+    violationsRef.current += 1;
+    setViolations(violationsRef.current);
+    setWarnVisible(true);
+    window.setTimeout(() => setWarnVisible(false), 5000);
+
+    const report = async () => {
+      if (!attempt?.id) return;
+      try {
+        await fetch("/api/proctor-events", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ attemptId: attempt.id, type }),
+        });
+      } catch {
+        /* mạng lỗi — bỏ qua, không để mất bài vì đường ghi nhật ký */
+      }
+    };
+    if (violationsRef.current >= MAX_VIOLATIONS) void report().then(() => submitExam(true));
+    else void report();
+  }, [attempt, result, submitExam]);
 
   // Đồng hồ: chỉ đếm ngược. Việc tự nộp khi về 0 nằm ở effect riêng bên dưới,
   // không đặt trong hàm updater của setState (updater phải thuần, không side-effect).
@@ -275,37 +308,9 @@ export function ExamTakingClientV2({ exam, attempt, preview = false, backHref }:
     };
   }, [saveDraft, preview]);
 
+  /* GĐ2 — nền tảng luôn bật (mọi chế độ): rời cửa sổ / chuyển tab đều ghi nhật ký. */
   useEffect(() => {
     if (preview || result || submittedRef.current) return;
-    /* GĐ2 — mỗi lần rời tab đều báo cho server ghi vào nhật ký của lần làm bài,
-     * để giáo viên có timeline "vì sao bài này bị gắn cờ".
-     *
-     * Lần vi phạm CUỐI cùng phải CHỜ server ghi xong rồi mới nộp: nộp trước
-     * thì server đếm thiếu → không gán được `autoSubmitted` (server tự suy ra
-     * từ số sự kiện, không tin cờ do client gửi). Báo lỗi mạng vẫn nộp, không
-     * để mất bài chỉ vì đường ghi nhật ký. */
-    const flag = (type: ProctorEventType) => {
-      if (submittedRef.current || result || violationsRef.current >= MAX_VIOLATIONS) return;
-      violationsRef.current += 1;
-      setViolations(violationsRef.current);
-      setWarnVisible(true);
-      window.setTimeout(() => setWarnVisible(false), 5000);
-
-      const report = async () => {
-        if (!attempt?.id) return;
-        try {
-          await fetch("/api/proctor-events", {
-            method: "POST",
-            headers: { "content-type": "application/json" },
-            body: JSON.stringify({ attemptId: attempt.id, type }),
-          });
-        } catch {
-          /* mạng lỗi — bỏ qua, không để mất bài vì đường ghi nhật ký */
-        }
-      };
-
-      if (violationsRef.current >= MAX_VIOLATIONS) void report().then(() => submitExam(true));
-    };
     const onVis = () => {
       if (document.visibilityState === "hidden") flag("visibility_hidden");
     };
@@ -316,7 +321,130 @@ export function ExamTakingClientV2({ exam, attempt, preview = false, backHref }:
       document.removeEventListener("visibilitychange", onVis);
       window.removeEventListener("blur", onBlur);
     };
-  }, [preview, result, submitExam, attempt?.id]);
+  }, [preview, result, flag]);
+
+  /* GĐ3 — rào trình duyệt theo chế độ giáo viên chọn. `off` = không gắn gì
+   * (mặc định, giữ nguyên hành vi cũ); `light` = phát hiện + ghi nhật ký;
+   * `strict` = như light nhưng chặn cứng thao tác + bắt toàn màn hình. Thi trên
+   * điện thoại tự hạ `strict` → `light` (không có bàn phím/fullscreen hữu ích).
+   *
+   * TRUNG THỰC: rào này LUÔN bypass được (Ctrl+Shift+Esc, trình duyệt khác, VM,
+   * tắt JS) — chỉ có giá trị răn đe. GĐ0/GĐ1/GĐ2 mới thực sự chống gian lận vì
+   * server không còn phải "tin" học sinh. */
+  useEffect(() => {
+    if (preview || result || submittedRef.current) return;
+    const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) && navigator.maxTouchPoints > 0;
+    const requested = exam.proctorMode === "light" || exam.proctorMode === "strict" ? exam.proctorMode : "off";
+    const mode = resolveProctorMode(requested, { isMobile });
+    if (mode === "off") return;
+    const strict = mode === "strict";
+    setStrictActive(strict); // eslint-disable-line react-hooks/set-state-in-effect
+
+    const onCopy = (e: Event) => { flag("copy"); if (strict) e.preventDefault(); };
+    const onPaste = (e: Event) => { flag("paste"); if (strict) e.preventDefault(); };
+    const onContextMenu = (e: Event) => { flag("context_menu"); if (strict) e.preventDefault(); };
+    const onKeyDown = (e: KeyboardEvent) => {
+      const key = e.key.toUpperCase();
+      if (e.key === "PrintScreen") { flag("screenshot"); return; }
+      if (e.key === "F12") { flag("devtools_open"); if (strict) e.preventDefault(); return; }
+      if (e.ctrlKey && e.shiftKey && ["I", "J", "C"].includes(key)) { flag("devtools_open"); if (strict) e.preventDefault(); return; }
+      if (e.ctrlKey && !e.shiftKey && key === "U") { flag("view_source"); if (strict) e.preventDefault(); return; }
+      if (e.ctrlKey && !e.shiftKey && key === "P") { flag("print"); if (strict) e.preventDefault(); return; }
+    };
+
+    /* Toàn màn hình: trình duyệt bắt buộc phải có thao tác người dùng nên chỉ
+     * vào được ở lần chạm/phím đầu tiên. Thoát ra sau khi đã vào → ghi nhật ký. */
+    let hadFullscreen = false;
+    const onFullscreenChange = () => {
+      const active = !!document.fullscreenElement;
+      setIsFullscreen(active);
+      if (active) hadFullscreen = true;
+      else if (strict && hadFullscreen) flag("fullscreen_exit");
+    };
+    const enterFullscreen = () => {
+      if (!strict || document.fullscreenElement) return;
+      const p = document.documentElement.requestFullscreen?.();
+      if (p) void p.catch(() => {});
+    };
+
+    /* Cảnh báo trước khi rời trang khi bài chưa nộp (chống đóng nhầm tab). */
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (submittedRef.current || result) return;
+      e.preventDefault();
+      e.returnValue = "";
+    };
+
+    /* In ấn: Ctrl+P đã bắt ở keydown, còn `window.print()` gọi trực tiếp thì chặn ở đây. */
+    const originalPrint = window.print;
+    window.print = () => { flag("print"); originalPrint.call(window); };
+
+    /* Chia sẻ/ghi màn hình: bọc `getDisplayMedia` để biết học sinh vừa xin quyền. */
+    const mediaDevices = navigator.mediaDevices;
+    const originalGetDisplayMedia = mediaDevices?.getDisplayMedia?.bind(mediaDevices);
+    if (mediaDevices && originalGetDisplayMedia) {
+      try {
+        Object.defineProperty(mediaDevices, "getDisplayMedia", {
+          configurable: true,
+          writable: true,
+          value: async (...args: Parameters<MediaDevices["getDisplayMedia"]>) => { flag("screen_share"); return originalGetDisplayMedia(...args); },
+        });
+      } catch {
+        /* một số trình duyệt không cho ghi đè — bỏ qua */
+      }
+    }
+
+    /* Nhiều tab: BroadcastChannel cùng origin phát hiện tab thứ hai của cùng đề. */
+    let channel: BroadcastChannel | null = null;
+    if (typeof BroadcastChannel !== "undefined") {
+      const myId = Math.random().toString(36).slice(2);
+      try {
+        channel = new BroadcastChannel(`edutest-exam-${exam.id}`);
+        channel.onmessage = (ev) => {
+          const data = ev.data as { kind?: string; from?: string } | undefined;
+          if (!data || data.from === myId) return;
+          if (data.kind === "hello") {
+            if (!multiTabRef.current) { multiTabRef.current = true; flag("multi_tab"); }
+            try { channel?.postMessage({ kind: "ack", from: myId }); } catch { /* ignore */ }
+          } else if (data.kind === "ack" && !multiTabRef.current) {
+            multiTabRef.current = true;
+            flag("multi_tab");
+          }
+        };
+        try { channel.postMessage({ kind: "hello", from: myId }); } catch { /* ignore */ }
+      } catch {
+        /* BroadcastChannel không khả dụng — bỏ qua */
+      }
+    }
+
+    document.addEventListener("copy", onCopy);
+    document.addEventListener("paste", onPaste);
+    document.addEventListener("contextmenu", onContextMenu);
+    document.addEventListener("keydown", onKeyDown);
+    document.addEventListener("fullscreenchange", onFullscreenChange);
+    window.addEventListener("beforeunload", onBeforeUnload);
+    if (strict) {
+      window.addEventListener("pointerdown", enterFullscreen, { once: true });
+      window.addEventListener("keydown", enterFullscreen, { once: true });
+    }
+
+    return () => {
+      document.removeEventListener("copy", onCopy);
+      document.removeEventListener("paste", onPaste);
+      document.removeEventListener("contextmenu", onContextMenu);
+      document.removeEventListener("keydown", onKeyDown);
+      document.removeEventListener("fullscreenchange", onFullscreenChange);
+      window.removeEventListener("beforeunload", onBeforeUnload);
+      window.removeEventListener("pointerdown", enterFullscreen);
+      window.removeEventListener("keydown", enterFullscreen);
+      window.print = originalPrint;
+      if (mediaDevices && originalGetDisplayMedia) {
+        try {
+          Object.defineProperty(mediaDevices, "getDisplayMedia", { configurable: true, writable: true, value: originalGetDisplayMedia });
+        } catch { /* ignore */ }
+      }
+      try { channel?.close(); } catch { /* ignore */ }
+    };
+  }, [preview, result, exam.proctorMode, exam.id, flag]);
 
   const leaveExam = () => router.push(backHref);
 
@@ -391,6 +519,7 @@ export function ExamTakingClientV2({ exam, attempt, preview = false, backHref }:
         </div>
       )}
       {!preview && warnVisible && violations < MAX_VIOLATIONS && <div className="bg-[var(--warning-light)] border-b border-[var(--warning-border)] px-4 py-1.5 text-center text-[11px] font-bold text-[var(--warning)]">Bạn đã rời khỏi trang thi (lần {violations}). Vui lòng quay lại làm bài ngay!</div>}
+      {!preview && strictActive && !isFullscreen && <div className="bg-[var(--warning-light)] border-b border-[var(--warning-border)] px-4 py-2 text-center text-xs font-bold text-[var(--warning)]">Chế độ nghiêm: làm bài ở chế độ toàn màn hình. <button type="button" className="underline font-black" onClick={() => { const p = document.documentElement.requestFullscreen?.(); if (p) void p.catch(() => {}); }}>Bật toàn màn hình</button></div>}
       {!preview && restored && <div className="bg-[var(--primary-light)] border-b border-[var(--primary-muted)] px-4 py-2 text-center text-xs font-semibold text-[var(--primary)]">Đã khôi phục bài làm trước đó của bạn</div>}
       {offline && !preview && (
         <div role="status" className="bg-[var(--warning-light)] border-b border-[var(--warning-border)] px-4 py-2 text-center text-xs font-bold text-[var(--warning)]">

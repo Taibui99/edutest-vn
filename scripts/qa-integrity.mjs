@@ -1,6 +1,6 @@
 // Test thuần cho `lib/integrity.ts` (GĐ2) — không cần server, không cần DB.
 // Cách chạy: node scripts/qa-integrity.mjs
-import { computeRisk, severityOf, isProctorEventType, labelOf, MAX_VIOLATIONS } from "../lib/integrity.ts";
+import { computeRisk, severityOf, isProctorEventType, labelOf, MAX_VIOLATIONS, isProctorMode, resolveProctorMode, proctorModeLabel } from "../lib/integrity.ts";
 
 let failures = 0;
 function check(ok, label, extra = "") {
@@ -77,6 +77,30 @@ eq(computeRisk([{ type: "copy" }, { type: "copy" }]), { violationCount: 2, riskS
   eq(computeRisk([{ type: "tab_blur" }, { type: "context_menu" }]).riskLevel, "medium", "15+15 = 30 → medium");
   eq(computeRisk([{ type: "tab_blur" }]).riskLevel, "low", "15 → low");
 }
+
+// GĐ3 — sự kiện mới của rào trình duyệt
+eq(isProctorEventType("print"), true, "print nam trong whitelist GĐ3");
+eq(isProctorEventType("screen_share"), true, "screen_share nam trong whitelist GĐ3");
+eq(severityOf("print"), "high", "print = high (in de)");
+eq(severityOf("screen_share"), "high", "screen_share = high (ghi man hinh)");
+eq(severityOf("view_source"), "medium", "view_source = medium");
+eq(severityOf("screenshot"), "medium", "screenshot = medium");
+
+// GĐ3 — chế độ chống gian lận
+eq(isProctorMode("off"), true, "off la che do hop le");
+eq(isProctorMode("light"), true, "light la che do hop le");
+eq(isProctorMode("strict"), true, "strict la che do hop le");
+eq(isProctorMode("max"), false, "che do la bi tu choi");
+eq(resolveProctorMode("strict", { isMobile: false }), "strict", "may tinh: strict giu nguyen");
+eq(resolveProctorMode("strict", { isMobile: true }), "light", "dien thoai: strict ha xuong light");
+eq(resolveProctorMode("light", { isMobile: true }), "light", "dien thoai: light giu nguyen");
+eq(resolveProctorMode("off", { isMobile: true }), "off", "off luon la off");
+eq(proctorModeLabel("strict"), "Nghiêm", "co nhan tieng Viet cho strict");
+eq(proctorModeLabel("khong-hop-le"), "Tắt", "che do la → nhan mac dinh Tat");
+
+// print đẩy rủi ro lên nhanh: 1 lần print (high=30) đã là low, 2 lần = high
+eq(computeRisk([{ type: "print" }]).riskScore, 30, "1 lan print = 30");
+eq(computeRisk([{ type: "print" }, { type: "print" }]).riskLevel, "high", "2 lan print → high");
 
 console.log(failures === 0 ? "\nALL PASS" : `\n${failures} FAIL`);
 process.exit(failures === 0 ? 0 : 1);

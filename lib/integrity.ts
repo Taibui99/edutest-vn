@@ -1,5 +1,5 @@
 /**
- * GĐ2 — Tính mức rủi ro của một lần làm bài từ nhật ký vi phạm.
+ * GĐ2/GĐ3 — Tính mức rủi ro + chế độ chống gian lận khi thi.
  *
  * Nguyên tắc đã chốt (ROADMAP — "Chống gian lận khi thi"): chỉ **ghi log +
  * gắn cờ**, giáo viên xem timeline rồi tự quyết — **không** tự 0 điểm,
@@ -22,9 +22,49 @@ export const PROCTOR_EVENT_TYPES = [
   "paste",
   "context_menu",
   "devtools_open",
+  "view_source",
+  "print",
+  "screenshot",
+  "screen_share",
   "multi_tab",
   "fullscreen_exit",
 ] as const;
+
+/** Chế độ giáo viên chọn cho từng đề. `strict` tự hạ cấp thành `light` khi thi
+ *  trên điện thoại (không có bàn phím/F11 → bắt fullscreen là vô nghĩa). */
+export const PROCTOR_MODES = ["off", "light", "strict"] as const;
+export type ProctorMode = (typeof PROCTOR_MODES)[number];
+
+export function isProctorMode(value: string): value is ProctorMode {
+  return (PROCTOR_MODES as readonly string[]).includes(value);
+}
+
+/**
+ * Chế độ thực thi trên máy học sinh. Thuần hàm để test được.
+ * `off` giữ nguyên hành vi cũ; GĐ2 (tab_blur/visibility_hidden) luôn chạy bất kể
+ * chế độ vì đó là nền tảng đã chốt ở GĐ2.
+ */
+export function resolveProctorMode(mode: ProctorMode, opts: { isMobile: boolean }): ProctorMode {
+  if (mode === "strict" && opts.isMobile) return "light";
+  return mode;
+}
+
+/** Nhãn ngắn cho giáo viên (editor, thẻ đề, timeline). */
+export const PROCTOR_MODE_LABELS: Record<ProctorMode, string> = {
+  off: "Tắt",
+  light: "Nhẹ",
+  strict: "Nghiêm",
+};
+
+export const PROCTOR_MODE_DESCRIPTIONS: Record<ProctorMode, string> = {
+  off: "Chỉ ghi nhận khi học sinh rời tab (mặc định).",
+  light: "Chặn copy/paste/menu chuột phải, phím tắt DevTools, in ấn; phát hiện nhiều tab và chụp màn hình. Không bắt toàn màn hình.",
+  strict: "Như Nhẹ, thêm: bắt buộc toàn màn hình, chặn cứng các thao tác sao chép/in. Thi trên điện thoại tự hạ về mức Nhẹ.",
+}
+
+export function proctorModeLabel(mode: string): string {
+  return isProctorMode(mode) ? PROCTOR_MODE_LABELS[mode] : "Tắt";
+}
 
 export type ProctorEventType = (typeof PROCTOR_EVENT_TYPES)[number];
 
@@ -36,6 +76,10 @@ const SEVERITY_BY_TYPE: Record<string, Severity> = {
   paste: "high",
   context_menu: "medium",
   devtools_open: "high",
+  view_source: "medium",
+  print: "high",
+  screenshot: "medium",
+  screen_share: "high",
   multi_tab: "medium",
   fullscreen_exit: "medium",
 };
@@ -64,6 +108,10 @@ export const PROCTOR_EVENT_LABELS: Record<ProctorEventType, string> = {
   paste: "Dán nội dung",
   context_menu: "Mở menu chuột phải",
   devtools_open: "Mở công cụ nhà phát triển",
+  view_source: "Mở xem mã nguồn trang",
+  print: "In / lưu đề thi",
+  screenshot: "Nhấn phím chụp màn hình",
+  screen_share: "Chia sẻ / ghi màn hình",
   multi_tab: "Mở nhiều tab cùng lúc",
   fullscreen_exit: "Thoát chế độ toàn màn hình",
 };

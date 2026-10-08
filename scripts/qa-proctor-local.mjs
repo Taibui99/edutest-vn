@@ -19,6 +19,7 @@ for (const line of env.split(/\r?\n/)) {
 const prisma = new PrismaClient();
 
 const STUDENT = { email: "tester-hs-20260816@edutest.vn", password: "Test@12345" };
+const TEACHER = { email: "tester-gv-20260816@edutest.vn", password: "Test@12345" };
 const startedAt = new Date();
 
 let failures = 0;
@@ -44,7 +45,7 @@ class Jar {
   header() { return [...this.map].map(([k, v]) => `${k}=${v}`).join("; "); }
 }
 
-async function login() {
+async function login(user = STUDENT) {
   const jar = new Jar();
   const csrfRes = await fetch(`${BASE}/api/auth/csrf`, { headers: { cookie: jar.header() } });
   jar.absorb(csrfRes);
@@ -53,7 +54,7 @@ async function login() {
     method: "POST",
     redirect: "manual",
     headers: { "content-type": "application/x-www-form-urlencoded", cookie: jar.header() },
-    body: new URLSearchParams({ csrfToken, email: STUDENT.email, password: STUDENT.password, json: "true" }),
+    body: new URLSearchParams({ csrfToken, email: user.email, password: user.password, json: "true" }),
   });
   jar.absorb(res);
   return jar;
@@ -166,6 +167,82 @@ await post("/api/proctor-events", { attemptId: t4, type: "tab_blur" }, jar);
 eq(await prisma.proctorEvent.count({ where: { attemptId: t4 } }), 1, "co 1 su kien truoc khi xoa");
 await prisma.attempt.deleteMany({ where: { studentId } });
 eq(await prisma.proctorEvent.count({ where: { attemptId: t4 } }), 0, "xoa attempt cascade xoa ProctorEvent");
+
+/* ---------- 9. GĐ3 — loại sự kiện mới của rào trình duyệt ---------- */
+const t5 = await startAttempt();
+check(t5 != null, "tao duoc attempt cho su kien GD3", `id=${t5}`);
+for (const [type, sev] of [["print", "high"], ["screen_share", "high"], ["view_source", "medium"], ["screenshot", "medium"]]) {
+  const r = await post("/api/proctor-events", { attemptId: t5, type }, jar);
+  eq(r.status, 201, `ban su kien ${type} → 201`);
+  const row = await prisma.proctorEvent.findFirst({ where: { attemptId: t5, type } });
+  eq(row?.severity, sev, `severity ${type} do SERVER qui ra = ${sev}`);
+}
+
+/* ---------- 10. GĐ3 — chế độ chống gian lận trên Exam ---------- */
+const teacherJar = await login(TEACHER);
+const whoT = await fetch(`${BASE}/api/auth/session`, { headers: { cookie: teacherJar.header() } }).then((r) => r.json());
+check(["teacher", "admin"].includes(whoT?.user?.role), "dang nhap duoc tai khoan giao vien", whoT?.user?.role ?? "null");
+
+const gd3Question = { type: "mcq", question: "2 + 2 = ?", options: ["1", "2", "3", "4"], answer: "D" };
+const examPayload = (over = {}) => ({
+  title: `QA-GD3-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+  subject: "Toán",
+  durationMinutes: 5,
+  maxAttempts: 1,
+  allowGuestAttempts: false,
+  questions: [gd3Question],
+  ...over,
+});
+async function createExam(over) {
+  const r = await post("/api/exams", examPayload(over), teacherJar);
+  return r;
+}
+async function putExam(id, over) {
+  const res = await fetch(`${BASE}/api/exams/${id}`, {
+    method: "PUT",
+    headers: { "content-type": "application/json", cookie: teacherJar.header() },
+    body: JSON.stringify(examPayload(over)),
+  });
+  return { status: res.status, data: await res.json().catch(() => null) };
+}
+
+const cDefault = await createExam(undefined);
+eq(cDefault.status, 201, "tao de moi (khong truyen proctorMode) → 201");
+eq(cDefault.data?.exam?.proctorMode, "off", "mac dinh proctorMode = off");
+const examDefaultId = cDefault.data?.exam?.id;
+
+const cStrict = await createExam({ proctorMode: "strict" });
+eq(cStrict.status, 201, "tao de proctorMode=strict → 201");
+eq(cStrict.data?.exam?.proctorMode, "strict", "luu dung strict");
+const examStrictId = cStrict.data?.exam?.id;
+
+const gStrict = await fetch(`${BASE}/api/exams/${examStrictId}`, { headers: { cookie: teacherJar.header() } }).then((r) => r.json());
+eq(gStrict?.exam?.proctorMode, "strict", "GET chi tiet tra proctorMode=strict");
+
+const invalidCreate = await post("/api/exams", examPayload({ proctorMode: "maximum" }), teacherJar);
+eq(invalidCreate.status, 400, "proctorMode la khi tao → 400");
+
+const putOk = await fetch(`${BASE}/api/exams/${examStrictId}`, {
+  method: "PUT",
+  headers: { "content-type": "application/json", cookie: teacherJar.header() },
+  body: JSON.stringify(examPayload({ proctorMode: "light" })),
+});
+const putOkData = await putOk.json();
+eq(putOk.status, 200, "PUT doi proctorMode=light → 200");
+eq(putOkData?.exam?.proctorMode, "light", "PUT luu dung light");
+
+const putBad = await fetch(`${BASE}/api/exams/${examStrictId}`, {
+  method: "PUT",
+  headers: { "content-type": "application/json", cookie: teacherJar.header() },
+  body: JSON.stringify(examPayload({ proctorMode: "turbo" })),
+});
+eq(putBad.status, 400, "PUT proctorMode la → 400");
+
+for (const id of [examDefaultId, examStrictId]) {
+  if (!id) continue;
+  const d = await fetch(`${BASE}/api/exams/${id}`, { method: "DELETE", headers: { cookie: teacherJar.header() } });
+  check(d.status === 200, `xoa de test GD3 → 200`, `id=${id} status=${d.status}`);
+}
 
 /* ---------- Dọn ---------- */
 await prisma.submission.deleteMany({ where: { studentId, examId: exam.id } });

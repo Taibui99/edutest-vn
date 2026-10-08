@@ -12,6 +12,7 @@ import { DateField } from "@/components/ui/date-field";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/cn";
 import { SUBJECTS } from "@/lib/subject";
+import { PROCTOR_MODES, PROCTOR_MODE_DESCRIPTIONS, proctorModeLabel, type ProctorMode } from "@/lib/integrity";
 import { ImportExamModal } from "@/components/exams/import-exam-modal";
 
 type QuestionType = "mcq" | "true_false" | "short_answer" | "essay";
@@ -123,6 +124,7 @@ export interface InitialExam {
   maxAttempts: number;
   showAnswers: boolean;
   showScoreImmediately: boolean;
+  proctorMode: string;
   openAt: string | null;
   closeAt: string | null;
   status: string;
@@ -141,6 +143,10 @@ export function TaoDeThiEditor({ editId, initialExam }: { editId: string | null;
   const [maxAttempts, setMaxAttempts] = useState(initialExam?.maxAttempts ?? 1);
   const [showAnswers, setShowAnswers] = useState(initialExam?.showAnswers ?? true);
   const [showScore, setShowScore] = useState(initialExam?.showScoreImmediately ?? true);
+  const [proctorMode, setProctorMode] = useState<ProctorMode>(() => {
+    const m = initialExam?.proctorMode ?? "";
+    return (PROCTOR_MODES as readonly string[]).includes(m) ? (m as ProctorMode) : "off";
+  });
   const toInput = (iso: string | null) => (iso ? iso.slice(0, 16) : "");
   const [openAt, setOpenAt] = useState(toInput(initialExam?.openAt ?? null));
   const [closeAt, setCloseAt] = useState(toInput(initialExam?.closeAt ?? null));
@@ -178,7 +184,7 @@ export function TaoDeThiEditor({ editId, initialExam }: { editId: string | null;
     if (!stats.valid) { setError("Hãy hoàn thiện tên đề, môn học và các câu hỏi trước khi lưu."); return; }
     setPublishing(true);
     const status = requestedStatus ?? currentStatus;
-    const payload = { title: title.trim(), subject, description: description.trim() || undefined, durationMinutes: Number(duration), shuffleQuestions, shuffleAnswers, allowGuestAttempts: allowGuest, maxAttempts, showAnswers, showScoreImmediately: showScore, openAt: openAt ? new Date(openAt).toISOString() : null, closeAt: closeAt ? new Date(closeAt).toISOString() : null, status, questions };
+    const payload = { title: title.trim(), subject, description: description.trim() || undefined, durationMinutes: Number(duration), shuffleQuestions, shuffleAnswers, allowGuestAttempts: allowGuest, maxAttempts, showAnswers, showScoreImmediately: showScore, proctorMode, openAt: openAt ? new Date(openAt).toISOString() : null, closeAt: closeAt ? new Date(closeAt).toISOString() : null, status, questions };
     try {
       const res = editId
         ? await fetch(`/api/exams/${editId}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) })
@@ -239,7 +245,7 @@ export function TaoDeThiEditor({ editId, initialExam }: { editId: string | null;
 
 <aside className="flex flex-col gap-5 xl:sticky xl:top-5 xl:self-start">
             <div className="rounded-2xl border border-[var(--surface-border)] bg-[var(--surface-card)] p-5 shadow-sm"><h3 className="mb-4 text-sm font-black">Thông tin đề</h3><div className="flex flex-col gap-4"><Input label="Tên đề thi" value={title} onChange={(e)=>setTitle(e.target.value)} placeholder="VD: Kiểm tra chương 1"/><Select label="Môn học" value={subject} onChange={(e)=>setSubject(e.target.value)} options={SUBJECTS.map((s)=>({value:s,label:s}))} placeholder="Chọn môn học"/><Input label="Mô tả / hướng dẫn" value={description} onChange={(e)=>setDescription(e.target.value)} placeholder="Hướng dẫn ngắn cho học sinh"/><Select label="Thời gian" value={duration} onChange={(e)=>setDuration(e.target.value)} options={DURATION_OPTIONS}/><NumberInput label="Số lần làm tối đa" value={maxAttempts} onChange={setMaxAttempts} min={1} max={20} hint="Học sinh có thể làm lại tối đa số lần này"/></div><div className="mt-4 border-t pt-4 flex flex-col gap-3"><p className="text-xs font-bold text-[var(--text-secondary)]">Lịch mở / đóng đề (bỏ trống = luôn mở)</p><DateField label="Mở đề" value={openAt} onChange={(e)=>setOpenAt(e.target.value)}/><DateField label="Đóng đề" value={closeAt} onChange={(e)=>setCloseAt(e.target.value)}/></div></div>
-            <div className="rounded-2xl border border-[var(--surface-border)] bg-[var(--surface-card)] p-5 shadow-sm"><h3 className="mb-4 text-sm font-black">Cấu hình bài thi</h3><div className="flex flex-col gap-3 text-sm">{[{ value: shuffleQuestions, label: "Trộn câu hỏi", setter: setShuffleQuestions },{ value: shuffleAnswers, label: "Trộn đáp án", setter: setShuffleAnswers },{ value: allowGuest, label: "Cho phép khách làm bài", setter: setAllowGuest },{ value: showAnswers, label: "Cho xem đáp án sau khi nộp", setter: setShowAnswers },{ value: showScore, label: "Hiển thị điểm ngay sau khi nộp", setter: setShowScore }].map((c) => <div key={c.label} className="flex items-center justify-between gap-3"><span className="text-[var(--text-secondary)]">{c.label}</span><Checkbox checked={c.value} onChange={c.setter}/></div>)}</div><div className="mt-4 border-t pt-4 text-xs text-[var(--text-muted)]"><div className="flex justify-between py-1"><span>Số câu</span><strong>{stats.total}</strong></div><div className="flex justify-between py-1"><span>Lỗi cần sửa</span><strong className={stats.errors?"text-[var(--danger)]":"text-[var(--success)]"}>{stats.errors}</strong></div></div></div>
+            <div className="rounded-2xl border border-[var(--surface-border)] bg-[var(--surface-card)] p-5 shadow-sm"><h3 className="mb-4 text-sm font-black">Cấu hình bài thi</h3><div className="mb-4"><Select label="Chống gian lận khi thi" value={proctorMode} onChange={(e)=>setProctorMode(e.target.value as typeof proctorMode)} options={PROCTOR_MODES.map((m)=>({value:m,label:proctorModeLabel(m)}))}/><p className="mt-2 text-xs text-[var(--text-muted)]">{PROCTOR_MODE_DESCRIPTIONS[proctorMode]}</p></div><div className="flex flex-col gap-3 text-sm">{[{ value: shuffleQuestions, label: "Trộn câu hỏi", setter: setShuffleQuestions },{ value: shuffleAnswers, label: "Trộn đáp án", setter: setShuffleAnswers },{ value: allowGuest, label: "Cho phép khách làm bài", setter: setAllowGuest },{ value: showAnswers, label: "Cho xem đáp án sau khi nộp", setter: setShowAnswers },{ value: showScore, label: "Hiển thị điểm ngay sau khi nộp", setter: setShowScore }].map((c) => <div key={c.label} className="flex items-center justify-between gap-3"><span className="text-[var(--text-secondary)]">{c.label}</span><Checkbox checked={c.value} onChange={c.setter}/></div>)}</div><div className="mt-4 border-t pt-4 text-xs text-[var(--text-muted)]"><div className="flex justify-between py-1"><span>Số câu</span><strong>{stats.total}</strong></div><div className="flex justify-between py-1"><span>Lỗi cần sửa</span><strong className={stats.errors?"text-[var(--danger)]":"text-[var(--success)]"}>{stats.errors}</strong></div></div></div>
           </aside>
         </div>
       </div>

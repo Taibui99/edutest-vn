@@ -95,6 +95,7 @@ model Exam {
   maxAttempts        Int       @default(1)
   showAnswers        Boolean   @default(true)
   showScoreImmediately Boolean @default(true)
+  proctorMode        String    @default("off")
   openAt             DateTime?
   closeAt            DateTime?
   hidden             Boolean   @default(false)
