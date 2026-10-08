@@ -29,7 +29,7 @@
 - [x] **P2-2 Streak tracking** — cập nhật `streak` + `lastStudyDate` khi hoạt động (commit `dba6760`)
 - [x] **P2-3 Notification đề mới** — khi teacher tạo/giao đề (commit `dba6760`)
 - [x] **P2-4 Schedule exam** — thời gian mở/đóng tự động (commit `dba6760`; editor "Lịch mở / đóng đề" verified live)
-- [x] **P2-5 Anti-cheat** — tab detection, fullscreen (commit `dba6760`; 3 vi phạm → cảnh báo + auto-submit verified live)
+- [x] **P2-5 Anti-cheat** — tab detection (commit `dba6760`; 3 vi phạm → cảnh báo + auto-submit verified live). Fullscreen/bắt buộc toàn màn hình + khoá phím tắt/in nay đã có thật ở **GĐ3** (`e2d03b8`).
 - [x] **P2-6 Forgot password** — quên/đặt lại mật khẩu (commit `dba6760`)
 - [x] **P2-7 Flashcard deck / bộ thẻ** (commit `dba6760` verified live)
 - [x] **P2-8 Admin Dashboard** — counts (users/teachers/students/exams/submissions) + chart tăng trưởng (commits `dba6760`, `e2fcf4b` — thêm aiByStatus/aiErrors/reportsByStatus/topExams/subjects + `/admin/analytics`)
@@ -202,14 +202,16 @@ Tất cả L1–L4 trong commit `6e0ad48` — verified live: robots.txt/sitemap.
   - **Production probe 30/30 PASS** (tự tạo đề test rồi xoá, không đụng đề có sẵn): 2 sự kiện → nộp → payload trả đủ 5 cột mới (chứng minh `db push` đã chạy trong build Vercel) · type lạ → 400 · thiếu `attemptId` → 400 · không phiên → 403 · sau khi nộp → 409 · 3 sự kiện → `autoSubmitted=true` + `riskLevel=high` · bài sạch → `none/0` · xoá đề → attempt 404.
   - **Production QA: 172/172 passed / 19 files (36.9 phút)**.
   - **Giới hạn đã chủ động chấp nhận**: `PROCTOR_IP_SALT` chưa đặt trên Vercel → đang dùng muối mặc định `edutest-proctor-v1` (đổi muối sẽ làm mọi `ipHash` cũ vô nghĩa); bảng vẫn còn tăng dần theo số lần thi (chưa dọn theo tuổi).
-- [ ] **GĐ3 Rào trình duyệt (P1)** — `Exam.proctorMode: "off" | "light" | "strict"` (mặc định `off` để không phá đề cũ). Chặn copy/paste/contextmenu, F12/Ctrl+Shift+I/Ctrl+P/Ctrl+U/PrintScreen, bắt buộc fullscreen (`fullscreenchange`), `beforeunload`, `BroadcastChannel` phát hiện nhiều tab, phát hiện `getDisplayMedia` + `window.print`. Tự hạ cấp strict→light khi thi trên điện thoại, có ghi chú cho học sinh.
+- [x] **GĐ3 Rào trình duyệt (P1)** (`e2d03b8`, verified live) — `Exam.proctorMode: "off" | "light" | "strict"` (mặc định `off` để không phá đề cũ), validate ở `POST`/`PUT /api/exams` (400 nếu sai). Client gắn rào theo chế độ: chặn copy/paste/contextmenu, F12/Ctrl+Shift+I·J·C/Ctrl+P/Ctrl+U/PrintScreen, bắt buộc fullscreen (`fullscreenchange` + banner, strict, không áp trên mobile), `beforeunload`, `BroadcastChannel` phát hiện nhiều tab, bọc `window.print` + `getDisplayMedia`. `resolveProctorMode()` tự hạ strict→light khi mobile. **Mọi sự kiện do SERVER quy `severity` + cộng `riskScore`** (thêm 4 type mới: `print`/`screen_share` = high, `view_source`/`screenshot` = medium). `flag()` nay ghi **mọi** sự kiện lên server (trước chỉ ghi sự kiện thứ 3 → timeline thiếu). UI: Select chế độ ở editor + badge "Chống gian lận" ở trang đề. Ghi chú trung thực trong code: GĐ3 **luôn bypass được**.
+  - **Local gate**: `tsc` 0 lỗi, `eslint` 0 lỗi, `next build` OK; `qa-integrity` ALL PASS; `qa-proctor-local` **ALL PASS** (54 check — thêm login giáo viên + test proctorMode create/GET/PUT/400/xoá + 4 event type mới).
+  - **Production QA: `qa-proctor-prod` ALL PASS** (GĐ2 cũ + 11 check GD3) **+ full E2E 172/172 passed (34.5 phút)**.
 - [ ] **GĐ4 Bẫu đánh giá độ tin cậy (P2)** — vài câu nhận dạng tự động chèn, kết hợp điểm + vi phạm → gợi ý mức độ đáng ngờ. Không tính vào điểm.
 
 ### Trung thực về giới hạn
 GĐ3 **luôn bypass được** (trình duyệt khác, VM, điện thoại). Chỉ **GĐ0 + GĐ1 + GĐ2** mới thực sự có tác dụng vì server không còn phải "tin" học sinh.
 
 ### Việc chưa làm (đã rà, cần xử lý)
-- `ROADMAP.md` mục P2-5 ghi "Anti-cheat — tab detection, **fullscreen**" nhưng **fullscreen chưa hề được implement** → sửa lại mô tả cho đúng.
+- ~~`ROADMAP.md` mục P2-5 ghi "Anti-cheat — tab detection, **fullscreen**" nhưng fullscreen chưa được implement~~ → **đã xử lý ở GĐ3** (`e2d03b8`): fullscreen + chặn phím đã có thật.
 - Chưa có **Playwright** test nào cho auto-submit khi đạt ngưỡng vi phạm, server-side rejection, hay kiểm tra thời gian thi. `tests/e2e/student-take-exam.spec.ts:70-76` chỉ phủ 1 trường hợp blur lần 1. Hai đường này hiện do script trong `scripts/` phủ: `qa-integrity.mjs` (tính điểm, thuần), `qa-proctor-local.mjs` (API + DB local, cần server :3113), `qa-proctor-prod.mjs` (tự tạo đề test trên production rồi xoá) — chưa đưa vào suite CI.
 
 ## 🎓 Đổi thương hiệu → A6Class Education (đã chốt hướng 2026-10-04)
