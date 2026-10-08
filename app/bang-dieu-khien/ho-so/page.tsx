@@ -163,7 +163,7 @@ export default function ProfilePage() {
               className="w-16 h-16 rounded-2xl object-cover border border-[var(--surface-border)]"
             />
           ) : (
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[var(--primary)] to-[var(--coral)] flex items-center justify-center text-white text-2xl font-black">
+            <div className="w-16 h-16 rounded-2xl bg-[var(--gray-100)] border border-[var(--surface-border)] flex items-center justify-center text-[var(--text-secondary)] text-2xl font-black">
               {profile.name.charAt(0).toUpperCase()}
             </div>
           )}
