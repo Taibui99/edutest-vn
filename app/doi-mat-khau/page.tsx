@@ -5,7 +5,7 @@ import { AuthCard } from "@/app/components/auth-card";
 import { ResetPasswordForm } from "./reset-form";
 
 export const metadata: Metadata = {
-  title: "Đặt lại mật khẩu — EduTest",
+  title: "Đặt lại mật khẩu — A6Class Edu",
 };
 
 export default async function DoiMatKhauPage({

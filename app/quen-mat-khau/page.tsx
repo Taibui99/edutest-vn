@@ -66,7 +66,7 @@ export default function QuenMatKhauPage() {
               <AlertTriangle size={24} className="text-[var(--warning)]" />
             </div>
             <p className="text-sm text-[var(--text-secondary)]">
-              Email này chưa được đăng ký. Vui lòng tạo tài khoản mới để sử dụng EduTest.
+              Email này chưa được đăng ký. Vui lòng tạo tài khoản mới để sử dụng A6Class Edu.
             </p>
             <Link
               href="/dang-ky"

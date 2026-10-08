@@ -28,7 +28,7 @@ export function MaintenanceGate({
       </div>
       <h1 className="text-2xl font-black text-[var(--text-primary)] mb-2">Website đang bảo trì</h1>
       <p className="text-sm text-[var(--text-muted)] max-w-md">
-        EduTest đang được nâng cấp và bảo trì. Vui lòng quay lại sau ít phút nữa.
+        A6Class Edu đang được nâng cấp và bảo trì. Vui lòng quay lại sau ít phút nữa.
         Cảm ơn bạn đã kiên nhẫn!
       </p>
     </main>

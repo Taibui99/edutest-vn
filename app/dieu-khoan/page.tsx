@@ -3,15 +3,15 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Điều khoản sử dụng — EduTest",
-  description: "Điều khoản sử dụng nền tảng EduTest",
+  title: "Điều khoản sử dụng — A6Class Edu",
+  description: "Điều khoản sử dụng nền tảng A6Class Edu",
 };
 
 const SECTIONS: { title: string; items: string[] }[] = [
   {
     title: "1. Chấp nhận điều khoản",
     items: [
-      "Khi truy cập và sử dụng EduTest, bạn đồng ý tuân theo các điều khoản này. Nếu bạn không đồng ý, vui lòng ngừng sử dụng nền tảng.",
+      "Khi truy cập và sử dụng A6Class Edu, bạn đồng ý tuân theo các điều khoản này. Nếu bạn không đồng ý, vui lòng ngừng sử dụng nền tảng.",
       "Giáo viên và học sinh cần có sự đồng ý của phụ huynh/người giám hộ nếu chưa đủ 14 tuổi theo quy định pháp luật Việt Nam.",
     ],
   },
@@ -20,7 +20,7 @@ const SECTIONS: { title: string; items: string[] }[] = [
     items: [
       "Bạn chịu trách nhiệm bảo mật thông tin đăng nhập của mình. Mọi hoạt động diễn ra trên tài khoản được coi là do bạn thực hiện.",
       "Không mượn, cho mượn hoặc chia sẻ tài khoản cho người khác.",
-      "Cung cấp thông tin chính xác khi đăng ký. EduTest có thể tạm khóa tài khoản có dấu hiệu gian lận, spam hoặc vi phạm điều khoản.",
+      "Cung cấp thông tin chính xác khi đăng ký. A6Class Edu có thể tạm khóa tài khoản có dấu hiệu gian lận, spam hoặc vi phạm điều khoản.",
     ],
   },
   {
@@ -35,20 +35,20 @@ const SECTIONS: { title: string; items: string[] }[] = [
     title: "4. Nội dung của giáo viên",
     items: [
       "Giáo viên sở hữu nội dung đề thi mình tạo và chịu trách nhiệm về tính chính xác, hợp pháp của nội dung đó.",
-      "EduTest có quyền ẩn hoặc gỡ bỏ đề thi vi phạm khi phát hiện hoặc nhận báo cáo.",
+      "A6Class Edu có quyền ẩn hoặc gỡ bỏ đề thi vi phạm khi phát hiện hoặc nhận báo cáo.",
     ],
   },
   {
     title: "5. Dịch vụ và thay đổi",
     items: [
-      "EduTest được cung cấp theo trạng thái hiện có. Chúng tôi cố gắng giữ dịch vụ ổn định nhưng không đảm bảo không xảy ra gián đoạn.",
+      "A6Class Edu được cung cấp theo trạng thái hiện có. Chúng tôi cố gắng giữ dịch vụ ổn định nhưng không đảm bảo không xảy ra gián đoạn.",
       "Chúng tôi có thể cập nhật điều khoản này; thay đổi quan trọng sẽ được thông báo trên nền tảng.",
     ],
   },
   {
     title: "6. Liên hệ",
     items: [
-      "Mọi thắc mắc về điều khoản sử dụng, vui lòng liên hệ qua kênh hỗ trợ của EduTest.",
+      "Mọi thắc mắc về điều khoản sử dụng, vui lòng liên hệ qua kênh hỗ trợ của A6Class Edu.",
     ],
   },
 ];

@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: `Bạn đã hết số lần làm bài (${exam.maxAttempts} lần)`, submission: latest }, { status: 409 });
     }
   } else {
-    if (!exam.allowGuestAttempts) return NextResponse.json({ error: "Đề thi này yêu cầu đăng nhập tài khoản EduTest" }, { status: 401 });
+    if (!exam.allowGuestAttempts) return NextResponse.json({ error: "Đề thi này yêu cầu đăng nhập tài khoản A6Class Edu" }, { status: 401 });
     const token = (await cookies()).get(`edutest_guest_${exam.id}`)?.value;
     if (!token) return NextResponse.json({ error: "Phiên khách không hợp lệ hoặc đã hết hạn" }, { status: 401 });
     const guest = await prisma.guestParticipant.findFirst({ where: { examId, tokenHash: hashToken(token) }, select: { id: true, name: true, submittedAt: true } });

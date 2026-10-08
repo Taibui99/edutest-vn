@@ -8,7 +8,7 @@ import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { StudentListClient } from "./student-list-client";
 
-export const metadata: Metadata = { title: "Học sinh — EduTest" };
+export const metadata: Metadata = { title: "Học sinh — A6Class Edu" };
 
 export default async function StudentsPage() {
   const session = await auth();

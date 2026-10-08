@@ -96,7 +96,7 @@ function mergeGenerated(chunks: GeneratedPayload[]): GeneratedPayload {
   return { title, questions };
 }
 
-const extractionPrompt = `Bạn là bộ máy nhập đề thi của EduTest.
+const extractionPrompt = `Bạn là bộ máy nhập đề thi của A6Class Edu.
 Trích xuất CÁC CÂU HỎI ĐÃ CÓ SẴN trong tài liệu và tự nhận diện loại câu hỏi.
 
 Loại hợp lệ: mcq, true_false, short_answer, essay.

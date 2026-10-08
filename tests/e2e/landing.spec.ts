@@ -27,13 +27,13 @@ test.describe("LANDING — Trang chủ (tối giản)", () => {
     await page.waitForURL(/\/bang-dieu-khien/, { timeout: 20000 });
     await page.goto("/");
     const header = page.locator("header");
-    await expect(header.getByRole("link", { name: /vào edutest/i }).first()).toBeVisible();
+    await expect(header.getByRole("link", { name: /vào a6class edu/i }).first()).toBeVisible();
     await expect(header.getByRole("button", { name: /đăng xuất/i })).toBeVisible();
   });
 
   test("L-05: Footer hiển thị", async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByText(/© 2026 EduTest.vn/)).toBeVisible();
+    await expect(page.getByText(/© 2026 A6Class Edu/)).toBeVisible();
     await expect(page.getByRole("link", { name: "Điều khoản" })).toBeVisible();
   });
 });

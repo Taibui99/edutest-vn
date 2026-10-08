@@ -8,7 +8,7 @@ import { prisma } from "@/lib/prisma";
 const ProgressClient = dynamic(() => import("./progress-client").then((m) => m.ProgressClient));
 
 export const metadata: Metadata = {
-  title: "Tiến độ học tập — EduTest",
+  title: "Tiến độ học tập — A6Class Edu",
 };
 
 export default async function TienDoPage() {

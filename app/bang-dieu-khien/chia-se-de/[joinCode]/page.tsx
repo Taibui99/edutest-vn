@@ -59,7 +59,7 @@ export default function ShareExamPage() {
   const nativeShare = async () => {
     if (!data) return;
     if (navigator.share) {
-      await navigator.share({ title: data.exam.title, text: "Tham gia bài kiểm tra trên EduTest.vn", url: data.shareUrl });
+      await navigator.share({ title: data.exam.title, text: "Tham gia bài kiểm tra trên A6Class Edu", url: data.shareUrl });
       return;
     }
     await copyLink();

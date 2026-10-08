@@ -15,7 +15,7 @@ import { getSubjectColor } from "@/lib/subject";
 import { isQuestionCorrect, isAutoGraded, type AnswerValue } from "@/lib/grading";
 import { SubmissionsPanel, type SubRow, type SubQuestion } from "./submissions-panel";
 
-export const metadata: Metadata = { title: "Chi tiết đề thi — EduTest" };
+export const metadata: Metadata = { title: "Chi tiết đề thi — A6Class Edu" };
 
 export default async function ExamDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await auth();

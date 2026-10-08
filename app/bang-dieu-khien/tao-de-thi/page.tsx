@@ -7,7 +7,7 @@ import { TaoDeThiEditorLazy } from "./editor-lazy";
 
 export async function generateMetadata({ searchParams }: { searchParams: Promise<{ edit?: string }> }): Promise<Metadata> {
   const { edit } = await searchParams;
-  return { title: edit ? "Sửa đề thi — EduTest" : "Tạo đề thi — EduTest" };
+  return { title: edit ? "Sửa đề thi — A6Class Edu" : "Tạo đề thi — A6Class Edu" };
 }
 
 export default async function TaoDeThiPage({ searchParams }: { searchParams: Promise<{ edit?: string }> }) {

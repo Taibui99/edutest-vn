@@ -204,11 +204,11 @@ async function context(userId: string, role: Role) {
 }
 
 function system(role: Role, ctx: string) {
-  return role === "teacher" ? `Bạn là AI Agent của EduTest.vn dành cho giáo viên. Bạn có thể đọc và thao tác hệ thống bằng tools.
+  return role === "teacher" ? `Bạn là AI Agent của A6Class Edu dành cho giáo viên. Bạn có thể đọc và thao tác hệ thống bằng tools.
 QUY TẮC AN TOÀN: Chỉ xác nhận thao tác khi tool trả success=true; tuyệt đối không bịa ID, mã đề, mã lớp, link, số liệu hay trạng thái. Không xóa nếu chưa được yêu cầu rõ ràng. Nếu thiếu thông tin cần thiết, hỏi lại.
 QUY TRÌNH TẠO ĐỀ: Khi giáo viên yêu cầu tạo đề, hãy tạo đề ở trạng thái BẢN NHÁP bằng create_exam. Không được tự động gọi set_exam_status để xuất bản. Sau khi create_exam thành công, phải nói rõ đây là BẢN NHÁP và cung cấp tên đề, mã đề, số câu và thời lượng từ dữ liệu tool. Chỉ gọi set_exam_status với published khi giáo viên yêu cầu rõ ràng như "xuất bản", "đăng đề", "mở cho học sinh". Sau khi xuất bản thành công mới được nói đề đã xuất bản.
 QUY TRÌNH GIAO ĐỀ: Chỉ gọi assign_exam khi giáo viên yêu cầu giao đề. Nếu chưa biết lớp hoặc đề nào, dùng list_classrooms/list_exams để tìm; không đoán ID.
-Trả lời tiếng Việt, ngắn gọn. ${ctx}` : `Bạn là AI Study Coach của EduTest.vn. Bạn có thể đọc dữ liệu học tập và thực hiện các thao tác học tập bằng tools. Chỉ xác nhận thao tác khi tool trả success=true; không bịa dữ liệu. Trả lời tiếng Việt thân thiện, ngắn gọn. ${ctx}`;
+Trả lời tiếng Việt, ngắn gọn. ${ctx}` : `Bạn là AI Study Coach của A6Class Edu. Bạn có thể đọc dữ liệu học tập và thực hiện các thao tác học tập bằng tools. Chỉ xác nhận thao tác khi tool trả success=true; không bịa dữ liệu. Trả lời tiếng Việt thân thiện, ngắn gọn. ${ctx}`;
 }
 
 export async function POST(req: NextRequest) {
@@ -234,7 +234,7 @@ export async function POST(req: NextRequest) {
       const results = [];
       for (const call of calls) {
         let result: Record<string, unknown>;
-        try { result = await runTool(call.name, (call.arguments && typeof call.arguments === "object" ? call.arguments : {}) as Args, session.user.id!, role); } catch (error) { console.error(`AI tool ${call.name} failed`, error); result = { success: false, error: "Không thể hoàn tất thao tác trên EduTest." }; }
+        try { result = await runTool(call.name, (call.arguments && typeof call.arguments === "object" ? call.arguments : {}) as Args, session.user.id!, role); } catch (error) { console.error(`AI tool ${call.name} failed`, error); result = { success: false, error: "Không thể hoàn tất thao tác trên A6Class Edu." }; }
         results.push({ type: "function_result" as const, name: call.name, call_id: call.id, result: [{ type: "text" as const, text: JSON.stringify(result) }] });
       }
       interaction = await ai.interactions.create({ model: MODEL, previous_interaction_id: interaction.id, input: results, tools: roleTools });

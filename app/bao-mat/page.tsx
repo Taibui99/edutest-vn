@@ -3,8 +3,8 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Chính sách bảo mật — EduTest",
-  description: "Chính sách bảo mật thông tin người dùng của EduTest",
+  title: "Chính sách bảo mật — A6Class Edu",
+  description: "Chính sách bảo mật thông tin người dùng của A6Class Edu",
 };
 
 const SECTIONS: { title: string; items: string[] }[] = [
@@ -35,7 +35,7 @@ const SECTIONS: { title: string; items: string[] }[] = [
   {
     title: "4. Bảo vệ dữ liệu trẻ em",
     items: [
-      "EduTest dành cho mục đích giáo dục và tôn trọng quyền riêng tư của học sinh. Dữ liệu học sinh được thu thập tối thiểu, chỉ phục vụ việc dạy và học.",
+      "A6Class Edu dành cho mục đích giáo dục và tôn trọng quyền riêng tư của học sinh. Dữ liệu học sinh được thu thập tối thiểu, chỉ phục vụ việc dạy và học.",
       "Phụ huynh/người giám hộ có thể yêu cầu xem hoặc xóa thông tin của con em thông qua giáo viên hoặc kênh hỗ trợ.",
     ],
   },
@@ -51,7 +51,7 @@ const SECTIONS: { title: string; items: string[] }[] = [
     items: [
       "Xem, sửa thông tin cá nhân trong trang Hồ sơ.",
       "Yêu cầu xuất hoặc xóa dữ liệu cá nhân.",
-      "Khiếu nại về xử lý dữ liệu qua kênh hỗ trợ của EduTest.",
+      "Khiếu nại về xử lý dữ liệu qua kênh hỗ trợ của A6Class Edu.",
     ],
   },
 ];

@@ -9,7 +9,7 @@ export interface SendEmailResult {
   reason?: string;
 }
 
-const FROM_DEFAULT = "EduTest <onboarding@resend.dev>";
+const FROM_DEFAULT = "A6Class Edu <onboarding@resend.dev>";
 
 export async function sendEmail({ to, subject, html }: SendEmailArgs): Promise<SendEmailResult> {
   const apiKey = process.env.RESEND_API_KEY;
@@ -48,18 +48,18 @@ export async function sendEmail({ to, subject, html }: SendEmailArgs): Promise<S
 
 export function passwordResetEmail(name: string, resetUrl: string) {
   return {
-    subject: "Đặt lại mật khẩu EduTest",
+    subject: "Đặt lại mật khẩu A6Class Edu",
     html: `
 <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:24px;color:#0F1729">
   <p style="font-size:14px">Xin chào <strong>${name}</strong>,</p>
-  <p style="font-size:14px;line-height:1.6">Chúng tôi nhận được yêu cầu đặt lại mật khẩu cho tài khoản EduTest của bạn. Nhấn nút bên dưới để chọn mật khẩu mới:</p>
+  <p style="font-size:14px;line-height:1.6">Chúng tôi nhận được yêu cầu đặt lại mật khẩu cho tài khoản A6Class Edu của bạn. Nhấn nút bên dưới để chọn mật khẩu mới:</p>
   <p style="text-align:center;margin:28px 0">
     <a href="${resetUrl}" style="background:#0369A1;color:#ffffff;text-decoration:none;font-weight:bold;font-size:14px;padding:12px 28px;border-radius:12px;display:inline-block">Đặt lại mật khẩu</a>
   </p>
   <p style="font-size:13px;line-height:1.6;color:#5B6B8C">Nếu nút không hoạt động, sao chép đường dẫn này vào trình duyệt:<br><a href="${resetUrl}" style="color:#0369A1;word-break:break-all">${resetUrl}</a></p>
   <p style="font-size:13px;line-height:1.6;color:#5B6B8C">Liên kết có hiệu lực trong <strong>1 giờ</strong>. Nếu bạn không yêu cầu đặt lại mật khẩu, hãy bỏ qua email này — mật khẩu hiện tại vẫn an toàn.</p>
   <hr style="border:none;border-top:1px solid #DFE5F0;margin:20px 0" />
-  <p style="font-size:12px;color:#7C8CA8">EduTest — Tạo đề thi &amp; kiểm tra trực tuyến</p>
+  <p style="font-size:12px;color:#7C8CA8">A6Class Edu — Tạo đề thi &amp; kiểm tra trực tuyến</p>
 </div>`,
   };
 }

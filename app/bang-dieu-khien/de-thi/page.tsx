@@ -11,7 +11,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { getSubjectColor } from "@/lib/subject";
 import { ExamListFilters } from "./exam-list-filters";
 
-export const metadata: Metadata = { title: "Đề thi — EduTest" };
+export const metadata: Metadata = { title: "Đề thi — A6Class Edu" };
 
 export default async function ExamListPage({ searchParams }: { searchParams: Promise<{ q?: string; subject?: string; status?: string }> }) {
   const session = await auth();

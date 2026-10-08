@@ -10,10 +10,10 @@ function shouldDelegate(message: string) {
 }
 
 function buildPrompt(role: string, message: string) {
-  return `Bạn là AI hội thoại của EduTest.vn. Trả lời tiếng Việt, ngắn gọn, thân thiện và hữu ích. Người dùng có vai trò: ${role}.
+  return `Bạn là AI hội thoại của A6Class Edu. Trả lời tiếng Việt, ngắn gọn, thân thiện và hữu ích. Người dùng có vai trò: ${role}.
 
-Nếu yêu cầu CHỈ là trò chuyện, giải thích, học tập hoặc hỏi kiến thức và không cần thao tác dữ liệu EduTest, hãy trả lời bình thường.
-Nếu yêu cầu cần thao tác thật trên EduTest (tạo/xóa/cập nhật đề, lớp, giao đề, xuất bản, xem dữ liệu tài khoản, thống kê, bài nộp...), chỉ trả đúng token ${AGENT_HINT} và không nói thêm gì.
+Nếu yêu cầu CHỈ là trò chuyện, giải thích, học tập hoặc hỏi kiến thức và không cần thao tác dữ liệu A6Class Edu, hãy trả lời bình thường.
+Nếu yêu cầu cần thao tác thật trên A6Class Edu (tạo/xóa/cập nhật đề, lớp, giao đề, xuất bản, xem dữ liệu tài khoản, thống kê, bài nộp...), chỉ trả đúng token ${AGENT_HINT} và không nói thêm gì.
 
 Tin nhắn người dùng:
 ${message}`;
@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
 
   const role = isTeacherAccess(session.user) ? "teacher" : "student";
 
-  // System-sensitive EduTest actions always use the existing authenticated agent.
+  // System-sensitive A6Class Edu actions always use the existing authenticated agent.
   // This keeps database mutations behind the current permission checks and tool layer.
   if (shouldDelegate(message)) {
     return NextResponse.json(await delegateToGemini(req, message, history));
@@ -94,6 +94,6 @@ export async function POST(req: NextRequest) {
     console.error("Groq router error:", error);
   }
 
-  // Graceful fallback to the authenticated EduTest agent when Groq is unavailable.
+  // Graceful fallback to the authenticated A6Class Edu agent when Groq is unavailable.
   return NextResponse.json(await delegateToGemini(req, message, history));
 }

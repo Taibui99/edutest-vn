@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Đề thi không tồn tại hoặc chưa được công bố." }, { status: 404 });
     }
     if (!exam.allowGuestAttempts) {
-      return NextResponse.json({ error: "Đề thi này yêu cầu đăng nhập tài khoản EduTest." }, { status: 403 });
+      return NextResponse.json({ error: "Đề thi này yêu cầu đăng nhập tài khoản A6Class Edu." }, { status: 403 });
     }
 
     const token = randomBytes(32).toString("base64url");

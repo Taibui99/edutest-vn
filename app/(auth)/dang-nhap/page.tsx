@@ -5,8 +5,8 @@ import { LoginForm } from "../../components/login-form";
 import { GoogleButton } from "../../components/google-button";
 
 export const metadata: Metadata = {
-  title: "Đăng nhập — EduTest",
-  description: "Đăng nhập vào tài khoản EduTest để tạo đề thi và làm bài trực tuyến.",
+  title: "Đăng nhập — A6Class Edu",
+  description: "Đăng nhập vào tài khoản A6Class Edu để tạo đề thi và làm bài trực tuyến.",
 };
 
 const googleEnabled = Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
@@ -15,7 +15,7 @@ export default function LoginPage() {
   return (
     <AuthCard
       title="Đăng nhập"
-      subtitle="Chào mừng bạn quay trở lại EduTest"
+      subtitle="Chào mừng bạn quay trở lại A6Class Edu"
       footer={
         <>
           Chưa có tài khoản?{" "}

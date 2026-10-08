@@ -30,9 +30,9 @@ const heading = Be_Vietnam_Pro({
 });
 
 export const metadata: Metadata = {
-  title: "EduTest.vn — Nền tảng học tập thông minh",
+  title: "A6Class Edu — Nền tảng học tập thông minh",
   description:
-    "EduTest giúp học sinh ôn thi hiệu quả và giáo viên tạo đề thi dễ dàng. Nền tảng EdTech hàng đầu Việt Nam.",
+    "A6Class Edu giúp học sinh ôn thi hiệu quả và giáo viên tạo đề thi dễ dàng. Nền tảng EdTech hàng đầu Việt Nam.",
 };
 
 export default async function RootLayout({

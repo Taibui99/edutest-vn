@@ -5,9 +5,9 @@ import { RegisterForm } from "../../components/register-form";
 import { GoogleButton } from "../../components/google-button";
 
 export const metadata: Metadata = {
-  title: "Đăng ký — EduTest",
+  title: "Đăng ký — A6Class Edu",
   description:
-    "Tạo tài khoản EduTest miễn phí để tạo đề thi, làm bài và chấm điểm tự động.",
+    "Tạo tài khoản A6Class Edu miễn phí để tạo đề thi, làm bài và chấm điểm tự động.",
 };
 
 const googleEnabled = Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);

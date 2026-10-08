@@ -15,8 +15,8 @@ export async function generateMetadata({ params }: { params: Promise<{ code: str
   const { code } = await params;
   const exam = await prisma.exam.findUnique({ where: { joinCode: code.toUpperCase() }, select: { title: true } });
   return exam
-    ? { title: `${exam.title} — EduTest` }
-    : { title: "Mã tham gia không hợp lệ — EduTest" };
+    ? { title: `${exam.title} — A6Class Edu` }
+    : { title: "Mã tham gia không hợp lệ — A6Class Edu" };
 }
 
 type ClientGrading = { statements?: Array<{ text: string; answer: boolean }>; acceptedAnswers?: string[] } | null;

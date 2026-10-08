@@ -11,7 +11,7 @@ export function Footer() {
             <Link href="/vao-thi" className="inline-flex items-center py-2.5 font-medium transition-colors hover:text-[var(--primary)]">Vào thi</Link>
             <Link href="/dieu-khoan" className="inline-flex items-center py-2.5 font-medium transition-colors hover:text-[var(--primary)]">Điều khoản</Link>
             <Link href="/bao-mat" className="inline-flex items-center py-2.5 font-medium transition-colors hover:text-[var(--primary)]">Bảo mật</Link>
-            <span className="inline-flex items-center py-2.5">© {new Date().getFullYear()} EduTest.vn</span>
+            <span className="inline-flex items-center py-2.5">© {new Date().getFullYear()} A6Class Edu</span>
           </div>
         </div>
       </div>

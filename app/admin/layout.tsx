@@ -5,7 +5,7 @@ import { AdminSidebar } from "@/components/admin/admin-sidebar";
 import { Logo } from "@/components/brand/logo";
 
 export const metadata: Metadata = {
-  title: "Quản trị hệ thống — EduTest",
+  title: "Quản trị hệ thống — A6Class Edu",
 };
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {

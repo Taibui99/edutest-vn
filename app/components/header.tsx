@@ -21,7 +21,7 @@ export async function Header() {
           {session?.user ? (
             <div className="flex items-center gap-3">
               <Link href="/bang-dieu-khien" className="inline-flex h-10 sm:h-9 items-center px-4 rounded-xl text-sm font-bold" style={{ background: "var(--primary-light)", color: "var(--primary)" }}>
-                Vào EduTest →
+                Vào A6Class Edu →
               </Link>
               <form action={logoutAction}>
                 <button type="submit" className="h-10 sm:h-9 px-4 rounded-xl text-sm font-semibold" style={{ border: "1.5px solid var(--surface-border-strong)", color: "var(--text-secondary)" }}>

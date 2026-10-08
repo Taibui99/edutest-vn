@@ -16,7 +16,7 @@ import { cn } from "@/lib/cn";
 import { ModeSwitchButton } from "@/components/mode-switch";
 import { ContinueDraftCard } from "./continue-draft";
 
-export const metadata: Metadata = { title: "Tổng quan — EduTest" };
+export const metadata: Metadata = { title: "Tổng quan — A6Class Edu" };
 
 function getGreeting() {
   const h = new Date().getHours();
@@ -480,7 +480,7 @@ function ModeSwitcher({ mode, role }: { mode: string; role: string }) {
       ? [{
           value: "admin",
           label: "Quản trị",
-          desc: "Quản trị hệ thống EduTest",
+          desc: "Quản trị hệ thống A6Class Edu",
           icon: <ShieldCheck size={20} />,
         }]
       : []),
