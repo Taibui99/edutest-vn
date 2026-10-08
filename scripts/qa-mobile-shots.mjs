@@ -3,7 +3,7 @@ import { mkdirSync } from "node:fs";
 
 // Guest view và teacher view phải là 2 context riêng, nếu không
 // các route public sẽ bị redirect sang dashboard khi đã đăng nhập.
-const BASE = "https://edutest-vn.vercel.app";
+const BASE = process.env.BASE_URL || "https://edutest-vn.vercel.app";
 const GUEST_PAGES = [
   ["/", "home"],
   ["/vao-thi", "vaothi"],

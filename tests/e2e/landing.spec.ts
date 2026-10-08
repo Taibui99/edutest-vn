@@ -19,7 +19,7 @@ test.describe("LANDING — Trang chủ (tối giản)", () => {
     await expect(header.getByRole("link", { name: "Đăng ký" }).filter({ visible: true })).toBeVisible();
   });
 
-  test("L-03: Header đăng nhập → nút Vào EduTest + Đăng xuất", async ({ page }) => {
+  test("L-03: Header đăng nhập → nút Vào A6Class Edu + Đăng xuất", async ({ page }) => {
     await page.goto("/dang-nhap");
     await page.locator("#email").fill("tester-gv-20260816@edutest.vn");
     await page.locator("#password").fill("Test@12345");

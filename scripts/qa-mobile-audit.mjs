@@ -1,6 +1,6 @@
 import { chromium } from "@playwright/test";
 
-const BASE = "https://edutest-vn.vercel.app";
+const BASE = process.env.BASE_URL || "https://edutest-vn.vercel.app";
 const GUEST = ["/", "/vao-thi", "/dang-nhap", "/dang-ky", "/thi/YN5GQZ"];
 const TEACHER = ["/bang-dieu-khien", "/bang-dieu-khien/de-thi", "/bang-dieu-khien/tao-de-thi", "/bang-dieu-khien/lop-hoc", "/bang-dieu-khien/thong-ke", "/bang-dieu-khien/ngan-hang", "/bang-dieu-khien/ho-so", "/bang-dieu-khien/hoc-sinh", "/bang-dieu-khien/tien-do", "/bang-dieu-khien/ai"];
 

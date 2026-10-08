@@ -1,7 +1,8 @@
 const { request } = require("playwright");
 
 async function main() {
-  const req = await request.newContext({ baseURL: "https://edutest-vn.vercel.app" });
+  const BASE = process.env.BASE_URL || "https://edutest-vn.vercel.app";
+  const req = await request.newContext({ baseURL: BASE });
   const csrf = (await (await req.get("/api/auth/csrf")).json()).csrfToken;
   await req.post("/api/auth/callback/credentials", { form: { csrfToken: csrf, email: "tester-gv-20260816@edutest.vn", password: "Test@12345" } });
 
@@ -40,7 +41,7 @@ async function main() {
 
   // 4. Liệt kê user QA rác (admin cần quyền)
   try {
-    const adminReq = await request.newContext({ baseURL: "https://edutest-vn.vercel.app" });
+    const adminReq = await request.newContext({ baseURL: BASE });
     const acsrf = (await (await adminReq.get("/api/auth/csrf")).json()).csrfToken;
     await adminReq.post("/api/auth/callback/credentials", { form: { csrfToken: acsrf, email: "admin-p2@edutest.vn", password: "testpass" } });
     const users = await (await adminReq.get("/api/admin/users?limit=300")).json();

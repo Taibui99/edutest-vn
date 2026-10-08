@@ -1,6 +1,6 @@
 import { chromium } from "@playwright/test";
 
-const BASE = "https://edutest-vn.vercel.app";
+const BASE = process.env.BASE_URL || "https://edutest-vn.vercel.app";
 const run = async () => {
   const browser = await chromium.launch();
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: "vi-VN" });

@@ -112,7 +112,7 @@ async function deleteOldBackups(token) {
 
 async function backup() {
   const token = loadKey();
-  console.log("=== EduTest DB Backup ===");
+  console.log("=== A6Class Edu DB Backup ===");
   console.log("Project: " + PROJECT_REF);
   console.log("Time: " + new Date().toISOString());
 
@@ -120,7 +120,7 @@ async function backup() {
 
   var totalRows = 0;
   var lines = [];
-  lines.push("-- EduTest DB backup: " + new Date().toISOString());
+  lines.push("-- A6Class Edu DB backup: " + new Date().toISOString());
   lines.push("-- Source: Supabase REST API (" + PROJECT_REF + ")");
   lines.push("");
 
