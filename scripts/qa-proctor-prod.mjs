@@ -144,7 +144,56 @@ check(typeof sub1?.score === "number" && sub1.score >= 0, "diem bai lam van tinh
 /* --- 6. Xoá đề → attempt biến mất (ProctorEvent cascade xoá theo, đã đo local) --- */
 await cleanup();
 const gone = await call("GET", `/api/attempts/${t1}`, null, studentJar);
-check(gone.status === 404, "xoa de thi attempt cung bi xoá", `status=${gone.status}`);
+check(gone.status === 404, "xoa de thi attempt cung bi xoa", `status=${gone.status}`);
+
+/* --- 7. GĐ3 — chế độ chống gian lận lưu trên Exam (schema đã db push) --- */
+const q3 = { type: "mcq", question: "2 + 2 = ?", options: ["1", "2", "3", "4"], answer: "D", points: 1 };
+async function createExam(mode) {
+  const body = {
+    title: `QA-GD3-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+    subject: "Toán",
+    durationMinutes: 5,
+    maxAttempts: 1,
+    status: "published",
+    questions: [q3],
+  };
+  if (mode !== undefined) body.proctorMode = mode;
+  return call("POST", "/api/exams", body, teacherJar);
+}
+
+const cDef = await createExam(undefined);
+eq(cDef.status, 201, "GD3: tao de moi (khong truyen proctorMode) → 201");
+eq(cDef.data?.exam?.proctorMode, "off", "GD3: mac dinh proctorMode = off");
+
+const cStr = await createExam("strict");
+eq(cStr.status, 201, "GD3: tao de proctorMode=strict → 201");
+eq(cStr.data?.exam?.proctorMode, "strict", "GD3: luu dung strict");
+const cStrId = cStr.data?.exam?.id;
+
+const gStr = await call("GET", `/api/exams/${cStrId}`, null, teacherJar);
+eq(gStr.data?.exam?.proctorMode, "strict", "GD3: GET chi tiet tra proctorMode=strict");
+
+eq((await createExam("maximum")).status, 400, "GD3: proctorMode la khi tao → 400");
+
+const putBody = {
+  title: `QA-GD3-${Date.now()}-put`,
+  subject: "Toán",
+  durationMinutes: 5,
+  maxAttempts: 1,
+  questions: [q3],
+  proctorMode: "light",
+};
+const put = await call("PUT", `/api/exams/${cStrId}`, putBody, teacherJar);
+eq(put.status, 200, "GD3: PUT doi proctorMode=light → 200");
+eq(put.data?.exam?.proctorMode, "light", "GD3: PUT luu dung light");
+eq((await call("PUT", `/api/exams/${cStrId}`, { ...putBody, proctorMode: "turbo" }, teacherJar)).status, 400, "GD3: PUT proctorMode la → 400");
+
+for (const id of [cDef.data?.exam?.id, cStrId]) {
+  if (!id) continue;
+  const d = await call("DELETE", `/api/exams/${id}`, null, teacherJar);
+  check(d.status === 200 || d.status === 204, `GD3: xoa de test -> ${d.status}`);
+}
 
 console.log(failures === 0 ? "\nALL PASS" : `\n${failures} FAIL`);
+process.exit(failures === 0 ? 0 : 1);
 process.exit(failures === 0 ? 0 : 1);
