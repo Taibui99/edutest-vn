@@ -33,7 +33,7 @@ export default function AuthLayout({
             <Sparkles className="h-5 w-5" />
             <Logo size="md" tone="inverse" />
           </div>
-          <h2 className="mt-8 text-4xl font-black leading-tight text-white">
+          <h2 className="mt-8 text-balance text-4xl font-black leading-tight tracking-tight text-white">
             Học tập, kiểm tra
             <br />
             và ôn luyện hiệu quả
@@ -45,7 +45,7 @@ export default function AuthLayout({
           <ul className="mt-10 space-y-5">
             {BENEFITS.map((b) => (
               <li key={b.title} className="flex items-start gap-3">
-                <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/15 text-white">
+                <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/15 text-white ring-1 ring-inset ring-white/25">
                   <b.icon className="h-4.5 w-4.5" />
                 </span>
                 <div>

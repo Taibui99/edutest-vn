@@ -34,17 +34,17 @@ export async function Hero() {
       />
 
       <div className="relative mx-auto flex min-h-[72vh] max-w-3xl flex-col items-center justify-center px-5 py-14 text-center sm:min-h-[calc(100vh-4rem-1px)] sm:py-20">
-        <span
-          className="inline-flex items-center gap-2 rounded-full px-3.5 py-2 text-[13px] font-bold sm:py-1.5 sm:text-sm"
-          style={{ background: "var(--surface-card)", color: "var(--primary)", border: "1px solid var(--surface-border)", boxShadow: "0 1px 2px rgba(31,41,55,0.04)" }}
-        >
-          <span className="h-1.5 w-1.5 rounded-full" style={{ background: "var(--primary)" }} />
+        <span className="inline-flex items-center gap-2 rounded-full border border-[var(--surface-border)] bg-[var(--surface-card)] px-3.5 py-2 text-[13px] font-bold text-[var(--primary)] shadow-[0_2px_12px_-4px_rgba(15,76,129,0.25)] sm:py-1.5 sm:text-sm">
+          <span className="relative flex h-1.5 w-1.5">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--success)] opacity-60" />
+            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[var(--success)]" />
+          </span>
           Nền tảng thi trực tuyến cho giáo viên
         </span>
 
         <h1
-          className="mt-6 text-4xl font-black tracking-tight sm:text-5xl md:text-[3.4rem]"
-          style={{ color: "var(--text-primary)", lineHeight: 1.12, letterSpacing: "-0.02em" }}
+          className="mt-6 text-balance text-4xl font-black tracking-tight text-[var(--text-primary)] sm:text-5xl md:text-[3.4rem]"
+          style={{ lineHeight: 1.12, letterSpacing: "-0.02em" }}
         >
           Soạn đề thi{" "}
           <span className="text-gradient-brand">siêu nhanh</span>
@@ -59,16 +59,14 @@ export async function Hero() {
         <div className="mt-8 flex w-full flex-col items-center gap-3 sm:w-auto sm:flex-row">
           <Link
             href={isLoggedIn ? "/bang-dieu-khien/tao-de-thi" : "/dang-ky"}
-            className="group inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl px-8 text-base font-bold text-white transition-all hover:-translate-y-0.5 active:translate-y-0 sm:w-auto"
-            style={{ background: "var(--primary)", boxShadow: "0 12px 28px -10px rgba(108,76,241,0.55)" }}
+            className="group inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[var(--primary)] px-8 text-base font-bold text-white shadow-[0_12px_28px_-10px_rgba(15,76,129,0.55)] transition-all hover:-translate-y-0.5 hover:bg-[var(--primary-hover)] active:translate-y-0 active:scale-[0.98] sm:w-auto"
           >
             {isLoggedIn ? "Tạo đề thi" : "Tạo tài khoản giáo viên"}
             <ArrowRight size={18} className="transition-transform group-hover:translate-x-1" />
           </Link>
           <Link
             href="/vao-thi"
-            className="inline-flex h-12 w-full items-center justify-center rounded-2xl px-8 text-base font-semibold transition-colors hover:border-[var(--primary)] sm:w-auto"
-            style={{ border: "1.5px solid var(--surface-border-strong)", color: "var(--primary)", background: "var(--surface-card)" }}
+            className="inline-flex h-12 w-full items-center justify-center rounded-2xl border-[1.5px] border-[var(--surface-border-strong)] bg-[var(--surface-card)] px-8 text-base font-semibold text-[var(--primary)] transition-all hover:border-[var(--primary)] hover:bg-[var(--primary-light)] active:scale-[0.98] sm:w-auto"
           >
             Vào thi bằng mã
           </Link>
