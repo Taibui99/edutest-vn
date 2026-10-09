@@ -10,9 +10,12 @@ interface Message {
   content: string;
 }
 
+/* AI-5b — chỉ hứa việc làm được: agent đọc điểm/bài/đề thật (AI-5a đã mở
+   đường), Groq lo giải thích + ra câu hỏi chữ. Bỏ "tạo bài kiểm tra thật" và
+   "lập kế hoạch" vì không có tool nào làm việc đó. */
 const INITIAL_MESSAGE: Message = {
   role: "assistant",
-  content: "Xin chào! Tôi là AI Study Coach của A6Class Edu.\n\nTôi có thể giúp bạn:\n• Phân tích điểm yếu và đề xuất ôn tập\n• Giải thích kiến thức, tạo câu hỏi luyện tập\n• Lập kế hoạch học tập cá nhân\n\nBạn muốn bắt đầu từ đâu?",
+  content: "Xin chào! Tôi là trợ lý AI của A6Class Edu.\n\nTôi đọc được dữ liệu học tập thật của bạn (điểm số, bài đã làm, đề thi) để:\n• Phân tích điểm yếu, gợi ý nên ôn gì tiếp\n• Giải thích kiến thức, ra câu hỏi luyện tập\n• Trả lời thắc mắc học tập\n\nBạn muốn bắt đầu từ đâu?",
 };
 
 const STORAGE_PREFIX = "edutest-ai-chat-v2:";
@@ -20,10 +23,10 @@ const STORAGE_PREFIX = "edutest-ai-chat-v2:";
 const STUDENT_PROMPTS = [
   "Tôi nên học gì hôm nay?",
   "Phân tích điểm yếu của tôi",
+  "Kết quả các bài tôi đã làm",
+  "Tôi nên ôn gì tiếp theo?",
   "Tạo 5 câu hỏi Toán luyện tập",
-  "Lập kế hoạch ôn thi THPT",
   "Giải thích kiến thức cho tôi",
-  "Tạo bài kiểm tra nhanh giúp tôi",
 ];
 
 const TEACHER_PROMPTS = [
@@ -174,8 +177,12 @@ export default function AICoachPage() {
 
   const quickPrompts = role === "teacher" ? TEACHER_PROMPTS : STUDENT_PROMPTS;
 
+  /* AI-5c — mobile không còn chiều cao cứng `100vh-61px` (cộng topbar + nút
+     Quay lại + bottom-nav là vượt viewport, ô nhập chui xuống dưới thanh đáy).
+     Desktop giữ `lg:h-screen` cuộn trong; mobile chảy tự nhiên, ô nhập `sticky`
+     ngay trên bottom-nav (+safe-area). */
   return (
-    <div className="flex flex-col h-[calc(100vh-61px)] lg:h-screen">
+    <div className="flex flex-col lg:h-screen">
       <div className="flex items-center justify-between px-5 py-3.5 bg-[var(--surface-card)] border-b border-[var(--surface-border)] shrink-0">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-xl bg-[var(--primary-light)] flex items-center justify-center">
@@ -183,7 +190,7 @@ export default function AICoachPage() {
           </div>
           <div>
             <h1 className="sr-only">AI Tạo Đề</h1>
-            <h2 className="text-base font-black text-[var(--text-primary)]">
+            <h2 className="text-base font-black tracking-tight text-[var(--text-primary)]">
               {role === "teacher" ? "AI Tạo Đề" : "AI Study Coach"}
             </h2>
             <p className="text-xs text-[var(--text-muted)]">Powered by Gemini AI + Groq</p>
@@ -197,7 +204,7 @@ export default function AICoachPage() {
         </button>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto px-4 py-5 flex flex-col gap-4">
+      <div className="px-4 py-5 flex flex-col gap-4 min-h-[30dvh] lg:flex-1 lg:min-h-0 lg:overflow-y-auto">
         {messages.map((msg, i) => (
           <MessageBubble key={i} msg={msg} />
         ))}
@@ -218,7 +225,7 @@ export default function AICoachPage() {
         <div ref={bottomRef} />
       </div>
 
-      <div className="shrink-0 border-t border-[var(--surface-border)] bg-[var(--surface-bg)]/95 backdrop-blur-sm px-4 pt-3 pb-2 lg:pb-3">
+      <div className="sticky bottom-[calc(60px+env(safe-area-inset-bottom))] z-10 shrink-0 border-t border-[var(--surface-border)] bg-[var(--surface-bg)]/95 backdrop-blur-sm px-4 pt-3 pb-2 lg:static lg:pb-3">
         <div className="flex items-center justify-between gap-3 mb-2">
           <span className="text-[11px] font-bold text-[var(--text-secondary)] uppercase tracking-wide">
             Gợi ý cho bạn
@@ -227,7 +234,7 @@ export default function AICoachPage() {
             Chạm để gửi ngay
           </span>
         </div>
-        <div className="flex flex-wrap gap-2 sm:flex-nowrap sm:overflow-x-auto sm:scrollbar-hide pb-1">
+        <div className="flex flex-nowrap gap-2 overflow-x-auto scrollbar-hide pb-1">
           {quickPrompts.map((p) => (
             <button
               key={p}

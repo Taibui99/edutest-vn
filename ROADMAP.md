@@ -177,6 +177,16 @@ Tất cả L1–L4 trong commit `6e0ad48` — verified live: robots.txt/sitemap.
 
 **Còn lại (không chặn AI-4):** chưa thử với file PDF/Word thật (mới smoke-test bằng text dán) và chưa có E2E test tự động cho luồng này.
 
+## 🤖 AI trung thực & chat mobile (AI-5, 2026-10-09)
+
+**User:** *"cái AI đang ko ổn"* → chốt 2 nghĩa: (1) **hứa nhưng không làm được** (gợi ý "tạo bài kiểm tra", "lập kế hoạch" nhưng AI chỉ trả lời chữ); (2) **giao diện chat**.
+
+**Nguyên nhân gốc:** `shouldDelegate` ở `app/api/ai-router/route.ts` chỉ nhận diện thao tác dữ liệu (tạo/giao/xóa đề...) nên mọi câu hỏi về **dữ liệu** ("xem các đề thi của tôi", "phân tích điểm yếu", "tôi nên học gì") đều rơi sang Groq trả lời **mù** (không có điểm/bài làm) — trong khi agent `ai-coach` vốn có đủ tool (`get_dashboard`, `list_exams`, `get_submissions`, GV thêm analytics/mutations). Gợi ý nhanh hứa những việc không có tool (tạo bài kiểm tra thật, lập kế hoạch). Mobile: khung chat `h-[calc(100vh-61px)]` cộng topbar + nút Quay lại + bottom-nav vượt viewport → ô nhập bị che dưới thanh đáy.
+
+- [ ] **AI-5a Router trung thực** — mở rộng `shouldDelegate` đón ý định đọc dữ liệu (xem/liệt kê đề-bài-lớp, kết quả/điểm yếu/phân tích, tiến độ/tổng quan, nên học-ôn gì, kế hoạch/gợi ý ôn) về agent có dữ liệu thật; câu hỏi kiến thức/luyện tập thuần túy vẫn đi Groq nhanh.
+- [ ] **AI-5b Gợi ý + lời chào trung thực** — viết lại `INITIAL_MESSAGE` + `STUDENT_PROMPTS` chỉ hứa việc làm được ("Kết quả các bài tôi đã làm", "Tôi nên ôn gì tiếp theo?"); bỏ "Tạo bài kiểm tra nhanh", "Lập kế hoạch ôn thi THPT".
+- [ ] **AI-5c Chat mobile** — bỏ chiều cao `100vh-61px` cứng: desktop giữ `lg:h-screen` cuộn trong; mobile chảy tự nhiên + ô nhập `sticky` trên bottom-nav (+safe-area), gợi ý cuộn ngang 1 hàng, `100dvh`.
+
 ## 🔐 Chống gian lận khi thi (đã chốt hướng 2026-10-04)
 
 **Yêu cầu của user:** hành vi gian lận của học sinh hiện rất tinh vi, cần vá lại hệ thống chống gian lận.

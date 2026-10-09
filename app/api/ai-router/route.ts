@@ -5,8 +5,23 @@ import { isTeacherAccess } from "@/lib/access";
 const GROQ_MODEL = process.env.GROQ_MODEL || "openai/gpt-oss-120b";
 const AGENT_HINT = "__NEEDS_EDUTEST_AGENT__";
 
+/**
+ * AI-5a — ý định nào cần agent có dữ liệu thật (thay vì Groq trả lời mù).
+ *
+ * Hai nhóm: (1) THAO TÁC dữ liệu (tạo/sửa/xóa/giao đề-lớp, xem bài nộp...),
+ * giữ nguyên như cũ; (2) ĐỌC dữ liệu (xem đề-bài-lớp của mình, kết quả,
+ * điểm yếu, tiến độ, nên học/ôn gì...) — trước đây rơi sang Groq nên AI
+ * "hứa nhưng không làm được" (không thấy điểm/bài làm nào). Câu hỏi kiến
+ * thức và luyện tập thuần túy (giải thích, ra câu hỏi chữ) vẫn đi Groq nhanh.
+ */
+const MUTATION_RE =
+  /\b(tạo đề|tạo bài thi|xuất bản đề|đăng đề|giao đề|gỡ đề|gỡ bài|xóa đề|xoá đề|cập nhật đề|sửa đề|chỉnh đề|tạo lớp|lớp học mới|thêm thành viên|duyệt|bài nộp|thống kê|phân tích lớp|học sinh lớp|đề vừa tạo|publish|assign|delete|update)\b|tạo(\s+\S+){1,4}\s+đề/i;
+
+const DATA_READ_RE =
+  /(xem|liệt kê|danh sách|hiển thị|cho xem).*(đề|bài|lớp|kết quả|điểm)|kết quả|điểm số|điểm yếu|phân tích|bài (đã làm|đã nộp|của tôi)|tiến độ|tổng quan|nên (học|ôn)|học gì|ôn gì|ôn tập|kế hoạch|gợi ý (ôn|học)|đề (được giao|của tôi|thi của|nào|gần nhất)/i;
+
 function shouldDelegate(message: string) {
-  return /\b(tạo đề|tạo bài thi|xuất bản đề|đăng đề|giao đề|gỡ đề|gỡ bài|xóa đề|xoá đề|cập nhật đề|sửa đề|chỉnh đề|tạo lớp|lớp học mới|thêm thành viên|duyệt|bài nộp|thống kê|phân tích lớp|học sinh lớp|đề vừa tạo|publish|assign|delete|update)\b/i.test(message);
+  return MUTATION_RE.test(message) || DATA_READ_RE.test(message);
 }
 
 function buildPrompt(role: string, message: string) {
