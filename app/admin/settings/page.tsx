@@ -106,7 +106,7 @@ export default function AdminSettings() {
 
   return (
     <div className="p-4 lg:p-8 max-w-3xl mx-auto">
-      <h1 className="text-xl font-black text-[var(--text-primary)] mb-6 flex items-center gap-2">
+      <h1 className="text-xl font-black tracking-tight text-[var(--text-primary)] mb-6 flex items-center gap-2">
         <Settings size={20} className="text-[var(--primary)]" /> Cài đặt hệ thống
       </h1>
 

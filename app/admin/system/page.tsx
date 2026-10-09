@@ -45,7 +45,7 @@ export default function AdminSystem() {
   return (
     <div className="p-4 lg:p-8 max-w-4xl mx-auto">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-black text-[var(--text-primary)] flex items-center gap-2">
+        <h1 className="text-xl font-black tracking-tight text-[var(--text-primary)] flex items-center gap-2">
           <Activity size={20} className="text-[var(--primary)]" /> Kiểm tra hệ thống
         </h1>
         <button
@@ -95,7 +95,7 @@ export default function AdminSystem() {
               ].map((c) => (
                 <div key={c.label} className="rounded-xl bg-[var(--gray-100)] p-3">
                   <p className="text-[11px] font-semibold text-[var(--text-muted)]">{c.label}</p>
-                  <p className="text-xl font-black text-[var(--text-primary)]">{c.value}</p>
+                  <p className="text-xl font-black tabular-nums tracking-tight text-[var(--text-primary)]">{c.value}</p>
                 </div>
               ))}
             </div>

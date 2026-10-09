@@ -37,7 +37,7 @@ export default function AdminAi() {
 
   return (
     <div className="p-4 lg:p-8 max-w-5xl mx-auto">
-      <h1 className="text-xl font-black text-[var(--text-primary)] mb-6 flex items-center gap-2">
+      <h1 className="text-xl font-black tracking-tight text-[var(--text-primary)] mb-6 flex items-center gap-2">
         <Sparkles size={20} className="text-[var(--primary)]" /> Nhật ký AI Import
       </h1>
 
@@ -45,12 +45,12 @@ export default function AdminAi() {
         {["success", "failed", "running"].map((s) => (
           <div key={s} className="rounded-2xl bg-[var(--surface-card)] border border-[var(--surface-border)] p-4">
             <p className={`text-[11px] font-bold px-2 py-0.5 rounded-lg inline-block ${statusColor(s)}`}>{s === "success" ? "Thành công" : s === "failed" ? "Thất bại" : "Đang chạy"}</p>
-            <p className="text-2xl font-black text-[var(--text-primary)] mt-2">{byStatus[s] ?? 0}</p>
+            <p className="text-2xl font-black tabular-nums text-[var(--text-primary)] mt-2">{byStatus[s] ?? 0}</p>
           </div>
         ))}
         <div className="rounded-2xl bg-[var(--surface-card)] border border-[var(--surface-border)] p-4">
           <p className="text-[11px] font-bold px-2 py-0.5 rounded-lg inline-block bg-[var(--gray-100)] text-[var(--text-secondary)]">Tổng (gần đây)</p>
-          <p className="text-2xl font-black text-[var(--text-primary)] mt-2">{logs.length}</p>
+          <p className="text-2xl font-black tabular-nums text-[var(--text-primary)] mt-2">{logs.length}</p>
         </div>
       </div>
 

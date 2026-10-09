@@ -56,7 +56,7 @@ export default function AdminAudit() {
 
   return (
     <div className="p-4 lg:p-8 max-w-5xl mx-auto">
-      <h1 className="text-xl font-black text-[var(--text-primary)] mb-6 flex items-center gap-2">
+      <h1 className="text-xl font-black tracking-tight text-[var(--text-primary)] mb-6 flex items-center gap-2">
         <ScrollText size={20} className="text-[var(--primary)]" /> Nhật ký quản trị
       </h1>
 

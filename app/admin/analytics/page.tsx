@@ -65,7 +65,7 @@ export default function AdminAnalytics() {
 
   return (
     <div className="p-4 lg:p-8 max-w-6xl mx-auto">
-      <h1 className="text-xl font-black text-[var(--text-primary)] mb-6 flex items-center gap-2">
+      <h1 className="text-xl font-black tracking-tight text-[var(--text-primary)] mb-6 flex items-center gap-2">
         <BarChart3 size={20} className="text-[var(--primary)]" /> Phân tích & thống kê
       </h1>
 
