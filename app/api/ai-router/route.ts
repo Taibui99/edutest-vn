@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
+import { prisma } from "@/lib/prisma";
 import { isTeacherAccess } from "@/lib/access";
 
 const GROQ_MODEL = process.env.GROQ_MODEL || "openai/gpt-oss-120b";
@@ -22,6 +23,71 @@ const DATA_READ_RE =
 
 function shouldDelegate(message: string) {
   return MUTATION_RE.test(message) || DATA_READ_RE.test(message);
+}
+
+/* AI-5d — câu hỏi dữ liệu của HỌC SINH trả lời trực tiếp bằng Prisma.
+ *
+ * Đo được trên production: đường agent (`ai-coach`, nhiều vòng gọi Gemini
+ * nối tiếp) cho câu này mất 24s khi may, treo tới kẹt kết nối khi xui
+ * (Vercel giết function giữa chừng → client ECONNRESET, khung chat quay mãi).
+ * Học sinh chỉ cần 2 dạng: xem kết quả + phân tích/gợi ý ôn tập — truy vấn
+ * thẳng nhanh (<2s) và luôn đúng, không đoán. Giáo viên vẫn đi agent vì cần
+ * tools tạo/sửa/giao đề.
+ */
+const STUDENT_RESULTS_RE = /(kết quả|điểm số|bài (đã làm|đã nộp|của tôi))/i;
+const STUDENT_COACH_RE =
+  /(điểm yếu|phân tích|tiến độ|tổng quan|nên (học|ôn)|học gì|ôn gì|ôn tập|kế hoạch|gợi ý (ôn|học))/i;
+
+async function studentResultsReply(userId: string): Promise<string> {
+  const [total, subs] = await Promise.all([
+    prisma.submission.count({ where: { studentId: userId } }),
+    prisma.submission.findMany({
+      where: { studentId: userId },
+      include: { exam: { select: { title: true, subject: true } } },
+      orderBy: { submittedAt: "desc" },
+      take: 10,
+    }),
+  ]);
+  if (!subs.length) {
+    return "Bạn chưa có bài nộp nào. Nhập mã đề từ giáo viên ở mục Vào thi để làm bài đầu tiên, rồi quay lại đây nhé!";
+  }
+  const avg = subs.reduce((a, s) => a + s.score, 0) / subs.length;
+  const lines = subs
+    .map(
+      (s, i) =>
+        `${i + 1}. ${s.exam.title} (${s.exam.subject}) — ${s.score}/10, đúng ${s.correctCount}/${s.totalQuestions} câu`,
+    )
+    .join("\n");
+  return `Bạn đã làm ${total} bài${total > 10 ? " (10 bài gần nhất)" : ""}, điểm trung bình ${avg.toFixed(1)}:\n${lines}`;
+}
+
+async function studentCoachReply(userId: string): Promise<string> {
+  const subs = await prisma.submission.findMany({
+    where: { studentId: userId },
+    include: { exam: { select: { subject: true } } },
+    orderBy: { submittedAt: "desc" },
+    take: 50,
+  });
+  if (!subs.length) {
+    return "Bạn chưa có bài làm nào để phân tích. Hãy làm một đề ở mục Vào thi, rồi quay lại đây tôi sẽ chỉ ra điểm yếu và gợi ý ôn tập!";
+  }
+  const bySubject = new Map<string, { n: number; sum: number }>();
+  for (const s of subs) {
+    const e = bySubject.get(s.exam.subject) ?? { n: 0, sum: 0 };
+    e.n += 1;
+    e.sum += s.score;
+    bySubject.set(s.exam.subject, e);
+  }
+  const rows = [...bySubject.entries()]
+    .map(([subject, v]) => ({ subject, avg: v.sum / v.n, n: v.n }))
+    .sort((a, b) => a.avg - b.avg);
+  const weakest = rows[0];
+  const lines = rows.map((r) => `• ${r.subject}: trung bình ${r.avg.toFixed(1)} (${r.n} bài)`).join("\n");
+  const advice =
+    weakest.avg >= 8
+      ? "Phong độ tốt ở mọi môn. Hãy giữ nhịp bằng cách làm thêm đề tổng hợp và soát lại các câu từng sai."
+      : `Hãy ưu tiên ôn ${weakest.subject} (trung bình ${weakest.avg.toFixed(1)} — thấp nhất): làm lại các đề môn này, đọc kỹ lời giải những câu sai, rồi hỏi tôi giải thích chỗ chưa hiểu.`;
+  return `Phân tích từ ${subs.length} bài bạn đã làm:\n${lines}\n\nGợi ý: ${advice}`;
 }
 
 function buildPrompt(role: string, message: string) {
@@ -73,11 +139,14 @@ async function delegateToGemini(req: NextRequest, message: string, history: unkn
   const cookie = req.headers.get("cookie");
   if (cookie) forwardedHeaders.set("cookie", cookie);
 
+  // AI-5d: agent nhiều vòng gọi LLM nối tiếp, quá 55s thì cắt để khung chat
+  // không quay mãi (production từng ECONNRESET vì function bị giết giữa chừng).
   const response = await fetch(url, {
     method: "POST",
     headers: forwardedHeaders,
     body: JSON.stringify({ message, history }),
     cache: "no-store",
+    signal: AbortSignal.timeout(55000),
   });
   return response.json();
 }
@@ -94,10 +163,28 @@ export async function POST(req: NextRequest) {
 
   const role = isTeacherAccess(session.user) ? "teacher" : "student";
 
+  // Học sinh hỏi dữ liệu của mình: trả lời thẳng bằng DB, nhanh và luôn đúng.
+  if (!isTeacherAccess(session.user)) {
+    if (STUDENT_RESULTS_RE.test(message)) {
+      return NextResponse.json({ reply: await studentResultsReply(session.user.id!), provider: "local" });
+    }
+    if (STUDENT_COACH_RE.test(message)) {
+      return NextResponse.json({ reply: await studentCoachReply(session.user.id!), provider: "local" });
+    }
+  }
+
   // System-sensitive A6Class Edu actions always use the existing authenticated agent.
   // This keeps database mutations behind the current permission checks and tool layer.
   if (shouldDelegate(message)) {
-    return NextResponse.json(await delegateToGemini(req, message, history));
+    try {
+      return NextResponse.json(await delegateToGemini(req, message, history));
+    } catch (error) {
+      console.error("AI delegate error:", error);
+      return NextResponse.json(
+        { error: "AI tra dữ liệu hơi lâu. Bạn thử lại sau ít phút nhé!" },
+        { status: 500 },
+      );
+    }
   }
 
   try {
