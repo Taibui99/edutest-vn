@@ -287,3 +287,17 @@ GĐ3 **luôn bypass được** (trình duyệt khác, VM, điện thoại). Ch�
   - Hai lỗi kiểm nhầm đã sửa: (1) pseudo-element vừa sinh ra/vừa biến mất thì `getComputedStyle` trả `tx=null`, `Math.round(null)=0` làm hỏng assert hướng; (2) khi transition kết thúc, pseudo biến mất nhưng `animationName` vẫn trả tên theo CSS rule (không phải `"none"`) → phải đếm animation còn bám pseudo-element.
   - Lỗi console 500 ở local là `Can't reach database server at localhost:5432` (môi trường không có Postgres), chỉ bỏ qua khi đích là localhost; production vẫn kiểm nghiêm ngặt.
 - [ ] **PRE-3 Hiệu ứng còn lại trong bản demo user gửi — CHỜ USER QUYẾT** — demo thứ hai còn 3 hiệu ứng chưa làm: (a) hạt trôi nền (floating particles), (b) nội dung hiện dần lệch nhau (stagger), (c) shine sweep trên nút. Chưa làm vì hạt trôi toàn trang sẽ gây nhiễu trong lúc làm bài và tốn pin; stagger làm mọi trang phải lên delay. Nếu user muốn: chỉ bật particles + stagger ở landing.
+
+## 🎨 Redesign toàn web — từng vùng, duyệt dần (2026-10-08)
+
+**Yêu cầu của user:** *"cải thiện UI cho toàn bộ web"*, hướng đã chốt: **redesign từng vùng, dừng cho user duyệt sau mỗi vùng** (không đổi layout lớn ồ ạt — bài học từ G12 bị revert).
+
+**Ràng buộc bất biến:** giữ stack (Next + Tailwind v4 + token), giữ thương hiệu A6Class Edu (navy/cyan/gold, Be Vietnam Pro/Inter), giữ nguyên logic/chức năng mọi trang (chỉ đổi diện mạo), tôn trọng MIN-1 (landing tối giản: hero + 2 nút + footer), không đụng logic phòng thi/timer/anti-cheat.
+
+- [x] **Z1 Landing + header/footer + auth + vao-thi** (`d8ca70d`, verified live) — mặt tiền public, copy/routes/logic giữ nguyên: header kính mờ thật (`bg-card/85` + blur, trước nền đặc làm blur vô tác dụng) + hover mọi nút + icon ArrowRight thay ký tự `→`; hero: badge dot → ping success, `text-balance`, CTA hết bóng tím cũ `rgba(108,76,241)` → navy + `active:scale`, nút phụ hover `primary-light`; footer link dạng pill hover; `AuthCard` hết xung đột `shadow-lg shadow-md` → bóng navy + `rounded-3xl`; panel auth `tracking-tight` + viền kính icon; `vao-thi`: texture dot đồng bộ hero, card bóng navy, thêm `aria-label` ô mã, 3 bước mini có icon (KeyRound/PencilLine/Rocket). `tsc` sạch, eslint 0, build OK; E2E landing 8/8 + auth-ui R-06 pass (lần fail giữa chừng là rate-limit `forgot:ip` 3/10ph do chạy suite dồn — chạy lại sau cửa sổ thì xanh, không liên quan Z1); DOM prod có `animate-ping`/`rounded-3xl`/steps mới.
+- [ ] **Z2 Dashboard GV/HS** — banner, stats, "tiếp tục bài dở", danh sách.
+- [ ] **Z3 Đề thi** — danh sách đề, chi tiết đề, editor tạo đề, ngân hàng câu hỏi.
+- [ ] **Z4 Lớp học + thống kê + tiến độ + AI + hồ sơ.**
+- [ ] **Z5 Phòng thi (runner) + kết quả** — chỉ diện mạo, giữ nguyên timer/submit/anti-cheat.
+- [ ] **Z6 Admin panel.**
+- [ ] **Z7 Shared + chốt** — empty states, dialogs, toasts, skeletons, 404, soát toàn web.
