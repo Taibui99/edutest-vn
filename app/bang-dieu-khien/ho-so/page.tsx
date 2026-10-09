@@ -148,10 +148,10 @@ export default function ProfilePage() {
 
   return (
     <div className="p-4 lg:p-8 max-w-2xl mx-auto animate-fade-in">
-      <h1 className="text-xl font-black text-[var(--text-primary)] mb-6">Hồ sơ cá nhân</h1>
+      <h1 className="text-xl font-black tracking-tight text-[var(--text-primary)] mb-6">Hồ sơ cá nhân</h1>
 
       {/* Avatar + basic info */}
-      <div className="flex items-center gap-4 mb-6 p-5 bg-[var(--surface-card)] rounded-2xl border border-[var(--surface-border)]">
+      <div className="flex items-center gap-4 mb-6 p-5 bg-[var(--surface-card)] rounded-3xl border border-[var(--surface-border)] shadow-[0_16px_40px_-24px_rgba(15,76,129,0.35)]">
         <div className="relative shrink-0">
           {profile.avatarUrl ? (
             <Image

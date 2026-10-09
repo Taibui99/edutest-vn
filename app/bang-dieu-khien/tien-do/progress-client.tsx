@@ -86,7 +86,7 @@ export function ProgressClient({ submissions }: {
 
   return (
     <div className="p-4 lg:p-8 max-w-5xl mx-auto animate-fade-in">
-      <h1 className="text-xl font-black text-[var(--text-primary)] mb-6 flex items-center gap-2">
+      <h1 className="text-xl font-black tracking-tight text-[var(--text-primary)] mb-6 flex items-center gap-2">
         <TrendingUp size={20} className="text-[var(--primary)]" /> Tiến độ học tập
       </h1>
 
@@ -106,7 +106,7 @@ export function ProgressClient({ submissions }: {
               {icon}
               <span className="text-xs font-bold">{label}</span>
             </div>
-            <p className="text-2xl font-black text-[var(--text-primary)]">{value}</p>
+            <p className="text-2xl font-black tabular-nums text-[var(--text-primary)]">{value}</p>
           </div>
         ))}
       </div>

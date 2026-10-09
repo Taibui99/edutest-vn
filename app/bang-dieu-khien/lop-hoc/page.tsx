@@ -101,7 +101,7 @@ export default function ClassroomsPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-xl font-black text-[var(--text-primary)]">Lớp học</h1>
+          <h1 className="text-xl font-black tracking-tight text-[var(--text-primary)]">Lớp học</h1>
           <p className="text-sm text-[var(--text-muted)] mt-0.5">
             {classrooms.length} lớp học
           </p>
