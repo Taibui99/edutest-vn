@@ -45,7 +45,8 @@ export default async function ExamListPage({ searchParams }: { searchParams: Pro
       <div className="p-5 lg:p-8 max-w-5xl mx-auto animate-fade-in">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-[22px] sm:text-xl font-bold text-[var(--text-primary)]">Đề thi</h1>
+            <p className="text-[11px] font-black uppercase tracking-[0.1em] text-[var(--primary)]">Quản lý</p>
+            <h1 className="text-[22px] font-black tracking-tight text-[var(--text-primary)]">Đề thi</h1>
             <p className="text-sm text-[var(--text-secondary)] mt-0.5">{exams.length} đề thi đã tạo</p>
           </div>
           <Link href="/bang-dieu-khien/tao-de-thi">
@@ -148,7 +149,7 @@ export default async function ExamListPage({ searchParams }: { searchParams: Pro
     <div className="p-5 lg:p-8 max-w-5xl mx-auto animate-fade-in">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-[22px] sm:text-xl font-bold text-[var(--text-primary)]">Đề thi của tôi</h1>
+            <h1 className="text-[22px] font-black tracking-tight text-[var(--text-primary)]">Đề thi của tôi</h1>
           <p className="text-sm text-[var(--text-secondary)] mt-0.5">{submissions.length} bài đã làm</p>
         </div>
         <Link href="/vao-thi">

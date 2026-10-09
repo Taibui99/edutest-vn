@@ -115,13 +115,14 @@ export default async function ExamDetailPage({ params }: { params: Promise<{ id:
         <ArrowLeft size={15} /> Danh sách đề thi
       </Link>
 
-      <div className="rounded-2xl p-5 mb-4 relative overflow-hidden" style={{ background: `linear-gradient(135deg, ${c.text}CC, ${c.text}99)` }}>
+      <div className="rounded-3xl p-5 mb-4 relative overflow-hidden shadow-[0_16px_40px_-16px_rgba(15,76,129,0.4)]" style={{ background: `linear-gradient(135deg, ${c.text}CC, ${c.text}99)` }}>
         <div className="absolute -top-8 -right-8 w-40 h-40 rounded-full bg-white/10" />
+        <div className="absolute -bottom-14 -left-8 w-48 h-48 rounded-full bg-white/10 blur-xl" />
         <div className="relative">
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
               <span className="text-white/70 text-sm font-medium">{exam.subject}</span>
-              <h1 className="text-2xl font-black text-white mt-0.5">{exam.title}</h1>
+              <h1 className="text-2xl font-black tracking-tight text-white mt-0.5 text-balance">{exam.title}</h1>
               {exam.description && (
                 <p className="text-white/70 text-sm mt-1">{exam.description}</p>
               )}

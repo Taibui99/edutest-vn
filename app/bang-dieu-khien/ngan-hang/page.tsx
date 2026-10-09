@@ -378,11 +378,11 @@ export default function QuestionBankPage() {
 
       {modal && (
         <div className="fixed inset-0 z-[100] overflow-y-auto bg-black/50 p-4 backdrop-blur-sm">
-          <div className="mx-auto my-8 max-w-3xl rounded-2xl bg-white p-6 shadow-2xl">
+          <div className="mx-auto my-8 max-w-3xl rounded-3xl border border-[var(--surface-border)] bg-[var(--surface-card)] p-6 shadow-[0_24px_60px_-24px_rgba(15,76,129,0.35)]">
             <div className="mb-5 flex items-center justify-between">
               <div>
                 <p className="text-xs text-[var(--text-muted)]">{editing ? "Chỉnh sửa" : "Câu hỏi mới"}</p>
-                <h2 className="text-xl font-black">{editing ? "Sửa câu hỏi" : "Thêm vào ngân hàng"}</h2>
+                <h2 className="text-xl font-black tracking-tight text-[var(--text-primary)]">{editing ? "Sửa câu hỏi" : "Thêm vào ngân hàng"}</h2>
               </div>
               <button onClick={() => setModal(false)} className="grid h-10 sm:h-9 w-10 sm:w-9 place-items-center rounded-lg bg-[var(--gray-100)]"><X size={17} /></button>
             </div>
@@ -416,7 +416,7 @@ export default function QuestionBankPage() {
                     const selected = form.answer === letter;
                     return (
                       <div key={letter} className={`flex items-center gap-2 rounded-xl border p-2.5 ${selected ? "border-[var(--mint)] bg-[var(--mint-light)]" : "border-[var(--surface-border)]"}`}>
-                        <button type="button" onClick={() => setForm({ ...form, answer: letter })} className={`grid h-7 w-7 place-items-center rounded-full text-xs font-black ${selected ? "bg-[var(--mint-light)]0 text-white" : "bg-[var(--gray-100)] text-[var(--text-muted)]"}`}>{letter}</button>
+                        <button type="button" onClick={() => setForm({ ...form, answer: letter })} className={`grid h-7 w-7 place-items-center rounded-full text-xs font-black ${selected ? "bg-[var(--success)] text-white" : "bg-[var(--gray-100)] text-[var(--text-muted)]"}`}>{letter}</button>
                         <input value={opt} onChange={(e) => { const options = [...form.options]; options[oi] = e.target.value; setForm({ ...form, options }); }} placeholder={`Đáp án ${letter}`} className="min-w-0 flex-1 bg-transparent text-sm outline-none" />
                       </div>
                     );
