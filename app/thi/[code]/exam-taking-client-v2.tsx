@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ArrowRight, CheckCircle2, Clock, Eye, Flag, Send, Trophy } from "lucide-react";
+import { ArrowLeft, ArrowRight, CheckCircle2, Clock, Eye, Flag, Hourglass, Send, TimerOff, Trophy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 import { MAX_VIOLATIONS, resolveProctorMode, type ProctorEventType, type ProctorMode } from "@/lib/integrity";
@@ -461,8 +461,8 @@ export function ExamTakingClientV2({ exam, attempt, preview = false, backHref }:
     return (
       <div className="min-h-screen bg-[var(--surface-bg)] flex items-center justify-center p-4">
         <div className="bg-[var(--surface-card)] rounded-2xl border border-[var(--surface-border)] p-8 max-w-md w-full text-center">
-          <div className="w-20 h-20 rounded-full mx-auto mb-5 flex items-center justify-center bg-[var(--danger-light)] text-[var(--danger)] text-3xl">⏰</div>
-          <h1 className="text-2xl font-bold mb-2 text-[var(--text-primary)]">Đã hết thời gian làm bài</h1>
+          <div className="w-20 h-20 rounded-full mx-auto mb-5 flex items-center justify-center bg-[var(--danger-light)] text-[var(--danger)]"><TimerOff size={36} /></div>
+          <h1 className="text-2xl font-black tracking-tight mb-2 text-[var(--text-primary)]">Đã hết thời gian làm bài</h1>
           <p className="text-[var(--text-secondary)] text-sm mb-5">Bài làm của bạn không được ghi nhận vì đã quá thời hạn nộp.</p>
           <Button className="w-full" onClick={() => router.push(exam.isGuest ? backHref : "/bang-dieu-khien/de-thi")}>Về danh sách đề thi</Button>
         </div>
@@ -477,8 +477,8 @@ export function ExamTakingClientV2({ exam, attempt, preview = false, backHref }:
         <div className="bg-[var(--surface-card)] rounded-2xl border border-[var(--surface-border)] p-8 max-w-md w-full text-center">
           {exam.showScoreImmediately === false ? (
             <>
-              <div className="w-20 h-20 rounded-full mx-auto mb-5 flex items-center justify-center bg-[var(--warning-light)] text-[var(--warning)] text-3xl">⏳</div>
-              <h1 className="text-2xl font-bold mb-2 text-[var(--text-primary)]">Đã nộp bài thành công!</h1>
+              <div className="w-20 h-20 rounded-full mx-auto mb-5 flex items-center justify-center bg-[var(--warning-light)] text-[var(--warning)]"><Hourglass size={36} /></div>
+              <h1 className="text-2xl font-black tracking-tight mb-2 text-[var(--text-primary)]">Đã nộp bài thành công!</h1>
               <p className="text-[var(--text-secondary)] text-sm mb-5">
                 Giáo viên sẽ công bố điểm sau khi chấm. Bạn đã trả lời {result.totalQuestions} câu hỏi trong {formatTime(result.durationSeconds)}.
               </p>
@@ -486,7 +486,7 @@ export function ExamTakingClientV2({ exam, attempt, preview = false, backHref }:
           ) : (
             <>
               <div className="w-20 h-20 rounded-full mx-auto mb-5 flex items-center justify-center" style={{ background: `color-mix(in srgb, ${col} 15%, transparent)` }}><Trophy size={36} style={{ color: col }} /></div>
-              <h1 className="text-3xl font-bold mb-1" style={{ color: col }}>{result.score}/10</h1>
+              <h1 className="text-3xl font-black tracking-tight tabular-nums mb-1" style={{ color: col }}>{result.score}/10</h1>
               <p className="text-[var(--text-secondary)] text-sm mb-5">{result.correctCount}/{result.totalQuestions} câu được chấm · {formatTime(result.durationSeconds)}</p>
             </>
           )}

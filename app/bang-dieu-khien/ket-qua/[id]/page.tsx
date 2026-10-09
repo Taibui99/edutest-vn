@@ -4,7 +4,7 @@ import { useState, useEffect, use } from "react";
 import Link from "next/link";
 import {
   CheckCircle2, XCircle, Clock, Trophy, ArrowLeft,
-  ChevronDown, ChevronUp, BookOpen, BarChart3, PenLine
+  ChevronDown, ChevronUp, BookOpen, BarChart3, PenLine, Hourglass
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -60,7 +60,7 @@ function ScoreGauge({ score }: { score: number }) {
           />
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-3xl font-black" style={{ color }}>{score}</span>
+          <span className="text-3xl font-black tabular-nums tracking-tight" style={{ color }}>{score}</span>
           <span className="text-xs text-[var(--text-muted)] font-semibold">/10</span>
         </div>
       </div>
@@ -117,8 +117,8 @@ export default function ResultPage({ params }: { params: Promise<{ id: string }>
 
         {exam.showScoreImmediately === false ? (
           <div className="rounded-2xl bg-[var(--warning-light)] border border-[var(--warning-light)] p-5">
-            <div className="text-3xl mb-2">⏳</div>
-            <p className="font-black text-[var(--text-primary)] mb-1">Đã nộp bài thành công</p>
+            <Hourglass size={32} className="mx-auto mb-2 text-[var(--warning)]" />
+            <p className="font-black tracking-tight text-[var(--text-primary)] mb-1">Đã nộp bài thành công</p>
             <p className="text-sm text-[var(--text-muted)]">Giáo viên sẽ công bố điểm sau khi chấm bài.</p>
           </div>
         ) : (
