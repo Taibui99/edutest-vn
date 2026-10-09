@@ -53,7 +53,7 @@ function NavLink({ item, pathname }: { item: NavItem; pathname: string }) {
     <Link
       href={item.href}
       className={cn(
-        "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-700 font-semibold transition-all",
+        "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-[0.99]",
         active
           ? "bg-[var(--primary-light)] text-[var(--primary)] shadow-sm"
           : "text-[var(--text-secondary)] hover:bg-[var(--gray-100)] hover:text-[var(--text-primary)]",

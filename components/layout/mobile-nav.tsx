@@ -58,7 +58,7 @@ export function MobileBottomNav({ user }: { user: { name: string; role: string; 
 
   return (
     <nav
-      className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-[var(--surface-sidebar)] border-t border-[var(--surface-border)] flex items-stretch h-[60px]"
+      className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-[var(--surface-sidebar)] border-t border-[var(--surface-border)] flex items-stretch min-h-[60px] pb-[env(safe-area-inset-bottom)]"
       style={{ viewTransitionName: "a6-bottomnav" }}
       aria-label="Mobile navigation"
     >

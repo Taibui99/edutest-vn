@@ -67,14 +67,15 @@ async function StudentDashboard({ userId, name }: { userId: string; name: string
     <div className="p-4 lg:p-8 max-w-5xl mx-auto animate-fade-in">
 
       {/* ── Greeting banner */}
-      <div className="rounded-3xl bg-gradient-to-r from-[var(--primary)] via-[var(--primary-hover)] to-[var(--primary-muted)] p-6 mb-6 relative overflow-hidden">
+      <div className="rounded-3xl bg-gradient-to-r from-[var(--primary)] via-[var(--primary-hover)] to-[var(--primary-muted)] p-6 mb-6 relative overflow-hidden shadow-[0_16px_40px_-16px_rgba(15,76,129,0.5)]">
         <div className="absolute -top-8 -right-8 w-40 h-40 rounded-full bg-white/10" />
         <div className="absolute -bottom-10 right-20 w-28 h-28 rounded-full bg-white/5" />
+        <div className="absolute -bottom-16 -left-10 w-56 h-56 rounded-full bg-[var(--accent)]/25 blur-2xl" />
         <div className="relative flex items-start justify-between gap-4">
           <div>
             <p className="text-white/70 text-sm font-medium">{getGreeting()},</p>
-            <h1 className="text-2xl font-black text-white mt-0.5">{name}</h1>
-            <Link href="/bang-dieu-khien/tien-do" className="mt-3 inline-flex items-center gap-1 text-sm text-white/80 hover:text-white">
+            <h1 className="text-2xl font-black tracking-tight text-white mt-0.5">{name}</h1>
+            <Link href="/bang-dieu-khien/tien-do" className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1.5 text-[13px] font-bold text-white ring-1 ring-inset ring-white/25 transition-colors hover:bg-white/25">
               Xem tiến độ học tập <ArrowRight size={14} />
             </Link>
           </div>
@@ -94,7 +95,7 @@ async function StudentDashboard({ userId, name }: { userId: string; name: string
             <FileText size={14} className="text-[var(--primary)]" />
             <span className="text-xs font-bold text-[var(--primary)]">Bài đã làm</span>
           </div>
-          <p className="text-2xl font-black text-[var(--gray-900)]">{totalSubmissions}</p>
+          <p className="text-2xl font-black tabular-nums text-[var(--text-primary)]">{totalSubmissions}</p>
         </div>
         <div className="bg-[var(--warning-light)] rounded-2xl p-4">
           <div className="flex items-center gap-2 mb-1">
@@ -110,15 +111,15 @@ async function StudentDashboard({ userId, name }: { userId: string; name: string
             <Zap size={14} className="text-[var(--success)]" />
             <span className="text-xs font-bold text-[var(--success)]">Bài trong 7 ngày</span>
           </div>
-          <p className="text-2xl font-black text-[var(--gray-900)]">{weekSubs}</p>
+          <p className="text-2xl font-black tabular-nums text-[var(--text-primary)]">{weekSubs}</p>
         </div>
         <div className="bg-[var(--blue-light)] rounded-2xl p-4">
           <div className="flex items-center gap-2 mb-1">
             <BarChart3 size={14} className="text-[var(--blue)]" />
             <span className="text-xs font-bold text-[var(--blue)]">Tiến độ</span>
           </div>
-          <Link href="/bang-dieu-khien/tien-do" className="text-xl font-black text-[var(--primary)] hover:underline">
-            Xem →
+          <Link href="/bang-dieu-khien/tien-do" className="inline-flex items-center gap-1 text-xl font-black text-[var(--primary)] hover:underline">
+            Xem <ArrowRight size={16} />
           </Link>
         </div>
       </div>
@@ -181,7 +182,7 @@ async function StudentDashboard({ userId, name }: { userId: string; name: string
           {/* Quick actions */}
           <div className="grid grid-cols-2 gap-3">
             <Link href="/vao-thi">
-              <div className="bg-[var(--surface-card)] border border-[var(--surface-border)] rounded-2xl p-4 flex items-center gap-3 hover:border-[var(--primary)]/40 hover:shadow-sm transition-all cursor-pointer h-full">
+              <div className="bg-[var(--surface-card)] border border-[var(--surface-border)] rounded-2xl p-4 flex items-center gap-3 hover:border-[var(--primary)]/40 hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer h-full">
                 <div className="w-10 h-10 rounded-xl bg-[var(--primary-light)] flex items-center justify-center shrink-0">
                   <FileText size={18} className="text-[var(--primary)]" />
                 </div>
@@ -192,7 +193,7 @@ async function StudentDashboard({ userId, name }: { userId: string; name: string
               </div>
             </Link>
             <Link href="/bang-dieu-khien/lop-hoc">
-              <div className="bg-[var(--surface-card)] border border-[var(--surface-border)] rounded-2xl p-4 flex items-center gap-3 hover:border-[var(--success)]/40 hover:shadow-sm transition-all cursor-pointer h-full">
+              <div className="bg-[var(--surface-card)] border border-[var(--surface-border)] rounded-2xl p-4 flex items-center gap-3 hover:border-[var(--success)]/40 hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer h-full">
                 <div className="w-10 h-10 rounded-xl bg-[var(--success-light)] flex items-center justify-center shrink-0">
                   <BookOpen size={18} className="text-[var(--success)]" />
                 </div>
@@ -275,13 +276,14 @@ async function TeacherDashboard({ userId, name }: { userId: string; name: string
     <div className="p-4 lg:p-8 max-w-5xl mx-auto animate-fade-in">
 
       {/* ── Greeting banner */}
-      <div className="rounded-3xl bg-gradient-to-r from-[var(--primary)] via-[var(--primary-hover)] to-[var(--primary-muted)] p-6 mb-6 relative overflow-hidden">
+      <div className="rounded-3xl bg-gradient-to-r from-[var(--primary)] via-[var(--primary-hover)] to-[var(--primary-muted)] p-6 mb-6 relative overflow-hidden shadow-[0_16px_40px_-16px_rgba(15,76,129,0.5)]">
         <div className="absolute -top-8 -right-8 w-40 h-40 rounded-full bg-white/10" />
         <div className="absolute -bottom-10 right-20 w-28 h-28 rounded-full bg-white/5" />
+        <div className="absolute -bottom-16 -left-10 w-56 h-56 rounded-full bg-[var(--accent)]/25 blur-2xl" />
         <div className="relative flex items-start justify-between gap-4">
           <div>
             <p className="text-white/70 text-sm font-medium">{getGreeting()},</p>
-            <h1 className="text-2xl font-black text-white mt-0.5">{name}</h1>
+            <h1 className="text-2xl font-black tracking-tight text-white mt-0.5">{name}</h1>
             <p className="text-white/80 text-sm mt-2">
               {recentSubs > 0 ? (
                 <>
@@ -304,14 +306,14 @@ async function TeacherDashboard({ userId, name }: { userId: string; name: string
             <FileText size={14} className="text-[var(--primary)]" />
             <span className="text-xs font-bold text-[var(--primary)]">Đề thi</span>
           </div>
-          <p className="text-2xl font-black text-[var(--gray-900)]">{exams.length}</p>
+          <p className="text-2xl font-black tabular-nums text-[var(--text-primary)]">{exams.length}</p>
         </div>
         <div className="bg-[var(--blue-light)] rounded-2xl p-4">
           <div className="flex items-center gap-2 mb-1">
             <BarChart3 size={14} className="text-[var(--blue)]" />
             <span className="text-xs font-bold text-[var(--blue)]">Bài nộp</span>
           </div>
-          <p className="text-2xl font-black text-[var(--gray-900)]">{totalSubmissions}</p>
+          <p className="text-2xl font-black tabular-nums text-[var(--text-primary)]">{totalSubmissions}</p>
           {recentSubs > 0 && <p className="text-xs text-[var(--success)] font-bold">+{recentSubs} hôm nay</p>}
         </div>
         <div className="bg-[var(--warning-light)] rounded-2xl p-4">
@@ -328,7 +330,7 @@ async function TeacherDashboard({ userId, name }: { userId: string; name: string
             <CheckCircle2 size={14} className="text-[var(--success)]" />
             <span className="text-xs font-bold text-[var(--success)]">Đang mở</span>
           </div>
-          <p className="text-2xl font-black text-[var(--gray-900)]">{activeExams.length}</p>
+          <p className="text-2xl font-black tabular-nums text-[var(--text-primary)]">{activeExams.length}</p>
         </div>
       </div>
 
@@ -503,7 +505,7 @@ function ModeSwitcher({ mode, role }: { mode: string; role: string }) {
               active={active}
               confirmMessage={`Bạn đang ở chế độ ${mode === "student" ? "Học sinh" : mode === "teacher" ? "Giáo viên" : "Quản trị"}. Chuyển sang chế độ ${card.label} ngay bây giờ?`}
               className={cn(
-                "w-full text-left rounded-2xl border p-4 transition-all cursor-pointer",
+                "w-full text-left rounded-2xl border p-4 transition-all cursor-pointer active:scale-[0.99]",
                 active
                   ? "border-[var(--primary)] bg-[var(--primary-light)] shadow-sm ring-2 ring-[var(--primary)]/20 dark:bg-[var(--primary)]"
                   : "border-[var(--surface-border)] bg-[var(--surface-card)] hover:border-[var(--primary)]/50 hover:shadow-sm",
