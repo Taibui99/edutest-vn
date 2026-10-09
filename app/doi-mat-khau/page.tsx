@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { AuthCard } from "@/app/components/auth-card";
 import { ResetPasswordForm } from "./reset-form";
@@ -25,13 +26,13 @@ export default async function DoiMatKhauPage({
   }
 
   return (
-    <div className="min-h-screen grid place-items-center bg-gradient-to-b from-[var(--primary-light)] to-white p-4">
+    <div className="min-h-screen grid place-items-center bg-gradient-to-b from-[var(--primary-light)] to-[var(--surface-bg)] p-4">
       <AuthCard
         title="Đặt lại mật khẩu"
         subtitle={valid ? "Tạo mật khẩu mới cho tài khoản của bạn" : "Liên kết không hợp lệ"}
         footer={
-          <Link href="/dang-nhap" className="font-semibold text-[var(--primary)] hover:text-[var(--primary)]">
-            ← Quay lại đăng nhập
+          <Link href="/dang-nhap" className="inline-flex items-center gap-1 font-semibold text-[var(--primary)] hover:text-[var(--primary-hover)]">
+            <ArrowLeft size={15} /> Quay lại đăng nhập
           </Link>
         }
       >

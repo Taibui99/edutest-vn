@@ -12,9 +12,9 @@ export function EmptyState({ icon, title, description, action, className }: Empt
   return (
     <div className={cn("flex flex-col items-center justify-center py-12 text-center px-4", className)}>
       {icon && (
-        <div className="text-[var(--gray-300)] mb-3 [&>svg]:w-9 [&>svg]:h-9">{icon}</div>
+        <div className="mb-3 flex h-16 w-16 items-center justify-center rounded-3xl bg-[var(--primary-light)] text-[var(--primary)] [&>svg]:h-7 [&>svg]:w-7">{icon}</div>
       )}
-      <p className="text-sm font-bold text-[var(--text-secondary)]">{title}</p>
+      <p className="text-sm font-black tracking-tight text-[var(--text-primary)]">{title}</p>
       {description && (
         <p className="mt-1 text-xs text-[var(--text-muted)] max-w-xs">{description}</p>
       )}

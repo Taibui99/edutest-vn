@@ -311,7 +311,7 @@ export function ImportExamModal({
         role="dialog"
         aria-modal="true"
         aria-label="Tạo đề bằng AI"
-        className="flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-3xl border border-white/70 bg-white shadow-2xl"
+        className="flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-3xl border border-white/70 bg-[var(--surface-card)] shadow-2xl"
       >
         <div className="flex items-start justify-between gap-4 border-b border-[var(--surface-border)] px-5 py-4 sm:px-7">
           <div className="min-w-0">
@@ -347,7 +347,7 @@ export function ImportExamModal({
                     type="button"
                     onClick={() => (mode === "smart" || (setMode("smart"), setError("")))}
                     aria-pressed={mode === "smart"}
-                    className={`flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold transition ${mode === "smart" ? "bg-white text-[var(--primary)] shadow-sm" : "text-[var(--text-muted)]"}`}
+                    className={`flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold transition ${mode === "smart" ? "bg-[var(--surface-card)] text-[var(--primary)] shadow-sm" : "text-[var(--text-muted)]"}`}
                   >
                     <ListChecks size={15} /> AI đọc tài liệu, dựng đề
                   </button>
@@ -355,7 +355,7 @@ export function ImportExamModal({
                     type="button"
                     onClick={() => (mode === "generate" || (setMode("generate"), setError("")))}
                     aria-pressed={mode === "generate"}
-                    className={`flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold transition ${mode === "generate" ? "bg-white text-[var(--primary)] shadow-sm" : "text-[var(--text-muted)]"}`}
+                    className={`flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold transition ${mode === "generate" ? "bg-[var(--surface-card)] text-[var(--primary)] shadow-sm" : "text-[var(--text-muted)]"}`}
                   >
                     <Wand2 size={15} /> AI soạn câu hỏi mới
                   </button>
@@ -382,7 +382,7 @@ export function ImportExamModal({
                             type="button"
                             onClick={() => toggleType(t.value)}
                             aria-pressed={types.includes(t.value)}
-                            className={`rounded-xl px-3.5 py-2 text-sm font-semibold transition ${types.includes(t.value) ? "bg-[var(--primary)] text-white" : "border border-[var(--surface-border)] bg-white text-[var(--text-secondary)] hover:border-[var(--surface-border-strong)]"}`}
+                            className={`rounded-xl px-3.5 py-2 text-sm font-semibold transition ${types.includes(t.value) ? "bg-[var(--primary)] text-white" : "border border-[var(--surface-border)] bg-[var(--surface-card)] text-[var(--text-secondary)] hover:border-[var(--surface-border-strong)]"}`}
                           >
                             {t.label}
                           </button>
@@ -494,7 +494,7 @@ export function ImportExamModal({
                         return (
                           <li
                             key={stage.key}
-                            className="flex items-center gap-3 rounded-xl bg-white px-4 py-3 text-sm ring-1 ring-[var(--surface-border)]"
+                            className="flex items-center gap-3 rounded-xl bg-[var(--surface-card)] px-4 py-3 text-sm ring-1 ring-[var(--surface-border)]"
                           >
                             <span
                               className={`grid h-6 w-6 shrink-0 place-items-center rounded-full ${isDone ? "bg-[var(--mint-light)] text-[var(--mint)]" : isActive ? "bg-[var(--primary)] text-white" : "bg-[var(--gray-200)] text-[var(--text-muted)]"}`}
@@ -515,7 +515,7 @@ export function ImportExamModal({
                         );
                       })}
                     </ol>
-                    <div className="mt-4 flex flex-wrap items-center justify-center gap-2 rounded-xl bg-white px-4 py-3 text-sm text-[var(--text-muted)] ring-1 ring-[var(--surface-border)]">
+                    <div className="mt-4 flex flex-wrap items-center justify-center gap-2 rounded-xl bg-[var(--surface-card)] px-4 py-3 text-sm text-[var(--text-muted)] ring-1 ring-[var(--surface-border)]">
                       <Clock3 size={15} className="text-[var(--secondary-dark)]" /> Đã chạy {elapsed}s
                       {mode === "smart" ? (
                         <span>— tài liệu dài và nhiều câu thiếu đáp án sẽ mất vài phút</span>
@@ -544,7 +544,7 @@ export function ImportExamModal({
                     <button
                       type="button"
                       onClick={reset}
-                      className="flex items-center gap-1.5 rounded-xl border border-[var(--surface-border)] bg-white px-4 py-2.5 text-sm font-semibold text-[var(--text-secondary)] hover:bg-[var(--surface-bg)]"
+                      className="flex items-center gap-1.5 rounded-xl border border-[var(--surface-border)] bg-[var(--surface-card)] px-4 py-2.5 text-sm font-semibold text-[var(--text-secondary)] hover:bg-[var(--surface-bg)]"
                     >
                       <UploadCloud size={15} /> Chọn lại
                     </button>
@@ -640,7 +640,7 @@ export function ImportExamModal({
                             return (
                               <label
                                 key={letter}
-                                className={`flex cursor-pointer items-center gap-2 rounded-xl border p-2.5 ${selected ? "border-[var(--success)] bg-[var(--success-light)]" : "border-[var(--surface-border)] bg-white"}`}
+                                className={`flex cursor-pointer items-center gap-2 rounded-xl border p-2.5 ${selected ? "border-[var(--success)] bg-[var(--success-light)]" : "border-[var(--surface-border)] bg-[var(--surface-card)]"}`}
                               >
                                 <input
                                   type="radio"
@@ -667,7 +667,7 @@ export function ImportExamModal({
                       ) : null}
 
                       {q.rubricPoints?.length ? (
-                        <div className="mt-2.5 rounded-xl bg-white p-3 ring-1 ring-[var(--surface-border)]">
+                        <div className="mt-2.5 rounded-xl bg-[var(--surface-card)] p-3 ring-1 ring-[var(--surface-border)]">
                           <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">Ý chấm AI gợi ý</p>
                           <ul className="mt-1 list-disc space-y-0.5 pl-5 text-sm text-[var(--text-secondary)]">
                             {q.rubricPoints.map((r, ri) => (
@@ -678,7 +678,7 @@ export function ImportExamModal({
                       ) : null}
 
                       {q.type !== "mcq" ? (
-                        <label className="mt-2.5 block rounded-xl bg-white p-3 ring-1 ring-[var(--surface-border)]">
+                        <label className="mt-2.5 block rounded-xl bg-[var(--surface-card)] p-3 ring-1 ring-[var(--surface-border)]">
                           <span className="text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">Đáp án tham khảo</span>
                           <textarea
                             value={q.answer}
@@ -699,7 +699,7 @@ export function ImportExamModal({
                               type="button"
                               onClick={() => setDifficulty(i, d)}
                               aria-pressed={q.difficulty === d}
-                              className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${q.difficulty === d ? "bg-[var(--primary)] text-white" : "border border-[var(--surface-border)] bg-white text-[var(--text-secondary)]"}`}
+                              className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${q.difficulty === d ? "bg-[var(--primary)] text-white" : "border border-[var(--surface-border)] bg-[var(--surface-card)] text-[var(--text-secondary)]"}`}
                             >
                               {d}
                             </button>
@@ -722,11 +722,11 @@ export function ImportExamModal({
         </div>
 
         {view === "review" ? (
-          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--surface-border)] bg-white px-5 py-4 sm:px-7">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--surface-border)] bg-[var(--surface-card)] px-5 py-4 sm:px-7">
             <button
               type="button"
               onClick={reset}
-              className="flex items-center gap-1.5 rounded-xl border border-[var(--surface-border)] bg-white px-4 py-2.5 text-sm font-semibold text-[var(--text-secondary)] hover:bg-[var(--surface-bg)]"
+              className="flex items-center gap-1.5 rounded-xl border border-[var(--surface-border)] bg-[var(--surface-card)] px-4 py-2.5 text-sm font-semibold text-[var(--text-secondary)] hover:bg-[var(--surface-bg)]"
             >
               <RotateCcw size={15} /> Chạy lại
             </button>
