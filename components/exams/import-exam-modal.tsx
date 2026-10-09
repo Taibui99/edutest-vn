@@ -28,7 +28,8 @@ type Grading = {
   rubricPoints?: string[];
 };
 
-type ReviewedQuestion = {
+/* AI-6a — export để panel soạn đề trong chat tái dùng đúng logic parse của modal. */
+export type ReviewedQuestion = {
   type: string;
   question: string;
   options: string[];
@@ -89,7 +90,7 @@ const STAGES: { key: ImportStage; label: string; smartOnly?: boolean }[] = [
   { key: "done", label: "Chờ giáo viên duyệt" },
 ];
 
-function parseResult(result: string): ImportedPayload {
+export function parseImportResult(result: string): ImportedPayload {
   const cleaned = result.replace(/^```json\s*/i, "").replace(/```$/i, "").trim();
   const parsed = JSON.parse(cleaned) as ImportedPayload;
   if (!parsed || typeof parsed !== "object" || !Array.isArray(parsed.questions)) {
@@ -104,7 +105,7 @@ function normalizeDifficulty(value: unknown): string | undefined {
 }
 
 /** Chuẩn hoá câu để màn review hiển thị và áp dụng được. */
-function toReviewItem(raw: ReviewedQuestion): ReviewedQuestion {
+export function toReviewItem(raw: ReviewedQuestion): ReviewedQuestion {
   const type = Object.keys(TYPE_NAMES).includes(raw.type) ? raw.type : "mcq";
   const options = (Array.isArray(raw.options) ? raw.options : []).map((o) => String(o).replace(/^[A-F][.)]\s*/i, "").trim());
   const rubric = Array.isArray(raw.rubricPoints)
@@ -135,7 +136,7 @@ function toReviewItem(raw: ReviewedQuestion): ReviewedQuestion {
   };
 }
 
-function isComplete(q: ReviewedQuestion): boolean {
+export function isCompleteQuestion(q: ReviewedQuestion): boolean {
   if (!q.question) return false;
   if (q.type === "mcq") return q.options.filter((o) => o.trim()).length >= 2 && !!q.answer;
   return true;
@@ -262,7 +263,7 @@ export function ImportExamModal({
         },
         { mode, options, text },
       );
-      const parsed = parseResult(result);
+      const parsed = parseImportResult(result);
       const items = (parsed.questions ?? []).map(toReviewItem);
       if (items.length === 0) throw new Error("AI không tạo được câu hỏi nào. Thử thêm nội dung hoặc đổi yêu cầu.");
       setPayload(parsed);
@@ -291,7 +292,7 @@ export function ImportExamModal({
   };
 
   const apply = () => {
-    const usable = reviewed.filter(isComplete);
+    const usable = reviewed.filter(isCompleteQuestion);
     const skipped = reviewed.length - usable.length;
     if (usable.length === 0) {
       setError("Chưa có câu nào hoàn chỉnh để áp dụng.");
@@ -731,7 +732,7 @@ export function ImportExamModal({
               <RotateCcw size={15} /> Chạy lại
             </button>
             <Button type="button" onClick={apply} disabled={reviewed.length === 0} className="justify-center gap-2">
-              <Check size={16} /> Áp dụng {reviewed.filter(isComplete).length} câu vào đề
+              <Check size={16} /> Áp dụng {reviewed.filter(isCompleteQuestion).length} câu vào đề
             </Button>
           </div>
         ) : null}

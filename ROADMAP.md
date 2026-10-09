@@ -177,6 +177,16 @@ Tất cả L1–L4 trong commit `6e0ad48` — verified live: robots.txt/sitemap.
 
 **Còn lại (không chặn AI-4):** chưa thử với file PDF/Word thật (mới smoke-test bằng text dán) và chưa có E2E test tự động cho luồng này.
 
+## 🤖 Soạn đề từ tài liệu trong chat (AI-6, 2026-10-09)
+
+**User:** *"còn tính năng import tài liệu rồi tự làm đề theo yêu cầu đâu"* → *"tôi muốn nó ở trong cái chat ấy"*.
+
+**Thiết kế (tái dùng, không viết pipeline mới):** panel "Soạn đề từ tài liệu" trong trang chat, **chỉ giáo viên**: đính kèm file (docx/pdf/txt/md gửi thẳng `importExamFile` như modal, không parse tay) hoặc dán chữ + form yêu cầu (môn, số câu, loại câu, thời lượng, ghi chú) + 2 chế độ smart (dựng từ tài liệu, có review đáp án/đồng thuận) / generate (soạn mới). Xong → parse bằng đúng helper của modal (`parseImportResult`/`toReviewItem`, sẽ export ra) → lọc câu đủ → `POST /api/exams` tạo **bản nháp** → trả link `/bang-dieu-khien/tao-de-thi?edit=<id>` để GV duyệt/xuất bản trong editor (giữ nguyên tắc AI-4: không auto-publish, câu AI chưa chắc phải báo rõ).
+
+- [ ] **AI-6a Export helper parse từ modal** — `ReviewedQuestion`, `parseImportResult`, `toReviewItem`, `isCompleteQuestion` (không đổi hành vi modal).
+- [ ] **AI-6b Panel soạn đề trong chat** (`exam-builder.tsx`, chỉ GV): file/paste + form yêu cầu + tiến trình theo stage thật + thẻ kết quả (số câu, số câu cần duyệt) + nút mở trình soạn.
+- [ ] **AI-6c Nối vào trang chat** — gợi ý GV "Soạn đề từ tài liệu" mở panel; verify live 1 lần thật (tốn quota Gemini) + E2E `ai-chat` không đỏ.
+
 ## 🤖 AI trung thực & chat mobile (AI-5, 2026-10-09)
 
 **User:** *"cái AI đang ko ổn"* → chốt 2 nghĩa: (1) **hứa nhưng không làm được** (gợi ý "tạo bài kiểm tra", "lập kế hoạch" nhưng AI chỉ trả lời chữ); (2) **giao diện chat**.

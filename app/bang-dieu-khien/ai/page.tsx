@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { Send, Sparkles, RotateCcw, Bot, User } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/cn";
+import { ExamBuilder } from "./exam-builder";
 
 interface Message {
   role: "user" | "assistant";
@@ -38,6 +39,9 @@ const TEACHER_PROMPTS = [
   "Giao đề gần nhất cho lớp 12A1",
 ];
 
+/* AI-6c — gợi ý này mở panel soạn đề từ tài liệu thay vì gửi tin nhắn. */
+const BUILDER_PROMPT = "Soạn đề từ tài liệu";
+
 function MessageBubble({ msg }: { msg: Message }) {
   const isUser = msg.role === "user";
   return (
@@ -70,6 +74,7 @@ export default function AICoachPage() {
   const [role, setRole] = useState<"student" | "teacher">("student");
   const [storageKey, setStorageKey] = useState<string | null>(null);
   const [hydrated, setHydrated] = useState(false);
+  const [builderOpen, setBuilderOpen] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -175,7 +180,16 @@ export default function AICoachPage() {
     }
   };
 
-  const quickPrompts = role === "teacher" ? TEACHER_PROMPTS : STUDENT_PROMPTS;
+  const quickPrompts =
+    role === "teacher" ? [BUILDER_PROMPT, ...TEACHER_PROMPTS] : STUDENT_PROMPTS;
+
+  const onQuickPrompt = (p: string) => {
+    if (p === BUILDER_PROMPT) {
+      setBuilderOpen(true);
+      return;
+    }
+    send(p);
+  };
 
   /* AI-5c — mobile không còn chiều cao cứng `100vh-61px` (cộng topbar + nút
      Quay lại + bottom-nav là vượt viewport, ô nhập chui xuống dưới thanh đáy).
@@ -234,11 +248,17 @@ export default function AICoachPage() {
             Chạm để gửi ngay
           </span>
         </div>
+        {role === "teacher" && builderOpen && (
+          <div className="pb-1">
+            <ExamBuilder onClose={() => setBuilderOpen(false)} />
+          </div>
+        )}
+
         <div className="flex flex-nowrap gap-2 overflow-x-auto scrollbar-hide pb-1">
           {quickPrompts.map((p) => (
             <button
               key={p}
-              onClick={() => send(p)}
+              onClick={() => onQuickPrompt(p)}
               disabled={loading || !hydrated}
               className="shrink-0 text-xs font-semibold px-3.5 py-3 sm:py-2.5 rounded-xl border border-[var(--primary-muted)] text-[var(--primary)] bg-[var(--primary-light)] hover:bg-[var(--primary-muted)] active:scale-[0.98] transition-all whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
             >
