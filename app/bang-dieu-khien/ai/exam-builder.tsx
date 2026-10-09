@@ -68,15 +68,25 @@ export function ExamBuilder({ onClose }: { onClose: () => void }) {
   const start = async () => {
     setError(null);
     setDone(null);
-    if (mode === "smart" && !file && !text.trim()) {
-      setError("Hãy đính kèm file tài liệu hoặc dán nội dung vào ô bên dưới.");
+    // Kiểm tra đầu vào giống modal import (tránh gọi API rồi mới báo lỗi chung chung).
+    const minText = mode === "generate" ? 80 : 40;
+    if (!file && text.trim().length < minText) {
+      setError(
+        mode === "generate"
+          ? "Cần tài liệu: tải file lên hoặc dán ít nhất vài dòng nội dung lý thuyết."
+          : "Vui lòng tải file PDF/Word hoặc dán nội dung đề thi vào.",
+      );
       return;
     }
     if (!subject.trim()) {
       setError("Nhập môn học để AI đặt tên đề và phân loại cho đúng.");
       return;
     }
-    const n = Math.min(50, Math.max(1, Math.floor(count) || 10));
+    if (!Number.isFinite(count) || count < 1 || count > 60) {
+      setError("Số câu phải từ 1 đến 60.");
+      return;
+    }
+    const n = Math.min(60, Math.max(1, Math.floor(count) || 10));
     setRunning(true);
     try {
       const { result, meta } = await importExamFile(
@@ -189,16 +199,22 @@ export function ExamBuilder({ onClose }: { onClose: () => void }) {
               className="hidden"
               onChange={(e) => setFile(e.target.files?.[0] ?? null)}
             />
-            <textarea
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              disabled={running}
-              rows={3}
-              placeholder="Hoặc dán nội dung lý thuyết vào đây…"
-              className="w-full rounded-2xl border border-[var(--surface-border)] bg-[var(--surface-input)] p-3 text-sm outline-none focus:border-[var(--primary)]"
-            />
           </>
         )}
+
+        <label className="block">
+          <span className="mb-1 block text-xs font-bold text-[var(--text-secondary)]">
+            {mode === "generate" ? "Nội dung lý thuyết *" : "Hoặc dán nội dung vào đây"}
+          </span>
+          <textarea
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            disabled={running}
+            rows={3}
+            placeholder="Dán ít nhất vài dòng nội dung lý thuyết…"
+            className="w-full rounded-2xl border border-[var(--surface-border)] bg-[var(--surface-input)] p-3 text-sm outline-none focus:border-[var(--primary)]"
+          />
+        </label>
 
         <div className="grid grid-cols-2 gap-2.5">
           <label className="block">
