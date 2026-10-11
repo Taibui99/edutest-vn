@@ -1,5 +1,7 @@
 export const DEFAULT_MODEL = "gemini-3.5-flash-lite";
-export const FALLBACK_MODELS = ["gemini-2.5-flash-lite", "gemini-2.0-flash-lite"];
+/* Đã bỏ "gemini-2.0-flash-lite" (2026-10-11): Google khai tử, gọi vào chỉ nhận
+ * 404 "is no longer available" — user thấy JSON thô trong modal import. */
+export const FALLBACK_MODELS = ["gemini-2.5-flash-lite"];
 
 export function modelChain(): string[] {
   const configured = process.env.EXAM_IMPORT_MODEL?.trim();

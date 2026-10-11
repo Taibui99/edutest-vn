@@ -546,6 +546,8 @@ function mimeTypeFor(file: File) {
 
 function mapError(message: string) {
   if (/429|rate.?limit|quota/i.test(message)) return "Gemini đang quá tải hoặc hết quota. Vui lòng thử lại sau ít phút.";
+  // Model bị Google khai tử (từng lọt JSON thô ra UI): báo gọn thay vì dump kỹ thuật.
+  if (/404|not.?found|no longer available/i.test(message)) return "Model AI vừa được Google cập nhật. Thử bấm “Thử lại” sau ít phút nhé!";
   if (/timeout|timed out|deadline|quá lâu/i.test(message)) return message.slice(0, 300);
   return `Không thể import đề: ${message.slice(0, 300)}`;
 }
