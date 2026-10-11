@@ -77,7 +77,10 @@ ${note ? `- Yêu cầu riêng của giáo viên (phải tuân thủ): ${note}` :
 
 CHỈ DÙNG KIẾN THỨC CÓ TRONG TÀI LIỆU. Không bịa sự kiện, công thức, số liệu hoặc định nghĩa không có trong tài liệu. Câu hỏi phải tự đủ nghĩa, không viết "theo tài liệu trên".
 Tiêu đề đề lấy từ chủ đề chính của tài liệu.
-Trả về JSON đúng response schema.`;
+Trả về JSON đúng response schema.
+
+TÀI LIỆU:
+${content}`;
 }
 
 function mergeGenerated(chunks: GeneratedPayload[]): GeneratedPayload {
