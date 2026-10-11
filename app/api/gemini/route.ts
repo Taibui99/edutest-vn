@@ -69,7 +69,7 @@ YÊU CẦU BẮT BUỘC:
 - Phân bố độ khó: ${difficultyPlan(count)}.
 ${opts.subject ? `- Môn học: ${opts.subject}.` : ""}
 ${opts.grade ? `- Khối lớp: ${opts.grade}.` : ""}
-- mcq: đúng 4 đáp án A, B, C, D, chỉ có đúng 1 đáp án đúng; đáp án đúng phân bố cân bằng, không dồn cục.
+- mcq: đúng 4 đáp án A, B, C, D, chỉ có đúng 1 đáp án đúng; đáp án đúng phân bố cân bằng, không dồn cục; trường answer CHỈ là đúng 1 ký tự A/B/C/D, không kèm nội dung đáp án.
 - 3 đáp án sai phải là những đáp án hợp lý gây nhầm lẫn, KHÔNG được vô lý hoặc quá dễ loại.
 ${opts.withExplanation ? "- Kèm giải thích ngắn cho mỗi câu (trường explanation)." : ""}
 ${focus ? `- Tập trung vào: ${focus}.` : ""}

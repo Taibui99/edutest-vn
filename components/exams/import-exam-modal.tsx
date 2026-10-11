@@ -115,12 +115,16 @@ export function toReviewItem(raw: ReviewedQuestion): ReviewedQuestion {
       : [];
   const difficulty = normalizeDifficulty(raw.difficulty) ?? normalizeDifficulty(raw.grading?.difficulty);
   const mcq = type === "mcq";
+  // Server chỉ chấp nhận answer trắc nghiệm là đúng 1 ký tự A/B/C/D — model
+  // hay trả "B. 2" nên phải rút về chữ cái, thiếu thì để trống để màn review
+  // (modal) hoặc bộ lọc (chat) xử lý thay vì nổ 400 lúc lưu.
+  const mcqAnswer = mcq ? (String(raw.answer ?? "").toUpperCase().match(/[A-D]/)?.[0] ?? "") : "";
   return {
     type,
     question: String(raw.question ?? "").trim(),
     // Server chỉ chấp nhận trắc nghiệm 2-4 đáp án nên giới hạn 4 ở đây để giáo viên không phải xử lý lỗi lúc lưu đề.
     options: mcq ? (options.length ? options.slice(0, 4) : ["", "", "", ""]) : [],
-    answer: mcq ? String(raw.answer ?? "").trim().toUpperCase() : String(raw.answer ?? ""),
+    answer: mcq ? mcqAnswer : String(raw.answer ?? ""),
     grading: {
       ...(raw.grading ?? {}),
       ...(difficulty ? { difficulty } : {}),
