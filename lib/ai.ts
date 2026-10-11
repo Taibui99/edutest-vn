@@ -1,7 +1,12 @@
 export const DEFAULT_MODEL = "gemini-3.5-flash-lite";
-/* Đã bỏ "gemini-2.0-flash-lite" (2026-10-11): Google khai tử, gọi vào chỉ nhận
- * 404 "is no longer available" — user thấy JSON thô trong modal import. */
-export const FALLBACK_MODELS = ["gemini-2.5-flash-lite"];
+/* Google đang khai tử dần dòng lite cũ: 2.0-flash-lite chết hẳn, 2.5-flash-lite
+ * báo "no longer available to new users" với key này (log prod 2026-10-11).
+ * Chỉ giữ model Google còn khuyến nghị; khi cả chuỗi fail sẽ lọt lỗi THẬT
+ * (quota/quá tải) ra mapError thay vì 404 đánh lạc hướng. */
+/* Ứng viên duy nhất có cơ sở: gemini-3.1-flash-lite đang chạy tốt qua
+ * Interactions API ở agent ai-coach — sẽ kiểm chứng 1 lần qua generateContent,
+ * 404 thì gỡ. */
+export const FALLBACK_MODELS: string[] = ["gemini-3.1-flash-lite"];
 
 export function modelChain(): string[] {
   const configured = process.env.EXAM_IMPORT_MODEL?.trim();
