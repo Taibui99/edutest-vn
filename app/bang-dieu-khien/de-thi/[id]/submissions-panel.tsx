@@ -253,8 +253,9 @@ export function SubmissionsPanel({ subs, questions }: { subs: SubRow[]; question
                 onClick={() => setExpanded(open ? null : sub.id)}
                 className="w-full flex items-center gap-3 px-5 py-3.5 hover:bg-[var(--gray-100)] transition-colors text-left"
               >
+                {/* Hạng bài nộp (badge chỉ đổi màu nền, nội dung luôn là số). */}
                 <span className={`w-5 shrink-0 text-center text-xs font-black rounded-md py-0.5 ${badge ?? "text-[var(--text-muted)]"}`}>
-                  {badge ?? i + 1}
+                  {i + 1}
                 </span>
                 <div className="w-8 h-8 rounded-full bg-[var(--primary-light)] flex items-center justify-center shrink-0">
                   <span className="text-xs font-black text-[var(--primary)]">{sub.studentName.charAt(0).toUpperCase()}</span>

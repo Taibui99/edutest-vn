@@ -49,12 +49,21 @@ test.describe("RBAC — Phân quyền", () => {
   });
 
   test("RB-09 (G6b): Student bật chế độ GV → tạo đề được, chỉ thấy đề mình", async ({ page }) => {
+    // Đổi mode qua hub rồi CHỜ thẻ mode hiện "Đang dùng" (server action
+    // re-encode JWT bất đồng bộ — gọi API ngay sẽ race với cookie cũ và 403 oan).
+    const switchMode = async (label: "Giáo viên" | "Học sinh") => {
+      await page.goto("/bang-dieu-khien");
+      // chờ hub hydrate xong (thẻ mode hiện tại có "Đang dùng") rồi mới bấm,
+      // không thì click rơi vào lúc React chưa gắn handler và dialog không mở.
+      await expect(page.getByText("Đang dùng").first()).toBeVisible({ timeout: 20000 });
+      await page.getByText(label, { exact: true }).first().click();
+      await page.getByRole("button", { name: "Chuyển chế độ" }).click();
+      const card = page.locator("main button", { hasText: label }).first();
+      await expect(card.getByText("Đang dùng")).toBeVisible({ timeout: 25000 });
+    };
+
     await login(page, STUDENT.email, STUDENT.password);
-    // bật chế độ Giáo viên qua hub (có hộp xác nhận)
-    await page.goto("/bang-dieu-khien");
-    await page.getByText("Giáo viên", { exact: true }).first().click();
-    await page.getByRole("button", { name: "Chuyển chế độ" }).click();
-    await page.waitForURL(/\/bang-dieu-khien/, { timeout: 20000 });
+    await switchMode("Giáo viên");
 
     // tạo đề ở chế độ GV → 201 (trước G6b là 403)
     const title = `QA-Mode-${Date.now()}`;
@@ -75,10 +84,7 @@ test.describe("RBAC — Phân quyền", () => {
 
     // dọn + về chế độ Học sinh → lại 403 như cũ
     await page.request.delete(`/api/exams/${exam.id}`);
-    await page.goto("/bang-dieu-khien");
-    await page.getByText("Học sinh", { exact: true }).first().click();
-    await page.getByRole("button", { name: "Chuyển chế độ" }).click();
-    await page.waitForURL(/\/bang-dieu-khien/, { timeout: 20000 });
+    await switchMode("Học sinh");
     const denied = await page.request.post("/api/exams", {
       data: { title: "QA-Nope", subject: "Toán", durationMinutes: 15, questions: [] },
     });

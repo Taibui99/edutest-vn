@@ -183,9 +183,9 @@ Tất cả L1–L4 trong commit `6e0ad48` — verified live: robots.txt/sitemap.
 
 **Quyết định:** hiệu lực theo **mode đang dùng**, không theo role gốc. An toàn vì mọi API giáo viên nhốt dữ liệu theo `userId` (chỉ thấy/tạo đề-lớp của chính mình) — không rò sang người khác; preview `?preview=1` lộ đáp án nên **giữ nguyên check role** (GĐ0); khu `/admin` giữ `isAdminAccess` (role + mode).
 
-- [ ] **G6b-1 Core** — `isTeacherAccess()` = role teacher/admin **hoặc** `effectiveMode()==="teacher"`; thêm `isStudentAccess()` = `effectiveMode()==="student"`.
-- [ ] **G6b-2 Đổi các chốt còn sót** — `attempts`/`submissions` (role→mode, message chỉ cách đổi mode), `thi/[code]` page (message chỉ cách đổi mode), `de-thi/[id]` page (role→`isTeacherAccess`, admin ở mode GV cũng vào được như thong-ke).
-- [ ] **G6b-3 E2E RB-09** — học sinh bật mode GV → `POST /api/exams` 201 + `GET` chỉ thấy đề mình (không thấy đề GV khác) → dọn đề + về mode HS; full RBAC + student-take-exam không đỏ.
+- [x] **G6b-1 Core** (`b990ba7`) — `isTeacherAccess()` = role teacher/admin **hoặc** `effectiveMode()==="teacher"`; thêm `isStudentAccess()` = `effectiveMode()==="student"`. Preview `?preview=1` cố ý giữ check role (lộ đáp án — GĐ0).
+- [x] **G6b-2 Đổi các chốt còn sót** (`b990ba7`) — `attempts`/`submissions` (role→mode, message chỉ cách đổi mode), `thi/[code]` page (message chỉ cách đổi mode), `de-thi/[id]` page (role→`isTeacherAccess`, admin ở mode GV cũng vào được như thong-ke).
+- [ ] **G6b-3 E2E RB-09** — học sinh bật mode GV → `POST /api/exams` 201 + `GET` chỉ thấy đề mình → dọn đề + về mode HS. Lỗi test (không phải product): lần 1 chờ nút "Xác nhận" trong khi dialog ghi "Chuyển chế độ"; lần 2 race gọi API trước khi cookie mode mới về; lần 3 bấm card lúc chưa hydrate xong → đã sửa test (chờ "Đang dùng" + chờ thẻ active), đang verify.
 
 ## 🤖 Soạn đề từ tài liệu trong chat (AI-6, 2026-10-09)
 
@@ -198,7 +198,7 @@ Tất cả L1–L4 trong commit `6e0ad48` — verified live: robots.txt/sitemap.
 - [x] **AI-6c Nối vào trang chat + verify** (`9e1ef59`, verified live) — gợi ý GV "Soạn đề từ tài liệu" mở panel; E2E `ai-chat` desktop 2/2; probe live: soạn 3 câu → tạo nháp → mở `tao-de-thi?edit=` được → đã dọn đề probe.
 - [x] **AI-6d Vá 2 bug pipeline phát hiện khi verify** (`5ca26f2`, `b21eb0d`, verified live) — (1) `buildGeneratePrompt` **đánh rơi TÀI LIỆU** (prompt ghi "Từ TÀI LIỆU bên dưới" nhưng không kèm content) → model bịa đề lạc đề (hỏi cộng tự nhiên, trả đạo hàm); đã kèm `${content}`, kiểm lại ra đúng chủ đề. (2) answer mcq dạng `"B. 2"` → server 400 (chỉ nhận đúng 1 ký tự): `toReviewItem` rút về chữ cái + prompt ép bare-letter. Dùng chung cho cả modal import.
 - [x] **AI-6e Chặn file trên 4MB ở client** (`357bad6`) — user báo `413 FUNCTION_PAYLOAD_TOO_LARGE` khi import: Vercel chặn body trên ~4.5MB trước khi function chạy nên mức 50MB trong code không bao giờ với tới. (Bị thay bằng AI-6f bên dưới.)
-- [ ] **AI-6f Mở file tới 25MB qua Supabase** — user: *"sao không mở dung lượng mọi file mà lại giới hạn?"* Đáp: tường 4.5MB là của Vercel, code không nâng được; cách đúng là file lớn **up thẳng lên Supabase Storage (bỏ qua Vercel)**. Thiết kế: file ≤4MB gửi thẳng như cũ (nhanh); file 4–25MB: client xin `POST /api/uploads/sign` (chỉ GV, rate-limit, validate đuôi + size, tự tạo bucket `exam-docs` riêng tư nếu chưa có) → `PUT` trực tiếp lên signed URL → gọi `/api/gemini` bằng JSON `{storagePath}` (body nhỏ) → server tải bằng service key, chạy pipeline cũ, **xoá file tạm sau khi xong**. Quá 25MB mới báo lỗi. UI ghi "tối đa 25MB".
+- [~] **AI-6f Mở file tới 25MB qua Supabase** — **TẠM DỪNG theo yêu cầu user (2026-10-11): "đã thử ok rồi, đừng sửa gì phần tài liệu nữa"**. Hiện trạng: code sign/upload/storage đã live (`dc8704d`), nhưng route `/api/gemini` vẫn giữ trần 4MB nên file lớn qua storage sẽ chạm 413 ở server (đã revert nâng 25MB để không đụng phần tài liệu). Muốn mở thật thì 2 việc còn lại: nâng trần route theo storagePath + verify file lớn end-to-end. Ghi ở đây để không quên, làm khi user yêu cầu.
 
 ## 🤖 AI trung thực & chat mobile (AI-5, 2026-10-09)
 
