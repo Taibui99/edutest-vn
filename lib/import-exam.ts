@@ -2,14 +2,40 @@ export type ImportStage = "upload" | "extract" | "analyze" | "solve" | "check" |
 
 export type ImportMode = "smart" | "generate";
 
-/* Giới hạn upload: Vercel chặn request body trên ~4.5MB (FUNCTION_PAYLOAD_TOO_LARGE)
- * trước khi code chạy, nên phải chặn ở client với message rõ ràng thay vì để
- * server báo 50MB mà thực tế không bao giờ với tới. File nặng hơn: nén PDF,
- * chia nhỏ, hoặc dán đoạn cần thiết vào ô văn bản. */
-export const MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
-
+/* AI-6f — hai đường upload:
+ * - ≤4MB: gửi thẳng File qua Vercel như cũ (nhanh, ít bước).
+ * - 4–25MB: Vercel chặn body trên ~4.5MB nên up thẳng lên Supabase qua signed
+ *   URL (`/api/uploads/sign`), rồi gọi API bằng storagePath (body nhỏ).
+ * - Trên 25MB: báo lỗi rõ + hướng xử lý (nén/chia/dán text). */
+export const MAX_DIRECT_BYTES = 4 * 1024 * 1024;
+export const MAX_UPLOAD_BYTES = 25 * 1024 * 1024;
 export function uploadTooLarge(file: File | null): boolean {
   return !!file && file.size > MAX_UPLOAD_BYTES;
+}
+
+function mb(bytes: number): string {
+  return `${(bytes / 1048576).toFixed(1)} MB`;
+}
+
+/** Up file lớn thẳng lên Supabase, trả về storagePath để gọi API. */
+async function uploadViaStorage(file: File, onStage: (stage: ImportStage) => void): Promise<string> {
+  onStage("upload");
+  const signRes = await fetch("/api/uploads/sign", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name: file.name, size: file.size }),
+  });
+  const sign = (await signRes.json().catch(() => ({}))) as { path?: string; signedUrl?: string; error?: string };
+  if (!signRes.ok || !sign.path || !sign.signedUrl) {
+    throw new Error(typeof sign.error === "string" ? sign.error : "Không xin được link tải file lên");
+  }
+  const put = await fetch(sign.signedUrl, {
+    method: "PUT",
+    body: file,
+    headers: { "Content-Type": file.type || "application/octet-stream" },
+  });
+  if (!put.ok) throw new Error("Tải file lên kho thất bại. Thử lại sau nhé!");
+  return sign.path;
 }
 
 export type GenerateOptions = {
@@ -50,22 +76,43 @@ export async function importExamFile(
 ): Promise<{ result: string; meta?: Record<string, unknown> }> {
   const mode = opts.mode ?? "smart";
   const timeout = mode === "generate" ? GENERATE_TIMEOUT_MS : SMART_TIMEOUT_MS;
-  if (uploadTooLarge(file)) {
-    const mb = file ? (file.size / 1048576).toFixed(1) : "?";
+  if (file && file.size > MAX_UPLOAD_BYTES) {
     throw new Error(
-      `File nặng ${mb} MB, vượt quá 4 MB cho phép. Hãy nén PDF lại, chia nhỏ tài liệu, hoặc copy đoạn cần thiết dán vào ô văn bản.`,
+      `File nặng ${mb(file.size)}, vượt quá 25 MB cho phép. Hãy chia nhỏ tài liệu, hoặc copy đoạn cần thiết dán vào ô văn bản.`,
     );
   }
-  onStage(mode === "generate" && file ? "upload" : "extract");
 
-  const form = new FormData();
-  if (file) form.append("file", file);
-  if (opts.text?.trim()) form.append("prompt", opts.text.trim());
-  form.append("mode", mode);
-  if (mode === "generate") form.append("options", JSON.stringify(opts.options ?? {}));
+  // File lớn đi đường storage để không vỡ tường 4.5MB của Vercel.
+  let storagePath: string | null = null;
+  if (file && file.size > MAX_DIRECT_BYTES) {
+    storagePath = await uploadViaStorage(file, onStage);
+  } else {
+    onStage(mode === "generate" && file ? "upload" : "extract");
+  }
+
+  const body: BodyInit =
+    storagePath !== null
+      ? JSON.stringify({
+          storagePath,
+          mode,
+          options: mode === "generate" ? (opts.options ?? {}) : undefined,
+          prompt: opts.text?.trim() || undefined,
+        })
+      : (() => {
+          const form = new FormData();
+          if (file) form.append("file", file);
+          if (opts.text?.trim()) form.append("prompt", opts.text.trim());
+          form.append("mode", mode);
+          if (mode === "generate") form.append("options", JSON.stringify(opts.options ?? {}));
+          return form;
+        })();
 
   const res = await withTimeout(
-    fetch("/api/gemini", { method: "POST", body: form }),
+    fetch("/api/gemini", {
+      method: "POST",
+      body,
+      ...(storagePath !== null ? { headers: { "Content-Type": "application/json" } } : {}),
+    }),
     timeout,
     mode === "generate"
       ? "AI soạn đề quá lâu. Thử giảm số câu hoặc rút gọn tài liệu."

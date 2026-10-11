@@ -4,6 +4,7 @@ import mammoth from "mammoth";
 import pdfParse from "pdf-parse";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { supabaseAdmin } from "@/lib/supabase";
 import { isTeacherAccess } from "@/lib/access";
 import { getSetting } from "@/lib/settings";
 import { generateWithRetry, withTimeout } from "@/lib/ai";
@@ -560,18 +561,51 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Tính năng AI import đang tắt bởi quản trị viên" }, { status: 403 });
   }
 
-  const formData = await request.formData();
-  const file = formData.get("file") as File | null;
-  const rawMode = formData.get("mode") as string | null;
-  const mode: "smart" | "generate" | "extract" = rawMode === "generate" ? "generate" : rawMode === "extract" ? "extract" : "smart";
+  /* AI-6f — hai kiểu gọi: multipart cũ (file ≤4MB) và JSON {storagePath}
+     cho file lớn đã up thẳng lên Supabase (body nhỏ, qua được Vercel). */
+  const BUCKET = "exam-docs";
+  const isJson = (request.headers.get("content-type") || "").includes("application/json");
+  let file: File | null = null;
+  let rawMode: string | null = null;
   let options: GenerateOptions = {};
-  try {
-    const raw = formData.get("options");
-    options = raw ? (JSON.parse(String(raw)) as GenerateOptions) : {};
-  } catch {
-    options = {};
+  let prompt: string | undefined;
+  let tempPath: string | null = null;
+
+  if (isJson) {
+    const body = (await request.json().catch(() => ({}))) as {
+      storagePath?: unknown; mode?: unknown; options?: unknown; prompt?: unknown;
+    };
+    const storagePath = typeof body.storagePath === "string" ? body.storagePath : "";
+    rawMode = typeof body.mode === "string" ? body.mode : null;
+    if (body.options && typeof body.options === "object") options = body.options as GenerateOptions;
+    if (typeof body.prompt === "string") prompt = body.prompt.trim() || undefined;
+    if (storagePath) {
+      // Nhốt theo userId: client chỉ thấy path của chính mình từ /api/uploads/sign.
+      if (!storagePath.startsWith(`${session.user.id}/`)) {
+        return NextResponse.json({ error: "Đường dẫn tài liệu không hợp lệ" }, { status: 400 });
+      }
+      const { data: blob, error: dlError } = await supabaseAdmin.storage.from(BUCKET).download(storagePath);
+      if (dlError || !blob) {
+        return NextResponse.json({ error: "Không tải được tài liệu từ kho (có thể đã hết hạn, hãy tải lại)" }, { status: 400 });
+      }
+      const base = storagePath.split("/").pop() || "tailieu";
+      file = new File([blob], base, { type: (blob as Blob).type || "application/octet-stream" });
+      tempPath = storagePath;
+    }
+  } else {
+    const formData = await request.formData();
+    file = formData.get("file") as File | null;
+    rawMode = formData.get("mode") as string | null;
+    try {
+      const raw = formData.get("options");
+      options = raw ? (JSON.parse(String(raw)) as GenerateOptions) : {};
+    } catch {
+      options = {};
+    }
+    prompt = (formData.get("prompt") as string | null)?.trim() || undefined;
   }
-  const prompt = (formData.get("prompt") as string | null)?.trim();
+
+  const mode: "smart" | "generate" | "extract" = rawMode === "generate" ? "generate" : rawMode === "extract" ? "extract" : "smart";
   if (!file && !prompt) return NextResponse.json({ error: "Thiếu file hoặc nội dung cần xử lý" }, { status: 400 });
   if (mode === "generate" && !file && !prompt) {
     return NextResponse.json({ error: "Thiếu nội dung để soạn câu hỏi" }, { status: 400 });
@@ -758,6 +792,10 @@ export async function POST(request: NextRequest) {
           });
         } catch {}
       } finally {
+        // AI-6f — dọn file tạm trên kho, xong hay lỗi cũng xoá để khỏi rác.
+        if (tempPath) {
+          await supabaseAdmin.storage.from(BUCKET).remove([tempPath]).catch(() => {});
+        }
         try { controller.close(); } catch {}
       }
     },
