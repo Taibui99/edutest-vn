@@ -177,6 +177,10 @@ Tất cả L1–L4 trong commit `6e0ad48` — verified live: robots.txt/sitemap.
 
 **Còn lại (không chặn AI-4):** chưa thử với file PDF/Word thật (mới smoke-test bằng text dán) và chưa có E2E test tự động cho luồng này.
 
+## 🩹 Fix theo báo cáo user (2026-10-11/12)
+- [x] **Avatar rò className ở danh sách bài nộp** (`d97b47b`, verified live) — user chụp màn hình: hàng đầu hiện nguyên chữ `bg-[var(--warning-light)]...` thay cho avatar. Nguyên nhân: `submissions-panel.tsx` render `{badge ?? i + 1}` — badge là chuỗi class nên lọt ra UI. Sửa: nội dung luôn là `{i + 1}`, badge chỉ đổi màu nền. Verify live: hết chuỗi rò, hạng đầu hiện "1", đề probe đã dọn.
+- [ ] Các lỗi khác user báo sau thì làm (hiện web đã ổn, không fix mò).
+
 ## 🔓 Chế độ có hiệu lực thật (G6b, 2026-10-11)
 
 **User:** *"đã cho thay đổi chế độ mà role không dùng được thì thay đổi làm gì?"* — đúng: `switchModeAction` cho mọi tài khoản bật chế độ Giáo viên, nhưng API check `role` DB nên vào rồi toàn 403 (user báo import đề `Chỉ giáo viên mới được import đề` dù đang ở mode GV).
