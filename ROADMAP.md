@@ -183,9 +183,10 @@ Tất cả L1–L4 trong commit `6e0ad48` — verified live: robots.txt/sitemap.
 
 **Thiết kế (tái dùng, không viết pipeline mới):** panel "Soạn đề từ tài liệu" trong trang chat, **chỉ giáo viên**: đính kèm file (docx/pdf/txt/md gửi thẳng `importExamFile` như modal, không parse tay) hoặc dán chữ + form yêu cầu (môn, số câu, loại câu, thời lượng, ghi chú) + 2 chế độ smart (dựng từ tài liệu, có review đáp án/đồng thuận) / generate (soạn mới). Xong → parse bằng đúng helper của modal (`parseImportResult`/`toReviewItem`, sẽ export ra) → lọc câu đủ → `POST /api/exams` tạo **bản nháp** → trả link `/bang-dieu-khien/tao-de-thi?edit=<id>` để GV duyệt/xuất bản trong editor (giữ nguyên tắc AI-4: không auto-publish, câu AI chưa chắc phải báo rõ).
 
-- [ ] **AI-6a Export helper parse từ modal** — `ReviewedQuestion`, `parseImportResult`, `toReviewItem`, `isCompleteQuestion` (không đổi hành vi modal).
-- [ ] **AI-6b Panel soạn đề trong chat** (`exam-builder.tsx`, chỉ GV): file/paste + form yêu cầu + tiến trình theo stage thật + thẻ kết quả (số câu, số câu cần duyệt) + nút mở trình soạn.
-- [ ] **AI-6c Nối vào trang chat** — gợi ý GV "Soạn đề từ tài liệu" mở panel; verify live 1 lần thật (tốn quota Gemini) + E2E `ai-chat` không đỏ.
+- [x] **AI-6a Export helper parse từ modal** (`9e1ef59`) — `ReviewedQuestion`, `parseImportResult`, `toReviewItem`, `isCompleteQuestion` (modal đổi tên gọi, hành vi giữ nguyên).
+- [x] **AI-6b Panel soạn đề trong chat** (`9e1ef59` + `55bfbe4`, verified live) — `exam-builder.tsx` chỉ GV: file/paste + form yêu cầu (môn/số câu/loại/phút/ghi chú) + 2 chế độ smart/generate + tiến trình stage thật + thẻ kết quả (số câu, số câu AI chưa chắc) + nút mở trình soạn; kiểm tra đầu vào giống modal (generate cần ≥80 ký tự lý thuyết).
+- [x] **AI-6c Nối vào trang chat + verify** (`9e1ef59`, verified live) — gợi ý GV "Soạn đề từ tài liệu" mở panel; E2E `ai-chat` desktop 2/2; probe live: soạn 3 câu → tạo nháp → mở `tao-de-thi?edit=` được → đã dọn đề probe.
+- [x] **AI-6d Vá 2 bug pipeline phát hiện khi verify** (`5ca26f2`, `b21eb0d`, verified live) — (1) `buildGeneratePrompt` **đánh rơi TÀI LIỆU** (prompt ghi "Từ TÀI LIỆU bên dưới" nhưng không kèm content) → model bịa đề lạc đề (hỏi cộng tự nhiên, trả đạo hàm); đã kèm `${content}`, kiểm lại ra đúng chủ đề. (2) answer mcq dạng `"B. 2"` → server 400 (chỉ nhận đúng 1 ký tự): `toReviewItem` rút về chữ cái + prompt ép bare-letter. Dùng chung cho cả modal import.
 
 ## 🤖 AI trung thực & chat mobile (AI-5, 2026-10-09)
 
