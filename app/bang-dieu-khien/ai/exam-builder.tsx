@@ -190,7 +190,7 @@ export function ExamBuilder({ onClose }: { onClose: () => void }) {
               className="flex items-center justify-center gap-2 rounded-2xl border-[1.5px] border-dashed border-[var(--surface-border-strong)] px-4 py-3.5 text-sm font-semibold text-[var(--text-secondary)] transition-colors hover:border-[var(--primary)] hover:text-[var(--primary)] disabled:opacity-50"
             >
               <FileUp size={16} />
-              {file ? file.name : "Đính kèm Word / PDF / TXT"}
+              {file ? file.name : "Đính kèm Word / PDF / TXT (tối đa 4MB)"}
             </button>
             <input
               ref={fileRef}

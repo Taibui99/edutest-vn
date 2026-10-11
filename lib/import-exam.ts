@@ -2,6 +2,16 @@ export type ImportStage = "upload" | "extract" | "analyze" | "solve" | "check" |
 
 export type ImportMode = "smart" | "generate";
 
+/* Giới hạn upload: Vercel chặn request body trên ~4.5MB (FUNCTION_PAYLOAD_TOO_LARGE)
+ * trước khi code chạy, nên phải chặn ở client với message rõ ràng thay vì để
+ * server báo 50MB mà thực tế không bao giờ với tới. File nặng hơn: nén PDF,
+ * chia nhỏ, hoặc dán đoạn cần thiết vào ô văn bản. */
+export const MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
+
+export function uploadTooLarge(file: File | null): boolean {
+  return !!file && file.size > MAX_UPLOAD_BYTES;
+}
+
 export type GenerateOptions = {
   subject?: string;
   grade?: string;
@@ -40,6 +50,12 @@ export async function importExamFile(
 ): Promise<{ result: string; meta?: Record<string, unknown> }> {
   const mode = opts.mode ?? "smart";
   const timeout = mode === "generate" ? GENERATE_TIMEOUT_MS : SMART_TIMEOUT_MS;
+  if (uploadTooLarge(file)) {
+    const mb = file ? (file.size / 1048576).toFixed(1) : "?";
+    throw new Error(
+      `File nặng ${mb} MB, vượt quá 4 MB cho phép. Hãy nén PDF lại, chia nhỏ tài liệu, hoặc copy đoạn cần thiết dán vào ô văn bản.`,
+    );
+  }
   onStage(mode === "generate" && file ? "upload" : "extract");
 
   const form = new FormData();

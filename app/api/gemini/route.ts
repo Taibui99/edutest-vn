@@ -20,7 +20,9 @@ import {
 } from "@/lib/ai-exam-build";
 
 const geminiModel = process.env.EXAM_IMPORT_MODEL || "gemini-3.5-flash-lite";
-const MAX_FILE_BYTES = 50 * 1024 * 1024;
+/* Đồng bộ với MAX_UPLOAD_BYTES ở lib/import-exam.ts: Vercel chặn body trên
+   ~4.5MB trước khi function chạy nên mức này chỉ là phòng thủ lớp hai. */
+const MAX_FILE_BYTES = 4 * 1024 * 1024;
 const MAX_TEXT_CHARS = 120_000;
 const MAX_MODEL_OUTPUT = 16_384;
 const AI_TIMEOUT_MS = 45_000;
@@ -576,7 +578,7 @@ export async function POST(request: NextRequest) {
   }
   if (file) {
     if (!file.size) return NextResponse.json({ error: "File tải lên rỗng hoặc không hợp lệ" }, { status: 400 });
-    if (file.size > MAX_FILE_BYTES) return NextResponse.json({ error: "File quá lớn. Vui lòng chọn file dưới 50 MB." }, { status: 413 });
+    if (file.size > MAX_FILE_BYTES) return NextResponse.json({ error: "File quá lớn (tối đa 4 MB). Hãy nén PDF lại, chia nhỏ tài liệu, hoặc dán đoạn cần thiết vào ô văn bản." }, { status: 413 });
   }
 
   const encoder = new TextEncoder();

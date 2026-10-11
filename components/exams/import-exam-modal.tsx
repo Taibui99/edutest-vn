@@ -433,7 +433,7 @@ export function ImportExamModal({
                       {mode === "smart" ? "Tải tài liệu đề thi (PDF / Word)" : "Tải file Word / PDF (không bắt buộc)"}
                     </span>
                     <span className="block text-xs text-[var(--text-muted)]">
-                      {mode === "smart" ? "Kéo thả file đề vào đây" : "Kéo thả vào đây, hoặc dán nội dung lý thuyết bên dưới"}
+                      {mode === "smart" ? "Kéo thả file đề vào đây (tối đa 4MB)" : "Kéo thả vào đây (tối đa 4MB), hoặc dán nội dung lý thuyết bên dưới"}
                     </span>
                   </span>
                 </button>
