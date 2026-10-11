@@ -1,3 +1,4 @@
+import QRCode from "qrcode";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { isTeacherAccess } from "@/lib/access";
@@ -38,7 +39,9 @@ export async function GET(
 
   const origin = new URL(_request.url).origin;
   const shareUrl = `${origin}/thi/${encodeURIComponent(exam.joinCode)}`;
-  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=600x600&margin=16&data=${encodeURIComponent(shareUrl)}`;
+  // Tự sinh QR local (data URL): api.qrserver.com ngoài vừa phụ thuộc mạng
+  // vừa bị CSP img-src chặn → ảnh gãy. data: đã có trong img-src.
+  const qrUrl = await QRCode.toDataURL(shareUrl, { width: 600, margin: 2 });
 
   return NextResponse.json({
     exam: {

@@ -64,7 +64,7 @@ function ScoreGauge({ score }: { score: number }) {
           <span className="text-xs text-[var(--text-muted)] font-semibold">/10</span>
         </div>
       </div>
-      <span className="text-sm font-black px-3 py-1 rounded-full" style={{ background: `${color}22`, color }}>
+          <span className="text-sm font-black px-3 py-1 rounded-full" style={{ background: `color-mix(in srgb, ${color} 13%, transparent)`, color }}>
         {grade}
       </span>
     </div>

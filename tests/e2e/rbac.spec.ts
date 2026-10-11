@@ -53,7 +53,7 @@ test.describe("RBAC — Phân quyền", () => {
     // bật chế độ Giáo viên qua hub (có hộp xác nhận)
     await page.goto("/bang-dieu-khien");
     await page.getByText("Giáo viên", { exact: true }).first().click();
-    await page.getByRole("button", { name: "Xác nhận" }).click();
+    await page.getByRole("button", { name: "Chuyển chế độ" }).click();
     await page.waitForURL(/\/bang-dieu-khien/, { timeout: 20000 });
 
     // tạo đề ở chế độ GV → 201 (trước G6b là 403)
@@ -77,7 +77,7 @@ test.describe("RBAC — Phân quyền", () => {
     await page.request.delete(`/api/exams/${exam.id}`);
     await page.goto("/bang-dieu-khien");
     await page.getByText("Học sinh", { exact: true }).first().click();
-    await page.getByRole("button", { name: "Xác nhận" }).click();
+    await page.getByRole("button", { name: "Chuyển chế độ" }).click();
     await page.waitForURL(/\/bang-dieu-khien/, { timeout: 20000 });
     const denied = await page.request.post("/api/exams", {
       data: { title: "QA-Nope", subject: "Toán", durationMinutes: 15, questions: [] },
