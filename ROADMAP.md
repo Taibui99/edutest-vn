@@ -177,6 +177,16 @@ Tất cả L1–L4 trong commit `6e0ad48` — verified live: robots.txt/sitemap.
 
 **Còn lại (không chặn AI-4):** chưa thử với file PDF/Word thật (mới smoke-test bằng text dán) và chưa có E2E test tự động cho luồng này.
 
+## 🔓 Chế độ có hiệu lực thật (G6b, 2026-10-11)
+
+**User:** *"đã cho thay đổi chế độ mà role không dùng được thì thay đổi làm gì?"* — đúng: `switchModeAction` cho mọi tài khoản bật chế độ Giáo viên, nhưng API check `role` DB nên vào rồi toàn 403 (user báo import đề `Chỉ giáo viên mới được import đề` dù đang ở mode GV).
+
+**Quyết định:** hiệu lực theo **mode đang dùng**, không theo role gốc. An toàn vì mọi API giáo viên nhốt dữ liệu theo `userId` (chỉ thấy/tạo đề-lớp của chính mình) — không rò sang người khác; preview `?preview=1` lộ đáp án nên **giữ nguyên check role** (GĐ0); khu `/admin` giữ `isAdminAccess` (role + mode).
+
+- [ ] **G6b-1 Core** — `isTeacherAccess()` = role teacher/admin **hoặc** `effectiveMode()==="teacher"`; thêm `isStudentAccess()` = `effectiveMode()==="student"`.
+- [ ] **G6b-2 Đổi các chốt còn sót** — `attempts`/`submissions` (role→mode, message chỉ cách đổi mode), `thi/[code]` page (message chỉ cách đổi mode), `de-thi/[id]` page (role→`isTeacherAccess`, admin ở mode GV cũng vào được như thong-ke).
+- [ ] **G6b-3 E2E RB-09** — học sinh bật mode GV → `POST /api/exams` 201 + `GET` chỉ thấy đề mình (không thấy đề GV khác) → dọn đề + về mode HS; full RBAC + student-take-exam không đỏ.
+
 ## 🤖 Soạn đề từ tài liệu trong chat (AI-6, 2026-10-09)
 
 **User:** *"còn tính năng import tài liệu rồi tự làm đề theo yêu cầu đâu"* → *"tôi muốn nó ở trong cái chat ấy"*.

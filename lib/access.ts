@@ -15,9 +15,22 @@ export function effectiveMode(user: SessionUser): string | null {
   return user.role ? defaultModeByRole(user.role) : null;
 }
 
+/**
+ * G6b — chế độ (mode) có hiệu lực thật: đang ở chế độ Giáo viên thì dùng được
+ * tính năng giáo viên, bất kể role gốc. An toàn vì mọi API giáo viên nhốt dữ
+ * liệu theo userId (chỉ thấy/tạo/sửa đề-lớp-thống kê của chính mình).
+ * NGOẠI LỆ giữ check role: preview `?preview=1` (lộ đáp án — GĐ0) và /admin.
+ */
 export function isTeacherAccess(user: SessionUser): boolean {
   if (!user) return false;
-  return user.role === "teacher" || user.role === "admin";
+  if (user.role === "teacher" || user.role === "admin") return true;
+  return effectiveMode(user) === "teacher";
+}
+
+/** Chiều ngược lại: chỉ chế độ Học sinh mới làm/nộp bài (khách đi nhánh riêng). */
+export function isStudentAccess(user: SessionUser): boolean {
+  if (!user) return false;
+  return effectiveMode(user) === "student";
 }
 
 // Admin API yêu cầu role=admin VÀ đang ở chế độ Quản trị

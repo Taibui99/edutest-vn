@@ -47,4 +47,41 @@ test.describe("RBAC — Phân quyền", () => {
     const resp = await page.request.get("/api/exams");
     expect(resp.status()).toBe(403);
   });
+
+  test("RB-09 (G6b): Student bật chế độ GV → tạo đề được, chỉ thấy đề mình", async ({ page }) => {
+    await login(page, STUDENT.email, STUDENT.password);
+    // bật chế độ Giáo viên qua hub (có hộp xác nhận)
+    await page.goto("/bang-dieu-khien");
+    await page.getByText("Giáo viên", { exact: true }).first().click();
+    await page.getByRole("button", { name: "Xác nhận" }).click();
+    await page.waitForURL(/\/bang-dieu-khien/, { timeout: 20000 });
+
+    // tạo đề ở chế độ GV → 201 (trước G6b là 403)
+    const title = `QA-Mode-${Date.now()}`;
+    const created = await page.request.post("/api/exams", {
+      data: {
+        title, subject: "Toán", durationMinutes: 15, status: "draft",
+        questions: [{ type: "mcq", question: "1+1?", options: ["1", "2", "3", "4"], answer: "B" }],
+      },
+    });
+    expect(created.status(), await created.text()).toBe(201);
+    const { exam } = await created.json();
+
+    // danh sách chỉ có đề mình vừa tạo (không rò đề của GV khác)
+    const list = await page.request.get("/api/exams");
+    expect(list.status()).toBe(200);
+    const ids = ((await list.json()).exams ?? []).map((e: { id: string }) => e.id);
+    expect(ids).toContain(exam.id);
+
+    // dọn + về chế độ Học sinh → lại 403 như cũ
+    await page.request.delete(`/api/exams/${exam.id}`);
+    await page.goto("/bang-dieu-khien");
+    await page.getByText("Học sinh", { exact: true }).first().click();
+    await page.getByRole("button", { name: "Xác nhận" }).click();
+    await page.waitForURL(/\/bang-dieu-khien/, { timeout: 20000 });
+    const denied = await page.request.post("/api/exams", {
+      data: { title: "QA-Nope", subject: "Toán", durationMinutes: 15, questions: [] },
+    });
+    expect(denied.status()).toBe(403);
+  });
 });

@@ -5,6 +5,7 @@ import { cookies } from "next/headers";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { isProctorMode, type ProctorMode } from "@/lib/integrity";
+import { effectiveMode, isStudentAccess } from "@/lib/access";
 import { startAttempt, studentActiveKey, guestActiveKey } from "@/lib/attempt";
 import { Trophy, ArrowLeft, UserRound, Clock, MonitorX } from "lucide-react";
 
@@ -101,6 +102,8 @@ export default async function ThiPage({ params, searchParams }: { params: Promis
   const now = new Date();
   const notStarted = exam.openAt ? now < exam.openAt : false;
   const expired = exam.closeAt ? now > exam.closeAt : false;
+  // Preview cố ý giữ check ROLE (không theo mode): nó lộ đáp án (GĐ0) nên chỉ
+  // tài khoản giáo viên thật được xem, kể cả khi học sinh bật chế độ GV.
   const isPreview = preview === "1" && session?.user?.role === "teacher";
   const fmt = (d: Date) => d.toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" });
   if ((notStarted || expired) && !isPreview) {
@@ -142,7 +145,8 @@ export default async function ThiPage({ params, searchParams }: { params: Promis
   }
 
   if (preview === "1" && session.user.role === "teacher") return <ExamTakingClientV2 preview backHref={`/bang-dieu-khien/de-thi/${exam.id}`} exam={{ id: exam.id, title: exam.title, subject: exam.subject, durationMinutes: exam.durationMinutes, joinCode: exam.joinCode, isGuest: false, showScoreImmediately: exam.showScoreImmediately, questions: mapQuestionsForPreview() }} />;
-  if (session.user.role !== "student") return <div className="min-h-screen grid place-items-center bg-[var(--surface-bg)] p-4"><div className="rounded-2xl bg-white p-8 text-center"><p className="font-semibold text-[var(--warning)]">Tài khoản này không phải học sinh</p><Link href="/bang-dieu-khien" className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-[var(--primary)]"><ArrowLeft size={14}/> Về trang chủ</Link></div></div>;
+  // G6b — hiệu lực theo mode; giữ check role cho preview ở trên (GĐ0: lộ đáp án).
+  if (!isStudentAccess(session.user)) return <div className="min-h-screen grid place-items-center bg-[var(--surface-bg)] p-4"><div className="rounded-2xl bg-white p-8 text-center max-w-sm"><p className="font-semibold text-[var(--warning)]">Bạn đang ở chế độ {effectiveMode(session.user) === "admin" ? "Quản trị" : "Giáo viên"}</p><p className="mt-2 text-sm text-[var(--text-muted)]">Hãy chuyển sang chế độ Học sinh ở bảng điều khiển rồi mở lại link thi.</p><Link href="/bang-dieu-khien" className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-[var(--primary)]"><ArrowLeft size={14}/> Về trang chủ</Link></div></div>;
   const started = await startAttempt({ exam, studentId: session.user.id, guestParticipantId: null, activeKey: studentActiveKey(session.user.id), questions: exam.questions });
   if (started.status === "active_elsewhere") return <BusyElsewhere />;
   if (started.status === "max_attempts") {

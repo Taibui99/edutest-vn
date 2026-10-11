@@ -6,6 +6,7 @@ import { isQuestionCorrect, isAutoGraded, type AnswerValue } from "@/lib/grading
 import { ATTEMPT_GRACE_SECONDS, finalizeTimedOutAttempt, riskOfAttempt, currentIpHash } from "@/lib/attempt";
 import { NextRequest, NextResponse } from "next/server";
 import { rateLimit, clientIp } from "@/lib/rate-limit";
+import { effectiveMode, isStudentAccess } from "@/lib/access";
 
 type AnswerMap = Record<string, AnswerValue>;
 
@@ -42,7 +43,8 @@ export async function POST(request: NextRequest) {
   let participantName = "Học sinh";
 
   if (session?.user) {
-    if (session.user.role !== "student") return NextResponse.json({ error: "Chỉ học sinh mới nộp bài thi" }, { status: 403 });
+    // G6b — hiệu lực theo mode (xem attempts/route.ts).
+    if (!isStudentAccess(session.user)) return NextResponse.json({ error: `Bạn đang ở chế độ ${effectiveMode(session.user) === "admin" ? "Quản trị" : "Giáo viên"}. Hãy chuyển sang chế độ Học sinh để nộp bài thi.` }, { status: 403 });
     studentId = session.user.id;
     participantName = session.user.name || "Học sinh";
     const attemptsUsed = await prisma.submission.count({ where: { examId, studentId: session.user.id } });

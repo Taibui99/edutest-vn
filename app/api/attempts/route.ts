@@ -4,6 +4,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { rateLimit, clientIp } from "@/lib/rate-limit";
+import { effectiveMode, isStudentAccess } from "@/lib/access";
 import { startAttempt, studentActiveKey, guestActiveKey, remainingSecondsOf, ATTEMPT_GRACE_SECONDS } from "@/lib/attempt";
 
 /**
@@ -37,7 +38,8 @@ export async function POST(request: NextRequest) {
   let activeKey: string;
 
   if (session?.user) {
-    if (session.user.role !== "student") return NextResponse.json({ error: "Chỉ học sinh mới làm bài thi" }, { status: 403 });
+    // G6b — hiệu lực theo mode: đang ở chế độ Giáo viên thì đổi về Học sinh mới làm bài được.
+    if (!isStudentAccess(session.user)) return NextResponse.json({ error: `Bạn đang ở chế độ ${effectiveMode(session.user) === "admin" ? "Quản trị" : "Giáo viên"}. Hãy chuyển sang chế độ Học sinh để làm bài thi.` }, { status: 403 });
     studentId = session.user.id;
     activeKey = studentActiveKey(session.user.id);
   } else {

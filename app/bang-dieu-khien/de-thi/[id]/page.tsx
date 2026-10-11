@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { proctorModeLabel } from "@/lib/integrity";
+import { isTeacherAccess } from "@/lib/access";
 import { ExamActions } from "./exam-actions";
 import { CopyJoinCode } from "./copy-join-code";
 import { getSubjectColor } from "@/lib/subject";
@@ -20,7 +21,8 @@ export const metadata: Metadata = { title: "Chi tiết đề thi — A6Class Edu
 export default async function ExamDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
   if (!session?.user) redirect("/dang-nhap");
-  if (session.user.role !== "teacher") redirect("/bang-dieu-khien");
+  // G6b — hiệu lực theo mode (admin ở chế độ GV cũng vào được, như thong-ke).
+  if (!isTeacherAccess(session.user)) redirect("/bang-dieu-khien");
 
   const { id } = await params;
   const exam = await prisma.exam.findFirst({
