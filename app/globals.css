@@ -573,6 +573,28 @@ html.a6-preloader-off #a6-preloader {
   to   { transform: scale(1);   opacity: 0; }
 }
 
+/* ── Thanh tải mảnh trên cùng khi chuyển màn hình (đo live: cold click mất
+   ~4s mới chốt điều hướng — không báo gì thì như treo). Hiện ngay khi bấm
+   link nội bộ, gỡ khi pathname đổi (xem PageTransition). */
+html.a6-nav-loading::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 9990;
+  height: 3px;
+  width: 35%;
+  border-radius: 0 3px 3px 0;
+  background: var(--gradient-brand);
+  box-shadow: 0 1px 8px rgba(15, 76, 129, 0.45);
+  animation: a6-nav-load 1.1s ease-in-out infinite;
+}
+
+@keyframes a6-nav-load {
+  0%   { left: -35%; }
+  100% { left: 100%; }
+}
+
 /* ── Trượt ngang ─────────────────────────────────────────────────────────
    `::view-transition-old(root)` là ảnh chụp trang CŨ, `::view-transition-new(root)`
    là ảnh chụp trang MỚI. Hai ảnh chồng lên nhau, new ở trên; ta đẩy hai ảnh
@@ -697,4 +719,5 @@ html.a6-no-vt::view-transition-new(*) {
     animation: none !important;
   }
   .a6-ripple { display: none; }
+  html.a6-nav-loading::before { animation: none; width: 100%; left: 0; }
 }

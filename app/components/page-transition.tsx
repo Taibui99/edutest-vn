@@ -80,6 +80,8 @@ export function PageTransition(): null {
   // đoạn này — phần còn lại của hiệu ứng không phụ thuộc.
   useEffect(() => {
     document.documentElement.classList.toggle("a6-no-vt", pathname.startsWith("/thi"));
+    // Tới trang mới = điều hướng xong: gỡ thanh tải (phòng khi timeout dọn hụt).
+    document.documentElement.classList.remove("a6-nav-loading");
   }, [pathname]);
 
   useEffect(() => {
@@ -123,7 +125,18 @@ export function PageTransition(): null {
 
       // ── Hướng trượt: bấm link là đi tới ──
       const anchor = target.closest<HTMLAnchorElement>("a[href]");
-      if (anchor && navigatesInternally(anchor)) setSlide("next");
+      if (anchor && navigatesInternally(anchor)) {
+        setSlide("next");
+        // Thanh tải mảnh trên cùng: điều hướng cold mất ~4s mới chốt, không có
+        // gì báo thì user tưởng treo. Hiện ngay khi bấm, gỡ khi đổi pathname.
+        if (!reduced) {
+          root.classList.add("a6-nav-loading");
+          window.clearTimeout((root as unknown as { __a6nav?: number }).__a6nav);
+          (root as unknown as { __a6nav?: number }).__a6nav = window.setTimeout(() => {
+            root.classList.remove("a6-nav-loading");
+          }, 10000);
+        }
+      }
     };
 
     // Bấm back/forward của trình duyệt là quay lại — phải trượt ngược hướng.
