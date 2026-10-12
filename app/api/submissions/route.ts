@@ -26,7 +26,12 @@ export async function POST(request: NextRequest) {
    * tự tính nên server không cách nào kiểm chứng. */
   if (!attemptId) return NextResponse.json({ error: "Thiếu mã lần làm bài. Vui lòng tải lại trang." }, { status: 400 });
 
-  const exam = await prisma.exam.findUnique({ where: { id: examId }, include: { questions: { orderBy: { order: "asc" } } } });
+  /* Tiết kiệm 1 round trip (~1s+): đề và attempt độc lập nhau nên đọc song
+   * song. Thứ tự kiểm tra giữ nguyên bên dưới nên mã lỗi trả về không đổi. */
+  const [exam, attempt] = await Promise.all([
+    prisma.exam.findUnique({ where: { id: examId }, include: { questions: { orderBy: { order: "asc" } } } }),
+    prisma.attempt.findUnique({ where: { id: attemptId } }),
+  ]);
   if (!exam || exam.status !== "published" || exam.hidden || exam.deletedAt) return NextResponse.json({ error: "Không tìm thấy đề thi" }, { status: 404 });
   if (!exam.questions.length) {
     const err = new Error("Đề thi không có câu hỏi nào (examId=" + examId + ")");
@@ -66,7 +71,6 @@ export async function POST(request: NextRequest) {
   /* GĐ1 — kiểm chứng lần làm bài TRƯỚC khi chấm điểm.
    * Attempt là nguồn sự thật duy nhất về thời gian: `startedAt`/`deadlineAt`
    * do server sinh lúc bắt đầu, client không gửi và cũng không tính được. */
-  const attempt = await prisma.attempt.findUnique({ where: { id: attemptId } });
   if (!attempt || attempt.examId !== examId) return NextResponse.json({ error: "Lần làm bài không hợp lệ. Vui lòng tải lại trang." }, { status: 400 });
   if (attempt.studentId !== studentId || attempt.guestParticipantId !== guestParticipantId) return NextResponse.json({ error: "Bạn không sở hữu lần làm bài này." }, { status: 403 });
   if (attempt.submittedAt) return NextResponse.json({ error: "Bài thi đã được nộp." }, { status: 409 });
@@ -123,9 +127,10 @@ export async function POST(request: NextRequest) {
     return created;
   });
 
-  try {
-    await prisma.notification.create({ data: { userId: exam.teacherId, type: "exam_result", title: "Có người vừa nộp bài", message: `${participantName} vừa nộp bài "${exam.title}" — Điểm: ${score}/10`, link: `/bang-dieu-khien/de-thi/${exam.id}` } });
-  } catch { /* ignore notification errors */ }
+  /* Chuông báo cho giáo viên: bắn rồi không đợi (fire-and-forget) để khỏi cộng
+   * thêm 1 round trip vào đường nộp bài. Rớt thì mất 1 chuông, bài làm và điểm
+   * đã chốt chắc ở transaction phía trên nên không ảnh hưởng gì. */
+  prisma.notification.create({ data: { userId: exam.teacherId, type: "exam_result", title: "Có người vừa nộp bài", message: `${participantName} vừa nộp bài "${exam.title}" — Điểm: ${score}/10`, link: `/bang-dieu-khien/de-thi/${exam.id}` } }).catch(() => {});
 
   return NextResponse.json({ submission, isGuest: Boolean(guestParticipantId), resultLink: guestParticipantId ? null : `/bang-dieu-khien/ket-qua/${submission.id}` });
 }

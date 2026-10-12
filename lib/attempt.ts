@@ -173,6 +173,9 @@ export async function startAttempt(opts: {
     if (used >= opts.exam.maxAttempts) return { status: "max_attempts" };
   }
 
+  // Tiết kiệm 1 round trip DB (~1s+ trên Supabase): `existing` vừa đọc ở trên,
+  // đọc lại trong createOrResumeAttempt gần như luôn trả cùng kết quả (cửa sổ
+  // race chỉ vài micro giây CPU; đường đua tạo song song vẫn có P2002 đỡ).
   const attempt = await createOrResumeAttempt({
     examId: opts.exam.id,
     studentId: opts.studentId,
@@ -182,6 +185,7 @@ export async function startAttempt(opts: {
     shuffleQuestions: opts.exam.shuffleQuestions,
     shuffleAnswers: opts.exam.shuffleAnswers,
     questions: opts.questions,
+    prefetched: existing,
   });
   return attempt ? { status: "ok", attempt } : { status: "active_elsewhere" };
 }
@@ -203,11 +207,16 @@ export async function createOrResumeAttempt(opts: {
   shuffleQuestions: boolean;
   shuffleAnswers: boolean;
   questions: QuestionForShuffle[];
+  /** Hàng attempt vừa đọc ở startAttempt — truyền vào để khỏi đọc lại.
+   * Caller duy nhất là startAttempt nên luôn có; thiếu thì đọc như cũ. */
+  prefetched?: Parameters<typeof toSnapshot>[0] | null;
 }): Promise<AttemptSnapshot | null> {
   const { activeKey, examId, durationMinutes, questions } = opts;
 
-  const existing = await prisma.attempt.findUnique({ where: { activeKey } });
-  if (existing) return existing.examId === examId ? toSnapshot(existing) : null;
+  const known = opts.prefetched !== undefined
+    ? opts.prefetched
+    : await prisma.attempt.findUnique({ where: { activeKey } });
+  if (known) return known.examId === examId ? toSnapshot(known) : null;
 
   const seed = Math.floor(Math.random() * 0x7fffffff);
   const questionOrder = opts.shuffleQuestions ? shuffledIndices(questions.length, seed) : questions.map((_, i) => i);
