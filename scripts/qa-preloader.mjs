@@ -97,6 +97,8 @@ const browser = await chromium.launch();
 }
 
 // ── 2. Trượt ngang khi chuyển màn hình + ripple ───────────────────────
+// Khác khung (landing → auth) thì CẮT CẢNH (data-slide=instant, không trượt);
+// cùng khung (auth → auth) mới trượt. Xem page-transition.tsx (shellOf).
 {
   const ctx = await browser.newContext({ viewport: { width: 1366, height: 768 } });
   const page = await ctx.newPage();
@@ -121,15 +123,47 @@ const browser = await chromium.launch();
   await page.goto(BASE, { waitUntil: "load" });
   await page.waitForSelector("#a6-preloader", { state: "detached", timeout: 8000 });
 
+  // 2a. landing → /dang-ky (khác khung): phải CẮT CẢNH, không trượt.
   const link = page.locator('a[href="/dang-ky"]').first();
   await link.waitFor({ state: "visible", timeout: 5000 });
+  await link.click({ noWaitAfter: true });
+
+  let dir = "";
+  let slidRoot = false;
+  for (let i = 0; i < 120; i++) {
+    const s = await readSlide(page);
+    if (s.slide) dir = s.slide;
+    if (s.nw.anim && s.nw.anim.includes("a6-slide")) slidRoot = true;
+    if (s.slide === "instant" && page.url().includes("/dang-ky")) break;
+    await page.waitForTimeout(50);
+  }
+  await page.waitForURL("**/dang-ky", { timeout: 15000 });
+  check("PRE-2 · khác khung → data-slide=instant", dir === "instant", `data-slide=${dir}`);
+  check("PRE-2 · khác khung → root KHÔNG trượt", !slidRoot, slidRoot ? "vẫn thấy a6-slide" : "animation=none");
+
+  const endedInstant = await page
+    .waitForFunction(
+      () =>
+        !document
+          .getAnimations()
+          .some((a) => (a.effect?.pseudoElement ?? "").startsWith("::view-transition") && a.playState === "running"),
+      null,
+      { timeout: 5000 },
+    )
+    .then(() => true)
+    .catch(() => false);
+  check("PRE-2 · cắt cảnh xong là hết animation (không treo)", endedInstant);
+
+  // 2b. /dang-ky → /dang-nhap (cùng khung auth): vẫn TRƯỢT đầy đủ.
+  const loginLink = page.locator("main").getByRole("link", { name: /đăng nhập/i }).first();
+  await loginLink.waitFor({ state: "visible", timeout: 5000 });
 
   // Bấm rồi dò liên tục cho tới khi đủ mẫu HỢP LỆ.
   // Mẫu hợp lệ = animationName khác "none" VÀ transform đọc ra matrix. Lúc
   // pseudo-element vừa mới sinh ra (hoặc vừa biến mất) getComputedStyle trả
   // chuỗi rỗng → tx=null; nếu bỏ sót thì Math.round(null)=0 làm hỏng mọi
   // assert (trước đây "trang mới vào TỪ PHẢI" bị báo sai là 0px → 322px).
-  await link.click({ noWaitAfter: true });
+  await loginLink.click({ noWaitAfter: true });
 
   const samples = [];
   for (let i = 0; i < 240; i++) {
@@ -140,7 +174,7 @@ const browser = await chromium.launch();
   }
 
   check(
-    "PRE-2 · có animation trượt khi điều hướng",
+    "PRE-2 · cùng khung có animation trượt khi điều hướng",
     samples.length > 0,
     samples.length ? `${samples.length} mẫu` : "animationName=none ở cả 160 lần đo",
   );
@@ -183,8 +217,8 @@ const browser = await chromium.launch();
     );
   }
 
-  await page.waitForURL("**/dang-ky", { timeout: 8000 });
-  check("PRE-2 · đã tới /dang-ky", page.url().includes("/dang-ky"), page.url());
+  await page.waitForURL("**/dang-nhap", { timeout: 8000 });
+  check("PRE-2 · đã tới /dang-nhap", page.url().includes("/dang-nhap"), page.url());
 
   // Transition phải kết thúc — không để lại pseudo-element treo.
   // KHÔNG đọc `animationName` để phán "đã xong": khi pseudo-element biến mất,
@@ -204,7 +238,7 @@ const browser = await chromium.launch();
     .then(() => true)
     .catch(() => false);
   check("PRE-2 · transition tự kết thúc (không treo)", ended);
-  await page.screenshot({ path: `${SHOTS}/03-dang-ky.png` });
+  await page.screenshot({ path: `${SHOTS}/03-dang-nhap.png` });
 
   // ── Quay lại: phải ghi hướng NGƯỢC ──
   // Kiểm thực tế: React CHƯA gọi `document.startViewTransition()` khi bấm back
