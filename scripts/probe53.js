@@ -1,6 +1,6 @@
 ﻿const { chromium } = require("playwright");
 (async () => {
-  const BASE = process.env.BASE_URL || "https://edutest-vn.vercel.app";
+  const BASE = process.env.BASE_URL || "https://a6class-edu.vercel.app";
   const browser = await chromium.launch({ channel: "chrome", headless: true });
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1", hasTouch: true, isMobile: true });
   const page = await ctx.newPage();

@@ -1,6 +1,6 @@
 import { chromium } from "@playwright/test";
 
-const BASE = process.env.BASE_URL || "https://edutest-vn.vercel.app";
+const BASE = process.env.BASE_URL || "https://a6class-edu.vercel.app";
 const PAGES = [
   ["/", "home"],
   ["/vao-thi", "vaothi"],

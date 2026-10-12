@@ -1,6 +1,6 @@
 import { chromium } from "playwright";
 
-const BASE = process.argv[2] ?? "https://edutest-vn.vercel.app";
+const BASE = process.argv[2] ?? "https://a6class-edu.vercel.app";
 const browser = await chromium.launch();
 
 /**

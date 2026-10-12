@@ -1,7 +1,7 @@
 // Probe PRODUCTION cho GĐ2 — chứng minh code đã deploy + schema đã db push.
-// Chạy: node probe-proctor-prod.mjs   (BASE_URL=https://edutest-vn.vercel.app)
+// Chạy: node probe-proctor-prod.mjs   (BASE_URL=https://a6class-edu.vercel.app)
 // Tự tạo 1 đề test rồi xoá — không đụng đề có sẵn.
-const BASE = process.env.BASE_URL || "https://edutest-vn.vercel.app";
+const BASE = process.env.BASE_URL || "https://a6class-edu.vercel.app";
 const TEACHER = { email: "tester-gv-20260816@edutest.vn", password: "Test@12345" };
 const STUDENT = { email: "tester-hs-20260816@edutest.vn", password: "Test@12345" };
 

@@ -7,7 +7,7 @@
 ## 1. THÔNG TIN DỰ ÁN
 
 - **Tên:** EduTest.vn — Nền tảng học tập và kiểm tra trực tuyến cho học sinh/giáo viên Việt Nam
-- **Live URL:** https://edutest-vn.vercel.app
+- **Live URL:** https://a6class-edu.vercel.app
 - **GitHub:** https://github.com/Taibui99/edutest-vn
 - **Branch đang làm:** `feature/edutest-v2`
 - **Supabase project ID:** `ukzqruepeduxpaiqccfg`
@@ -427,7 +427,7 @@ await prisma.notification.create({
 DATABASE_URL=postgresql://...@...supabase.co:6543/postgres?pgbouncer=true
 DIRECT_URL=postgresql://...@...supabase.co:5432/postgres
 NEXTAUTH_SECRET=random-secret-string
-NEXTAUTH_URL=https://edutest-vn.vercel.app
+NEXTAUTH_URL=https://a6class-edu.vercel.app
 GEMINI_API_KEY=AIza...
 GEMINI_MODEL=gemini-2.5-flash
 ```

@@ -10,7 +10,7 @@
  */
 import { request } from "@playwright/test";
 
-const BASE = process.argv[2]?.startsWith("http") ? process.argv[2] : "https://edutest-vn.vercel.app";
+const BASE = process.argv[2]?.startsWith("http") ? process.argv[2] : "https://a6class-edu.vercel.app";
 const N = Number((process.argv.find((a) => a.startsWith("--clients=")) || "").split("=")[1] || 40);
 const TEACHER = { email: "tester-gv-20260816@edutest.vn", password: "Test@12345" };
 

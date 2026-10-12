@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const base = (process.env.NEXT_PUBLIC_SITE_URL || "https://edutest-vn.vercel.app").replace(/\/$/, "");
+  const base = (process.env.NEXT_PUBLIC_SITE_URL || "https://a6class-edu.vercel.app").replace(/\/$/, "");
   return [
     { url: base, changeFrequency: "weekly", priority: 1 },
     { url: `${base}/dang-nhap`, changeFrequency: "monthly", priority: 0.8 },

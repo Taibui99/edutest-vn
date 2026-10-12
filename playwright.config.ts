@@ -12,7 +12,7 @@ export default defineConfig({
   reporter: [["list"], ["html", { open: "never", outputFolder: "playwright-report" }]],
   use: {
     // Production mặc định; chạy local: `PLAYWRIGHT_BASE_URL=http://localhost:3000 npx playwright test`
-    baseURL: process.env.PLAYWRIGHT_BASE_URL || "https://edutest-vn.vercel.app",
+    baseURL: process.env.PLAYWRIGHT_BASE_URL || "https://a6class-edu.vercel.app",
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
     viewport: { width: 1366, height: 768 },

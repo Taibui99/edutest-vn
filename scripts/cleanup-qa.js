@@ -1,7 +1,7 @@
 const { request } = require("playwright");
 
 async function main() {
-  const BASE = process.env.BASE_URL || "https://edutest-vn.vercel.app";
+  const BASE = process.env.BASE_URL || "https://a6class-edu.vercel.app";
   const req = await request.newContext({ baseURL: BASE });
   const csrf = (await (await req.get("/api/auth/csrf")).json()).csrfToken;
   await req.post("/api/auth/callback/credentials", { form: { csrfToken: csrf, email: "tester-gv-20260816@edutest.vn", password: "Test@12345" } });

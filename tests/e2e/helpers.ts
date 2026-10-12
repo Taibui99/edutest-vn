@@ -2,7 +2,7 @@ import { Page, expect, type APIRequestContext } from "@playwright/test";
 
 /** Chạy trên production mặc định; trỏ sang local bằng `PLAYWRIGHT_BASE_URL`.
  *  (ROADMAP BRAND-6 sẽ đổi tên domain — khi đó chỉ cần sửa một chỗ này.) */
-export const BASE_URL = process.env.PLAYWRIGHT_BASE_URL || "https://edutest-vn.vercel.app";
+export const BASE_URL = process.env.PLAYWRIGHT_BASE_URL || "https://a6class-edu.vercel.app";
 
 export const TEACHER = {
   email: "tester-gv-20260816@edutest.vn",
