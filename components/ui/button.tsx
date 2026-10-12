@@ -21,7 +21,7 @@ const variantStyles: Record<Variant, string> = {
   outline:   "bg-[var(--surface-card)] border border-[var(--surface-border)] text-[var(--text-secondary)] hover:bg-[var(--gray-100)] hover:border-[var(--primary-muted)]",
   coral:     "bg-[var(--coral-light)] text-[var(--coral)] hover:brightness-95",
   mint:      "bg-[var(--mint-light)] text-[var(--mint)] hover:brightness-95",
-  gradient:  "bg-[var(--gradient-brand)] text-white shadow-md hover:brightness-105",
+  gradient:  "text-white shadow-md hover:brightness-105",
 };
 
 const sizeStyles: Record<Size, string> = {
@@ -36,6 +36,9 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       <button
         ref={ref}
         disabled={disabled || loading}
+        // gradient-brand là linear-gradient: phải đặt vào `background`
+        // (bg-* của Tailwind là background-color, gradient vào đó invalid).
+        style={variant === "gradient" ? { background: "var(--gradient-brand)" } : undefined}
         className={cn(
           "inline-flex items-center justify-center font-bold cursor-pointer",
           "motion-button ripple-host",

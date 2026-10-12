@@ -51,9 +51,13 @@ export async function Header() {
               >
                 Đăng nhập
               </Link>
+              {/* Chú ý: `bg-[var(--gradient-brand)]` sai — Tailwind dịch thành
+                  background-COLOR (gradient vào color là invalid → nền trong
+                  suốt, chữ trắng mất hút). Dùng style background như cũ. */}
               <Link
                 href="/dang-ky"
-                className="inline-flex h-10 items-center rounded-xl bg-[var(--gradient-brand)] px-5 text-sm font-black text-white shadow-[0_8px_20px_-8px_rgba(15,76,129,0.6)] transition-all hover:-translate-y-px hover:brightness-[1.06] active:translate-y-0 active:scale-[0.98] sm:h-9"
+                style={{ background: "var(--gradient-brand)" }}
+                className="inline-flex h-10 items-center rounded-xl px-5 text-sm font-black text-white shadow-[0_8px_20px_-8px_rgba(15,76,129,0.6)] transition-all hover:-translate-y-px hover:brightness-[1.06] active:translate-y-0 active:scale-[0.98] sm:h-9"
               >
                 Đăng ký
               </Link>
