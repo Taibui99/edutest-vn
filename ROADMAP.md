@@ -177,6 +177,17 @@ Tất cả L1–L4 trong commit `6e0ad48` — verified live: robots.txt/sitemap.
 
 **Còn lại (không chặn AI-4):** chưa thử với file PDF/Word thật (mới smoke-test bằng text dán) và chưa có E2E test tự động cho luồng này.
 
+## 🧪 Chịu tải 40 client thi cùng lúc (LOAD-1, 2026-10-12)
+
+**User:** *"web đã gánh được 40 client vào làm bài cùng lúc chưa?"* — chưa từng test. Nghi trước 2 điểm nghẽn: (1) rate-limit theo IP (`submit` 20/phút, `attempt-start` 30/phút — cả phòng máy chung 1 IP NAT); (2) pool Prisma mỗi function mở riêng, không tune.
+
+- [x] **LOAD-1 Chạy 40 client ảo** (`scripts/qa-load-40.mjs`, giữ lại dùng sau) — 40 guest (mỗi context 1 cookie jar): join 40/40 → burst attempts → 20 proctor events → burst submits; đề probe dọn sạch (verify 404). Kết quả 2 lần chạy giống hệt:
+  - **Sống sót: attempts 40/40 (201), submits 40/40 (200), proctor 20/20, 0 lỗi 429/500.** Không rớt ai.
+  - **Nhưng chậm:** attempts p50 ~10s/p95 ~14s; submits p50 ~14s/p95 ~15s; ngay cả `GET /api/health` p50 3.4s khi burst 40. Chạy lại ngay vẫn y hệt → **không phải cold start**, là nghẽn sustained (CPU/concurrency phía Vercel và/hoặc pool DB Supabase).
+  - 0 lỗi 429 lần này là nhờ request rải qua nhiều isolate (mỗi isolate 1 bucket riêng) — may rủi, không bền: giờ thấp điểm ít isolate là bucket dồn, cả phòng máy chung IP vẫn có thể ăn 429 ở `submit` 20/phút.
+  - Kết luận: **gánh được 40 nhưng chậm** — học sinh bấm bắt đầu/nộp bài sẽ nhìn loading 10–15s.
+- [ ] **LOAD-2 (chờ user chọn)** — (a) rate-limit attempt/submit theo user thay vì IP; (b) kiểm tra DATABASE_URL có qua pooler 6543 + gói Vercel/Supabase (cần user xem env).
+
 ## 🩹 Fix theo báo cáo user (2026-10-11/12)
 - [x] **Avatar rò className ở danh sách bài nộp** (`d97b47b`, verified live) — user chụp màn hình: hàng đầu hiện nguyên chữ `bg-[var(--warning-light)]...` thay cho avatar. Nguyên nhân: `submissions-panel.tsx` render `{badge ?? i + 1}` — badge là chuỗi class nên lọt ra UI. Sửa: nội dung luôn là `{i + 1}`, badge chỉ đổi màu nền. Verify live: hết chuỗi rò, hạng đầu hiện "1", đề probe đã dọn.
 - [ ] Các lỗi khác user báo sau thì làm (hiện web đã ổn, không fix mò).
