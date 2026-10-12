@@ -53,10 +53,20 @@ test.describe("RBAC — Phân quyền", () => {
     // re-encode JWT bất đồng bộ — gọi API ngay sẽ race với cookie cũ và 403 oan).
     const switchMode = async (label: "Giáo viên" | "Học sinh") => {
       await page.goto("/bang-dieu-khien");
-      // chờ hub hydrate xong (thẻ mode hiện tại có "Đang dùng") rồi mới bấm,
-      // không thì click rơi vào lúc React chưa gắn handler và dialog không mở.
       await expect(page.getByText("Đang dùng").first()).toBeVisible({ timeout: 20000 });
-      await page.getByText(label, { exact: true }).first().click();
+      // Hydrate xong hay chưa không nhìn được từ DOM ("Đang dùng" là HTML
+      // server), mà bấm trước khi handler gắn thì im lặng không mở dialog.
+      // Bấm → kiểm dialog → chưa mở thì đợi rồi bấm lại, tối đa 5 lần.
+      let opened = false;
+      for (let i = 0; i < 5 && !opened; i++) {
+        // Scope trong main: ngoài sidebar có link "Học sinh" trùng chữ —
+        // không scope là bấm nhầm link, bay sang /hoc-sinh thay vì mở dialog.
+        await page.locator("main").getByText(label, { exact: true }).click();
+        await page.waitForTimeout(1200);
+        opened = (await page.getByRole("heading", { name: /chuyển sang chế độ/i }).count()) > 0;
+        if (!opened) await page.waitForTimeout(2000);
+      }
+      expect(opened).toBe(true);
       await page.getByRole("button", { name: "Chuyển chế độ" }).click();
       const card = page.locator("main button", { hasText: label }).first();
       await expect(card.getByText("Đang dùng")).toBeVisible({ timeout: 25000 });

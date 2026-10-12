@@ -4,20 +4,36 @@ import { useState, useEffect, use } from "react";
 import Link from "next/link";
 import {
   CheckCircle2, XCircle, Clock, Trophy, ArrowLeft,
-  ChevronDown, ChevronUp, BookOpen, BarChart3, PenLine, Hourglass
+  ChevronDown, ChevronUp, BookOpen, BarChart3, PenLine, Hourglass,
+  MinusCircle, EyeOff
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { getSubjectColor } from "@/lib/subject";
+import { isQuestionCorrect, type AnswerValue } from "@/lib/grading";
 
 interface Question {
   id: string;
+  type: string;
   text: string;
   options: string[];
   answer: string;
+  grading?: {
+    statements?: { text: string; answer: boolean }[];
+    acceptedAnswers?: string[];
+  } | null;
   explanation?: string;
   order: number;
+}
+
+/* Đúng/sai từng câu theo đúng luật chấm của server (lib/grading).
+ * Trả null khi không thể tự kết luận (tự luận GV chấm tay, thiếu đáp án chuẩn). */
+function correctness(q: Question, ua: AnswerValue | undefined): boolean | null {
+  if (q.type === "essay") return null;
+  if (q.type === "true_false" && !(q.grading?.statements ?? []).length) return null;
+  if (q.type === "short_answer" && !(q.grading?.acceptedAnswers ?? []).length) return null;
+  return isQuestionCorrect({ type: q.type, answer: q.answer, grading: q.grading }, ua);
 }
 
 interface Submission {
@@ -27,7 +43,7 @@ interface Submission {
   totalQuestions: number;
   durationSeconds: number;
   submittedAt: string;
-  answers: Record<string, string>;
+  answers: Record<string, AnswerValue>;
   exam: {
     id: string;
     title: string;
@@ -41,9 +57,29 @@ interface Submission {
 }
 
 function ScoreGauge({ score }: { score: number }) {
-  const pct = (score / 10) * 100;
   const color = score >= 8 ? "var(--success)" : score >= 6.5 ? "var(--warning)" : "var(--danger)";
   const grade = score >= 8.5 ? "Xuất sắc" : score >= 7 ? "Khá" : score >= 5 ? "Trung bình" : "Yếu";
+  const C = 2 * Math.PI * 50;
+
+  /* Đếm số chạy lên + vòng quét theo (ease-out ~1.2s). Người bật
+   * prefers-reduced-motion thấy số cuối ngay (CSS toàn cục cũng tắt animation). */
+  // Người bật reduced-motion thấy số cuối ngay (khởi tạo đã là số cuối).
+  const [shown, setShown] = useState(() =>
+    typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches ? score : 0,
+  );
+  useEffect(() => {
+    if (shown !== 0 || score === 0) return;
+    let raf = 0;
+    const t0 = performance.now();
+    const tick = (t: number) => {
+      const p = Math.min(1, (t - t0) / 1200);
+      setShown(score * (1 - Math.pow(1 - p, 3)));
+      if (p < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [score, shown]);
+  const done = shown >= score;
 
   return (
     <div className="flex flex-col items-center gap-3 py-6">
@@ -53,18 +89,19 @@ function ScoreGauge({ score }: { score: number }) {
           <circle
             cx="60" cy="60" r="50" fill="none"
             stroke={color} strokeWidth="10"
-            strokeDasharray={`${2 * Math.PI * 50}`}
-            strokeDashoffset={`${2 * Math.PI * 50 * (1 - pct / 100)}`}
+            strokeDasharray={`${C}`}
+            strokeDashoffset={`${C * (1 - shown / 10)}`}
             strokeLinecap="round"
-            style={{ transition: "stroke-dashoffset 1s ease" }}
           />
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-3xl font-black tabular-nums tracking-tight" style={{ color }}>{score}</span>
+          <span className="text-3xl font-black tabular-nums tracking-tight" style={{ color }}>
+            {done ? score : shown.toFixed(1)}
+          </span>
           <span className="text-xs text-[var(--text-muted)] font-semibold">/10</span>
         </div>
       </div>
-          <span className="text-sm font-black px-3 py-1 rounded-full" style={{ background: `color-mix(in srgb, ${color} 13%, transparent)`, color }}>
+      <span className="text-sm font-black px-3 py-1 rounded-full" style={{ background: `color-mix(in srgb, ${color} 13%, transparent)`, color }}>
         {grade}
       </span>
     </div>
@@ -96,7 +133,7 @@ export default function ResultPage({ params }: { params: Promise<{ id: string }>
   const c = getSubjectColor(exam.subject);
   const mins = Math.floor(sub.durationSeconds / 60);
   const secs = sub.durationSeconds % 60;
-  const wrongQuestions = exam.questions.filter((q) => answers[q.id] !== q.answer);
+  const wrongQuestions = exam.questions.filter((q) => correctness(q, answers[q.id]) === false);
 
   return (
     <div className="p-4 lg:p-8 max-w-3xl mx-auto animate-fade-in">
@@ -175,7 +212,21 @@ export default function ResultPage({ params }: { params: Promise<{ id: string }>
         </div>
       )}
 
-      {/* Review answers */}
+      {/* Review đáp án theo từng loại câu (trước chỉ vẽ được trắc nghiệm).
+          Quyền của giáo viên vẫn giữ: tắt showAnswers thì chỉ hiện lời nhắn. */}
+      {!exam.showAnswers && (
+        <Card>
+          <div className="flex items-center gap-3 p-5">
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-[var(--primary-light)] text-[var(--primary)]">
+              <EyeOff size={18} />
+            </span>
+            <div>
+              <p className="text-sm font-black text-[var(--text-primary)]">Chưa mở xem đáp án</p>
+              <p className="mt-0.5 text-xs text-[var(--text-muted)]">Giáo viên chưa bật xem đáp án cho đề này — điểm và thống kê ở trên vẫn đầy đủ.</p>
+            </div>
+          </div>
+        </Card>
+      )}
       {exam.showAnswers && (
         <Card padding="none">
           <button
@@ -193,16 +244,20 @@ export default function ResultPage({ params }: { params: Promise<{ id: string }>
             <div className="divide-y divide-[var(--surface-border)]">
               {exam.questions.map((q) => {
                 const userAnswer = answers[q.id];
-                const isCorrect = userAnswer === q.answer;
+                const mark = correctness(q, userAnswer);
+                const isCorrect = mark === true;
                 return (
                   <div key={q.id} className="p-5">
                     <div className="flex items-start gap-2 mb-3">
                       <span className={`shrink-0 w-5 h-5 rounded-full flex items-center justify-center ${
+                        mark === null ? "bg-[var(--gray-200)]" :
                         isCorrect ? "bg-[var(--success-light)]" : "bg-[var(--danger-light)]"
                       }`}>
-                        {isCorrect
-                          ? <CheckCircle2 size={13} className="text-[var(--success)]" />
-                          : <XCircle size={13} className="text-[var(--danger)]" />
+                        {mark === null
+                          ? <MinusCircle size={13} className="text-[var(--text-muted)]" />
+                          : isCorrect
+                            ? <CheckCircle2 size={13} className="text-[var(--success)]" />
+                            : <XCircle size={13} className="text-[var(--danger)]" />
                         }
                       </span>
                       <p className="text-sm font-semibold text-[var(--text-primary)]">
@@ -211,6 +266,7 @@ export default function ResultPage({ params }: { params: Promise<{ id: string }>
                       </p>
                     </div>
 
+                    {q.type === "mcq" && (
                     <div className="flex flex-col gap-1.5 pl-7">
                       {q.options.map((opt, i) => {
                         const letter = String.fromCharCode(65 + i);
@@ -238,6 +294,51 @@ export default function ResultPage({ params }: { params: Promise<{ id: string }>
                         );
                       })}
                     </div>
+                    )}
+
+                    {q.type === "true_false" && (
+                    <div className="flex flex-col gap-1.5 pl-7">
+                      {(q.grading?.statements ?? []).map((s, si) => {
+                        const pick = typeof userAnswer === "object" && userAnswer !== null
+                          ? (userAnswer as Record<string, unknown>)[String(si)]
+                          : undefined;
+                        const ok = pick === s.answer;
+                        return (
+                          <div
+                            key={si}
+                            className={`flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-sm ${
+                              ok ? "bg-[var(--success-light)] text-[var(--success-dark)]" :
+                              pick === undefined ? "text-[var(--text-secondary)]" :
+                              "bg-[var(--danger-light)] text-[var(--danger-dark)]"
+                            }`}
+                          >
+                            <span className="font-medium">{String.fromCharCode(97 + si)}. {s.text}</span>
+                            <span className="shrink-0 text-xs font-black">
+                              Bạn: {pick === true ? "Đúng" : pick === false ? "Sai" : "—"} · Chuẩn: {s.answer ? "Đúng" : "Sai"}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    )}
+
+                    {(q.type === "short_answer" || q.type === "essay") && (
+                    <div className="flex flex-col gap-1.5 pl-7">
+                      <div className="px-3 py-2 rounded-lg text-sm bg-[var(--surface-bg)] border border-[var(--surface-border)] text-[var(--text-primary)]">
+                        <span className="text-xs font-bold text-[var(--text-muted)]">Bạn trả lời: </span>
+                        {String(userAnswer ?? "").trim() || <span className="text-[var(--text-muted)]">— bỏ trống —</span>}
+                      </div>
+                      {q.type === "short_answer" && (q.grading?.acceptedAnswers ?? []).length > 0 && (
+                        <div className="px-3 py-2 rounded-lg text-sm bg-[var(--success-light)] text-[var(--success-dark)]">
+                          <span className="text-xs font-bold">Đáp án chấp nhận: </span>
+                          {(q.grading?.acceptedAnswers ?? []).join(" · ")}
+                        </div>
+                      )}
+                      {q.type === "essay" && (
+                        <p className="text-xs text-[var(--warning)]">Câu tự luận do giáo viên chấm thủ công.</p>
+                      )}
+                    </div>
+                    )}
 
                     {q.explanation && (
                       <div className="mt-3 pl-7 flex gap-2 p-3 bg-[var(--primary-light)] rounded-xl">
