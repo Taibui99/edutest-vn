@@ -64,6 +64,8 @@ function ScoreGauge({ score }: { score: number }) {
   /* Đếm số chạy lên + vòng quét theo (ease-out ~1.2s). Người bật
    * prefers-reduced-motion thấy số cuối ngay (CSS toàn cục cũng tắt animation). */
   // Người bật reduced-motion thấy số cuối ngay (khởi tạo đã là số cuối).
+  // Effect chạy đúng 1 lần/instance: ScoreGauge được key theo submission nên
+  // score không bao giờ đổi giữa chừng (deps [] là đúng, không thiếu).
   const [shown, setShown] = useState(() =>
     typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches ? score : 0,
   );
@@ -78,7 +80,8 @@ function ScoreGauge({ score }: { score: number }) {
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [score, shown]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const done = shown >= score;
 
   return (
@@ -159,7 +162,7 @@ export default function ResultPage({ params }: { params: Promise<{ id: string }>
             <p className="text-sm text-[var(--text-muted)]">Giáo viên sẽ công bố điểm sau khi chấm bài.</p>
           </div>
         ) : (
-          <ScoreGauge score={sub.score} />
+          <ScoreGauge key={sub.id} score={sub.score} />
         )}
 
         <div className="grid grid-cols-3 gap-3 mt-2">
