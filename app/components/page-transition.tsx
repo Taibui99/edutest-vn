@@ -58,10 +58,19 @@ function isModifiedClick(e: MouseEvent) {
    (landing 1 cột ↔ auth 2 cột, dashboard ↔ public...) đè lên nhau 600ms
    nhìn rất khó chịu — đo live thấy rõ. Cùng khung (dashboard↔dashboard...)
    vẫn trượt Canva như cũ. */
+/* Khung = bố cục thật sự khác nhau, không phải prefix chung chung: landing
+   (1 cột) và auth (2 cột brand panel) tuy cùng public nhưng trượt đè nhau
+   vẫn xấu — phải tách. dieu-khoan/bao-mat dùng chung Header/Footer với
+   landing nên trượt cùng nhau được. */
+const AUTH_ROUTES = ["/dang-nhap", "/dang-ky", "/quen-mat-khau", "/doi-mat-khau"];
+
 function shellOf(path: string): string {
+  if (path === "/") return "landing";
   if (path.startsWith("/bang-dieu-khien")) return "app";
   if (path.startsWith("/admin")) return "admin";
   if (path.startsWith("/thi")) return "exam";
+  if (AUTH_ROUTES.some((r) => path === r || path.startsWith(`${r}/`))) return "auth";
+  if (path.startsWith("/vao-thi")) return "vaothi";
   return "public";
 }
 
