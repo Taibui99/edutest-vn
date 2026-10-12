@@ -60,15 +60,22 @@ test.describe("AUTH UI — Form đăng ký & quên mật khẩu", () => {
     await page.goto("/quen-mat-khau");
     await expect(page.getByRole("heading", { name: /quên mật khẩu/i })).toBeVisible();
     await page.locator("#email").fill(email);
-    await page.getByRole("button", { name: /gửi liên kết đặt lại/i }).click();
+    // Bắt response của chính cú bấm nút (1 request duy nhất): vừa kiểm UI vừa
+    // kiểm API. Gọi API riêng lần nữa sẽ thành request thứ 4 từ cùng IP trong
+    // 10 phút → dính rate-limit forgot-password 3/10ph và đỏ oan ở project sau.
+    const [resp] = await Promise.all([
+      page.waitForResponse(
+        (r) => r.url().includes("/api/auth/forgot-password") && r.request().method() === "POST",
+        { timeout: 15000 },
+      ),
+      page.getByRole("button", { name: /gửi liên kết đặt lại/i }).click(),
+    ]);
+    expect(resp.status()).toBe(200);
+    const json = await resp.json();
+    expect(json).not.toHaveProperty("resetLink");
     await expect(page.getByText(/chúng tôi đã gửi liên kết đặt lại mật khẩu/i)).toBeVisible({ timeout: 15000 });
     // SEC-02 đã vá (4b33879): UI không còn render demo link chứa token
     await expect(page.getByText(/doi-mat-khau\?token=/)).toHaveCount(0);
-    // kiểm tra trực tiếp response API — không có trường resetLink
-    const res = await page.request.post("/api/auth/forgot-password", { data: { email } });
-    expect(res.status()).toBe(200);
-    const json = await res.json();
-    expect(json).not.toHaveProperty("resetLink");
     test.info().annotations.push({
       type: "note",
       description: "SEC-02 đã vá: response API {ok:true} không chứa resetLink, UI không render link chứa token (copy đã đổi ở 36ccaaa)",

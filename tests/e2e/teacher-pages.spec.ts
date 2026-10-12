@@ -16,8 +16,8 @@ test.describe("TEACHER PAGES — Thống kê, Đề thi list, Học sinh", () =>
     await expect(page.getByRole("heading", { name: "Đề thi" })).toBeVisible({ timeout: 20000 });
     const search = page.getByPlaceholder(/tìm theo tên đề/i);
     await expect(search).toBeVisible();
-    await expect(page.getByRole("button", { name: "Tất cả môn" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Tất cả trạng thái" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Lọc theo môn" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Lọc theo trạng thái" })).toBeVisible();
     await search.fill("43WTBE");
     await page.waitForTimeout(1200);
   });

@@ -195,9 +195,9 @@ Tất cả L1–L4 trong commit `6e0ad48` — verified live: robots.txt/sitemap.
 
 **Hướng:** 1 component `Dropdown` tự vẽ (button + listbox, phím mũi tên/Esc, check mục đã chọn) → viết lại `ui/select` cùng props API (label/error/options/placeholder + uncontrolled `defaultValue`/`name` qua hidden input cho form đăng ký) → thay toàn bộ select thô (editor Đúng/Sai, filter đề, submissions-panel, ngân hàng, admin) + sửa E2E bám native (`selectOption`/`combobox`/`option`) sang click. Không đổi value/onChange nên logic giữ nguyên.
 
-- [ ] Dropdown + Select mới
-- [ ] Migrate hết select thô
-- [ ] Sửa E2E + verify live
+- [x] Dropdown + Select mới (`69bea06`) — `components/ui/dropdown.tsx`: button + listbox tự vẽ (token brand, Check mục chọn, Chevron xoay, phím Enter/Space/mũi tên/Esc, đóng khi bấm ngoài, `max-h-60` cuộn); `Select` viết lại cùng API (label/error/options/placeholder, uncontrolled `defaultValue` + `name` qua hidden input cho form đăng ký, `aria-labelledby` để label/tests trỏ đúng).
+- [x] Migrate hết select thô (`69bea06`) — editor (4 Select + TF Đúng/Sai), filter đề, submissions-panel (lọc + sort), ngân hàng (filter + modal môn/loại/TF), admin users (2 filter + đổi role từng dòng) + exams (1). Toàn web còn 0 `<select>` native.
+- [x] Sửa E2E + verify live — helper `pickOption` (bấm nút → bấm option); sửa editor/question-bank/teacher-create/teacher-pages/exam-detail/admin-ui/auth-ui + R-06 viết lại chỉ dùng 1 request (bắt response của cú bấm nút — gọi API riêng làm request thứ 4/IP/10ph, dính rate-limit oan ở project mobile). Bệnh test phát hiện khi verify: X-02 bấm nút theo tên mơ hồ trúng dropdown mới (bỏ click thừa), Q-04 thiếu `.first()` sau khi retry đẻ câu trùng (dọn 8 câu QA). E2E prod: editor/question-bank/teacher-create 22 + teacher-pages/admin-ui 24 + auth 12 + exam-detail 10 + auth-ui/quota-bank 22 — **tất cả xanh**.
 
 ## 🩹 Fix theo báo cáo user (2026-10-11/12)
 - [x] **Avatar rò className ở danh sách bài nộp** (`d97b47b`, verified live) — user chụp màn hình: hàng đầu hiện nguyên chữ `bg-[var(--warning-light)]...` thay cho avatar. Nguyên nhân: `submissions-panel.tsx` render `{badge ?? i + 1}` — badge là chuỗi class nên lọt ra UI. Sửa: nội dung luôn là `{i + 1}`, badge chỉ đổi màu nền. Verify live: hết chuỗi rò, hạng đầu hiện "1", đề probe đã dọn.

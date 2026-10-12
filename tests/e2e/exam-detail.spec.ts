@@ -62,7 +62,7 @@ test.describe("EXAM DETAIL — Trang chi tiết đề", () => {
 
   test("X-02: Submissions panel — bảng bài nộp + sort + chi tiết đáp án", async ({ page }) => {
     await page.goto(`/bang-dieu-khien/de-thi/${EXAM_ID}`);
-    await page.getByRole("button", { name: /danh sách bài nộp|bài nộp/i }).first().click().catch(() => {});
+    // panel hiện mặc định; KHÔNG bấm nút theo tên mơ hồ vì trùng với dropdown lọc
     await expect(page.getByText(/danh sách bài nộp/i)).toBeVisible({ timeout: 20000 });
     await expect(page.getByText(/tester hs/i).first()).toBeVisible({ timeout: 15000 });
     // sort dropdown

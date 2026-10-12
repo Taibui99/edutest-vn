@@ -39,7 +39,7 @@ test.describe("QUESTION BANK — Kho câu hỏi", () => {
     await page.goto("/bang-dieu-khien/ngan-hang");
     await page.getByRole("button", { name: /thêm câu hỏi/i }).click();
     // môn + nội dung
-    await page.getByRole("button", { name: "Chọn môn" }).click();
+    await page.getByRole("button", { name: "Môn học" }).click();
     await page.getByRole("option", { name: "Toán" }).click();
     await page.getByPlaceholder(/nhập nội dung câu hỏi/i).fill("QA kho 1+1 bằng mấy?");
     await page.getByPlaceholder("Đáp án A").fill("1");
@@ -48,6 +48,6 @@ test.describe("QUESTION BANK — Kho câu hỏi", () => {
     await page.getByPlaceholder("Đáp án D").fill("4");
     await page.getByRole("button", { name: "B", exact: true }).first().click();
     await page.getByRole("button", { name: /thêm vào kho/i }).click();
-    await expect(page.getByText(/1\+1 bằng mấy/i)).toBeVisible({ timeout: 15000 });
+    await expect(page.getByText(/1\+1 bằng mấy/i).first()).toBeVisible({ timeout: 15000 });
   });
 });
