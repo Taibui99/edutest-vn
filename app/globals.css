@@ -666,6 +666,21 @@ html[data-slide="prev"]::view-transition-new(root) {
   to   { transform: translateX(0); }
 }
 
+/* ── Cắt cảnh tức thì khi đổi khung (landing ↔ auth, dashboard ↔ public...) ──
+   Đứng SAU các rule trượt để thắng (cùng specificity). Tắt cả nhóm nav tách
+   riêng, không thì thanh top/bottom cũ mờ dần lơ lửng trên trang mới. Không có
+   animation nào còn bám → transition kết thúc ngay = cắt cảnh thật sự. */
+html[data-slide="instant"]::view-transition-old(root),
+html[data-slide="instant"]::view-transition-new(root),
+html[data-slide="instant"]::view-transition-group(a6-topbar),
+html[data-slide="instant"]::view-transition-old(a6-topbar),
+html[data-slide="instant"]::view-transition-new(a6-topbar),
+html[data-slide="instant"]::view-transition-group(a6-bottomnav),
+html[data-slide="instant"]::view-transition-old(a6-bottomnav),
+html[data-slide="instant"]::view-transition-new(a6-bottomnav) {
+  animation: none;
+}
+
 /* Chống hở nền: khi hai ảnh đang trượt ra hai phía, phần ngoài mép của chúng
    sẽ lộ nền trống. Dùng đúng token nền của body để cả dark mode không bị
    nháy trắng. */

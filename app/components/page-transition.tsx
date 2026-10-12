@@ -54,6 +54,17 @@ function isModifiedClick(e: MouseEvent) {
   return e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0;
 }
 
+/* Khác khung (shell) thì CẮT CẢNH thay vì trượt: đẩy 2 layout xa lạ
+   (landing 1 cột ↔ auth 2 cột, dashboard ↔ public...) đè lên nhau 600ms
+   nhìn rất khó chịu — đo live thấy rõ. Cùng khung (dashboard↔dashboard...)
+   vẫn trượt Canva như cũ. */
+function shellOf(path: string): string {
+  if (path.startsWith("/bang-dieu-khien")) return "app";
+  if (path.startsWith("/admin")) return "admin";
+  if (path.startsWith("/thi")) return "exam";
+  return "public";
+}
+
 /** Chỉ liên kết điều hướng nội bộ mới đáng ghi hướng trượt. */
 function navigatesInternally(a: HTMLAnchorElement): boolean {
   if (a.target && a.target !== "_self") return false;
@@ -74,6 +85,9 @@ function navigatesInternally(a: HTMLAnchorElement): boolean {
 export function PageTransition(): null {
   const pathname = usePathname();
   const mounted = useRef(false);
+  // popstate nổ sau khi location đã đổi nên không biết trang trước là gì —
+  // giữ lại để so khung với trang mới (xem onPopstate).
+  const lastPath = useRef(pathname);
 
   // Trong phòng thi có đếm ngược. Thêm cả trăm ms mỗi lần chuyển màn hình là
   // lãng phí và gây rối mắt, nên tắt chuyển cảnh ở /thi. Muốn bật lại thì xoá
@@ -82,13 +96,14 @@ export function PageTransition(): null {
     document.documentElement.classList.toggle("a6-no-vt", pathname.startsWith("/thi"));
     // Tới trang mới = điều hướng xong: gỡ thanh tải (phòng khi timeout dọn hụt).
     document.documentElement.classList.remove("a6-nav-loading");
+    lastPath.current = pathname;
   }, [pathname]);
 
   useEffect(() => {
     const root = document.documentElement;
     mounted.current = true;
 
-    const setSlide = (dir: "next" | "prev") => root.setAttribute("data-slide", dir);
+    const setSlide = (dir: "next" | "prev" | "instant") => root.setAttribute("data-slide", dir);
 
     const onClick = (e: MouseEvent) => {
       if (isModifiedClick(e)) return;
@@ -123,10 +138,11 @@ export function PageTransition(): null {
         }
       }
 
-      // ── Hướng trượt: bấm link là đi tới ──
+      // ── Hướng trượt: bấm link là đi tới; khác khung thì cắt cảnh ──
       const anchor = target.closest<HTMLAnchorElement>("a[href]");
       if (anchor && navigatesInternally(anchor)) {
-        setSlide("next");
+        const to = new URL(anchor.href, window.location.href).pathname;
+        setSlide(shellOf(window.location.pathname) === shellOf(to) ? "next" : "instant");
         // Thanh tải mảnh trên cùng: điều hướng cold mất ~4s mới chốt, không có
         // gì báo thì user tưởng treo. Hiện ngay khi bấm, gỡ khi đổi pathname.
         if (!reduced) {
@@ -139,8 +155,13 @@ export function PageTransition(): null {
       }
     };
 
-    // Bấm back/forward của trình duyệt là quay lại — phải trượt ngược hướng.
-    const onPopstate = () => setSlide("prev");
+    // Bấm back/forward của trình duyệt là quay lại — trượt ngược hướng,
+    // trừ khi đổi khung (lúc đó cắt cảnh như điều hướng thường).
+    const onPopstate = () => {
+      const from = lastPath.current;
+      const to = window.location.pathname;
+      setSlide(shellOf(from) === shellOf(to) ? "prev" : "instant");
+    };
 
     document.addEventListener("click", onClick, true);
     window.addEventListener("popstate", onPopstate, true);
