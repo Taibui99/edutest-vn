@@ -25,8 +25,8 @@ test.describe("ADMIN UI — Panel quản trị (login thật)", () => {
     await page.goto("/admin/users");
     await expect(page.getByText("Quản lý người dùng").first()).toBeVisible({ timeout: 20000 });
     await expect(page.getByRole("button", { name: /csv/i }).first()).toBeVisible();
-    // filter role select
-    await expect(page.locator("select").first()).toBeVisible();
+    // filter role dropdown
+    await expect(page.getByRole("button", { name: "Tất cả vai trò" })).toBeVisible();
     // bảng hiển thị các dòng người dùng
     await expect(page.getByText(/tài khoản/i).first()).toBeVisible({ timeout: 10000 });
   });

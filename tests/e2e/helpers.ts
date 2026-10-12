@@ -24,6 +24,12 @@ export async function login(page: Page, email: string, password: string) {
   await page.waitForURL(/\/bang-dieu-khien|\/admin/, { timeout: 20000 });
 }
 
+/** Chọn 1 mục trong Dropdown tự vẽ: bấm nút rồi bấm option. */
+export async function pickOption(page: Page, buttonName: string | RegExp, optionLabel: string) {
+  await page.getByRole("button", { name: buttonName }).first().click();
+  await page.getByRole("option", { name: optionLabel }).click();
+}
+
 export async function registerUser(
   page: Page,
   opts: { name: string; email: string; role?: "student" | "teacher"; password: string },
@@ -32,7 +38,7 @@ export async function registerUser(
   await page.locator("#fullName").fill(opts.name);
   await page.locator("#email").fill(opts.email);
   if (opts.role) {
-    await page.locator("#role").selectOption({ label: opts.role === "teacher" ? "Giáo viên" : "Học sinh" });
+    await pickOption(page, "Vai trò", opts.role === "teacher" ? "Giáo viên" : "Học sinh");
   }
   await page.locator("#password").fill(opts.password);
   await page.locator("#confirmPassword").fill(opts.password);

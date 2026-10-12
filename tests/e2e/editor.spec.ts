@@ -9,11 +9,11 @@ test.describe("EDITOR — Tạo đề 4 loại câu + xuất bản", () => {
   test("E-01: Editor hiển thị đủ: 4 loại câu, thông tin đề, cấu hình", async ({ page }) => {
     await page.goto("/bang-dieu-khien/tao-de-thi");
     await expect(page.getByRole("heading", { name: /tạo đề thi/i })).toBeVisible({ timeout: 20000 });
-    // select loại câu có 4 options
-    const typeSelect = page.locator("main select").nth(0);
-    await expect(typeSelect).toBeVisible();
-    const opts = await typeSelect.locator("option").allTextContents();
+    // dropdown loại câu có 4 options
+    await page.getByLabel("Loại câu hỏi").first().click();
+    const opts = await page.getByRole("option").allTextContents();
     expect(opts).toEqual(expect.arrayContaining(["Trắc nghiệm", "Đúng / Sai", "Trả lời ngắn", "Tự luận"]));
+    await page.keyboard.press("Escape");
     // nút thêm câu
     await expect(page.getByRole("button", { name: /thêm câu/i })).toBeVisible();
     // thông tin đề
@@ -46,8 +46,8 @@ test.describe("EDITOR — Tạo đề 4 loại câu + xuất bản", () => {
     const titleInput = page.getByPlaceholder("VD: Kiểm tra chương 1");
     await titleInput.fill(`QA Editor ${timestamp()}`);
     // chọn môn
-    const subjectSelect = page.locator("select").filter({ has: page.locator("option", { hasText: "Toán" }) });
-    await subjectSelect.selectOption({ label: "Toán" });
+    await page.getByLabel("Môn học").click();
+    await page.getByRole("option", { name: "Toán" }).click();
     // nội dung câu hỏi
     await page.getByPlaceholder("Nhập nội dung câu hỏi...").fill("1+1 bằng mấy?");
     // đáp án A-D
@@ -68,8 +68,8 @@ test.describe("EDITOR — Tạo đề 4 loại câu + xuất bản", () => {
   test("E-04: Thêm câu Tự luận đổi loại câu", async ({ page }) => {
     await page.goto("/bang-dieu-khien/tao-de-thi");
     // câu đầu: đổi loại thành Tự luận
-    const typeSelect = page.locator("main select").nth(0);
-    await typeSelect.selectOption({ label: "Tự luận" });
+    await page.getByLabel("Loại câu hỏi").first().click();
+    await page.getByRole("option", { name: "Tự luận" }).click();
     await expect(page.getByText(/câu tự luận sẽ được giáo viên chấm thủ công/i)).toBeVisible({ timeout: 5000 });
   });
 

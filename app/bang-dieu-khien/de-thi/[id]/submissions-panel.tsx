@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { Download, ChevronDown, ChevronRight, Trophy, CheckCircle2, XCircle, MinusCircle, ShieldAlert } from "lucide-react";
 import { Card } from "@/components/ui/card";
+import { Dropdown } from "@/components/ui/dropdown";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Users } from "lucide-react";
 import { isQuestionCorrect, isAutoGraded, type AnswerValue } from "@/lib/grading";
@@ -214,21 +215,23 @@ export function SubmissionsPanel({ subs, questions }: { subs: SubRow[]; question
           )}
         </div>
         <div className="flex items-center gap-2">
-          <select
+          <Dropdown
             value={riskFilter}
-            onChange={(e) => setRiskFilter(e.target.value as "all" | "flagged")}
-            className="rounded-lg border border-[var(--surface-border)] bg-[var(--surface-card)] px-2.5 py-1.5 text-xs font-semibold text-[var(--text-secondary)] focus:outline-none focus:border-[var(--primary)]"
-          >
-            <option value="all">Tất cả bài nộp</option>
-            <option value="flagged">Chỉ bài có cờ</option>
-          </select>
-          <select
+            onChange={(v) => setRiskFilter(v as "all" | "flagged")}
+            options={[
+              { value: "all", label: "Tất cả bài nộp" },
+              { value: "flagged", label: "Chỉ bài có cờ" },
+            ]}
+            size="sm"
+            ariaLabel="Lọc bài nộp"
+          />
+          <Dropdown
             value={sort}
-            onChange={(e) => setSort(e.target.value as SortKey)}
-            className="rounded-lg border border-[var(--surface-border)] bg-[var(--surface-card)] px-2.5 py-1.5 text-xs font-semibold text-[var(--text-secondary)] focus:outline-none focus:border-[var(--primary)]"
-          >
-            {SORT_OPTIONS.map((o) => <option key={o.key} value={o.key}>{o.label}</option>)}
-          </select>
+            onChange={(v) => setSort(v as SortKey)}
+            options={SORT_OPTIONS.map((o) => ({ value: o.key, label: o.label }))}
+            size="sm"
+            ariaLabel="Sắp xếp bài nộp"
+          />
           <button
             onClick={exportCsv}
             className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-[var(--primary)]/20 bg-[var(--primary-light)] px-3 text-xs font-bold text-[var(--primary)] transition hover:opacity-80"

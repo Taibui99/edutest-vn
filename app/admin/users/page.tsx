@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Users, Search, ShieldCheck, RotateCcw, ChevronLeft, ChevronRight, Download } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
+import { Dropdown } from "@/components/ui/dropdown";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { exportCsv } from "@/lib/csv";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -153,26 +154,28 @@ export default function AdminUsers() {
             className="w-full rounded-lg border border-[var(--surface-border)] pl-9 pr-3 py-2 text-sm focus:border-[var(--primary)] focus:outline-none"
           />
         </div>
-        <select
+        <Dropdown
           value={role}
-          onChange={(e) => { setRole(e.target.value); setPage(1); }}
-          className="rounded-lg border border-[var(--surface-border)] px-3 py-2 text-sm focus:border-[var(--primary)] focus:outline-none"
-        >
-          <option value="">Tất cả vai trò</option>
-          <option value="student">Học sinh</option>
-          <option value="teacher">Giáo viên</option>
-          <option value="admin">Admin</option>
-        </select>
-        <select
+          onChange={(v) => { setRole(v); setPage(1); }}
+          options={[
+            { value: "", label: "Tất cả vai trò" },
+            { value: "student", label: "Học sinh" },
+            { value: "teacher", label: "Giáo viên" },
+            { value: "admin", label: "Admin" },
+          ]}
+          ariaLabel="Lọc theo vai trò"
+        />
+        <Dropdown
           value={status}
-          onChange={(e) => { setStatus(e.target.value); setPage(1); }}
-          className="rounded-lg border border-[var(--surface-border)] px-3 py-2 text-sm focus:border-[var(--primary)] focus:outline-none"
-        >
-          <option value="">Tất cả trạng thái</option>
-          <option value="active">Đang hoạt động</option>
-          <option value="blocked">Đã khóa</option>
-          <option value="deleted">Đã xóa</option>
-        </select>
+          onChange={(v) => { setStatus(v); setPage(1); }}
+          options={[
+            { value: "", label: "Tất cả trạng thái" },
+            { value: "active", label: "Đang hoạt động" },
+            { value: "blocked", label: "Đã khóa" },
+            { value: "deleted", label: "Đã xóa" },
+          ]}
+          ariaLabel="Lọc theo trạng thái"
+        />
         <button
           onClick={exportRows}
           disabled={users.length === 0}
@@ -237,16 +240,18 @@ export default function AdminUsers() {
                           </button>
                         ) : (
                           <>
-                            <select
+                            <Dropdown
                               value={u.role}
+                              onChange={(v) => patch(u.id, { role: v })}
+                              options={[
+                                { value: "student", label: "HS" },
+                                { value: "teacher", label: "GV" },
+                                { value: "admin", label: "Admin" },
+                              ]}
+                              size="sm"
                               disabled={busyId === u.id}
-                              onChange={(e) => patch(u.id, { role: e.target.value })}
-                              className="rounded-lg border border-[var(--surface-border)] px-2 py-1 text-xs disabled:opacity-50"
-                            >
-                              <option value="student">HS</option>
-                              <option value="teacher">GV</option>
-                              <option value="admin">Admin</option>
-                            </select>
+                              ariaLabel={`Vai trò của ${u.email}`}
+                            />
                             <button
                               disabled={busyId === u.id}
                               onClick={() => patch(u.id, { isBlocked: !u.isBlocked })}

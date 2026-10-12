@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Search, BookOpen, Filter, FileText, Plus, ChevronDown, ChevronUp, Pencil, Trash2, X, Lightbulb } from "lucide-react";
 import { Card } from "@/components/ui/card";
+import { Dropdown } from "@/components/ui/dropdown";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -228,14 +229,16 @@ export default function QuestionBankPage() {
         </div>
         <div className="relative">
           <Filter size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] pointer-events-none" />
-          <select
-            value={subject}
-            onChange={(e) => setSubject(e.target.value)}
-            className="pl-9 pr-4 py-2.5 rounded-xl border border-[var(--surface-border)] bg-[var(--surface-card)] text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--primary)] appearance-none min-w-[160px]"
-          >
-            <option value="">Tất cả môn</option>
-            {SUBJECTS.map((s) => <option key={s} value={s}>{s}</option>)}
-          </select>
+          <div className="relative min-w-[160px]">
+            <Filter size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] pointer-events-none z-10" />
+            <Dropdown
+              value={subject}
+              onChange={setSubject}
+              options={[{ value: "", label: "Tất cả môn" }, ...SUBJECTS.map((s) => ({ value: s, label: s }))]}
+              ariaLabel="Lọc theo môn"
+              className="[&>button]:pl-9"
+            />
+          </div>
         </div>
       </div>
 
@@ -389,19 +392,24 @@ export default function QuestionBankPage() {
 
             <div className="flex flex-col gap-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <label className="block">
+                <div>
                   <span className="mb-1 block text-xs font-bold text-[var(--text-secondary)]">Môn học</span>
-                  <select value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} className="w-full rounded-xl border border-[var(--surface-border)] px-3 py-2.5 text-sm focus:outline-none focus:border-[var(--primary)]">
-                    <option value="">Chọn môn</option>
-                    {SUBJECTS.map((s) => <option key={s} value={s}>{s}</option>)}
-                  </select>
-                </label>
-                <label className="block">
+                  <Dropdown
+                    value={form.subject}
+                    onChange={(v) => setForm({ ...form, subject: v })}
+                    options={[{ value: "", label: "Chọn môn" }, ...SUBJECTS.map((s) => ({ value: s, label: s }))]}
+                    ariaLabel="Môn học"
+                  />
+                </div>
+                <div>
                   <span className="mb-1 block text-xs font-bold text-[var(--text-secondary)]">Loại câu hỏi</span>
-                  <select value={form.type} onChange={(e) => { const t = e.target.value as QuestionType; setForm((f) => ({ ...blankForm(t), subject: f.subject, explanation: f.explanation })); }} className="w-full rounded-xl border border-[var(--surface-border)] px-3 py-2.5 text-sm focus:outline-none focus:border-[var(--primary)]">
-                    {TYPE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                  </select>
-                </label>
+                  <Dropdown
+                    value={form.type}
+                    onChange={(v) => { const t = v as QuestionType; setForm((f) => ({ ...blankForm(t), subject: f.subject, explanation: f.explanation })); }}
+                    options={TYPE_OPTIONS}
+                    ariaLabel="Loại câu hỏi"
+                  />
+                </div>
               </div>
 
               <label className="block">
@@ -429,10 +437,7 @@ export default function QuestionBankPage() {
                   {form.statements.map((s, si) => (
                     <div key={si} className="flex gap-2 rounded-xl border border-[var(--surface-border)] p-2.5">
                       <input value={s.text} onChange={(e) => { const statements = [...form.statements]; statements[si] = { ...statements[si], text: e.target.value }; setForm({ ...form, statements }); }} placeholder={`Mệnh đề ${si + 1}`} className="min-w-0 flex-1 bg-transparent text-sm outline-none" />
-                      <select value={String(s.answer)} onChange={(e) => { const statements = [...form.statements]; statements[si] = { ...statements[si], answer: e.target.value === "true" }; setForm({ ...form, statements }); }} className="rounded-lg border px-2 text-sm">
-                        <option value="true">Đúng</option>
-                        <option value="false">Sai</option>
-                      </select>
+                      <Dropdown value={String(s.answer)} onChange={(v) => { const statements = [...form.statements]; statements[si] = { ...statements[si], answer: v === "true" }; setForm({ ...form, statements }); }} options={[{ value: "true", label: "Đúng" }, { value: "false", label: "Sai" }]} size="sm" className="w-24 shrink-0" ariaLabel={`Đáp án mệnh đề ${si + 1}`} />
                     </div>
                   ))}
                   <Button size="sm" variant="outline" onClick={() => setForm({ ...form, statements: [...form.statements, { text: "", answer: true }] })}>+ Thêm mệnh đề</Button>

@@ -1,55 +1,72 @@
 "use client";
 
-import { forwardRef, type SelectHTMLAttributes } from "react";
-import { ChevronDown } from "lucide-react";
+import { Dropdown, type DropdownOption } from "./dropdown";
 import { cn } from "@/lib/cn";
 
-interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
+/* Select form — bản tự vẽ (trước là `<select>` native, popup OS xấu).
+ * API giữ nguyên kiểu dùng cũ (label/error/options/placeholder) nhưng
+ * `onChange` nhận thẳng value thay vì event. Uncontrolled (`defaultValue` +
+ * `name`) cho form server-action như đăng ký. Prop `required` chỉ giữ để khỏi
+ * vỡ chỗ dùng cũ (mọi chỗ đều có default nên không cần validate native). */
+
+interface SelectProps {
   label?: string;
   error?: string;
-  options: { value: string; label: string }[];
+  options: DropdownOption[];
   placeholder?: string;
+  value?: string;
+  defaultValue?: string;
+  onChange?: (value: string) => void;
+  name?: string;
+  id?: string;
+  disabled?: boolean;
+  required?: boolean;
+  ariaLabel?: string;
+  className?: string;
 }
 
-export const Select = forwardRef<HTMLSelectElement, SelectProps>(
-  ({ label, error, options, placeholder, className, id, ...props }, ref) => {
-    const selectId = id || label?.toLowerCase().replace(/\s+/g, "-");
+export function Select({
+  label,
+  error,
+  options,
+  placeholder,
+  value,
+  defaultValue,
+  onChange,
+  name,
+  id,
+  disabled,
+  ariaLabel,
+  className,
+}: SelectProps) {
+  const selectId = id || label?.toLowerCase().replace(/\s+/g, "-");
+  const labelId = selectId ? `${selectId}-label` : undefined;
 
-    return (
-      <div className="flex flex-col gap-1.5">
-        {label && (
-          <label htmlFor={selectId} className="text-sm font-medium text-[var(--text-secondary)]">
-            {label}
-          </label>
-        )}
-        <div className="relative">
-          <select
-            ref={ref}
-            id={selectId}
-            className={cn(
-              "w-full h-11 sm:h-9 rounded-lg border border-[var(--surface-border)] bg-[var(--surface-input)] px-3 pr-8 text-base sm:text-sm text-[var(--text-primary)]",
-              "focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)] focus:border-[var(--primary)]",
-              "disabled:bg-[var(--gray-100)] disabled:cursor-not-allowed",
-              "transition-colors appearance-none",
-              error && "border-[var(--danger)]",
-              className,
-            )}
-            {...props}
-          >
-            {placeholder && <option value="">{placeholder}</option>}
-            {options.map((opt) => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
-            ))}
-          </select>
-          <ChevronDown
-            size={14}
-            className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)]"
-          />
-        </div>
-        {error && <p className="text-xs text-[var(--danger)]">{error}</p>}
-      </div>
-    );
-  },
-);
-
-Select.displayName = "Select";
+  return (
+    <div className="flex flex-col gap-1.5">
+      {label && (
+        <label
+          id={labelId}
+          htmlFor={selectId}
+          className="text-sm font-medium text-[var(--text-secondary)]"
+        >
+          {label}
+        </label>
+      )}
+      <Dropdown
+        id={selectId}
+        labelledBy={labelId}
+        ariaLabel={ariaLabel}
+        value={value}
+        defaultValue={defaultValue}
+        onChange={onChange}
+        options={options}
+        placeholder={placeholder}
+        disabled={disabled}
+        name={name}
+        className={cn(error && "[&>button]:border-[var(--danger)]", className)}
+      />
+      {error && <p className="text-xs text-[var(--danger)]">{error}</p>}
+    </div>
+  );
+}

@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { FileText, Search, Eye, EyeOff, RotateCcw, Flag, ChevronLeft, ChevronRight, Download } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
+import { Dropdown } from "@/components/ui/dropdown";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { exportCsv } from "@/lib/csv";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -133,15 +134,16 @@ export default function AdminExams() {
             className="w-full rounded-lg border border-[var(--surface-border)] pl-9 pr-3 py-2 text-sm focus:border-[var(--primary)] focus:outline-none"
           />
         </div>
-        <select
+        <Dropdown
           value={status}
-          onChange={(e) => { setStatus(e.target.value); setPage(1); }}
-          className="rounded-lg border border-[var(--surface-border)] px-3 py-2 text-sm focus:border-[var(--primary)] focus:outline-none"
-        >
-          <option value="">Tất cả trạng thái</option>
-          <option value="published">Đang mở</option>
-          <option value="draft">Bản nháp</option>
-        </select>
+          onChange={(v) => { setStatus(v); setPage(1); }}
+          options={[
+            { value: "", label: "Tất cả trạng thái" },
+            { value: "published", label: "Đang mở" },
+            { value: "draft", label: "Bản nháp" },
+          ]}
+          ariaLabel="Lọc theo trạng thái"
+        />
         <button
           onClick={() => { setDeleted(!deleted); setPage(1); }}
           className={`rounded-lg px-3 py-2 text-xs font-bold border ${deleted ? "bg-[var(--gray-800)] text-white border-[var(--gray-800)]" : "bg-[var(--surface-card)] border-[var(--surface-border)] text-[var(--text-secondary)]"}`}

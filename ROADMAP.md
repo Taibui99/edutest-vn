@@ -189,6 +189,16 @@ Tất cả L1–L4 trong commit `6e0ad48` — verified live: robots.txt/sitemap.
 - [ ] **LOAD-2 (chờ user chọn)** — (a) rate-limit attempt/submit theo user thay vì IP; (b) kiểm tra DATABASE_URL có qua pooler 6543 + gói Vercel/Supabase (user báo env private, không xem được — user tự check).
 - [x] **LOAD-3 Bớt round trip DB trong code** (`97de256`, verified live) — đo baseline đơn lẻ: mỗi lượt DB ~1.2–1.5s; submit 7 lượt ≈ 8.7s, attempt 4 lượt ≈ 5.2s. Đã cắt 3 lượt (attempt: hết đọc trùng activeKey; submit: đọc đề+attempt song song, chuông báo bắn không đợi): attempt **5.2s → 4.2s**, submit **8.7s → 7.2s**, chấm đúng (10đ). E2E student-take-exam 10/10. Phần sàn còn lại (~1.2s/lượt) nằm ở infra (pooler/gói) — ngoài tầm code.
 
+## 🎨 Dropdown tự vẽ thay select native (2026-10-12)
+
+**User:** popup mở ra của `<select>` native là OS vẽ, xấu — *"làm đẹp lên"* (ảnh: chọn Đúng/Sai trong editor).
+
+**Hướng:** 1 component `Dropdown` tự vẽ (button + listbox, phím mũi tên/Esc, check mục đã chọn) → viết lại `ui/select` cùng props API (label/error/options/placeholder + uncontrolled `defaultValue`/`name` qua hidden input cho form đăng ký) → thay toàn bộ select thô (editor Đúng/Sai, filter đề, submissions-panel, ngân hàng, admin) + sửa E2E bám native (`selectOption`/`combobox`/`option`) sang click. Không đổi value/onChange nên logic giữ nguyên.
+
+- [ ] Dropdown + Select mới
+- [ ] Migrate hết select thô
+- [ ] Sửa E2E + verify live
+
 ## 🩹 Fix theo báo cáo user (2026-10-11/12)
 - [x] **Avatar rò className ở danh sách bài nộp** (`d97b47b`, verified live) — user chụp màn hình: hàng đầu hiện nguyên chữ `bg-[var(--warning-light)]...` thay cho avatar. Nguyên nhân: `submissions-panel.tsx` render `{badge ?? i + 1}` — badge là chuỗi class nên lọt ra UI. Sửa: nội dung luôn là `{i + 1}`, badge chỉ đổi màu nền. Verify live: hết chuỗi rò, hạng đầu hiện "1", đề probe đã dọn.
 - [ ] Các lỗi khác user báo sau thì làm (hiện web đã ổn, không fix mò).

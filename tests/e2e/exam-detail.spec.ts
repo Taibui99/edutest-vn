@@ -65,8 +65,8 @@ test.describe("EXAM DETAIL — Trang chi tiết đề", () => {
     await page.getByRole("button", { name: /danh sách bài nộp|bài nộp/i }).first().click().catch(() => {});
     await expect(page.getByText(/danh sách bài nộp/i)).toBeVisible({ timeout: 20000 });
     await expect(page.getByText(/tester hs/i).first()).toBeVisible({ timeout: 15000 });
-    // sort select
-    await expect(page.getByRole("combobox").first()).toBeVisible();
+    // sort dropdown
+    await expect(page.getByRole("button", { name: "Lọc bài nộp" })).toBeVisible();
     // expand chi tiết đáp án
     const row = page.locator("text=/tester hs/i").first();
     await row.click().catch(() => {});

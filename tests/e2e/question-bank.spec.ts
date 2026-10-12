@@ -39,8 +39,8 @@ test.describe("QUESTION BANK — Kho câu hỏi", () => {
     await page.goto("/bang-dieu-khien/ngan-hang");
     await page.getByRole("button", { name: /thêm câu hỏi/i }).click();
     // môn + nội dung
-    await page.getByText(/môn học/i).first().click();
-    await page.locator("select").first().selectOption({ label: "Toán" });
+    await page.getByRole("button", { name: "Chọn môn" }).click();
+    await page.getByRole("option", { name: "Toán" }).click();
     await page.getByPlaceholder(/nhập nội dung câu hỏi/i).fill("QA kho 1+1 bằng mấy?");
     await page.getByPlaceholder("Đáp án A").fill("1");
     await page.getByPlaceholder("Đáp án B").fill("2");

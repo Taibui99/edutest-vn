@@ -10,7 +10,8 @@ test.describe("TEACHER — Tạo đề & quản lý", () => {
     const title = `QA-De-Toan-${Date.now()}`;
     await page.goto("/bang-dieu-khien/tao-de-thi");
     await page.getByLabel("Tên đề thi").fill(title);
-    await page.getByLabel("Môn học").selectOption({ label: "Toán" });
+    await page.getByLabel("Môn học").click();
+    await page.getByRole("option", { name: "Toán" }).click();
 
     // Câu hỏi MCQ đầu tiên
     const questionCard = page.locator("textarea[placeholder='Nhập nội dung câu hỏi...']").first();

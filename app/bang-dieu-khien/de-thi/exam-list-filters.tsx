@@ -4,6 +4,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Dropdown } from "@/components/ui/dropdown";
 
 export function ExamListFilters({
   subjects,
@@ -47,23 +48,24 @@ export function ExamListFilters({
           icon={<Search size={15} />}
         />
       </div>
-      <select
+      <Dropdown
         value={initialSubject}
-        onChange={(e) => navigate(q, e.target.value, initialStatus)}
-        className="rounded-xl border border-[var(--surface-border)] bg-[var(--surface-card)] px-3 py-2.5 text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--primary)] min-w-[150px]"
-      >
-        <option value="">Tất cả môn</option>
-        {subjects.map((s) => <option key={s} value={s}>{s}</option>)}
-      </select>
-      <select
+        onChange={(v) => navigate(q, v, initialStatus)}
+        options={[{ value: "", label: "Tất cả môn" }, ...subjects.map((s) => ({ value: s, label: s }))]}
+        ariaLabel="Lọc theo môn"
+        className="sm:min-w-[150px]"
+      />
+      <Dropdown
         value={initialStatus}
-        onChange={(e) => navigate(q, initialSubject, e.target.value)}
-        className="rounded-xl border border-[var(--surface-border)] bg-[var(--surface-card)] px-3 py-2.5 text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--primary)] min-w-[140px]"
-      >
-        <option value="">Tất cả trạng thái</option>
-        <option value="published">Đang mở</option>
-        <option value="draft">Bản nháp</option>
-      </select>
+        onChange={(v) => navigate(q, initialSubject, v)}
+        options={[
+          { value: "", label: "Tất cả trạng thái" },
+          { value: "published", label: "Đang mở" },
+          { value: "draft", label: "Bản nháp" },
+        ]}
+        ariaLabel="Lọc theo trạng thái"
+        className="sm:min-w-[140px]"
+      />
     </div>
   );
 }
