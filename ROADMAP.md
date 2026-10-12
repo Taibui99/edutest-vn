@@ -186,7 +186,8 @@ Tất cả L1–L4 trong commit `6e0ad48` — verified live: robots.txt/sitemap.
   - **Nhưng chậm:** attempts p50 ~10s/p95 ~14s; submits p50 ~14s/p95 ~15s; ngay cả `GET /api/health` p50 3.4s khi burst 40. Chạy lại ngay vẫn y hệt → **không phải cold start**, là nghẽn sustained (CPU/concurrency phía Vercel và/hoặc pool DB Supabase).
   - 0 lỗi 429 lần này là nhờ request rải qua nhiều isolate (mỗi isolate 1 bucket riêng) — may rủi, không bền: giờ thấp điểm ít isolate là bucket dồn, cả phòng máy chung IP vẫn có thể ăn 429 ở `submit` 20/phút.
   - Kết luận: **gánh được 40 nhưng chậm** — học sinh bấm bắt đầu/nộp bài sẽ nhìn loading 10–15s.
-- [ ] **LOAD-2 (chờ user chọn)** — (a) rate-limit attempt/submit theo user thay vì IP; (b) kiểm tra DATABASE_URL có qua pooler 6543 + gói Vercel/Supabase (cần user xem env).
+- [ ] **LOAD-2 (chờ user chọn)** — (a) rate-limit attempt/submit theo user thay vì IP; (b) kiểm tra DATABASE_URL có qua pooler 6543 + gói Vercel/Supabase (user báo env private, không xem được — user tự check).
+- [x] **LOAD-3 Bớt round trip DB trong code** (`97de256`, verified live) — đo baseline đơn lẻ: mỗi lượt DB ~1.2–1.5s; submit 7 lượt ≈ 8.7s, attempt 4 lượt ≈ 5.2s. Đã cắt 3 lượt (attempt: hết đọc trùng activeKey; submit: đọc đề+attempt song song, chuông báo bắn không đợi): attempt **5.2s → 4.2s**, submit **8.7s → 7.2s**, chấm đúng (10đ). E2E student-take-exam 10/10. Phần sàn còn lại (~1.2s/lượt) nằm ở infra (pooler/gói) — ngoài tầm code.
 
 ## 🩹 Fix theo báo cáo user (2026-10-11/12)
 - [x] **Avatar rò className ở danh sách bài nộp** (`d97b47b`, verified live) — user chụp màn hình: hàng đầu hiện nguyên chữ `bg-[var(--warning-light)]...` thay cho avatar. Nguyên nhân: `submissions-panel.tsx` render `{badge ?? i + 1}` — badge là chuỗi class nên lọt ra UI. Sửa: nội dung luôn là `{i + 1}`, badge chỉ đổi màu nền. Verify live: hết chuỗi rò, hạng đầu hiện "1", đề probe đã dọn.
