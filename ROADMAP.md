@@ -224,8 +224,8 @@ Tất cả L1–L4 trong commit `6e0ad48` — verified live: robots.txt/sitemap.
 - docx: `mammoth.convertImage` thu ảnh gốc.
 - pdf: carve JPEG nhúng (`/DCTDecode`, trường hợp phổ biến ảnh chụp/ảnh xuất) — PNG/FlateDecode chưa cover, nói rõ.
 - Tối đa 6 ảnh/lần, file tạm trên Gemini xóa sau chạy. Chỉ gắn vào 2 call chính (extraction + generate) để đỡ tốn quota.
-- [ ] AI-7a `lib/exam-images.ts` + nối vào pipeline
-- [ ] AI-7b Verify live bằng file mẫu của user
+- [x] AI-7a `lib/exam-images.ts` + nối vào pipeline (`f72d060`, verified live) — docx qua `mammoth.convertImage` (phát hiện khi test: `read("buffer")` không tồn tại, phải `read("base64")`; lọc bỏ WMF/EMF vì Gemini không đọc được — file mẫu có ~65 media nhưng chỉ ~10 PNG/JPEG là hình thật, lấy tối đa 8); pdf carve JPEG `/DCTDecode`. Nạp lên Gemini Files API, kèm vào call analyze/generate/extract + dặn diễn đạt lại thành chữ (cấm "xem hình"), xóa file tạm sau chạy, `meta.vision` để kiểm chứng.
+- [x] AI-7b Verify live bằng file mẫu của user (đề Vật Lý chủ đề 4-5-6, 0.7MB) — `vision=6`, 20 câu MCQ đúng chủ đề (nhiệt lượng/hóa hơi), bảng đáp án nhận diện được, 0 câu nhắc hình, 70s. Fix kèm (`1ff109a`): đồng bộ cap nạp ảnh 6→8 cho khớp cap trích.
 
 ## 🤖 Soạn đề từ tài liệu trong chat (AI-6, 2026-10-09)
 
