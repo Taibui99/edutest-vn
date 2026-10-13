@@ -222,7 +222,8 @@ Tất cả L1–L4 trong commit `6e0ad48` — verified live: robots.txt/sitemap.
 
 **Thiết kế:** mọi call LLM chữ (smart analyze/solve/tiebreak, generate, extract) đi Gemini trước như cũ; cạn attempts mới qua `groqChatJson` (`lib/groq-import.ts`: JSON mode trước, 400 thì thử lại thường + tự bóc markdown, timeout 60s). Vision/Files API giữ Gemini-only (Groq không có). `meta.provider` (`gemini`|`groq`) + log để biết engine nào phục vụ khi outage. Trung thực: chưa verify được đường Groq live (không ép Gemini sập được, key chỉ có trên Vercel) — code đã gate sạch, đường này chỉ kích hoạt khi Gemini lỗi, tệ nhất vẫn là lỗi thân thiện như cũ.
 - [x] AI-8a Code + deploy (`650ea17`) — `lib/groq-import.ts` + bọc mọi call chữ, vision giữ Gemini-only, `meta.provider` + log.
-- [x] AI-8b Verify đường chính không hồi quy — 1 probe generate nhỏ trên prod: 200, `provider=gemini`, MCQ đúng chủ đề/đáp án. Đường Groq kích hoạt ở outage tới (nhìn `meta.provider`/log là biết).
+- [x] AI-8b Verify đường chính không hồi quy — 1 probe generate nhỏ trên prod: 200, `provider=gemini`, MCQ đúng chủ đề/đáp án.
+- [x] AI-8c A/B Groq vs Gemini — nỗi sợ của user: *"tạo đề đêm không có gemini thì đề không hoàn hảo"*. Thêm hook `forceProvider` (chỉ GV) + chạy cùng lý thuyết: trớ trêu là lúc test Gemini sập thật (ECONNRESET — đúng case cần fallback). Kết quả Groq (`provider=groq`, 7s): **5/5 câu complete theo đúng luật product** (đáp án bare-letter, đủ 4 options, phân bố A/D/B/C/B không dồn, tiếng Việt chuẩn, đủ 3 mức độ khó). Phát hiện khi test: Groq trả `options` dạng object `{"A":...}` (Gemini trả mảng) → review sẽ loại hết → đã chuẩn hoá trong `toReviewItem` (`3f9818b`/`c81ac80`, kèm gỡ script probe lọt commit). Kết luận: **đề Groq soạn đạt chuẩn như Gemini** (cùng prompt, cùng validation, cùng màn review của GV).
 
 ## 🖼️ AI đọc hình minh họa trong tài liệu (AI-7, 2026-10-12)
 
