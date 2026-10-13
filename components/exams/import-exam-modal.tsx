@@ -107,7 +107,14 @@ function normalizeDifficulty(value: unknown): string | undefined {
 /** Chuẩn hoá câu để màn review hiển thị và áp dụng được. */
 export function toReviewItem(raw: ReviewedQuestion): ReviewedQuestion {
   const type = Object.keys(TYPE_NAMES).includes(raw.type) ? raw.type : "mcq";
-  const options = (Array.isArray(raw.options) ? raw.options : []).map((o) => String(o).replace(/^[A-F][.)]\s*/i, "").trim());
+  // AI-8: Groq trả options dạng object {"A":"...","B":"..."} thay vì mảng —
+  // chuẩn hoá về mảng theo thứ tự A-D, không là isComplete loại hết.
+  const rawOpts: unknown[] = Array.isArray(raw.options)
+    ? raw.options
+    : raw.options && typeof raw.options === "object"
+      ? ["A", "B", "C", "D"].map((k) => (raw.options as Record<string, unknown>)[k]).filter((x) => typeof x === "string" && String(x).trim())
+      : [];
+  const options = rawOpts.map((o) => String(o).replace(/^[A-F][.)]\s*/i, "").trim());
   const rubric = Array.isArray(raw.rubricPoints)
     ? raw.rubricPoints.map(String).filter(Boolean)
     : Array.isArray(raw.grading?.rubricPoints)
