@@ -221,8 +221,8 @@ Tất cả L1–L4 trong commit `6e0ad48` — verified live: robots.txt/sitemap.
 **User:** *"ngoài gemini ra thì có con nào tương tự thay thế lúc cần không"* → chốt thêm Groq dự phòng.
 
 **Thiết kế:** mọi call LLM chữ (smart analyze/solve/tiebreak, generate, extract) đi Gemini trước như cũ; cạn attempts mới qua `groqChatJson` (`lib/groq-import.ts`: JSON mode trước, 400 thì thử lại thường + tự bóc markdown, timeout 60s). Vision/Files API giữ Gemini-only (Groq không có). `meta.provider` (`gemini`|`groq`) + log để biết engine nào phục vụ khi outage. Trung thực: chưa verify được đường Groq live (không ép Gemini sập được, key chỉ có trên Vercel) — code đã gate sạch, đường này chỉ kích hoạt khi Gemini lỗi, tệ nhất vẫn là lỗi thân thiện như cũ.
-- [ ] AI-8a Code + deploy
-- [ ] AI-8b Verify đường chính không hồi quy (1 probe nhỏ) + ghi nhận
+- [x] AI-8a Code + deploy (`650ea17`) — `lib/groq-import.ts` + bọc mọi call chữ, vision giữ Gemini-only, `meta.provider` + log.
+- [x] AI-8b Verify đường chính không hồi quy — 1 probe generate nhỏ trên prod: 200, `provider=gemini`, MCQ đúng chủ đề/đáp án. Đường Groq kích hoạt ở outage tới (nhìn `meta.provider`/log là biết).
 
 ## 🖼️ AI đọc hình minh họa trong tài liệu (AI-7, 2026-10-12)
 
