@@ -216,6 +216,17 @@ Tất cả L1–L4 trong commit `6e0ad48` — verified live: robots.txt/sitemap.
 - [x] **G6b-2 Đổi các chốt còn sót** (`b990ba7`) — `attempts`/`submissions` (role→mode, message chỉ cách đổi mode), `thi/[code]` page (message chỉ cách đổi mode), `de-thi/[id]` page (role→`isTeacherAccess`, admin ở mode GV cũng vào được như thong-ke).
 - [x] **G6b-3 E2E RB-09** (verified live 2/2 + full RBAC 18/18) — học sinh bật mode GV → `POST /api/exams` 201 + `GET` chỉ thấy đề mình → dọn đề + về mode HS → lại 403. Toàn lỗi test, product đúng từ đầu: (1) chờ nút "Xác nhận" trong khi dialog ghi "Chuyển chế độ"; (2) race gọi API trước khi cookie mode mới về; (3) bấm card lúc chưa hydrate; (4) `getByText.first()` trúng link sidebar "Học sinh" bay sang `/hoc-sinh` (scope vào `main`); (5) `isVisible({timeout})` không chờ thật → vòng bấm-lại. Log từng vòng lặp mới tóm được (4).
 
+## 🖼️ AI đọc hình minh họa trong tài liệu (AI-7, 2026-10-12)
+
+**User:** *"gửi 1 đề có bảng số liệu và hình ảnh minh họa thì sao?"* → hiện tại bảng bẹp thành chữ, ảnh bị bỏ qua (trừ PDF scan). User chọn làm tiếp, sẽ gửi file mẫu để test thật.
+
+**Thiết kế (không migration DB):** tách ảnh từ file → nạp lên Gemini Files API kèm vào prompt → dặn AI **diễn đạt lại nội dung hình thành chữ/số trong câu hỏi** (cấm viết "xem Hình 1" vì đề thi không kèm hình). Bảng số liệu: giữ nguyên văn + dặn giữ cấu trúc.
+- docx: `mammoth.convertImage` thu ảnh gốc.
+- pdf: carve JPEG nhúng (`/DCTDecode`, trường hợp phổ biến ảnh chụp/ảnh xuất) — PNG/FlateDecode chưa cover, nói rõ.
+- Tối đa 6 ảnh/lần, file tạm trên Gemini xóa sau chạy. Chỉ gắn vào 2 call chính (extraction + generate) để đỡ tốn quota.
+- [ ] AI-7a `lib/exam-images.ts` + nối vào pipeline
+- [ ] AI-7b Verify live bằng file mẫu của user
+
 ## 🤖 Soạn đề từ tài liệu trong chat (AI-6, 2026-10-09)
 
 **User:** *"còn tính năng import tài liệu rồi tự làm đề theo yêu cầu đâu"* → *"tôi muốn nó ở trong cái chat ấy"*.

@@ -19,6 +19,7 @@ import {
   type SmartPayload,
   type SmartQuestion,
 } from "@/lib/ai-exam-build";
+import { extractDocImages, type DocImage } from "@/lib/exam-images";
 
 const geminiModel = process.env.EXAM_IMPORT_MODEL || "gemini-3.5-flash-lite";
 /* Đồng bộ với MAX_UPLOAD_BYTES ở lib/import-exam.ts: Vercel chặn body trên
@@ -252,7 +253,7 @@ Trả về JSON: { "answer": "A|B|C|D", "confidence": 0..1 }`;
 
 const SOLVE_BATCH = 8;
 
-async function callJson<T>(model: string, contents: string, schema: unknown, timeoutMs = 70_000): Promise<T> {
+async function callJson<T>(model: string, contents: string | (string | VisionPart)[], schema: unknown, timeoutMs = 70_000): Promise<T> {
   const raw = await generateWithRetry(
     (m) => ai.models.generateContent({ model: m, contents, config: { responseMimeType: "application/json", responseSchema: schema, maxOutputTokens: MAX_MODEL_OUTPUT } }).then((r) => r.text),
     { attempts: 2, timeoutMs },
@@ -358,6 +359,9 @@ async function runSmartPipeline(
   content: string,
   opts: GenerateOptions,
   onProgress?: (phase: string, done?: number, total?: number) => void,
+  // AI-7: ảnh chỉ gắn vào chunk đầu (đủ để model thấy toàn cảnh, đỡ tốn quota;
+  // các vòng solve sau làm việc trên chữ đã diễn đạt lại).
+  images: VisionFile[] = [],
 ): Promise<{ payload: SmartPayload; stats: ReturnType<typeof computeStats> }> {
   onProgress?.("analyze");
   const chunks = chunkText(content.slice(0, MAX_TEXT_CHARS));
@@ -365,10 +369,16 @@ async function runSmartPipeline(
   const keyHeuristic = detectAnswerKey(content.slice(0, 60_000));
 
   for (const [chunkIndex, chunk] of chunks.entries()) {
-    const part = await callJson<SmartPayload>(geminiModel, `${analyzePrompt}
+    const prompt = `${analyzePrompt}
 
 NỘI DUNG TÀI LIỆU:
-${chunk}`, smartSchema, 90_000);
+${chunk}`;
+    const part = await callJson<SmartPayload>(
+      geminiModel,
+      chunkIndex === 0 ? withVision(prompt, images) : prompt,
+      smartSchema,
+      90_000,
+    );
     if (!merged.title && part.title) merged.title = part.title;
     if (!merged.subject && part.subject) merged.subject = part.subject;
     if (!merged.kind && part.kind) merged.kind = part.kind;
@@ -512,6 +522,8 @@ async function runGenerate(
   content: string,
   opts: GenerateOptions,
   onProgress?: (done: number, total: number) => void,
+  // AI-7: lý thuyết + hình đi cùng nhau nên gắn ảnh mọi chunk (thường 1 chunk).
+  images: VisionFile[] = [],
 ): Promise<GeneratedPayload> {
   const chunks = chunkText(content.slice(0, MAX_TEXT_CHARS));
   const total = Math.min(Math.max(Number(opts.count) || 10, 1), 60);
@@ -522,7 +534,7 @@ async function runGenerate(
       (model) =>
         ai.models.generateContent({
           model,
-          contents: buildGeneratePrompt(chunks[i], { ...opts, count: perChunk }),
+          contents: withVision(buildGeneratePrompt(chunks[i], { ...opts, count: perChunk }), images),
           config: generationConfig(),
         }).then((r) => r.text),
       { attempts: 2, timeoutMs: GENERATE_TIMEOUT_MS },
@@ -542,6 +554,79 @@ function mimeTypeFor(file: File) {
   if (file.name.toLowerCase().endsWith(".pdf")) return "application/pdf";
   if (file.name.toLowerCase().endsWith(".docx")) return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
   return file.type || "application/octet-stream";
+}
+
+/* ── AI-7 · Hình minh họa ─────────────────────────────────────────────
+   Tách ảnh từ file → nạp lên Gemini Files API → kèm vào prompt để model
+   "nhìn". Mọi dữ kiện trong hình BẮT BUỘC diễn đạt lại thành chữ/số trong đề
+   (cấm "xem Hình 1" vì đề xuất ra không kèm hình). File tạm xóa sau chạy. */
+
+type VisionFile = { uri: string; mimeType: string; name?: string | null };
+type VisionPart = { fileData: { fileUri: string; mimeType: string } };
+
+const VISION_NOTE = `HÌNH ẢNH MINH HỌA ĐÍNH KÈM: ngoài chữ trên còn có hình ảnh của tài liệu. Mọi dữ kiện trong hình (số liệu, bảng biểu, đồ thị, sơ đồ, hình vẽ) BẮT BUỘC phải được diễn đạt lại thành chữ/số đầy đủ ngay trong nội dung câu hỏi, đáp án và giải thích. TUYỆT ĐỐI không viết các cụm như "xem hình", "Hình 1", "biểu đồ trên", "như hình vẽ" vì đề thi xuất ra KHÔNG kèm hình.`;
+
+function withVision(promptText: string, images: VisionFile[]): string | (string | VisionPart)[] {
+  if (!images.length) return promptText;
+  return [
+    `${promptText}\n\n${VISION_NOTE}`,
+    ...images.map((f) => ({ fileData: { fileUri: f.uri, mimeType: f.mimeType } })),
+  ];
+}
+
+async function uploadVisionImages(found: DocImage[]): Promise<VisionFile[]> {
+  const out: VisionFile[] = [];
+  for (const img of found.slice(0, 6)) {
+    try {
+      const up = await withTimeout(
+        ai.files.upload({
+          // Copy sang ArrayBuffer mới: Uint8Array view từ Buffer pool không
+          // thỏa kiểu BlobPart của TS (dù runtime vẫn chạy).
+          file: new Blob([new Uint8Array(img.bytes)], { type: img.mimeType }),
+          config: { displayName: "doc-image", mimeType: img.mimeType },
+        }),
+        AI_TIMEOUT_MS,
+        "Gemini tải ảnh quá lâu",
+      );
+      const uri = (up as { uri?: string } | null)?.uri;
+      const name = (up as { name?: string | null } | null)?.name ?? null;
+      if (uri) out.push({ uri, mimeType: img.mimeType, name });
+    } catch {
+      // Bỏ ảnh lỗi, pipeline chữ vẫn chạy.
+    }
+  }
+  return out;
+}
+
+async function deleteVisionFiles(files: VisionFile[]) {
+  for (const f of files) {
+    try {
+      if (f.name) await ai.files.delete({ name: f.name });
+    } catch {
+      // Bỏ qua, file tạm trên Gemini tự hết hạn.
+    }
+  }
+}
+
+/** Tách + nạp ảnh rồi gọi fn, xong xóa file tạm. Không bao giờ ném lỗi ảnh. */
+async function withDocVision<T>(
+  buffer: Buffer | null,
+  fileName: string,
+  fn: (images: VisionFile[]) => Promise<T>,
+): Promise<T> {
+  let uploaded: VisionFile[] = [];
+  try {
+    if (buffer && buffer.byteLength) {
+      const found = await extractDocImages(buffer, fileName);
+      if (found.length) {
+        uploaded = await uploadVisionImages(found);
+        console.info(`[exam-vision] ${uploaded.length}/${found.length} images from ${fileName}`);
+      }
+    }
+    return await fn(uploaded);
+  } finally {
+    if (uploaded.length) await deleteVisionFiles(uploaded);
+  }
 }
 
 function mapError(message: string) {
@@ -620,6 +705,9 @@ export async function POST(request: NextRequest) {
   const encoder = new TextEncoder();
   let aiLogId: string | null = null;
   let smartStats: ReturnType<typeof computeStats> | null = null;
+  // AI-7: số ảnh đã nạp cho model (0 = chạy chữ thuần) — trả về trong meta để
+  // kiểm chứng được, vì log server không xem được từ ngoài.
+  let visionCount = 0;
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
       const send = (payload: unknown) => {
@@ -678,17 +766,30 @@ export async function POST(request: NextRequest) {
           }
           if (!content) return send({ type: "error", error: "Không đọc được nội dung tài liệu" });
           console.info(`[exam-smart] content=${content.length} chars; model=${geminiModel}; source=${detected}`);
-          const { payload, stats } = await runSmartPipeline(content, options, (phase, done, total) =>
-            send({ type: "stage", stage: phase === "solve" ? "solve" : "analyze", meta: { done, total } }),
+          const { payload, stats } = await withDocVision(
+            file ? Buffer.from(await file.arrayBuffer()) : null,
+            file?.name ?? "",
+            (images) => {
+              visionCount = images.length;
+              return runSmartPipeline(
+                content,
+                options,
+                (phase, done, total) =>
+                  send({ type: "stage", stage: phase === "solve" ? "solve" : "analyze", meta: { done, total } }),
+                images,
+              );
+            },
           );
           if (!payload.questions?.length) return send({ type: "error", error: "AI không tìm thấy câu hỏi nào trong tài liệu" });
           resultText = JSON.stringify(payload);
           source = "smart";
           smartStats = stats;
-        } else if (mode === "generate") {
+        } else         if (mode === "generate") {
           let content = "";
+          let genBuffer: Buffer | null = null;
           if (file) {
             const buffer = Buffer.from(await file.arrayBuffer());
+            genBuffer = buffer;
             const lowerName = file.name.toLowerCase();
             if (lowerName.endsWith(".docx")) {
               send({ type: "stage", stage: "extract" });
@@ -704,9 +805,13 @@ export async function POST(request: NextRequest) {
           if (!content) return send({ type: "error", error: "Không đọc được nội dung tài liệu" });
           console.info(`[exam-generate] content=${content.length} chars; count=${options.count}; model=${geminiModel}`);
           send({ type: "stage", stage: "analyze" });
-          const payload = await runGenerate(content, options, (done, total) =>
-            send({ type: "stage", stage: "analyze", meta: { done, total } }),
-          );
+          const payload = await withDocVision(genBuffer, file?.name ?? "", (images) => {
+            visionCount = images.length;
+            return runGenerate(content, options, (done, total) =>
+              send({ type: "stage", stage: "analyze", meta: { done, total } }),
+              images,
+            );
+          });
           const wanted = Math.min(Math.max(Number(options.count) || 10, 1), 60);
           const produced = payload.questions?.length ?? 0;
           if (produced < wanted) {
@@ -731,10 +836,13 @@ export async function POST(request: NextRequest) {
             if (!content) return send({ type: "error", error: "Không đọc được nội dung trong file Word" });
             console.info(`[exam-import] docx extracted ${content.length} chars; model=${geminiModel}`);
             send({ type: "stage", stage: "analyze" });
-            const result = await generateWithRetry(
-              (model) => ai.models.generateContent({ model, contents: `${extractionPrompt}\n\nNỘI DUNG ĐỀ:\n${content.slice(0, MAX_TEXT_CHARS)}`, config: generationConfig() }).then((r) => r.text),
-              retryOpts,
-            );
+            const result = await withDocVision(buffer, file.name, (images) => {
+              visionCount = images.length;
+              return generateWithRetry(
+                (model) => ai.models.generateContent({ model, contents: withVision(`${extractionPrompt}\n\nNỘI DUNG ĐỀ:\n${content.slice(0, MAX_TEXT_CHARS)}`, images), config: generationConfig() }).then((r) => r.text),
+                retryOpts,
+              );
+            });
             resultText = result;
             source = "docx";
           } else {
@@ -742,10 +850,13 @@ export async function POST(request: NextRequest) {
             if (extractedText) {
               console.info(`[exam-import] pdf text extracted ${extractedText.length} chars; model=${geminiModel}`);
               send({ type: "stage", stage: "analyze" });
-              const result = await generateWithRetry(
-                (model) => ai.models.generateContent({ model, contents: `${extractionPrompt}\n\nNỘI DUNG PDF:\n${extractedText}`, config: generationConfig() }).then((r) => r.text),
-                retryOpts,
-              );
+              const result = await withDocVision(buffer, file.name, (images) => {
+                visionCount = images.length;
+                return generateWithRetry(
+                  (model) => ai.models.generateContent({ model, contents: withVision(`${extractionPrompt}\n\nNỘI DUNG PDF:\n${extractedText}`, images), config: generationConfig() }).then((r) => r.text),
+                  retryOpts,
+                );
+              });
               resultText = result;
               source = "pdf-text";
             } else {
@@ -770,7 +881,7 @@ export async function POST(request: NextRequest) {
         const elapsedMs = Date.now() - startedAt;
         console.info(`[exam-import] completed in ${elapsedMs}ms; model=${geminiModel}; source=${source}; smart=${JSON.stringify(smartStats)}`);
         const smartMeta = smartStats ? { smart: smartStats } : {};
-        send({ type: "result", result: resultText, meta: { model: geminiModel, source, elapsedMs, ...smartMeta } });
+        send({ type: "result", result: resultText, meta: { model: geminiModel, source, elapsedMs, ...(visionCount ? { vision: visionCount } : {}), ...smartMeta } });
         if (aiLogId) {
           await prisma.aiImportLog.update({
             where: { id: aiLogId },
