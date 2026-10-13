@@ -112,7 +112,7 @@ export function toReviewItem(raw: ReviewedQuestion): ReviewedQuestion {
   const rawOpts: unknown[] = Array.isArray(raw.options)
     ? raw.options
     : raw.options && typeof raw.options === "object"
-      ? ["A", "B", "C", "D"].map((k) => (raw.options as Record<string, unknown>)[k]).filter((x) => typeof x === "string" && String(x).trim())
+      ? ["A", "B", "C", "D"].map((k) => (raw.options as unknown as Record<string, unknown>)[k]).filter((x) => typeof x === "string" && String(x).trim())
       : [];
   const options = rawOpts.map((o) => String(o).replace(/^[A-F][.)]\s*/i, "").trim());
   const rubric = Array.isArray(raw.rubricPoints)
