@@ -576,7 +576,8 @@ function withVision(promptText: string, images: VisionFile[]): string | (string 
 
 async function uploadVisionImages(found: DocImage[]): Promise<VisionFile[]> {
   const out: VisionFile[] = [];
-  for (const img of found.slice(0, 6)) {
+  // extractDocImages đã giới hạn 8 ảnh — nạp hết, không cắt bớt lần nữa.
+  for (const img of found) {
     try {
       const up = await withTimeout(
         ai.files.upload({
