@@ -262,9 +262,15 @@ const SOLVE_BATCH = 8;
 async function generateTextWithFallback(
   prompt: string,
   images: VisionFile[],
-  opts: { attempts?: number; timeoutMs?: number } = {},
+  opts: { attempts?: number; timeoutMs?: number; forceGroq?: boolean } = {},
 ): Promise<{ text: string; provider: "gemini" | "groq" }> {
-  const { attempts = 2, timeoutMs = 75_000 } = opts;
+  const { attempts = 2, timeoutMs = 75_000, forceGroq = false } = opts;
+  if (forceGroq) {
+    if (images.length) throw new Error("Chế độ test Groq không hỗ trợ ảnh minh họa");
+    console.info("[exam-import] force provider=groq (A/B test)");
+    const text = await groqChatJson(prompt, Math.min(timeoutMs, 60_000));
+    return { text, provider: "groq" };
+  }
   try {
     const text = await generateWithRetry(
       (model) =>
@@ -293,7 +299,14 @@ function parseJson<U>(raw: string | null | undefined): U {
   }
 }
 
-async function callJson<T>(model: string, contents: string | (string | VisionPart)[], schema: unknown, timeoutMs = 70_000): Promise<{ data: T; provider: "gemini" | "groq" }> {
+async function callJson<T>(model: string, contents: string | (string | VisionPart)[], schema: unknown, timeoutMs = 70_000, forceGroq = false): Promise<{ data: T; provider: "gemini" | "groq" }> {
+  if (forceGroq && typeof contents !== "string") {
+    throw new Error("Chế độ test Groq không hỗ trợ ảnh minh họa");
+  }
+  if (forceGroq) {
+    console.info("[exam-import] force provider=groq (A/B test)");
+    return { data: parseJson<T>(await groqChatJson(contents as string, Math.min(timeoutMs, 60_000))), provider: "groq" };
+  }
   if (typeof contents === "string") {
     try {
       const raw = await generateWithRetry(
@@ -343,6 +356,7 @@ const oneSchema = {
 async function solveMissingAnswers(
   questions: SmartQuestion[],
   onProgress?: (done: number, total: number) => void,
+  forceGroq = false,
 ): Promise<{ questions: SmartQuestion[]; agreed: number; provider: "gemini" | "groq" }> {
   const todo = questions.filter((q) => q.type === "mcq" && !q.answer);
   if (todo.length === 0) return { questions, agreed: 0, provider: "gemini" };
@@ -355,8 +369,8 @@ async function solveMissingAnswers(
   for (let i = 0; i < todo.length; i += SOLVE_BATCH) {
     const batch = todo.slice(i, i + SOLVE_BATCH).map((q, j) => ({ n: i + j + 1, question: q.question, options: q.options }));
     const [runA, runB] = await Promise.all([
-      callJson<{ answers: { n: number; answer: string }[] }>(geminiModel, solvePrompt(batch, "1"), solveSchema),
-      callJson<{ answers: { n: number; answer: string }[] }>(geminiModel, solvePrompt(batch, "2"), solveSchema),
+      callJson<{ answers: { n: number; answer: string }[] }>(geminiModel, solvePrompt(batch, "1"), solveSchema, 70_000, forceGroq),
+      callJson<{ answers: { n: number; answer: string }[] }>(geminiModel, solvePrompt(batch, "2"), solveSchema, 70_000, forceGroq),
     ]);
     if (runA.provider === "groq" || runB.provider === "groq") provider = "groq";
     const pick = (res: { answers?: { n: number; answer: string }[] }, n: number) => {
@@ -386,6 +400,8 @@ async function solveMissingAnswers(
           geminiModel,
           tieBreakPrompt({ n: q.index + 1, question: q.question, options: q.options }, [votes.get(q.index)!.a!, votes.get(q.index)!.b!]),
           oneSchema,
+          70_000,
+          forceGroq,
         );
         if (res.provider === "groq") provider = "groq";
         votes.get(q.index)!.tie = normalizeMcqAnswer(res.data.answer, q.options.length) ?? undefined;
@@ -413,6 +429,7 @@ async function runSmartPipeline(
   // AI-7: ảnh chỉ gắn vào chunk đầu (đủ để model thấy toàn cảnh, đỡ tốn quota;
   // các vòng solve sau làm việc trên chữ đã diễn đạt lại).
   images: VisionFile[] = [],
+  forceGroq = false,
 ): Promise<{ payload: SmartPayload; stats: ReturnType<typeof computeStats>; provider: "gemini" | "groq" }> {
   onProgress?.("analyze");
   const chunks = chunkText(content.slice(0, MAX_TEXT_CHARS));
@@ -430,6 +447,7 @@ ${chunk}`;
       chunkIndex === 0 ? withVision(prompt, images) : prompt,
       smartSchema,
       90_000,
+      forceGroq,
     );
     if (part.provider === "groq") provider = "groq";
     const body = part.data;
@@ -462,7 +480,7 @@ ${chunk}`;
   let agreed = 0;
   if (missing > 0) {
     onProgress?.("solve", 0, missing);
-    const solved = await solveMissingAnswers(questions, (done, total) => onProgress?.("solve", done, total));
+    const solved = await solveMissingAnswers(questions, (done, total) => onProgress?.("solve", done, total), forceGroq);
     if (solved.provider === "groq") provider = "groq";
     merged.questions = solved.questions;
     agreed = solved.agreed;
@@ -579,6 +597,7 @@ async function runGenerate(
   onProgress?: (done: number, total: number) => void,
   // AI-7: lý thuyết + hình đi cùng nhau nên gắn ảnh mọi chunk (thường 1 chunk).
   images: VisionFile[] = [],
+  forceGroq = false,
 ): Promise<{ payload: GeneratedPayload; provider: "gemini" | "groq" }> {
   const chunks = chunkText(content.slice(0, MAX_TEXT_CHARS));
   const total = Math.min(Math.max(Number(opts.count) || 10, 1), 60);
@@ -587,7 +606,7 @@ async function runGenerate(
   for (let i = 0; i < chunks.length; i++) {
     const perChunk = Math.max(1, Math.ceil(total / chunks.length));
     const prompt = buildGeneratePrompt(chunks[i], { ...opts, count: perChunk });
-    const r = await generateTextWithFallback(prompt, images, { attempts: 2, timeoutMs: GENERATE_TIMEOUT_MS });
+    const r = await generateTextWithFallback(prompt, images, { attempts: 2, timeoutMs: GENERATE_TIMEOUT_MS, forceGroq });
     if (r.provider === "groq") provider = "groq";
     results.push(parseJson<GeneratedPayload>(r.text));
     onProgress?.(i + 1, chunks.length);
@@ -707,10 +726,13 @@ export async function POST(request: NextRequest) {
   let prompt: string | undefined;
   let tempPath: string | null = null;
 
+  // AI-8 test hook: ép engine để A/B (route đã chặn role GV ở trên).
+  let forceGroq = false;
   if (isJson) {
     const body = (await request.json().catch(() => ({}))) as {
-      storagePath?: unknown; mode?: unknown; options?: unknown; prompt?: unknown;
+      storagePath?: unknown; mode?: unknown; options?: unknown; prompt?: unknown; forceProvider?: unknown;
     };
+    forceGroq = body.forceProvider === "groq";
     const storagePath = typeof body.storagePath === "string" ? body.storagePath : "";
     rawMode = typeof body.mode === "string" ? body.mode : null;
     if (body.options && typeof body.options === "object") options = body.options as GenerateOptions;
@@ -739,6 +761,7 @@ export async function POST(request: NextRequest) {
       options = {};
     }
     prompt = (formData.get("prompt") as string | null)?.trim() || undefined;
+    if (formData.get("forceProvider") === "groq") forceGroq = true;
   }
 
   const mode: "smart" | "generate" | "extract" = rawMode === "generate" ? "generate" : rawMode === "extract" ? "extract" : "smart";
@@ -828,6 +851,7 @@ export async function POST(request: NextRequest) {
                 (phase, done, total) =>
                   send({ type: "stage", stage: phase === "solve" ? "solve" : "analyze", meta: { done, total } }),
                 images,
+                forceGroq,
               );
               if (r.provider === "groq") llmProvider = "groq";
               return r;
@@ -863,6 +887,7 @@ export async function POST(request: NextRequest) {
             const r = await runGenerate(content, options, (done, total) =>
               send({ type: "stage", stage: "analyze", meta: { done, total } }),
               images,
+              forceGroq,
             );
             if (r.provider === "groq") llmProvider = "groq";
             return r.payload;
@@ -897,7 +922,7 @@ export async function POST(request: NextRequest) {
               const r = await generateTextWithFallback(
                 `${extractionPrompt}\n\nNỘI DUNG ĐỀ:\n${content.slice(0, MAX_TEXT_CHARS)}`,
                 images,
-                retryOpts,
+                { ...retryOpts, forceGroq },
               );
               if (r.provider === "groq") llmProvider = "groq";
               return r.text;
@@ -914,7 +939,7 @@ export async function POST(request: NextRequest) {
                 const r = await generateTextWithFallback(
                   `${extractionPrompt}\n\nNỘI DUNG PDF:\n${extractedText}`,
                   images,
-                  retryOpts,
+                  { ...retryOpts, forceGroq },
                 );
                 if (r.provider === "groq") llmProvider = "groq";
                 return r.text;
@@ -933,7 +958,7 @@ export async function POST(request: NextRequest) {
           const r = await generateTextWithFallback(
             `${extractionPrompt}\n\nNỘI DUNG:\n${prompt!}`,
             [],
-            retryOpts,
+            { ...retryOpts, forceGroq },
           );
           if (r.provider === "groq") llmProvider = "groq";
           resultText = r.text;

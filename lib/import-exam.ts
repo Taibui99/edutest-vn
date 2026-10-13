@@ -72,7 +72,7 @@ type StreamEvent = {
 export async function importExamFile(
   file: File | null,
   onStage: (stage: ImportStage, progress?: { done?: number; total?: number }) => void,
-  opts: { mode?: ImportMode; options?: GenerateOptions; text?: string } = {},
+  opts: { mode?: ImportMode; options?: GenerateOptions; text?: string; forceProvider?: "groq" } = {},
 ): Promise<{ result: string; meta?: Record<string, unknown> }> {
   const mode = opts.mode ?? "smart";
   const timeout = mode === "generate" ? GENERATE_TIMEOUT_MS : SMART_TIMEOUT_MS;
@@ -90,6 +90,8 @@ export async function importExamFile(
     onStage(mode === "generate" && file ? "upload" : "extract");
   }
 
+  // AI-8 test hook: ép engine để A/B (chỉ GV gọi được API này).
+  const force = opts.forceProvider === "groq" ? "groq" : undefined;
   const body: BodyInit =
     storagePath !== null
       ? JSON.stringify({
@@ -97,6 +99,7 @@ export async function importExamFile(
           mode,
           options: mode === "generate" ? (opts.options ?? {}) : undefined,
           prompt: opts.text?.trim() || undefined,
+          ...(force ? { forceProvider: force } : {}),
         })
       : (() => {
           const form = new FormData();
@@ -104,6 +107,7 @@ export async function importExamFile(
           if (opts.text?.trim()) form.append("prompt", opts.text.trim());
           form.append("mode", mode);
           if (mode === "generate") form.append("options", JSON.stringify(opts.options ?? {}));
+          if (force) form.append("forceProvider", force);
           return form;
         })();
 
