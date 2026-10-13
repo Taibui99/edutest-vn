@@ -632,6 +632,9 @@ async function withDocVision<T>(
 
 function mapError(message: string) {
   if (/429|rate.?limit|quota/i.test(message)) return "Gemini đang quá tải hoặc hết quota. Vui lòng thử lại sau ít phút.";
+  // 503 cao điểm (UNAVAILABLE/high demand/overloaded): tạm thời, thử lại sau.
+  // Không có thì JSON thô của Google lọt ra UI như user đã chụp.
+  if (/503|unavailable|high demand|overloaded|capacity/i.test(message)) return "AI đang đông người dùng (nghẽn tạm thời). Bạn đợi 2–3 phút rồi bấm “Thử lại” nhé!";
   // Model bị Google khai tử (từng lọt JSON thô ra UI): báo gọn thay vì dump kỹ thuật.
   if (/404|not.?found|no longer available/i.test(message)) return "Model AI vừa được Google cập nhật. Thử bấm “Thử lại” sau ít phút nhé!";
   if (/timeout|timed out|deadline|quá lâu/i.test(message)) return message.slice(0, 300);
