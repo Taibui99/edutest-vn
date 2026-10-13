@@ -20,6 +20,7 @@ import {
   type SmartQuestion,
 } from "@/lib/ai-exam-build";
 import { extractDocImages, type DocImage } from "@/lib/exam-images";
+import { groqChatJson } from "@/lib/groq-import";
 
 const geminiModel = process.env.EXAM_IMPORT_MODEL || "gemini-3.5-flash-lite";
 /* Đồng bộ với MAX_UPLOAD_BYTES ở lib/import-exam.ts: Vercel chặn body trên
@@ -253,17 +254,64 @@ Trả về JSON: { "answer": "A|B|C|D", "confidence": 0..1 }`;
 
 const SOLVE_BATCH = 8;
 
-async function callJson<T>(model: string, contents: string | (string | VisionPart)[], schema: unknown, timeoutMs = 70_000): Promise<T> {
+/**
+ * AI-8 — gọi Gemini trước, sập hết (429/503/5xx, hết attempts) mới qua Groq.
+ * Groq chỉ gánh được prompt CHỮ thuần (không vision/schema) — có ảnh thì ném
+ * lỗi Gemini gốc để caller báo đúng. Trả kèm provider để ghi vào meta/log.
+ */
+async function generateTextWithFallback(
+  prompt: string,
+  images: VisionFile[],
+  opts: { attempts?: number; timeoutMs?: number } = {},
+): Promise<{ text: string; provider: "gemini" | "groq" }> {
+  const { attempts = 2, timeoutMs = 75_000 } = opts;
+  try {
+    const text = await generateWithRetry(
+      (model) =>
+        ai.models.generateContent({
+          model,
+          contents: withVision(prompt, images),
+          config: generationConfig(),
+        }).then((r) => r.text),
+      { attempts, timeoutMs },
+    );
+    return { text, provider: "gemini" };
+  } catch (geminiErr) {
+    if (images.length) throw geminiErr;
+    console.warn("[exam-import] Gemini sập, chuyển Groq dự phòng");
+    const text = await groqChatJson(prompt, Math.min(timeoutMs, 60_000));
+    return { text, provider: "groq" };
+  }
+}
+
+function parseJson<U>(raw: string | null | undefined): U {
+  const cleaned = (raw || "").replace(/^```json\s*/i, "").replace(/```\s*$/i, "").trim();
+  try {
+    return JSON.parse(cleaned) as U;
+  } catch {
+    throw new Error("AI trả về dữ liệu câu hỏi không hợp lệ");
+  }
+}
+
+async function callJson<T>(model: string, contents: string | (string | VisionPart)[], schema: unknown, timeoutMs = 70_000): Promise<{ data: T; provider: "gemini" | "groq" }> {
+  if (typeof contents === "string") {
+    try {
+      const raw = await generateWithRetry(
+        (m) => ai.models.generateContent({ model: m, contents, config: { responseMimeType: "application/json", responseSchema: schema, maxOutputTokens: MAX_MODEL_OUTPUT } }).then((r) => r.text),
+        { attempts: 2, timeoutMs },
+      );
+      return { data: parseJson<T>(raw), provider: "gemini" };
+    } catch {
+      console.warn("[exam-import] Gemini sập, chuyển Groq dự phòng");
+      const raw = await groqChatJson(contents, Math.min(timeoutMs, 60_000));
+      return { data: parseJson<T>(raw), provider: "groq" };
+    }
+  }
   const raw = await generateWithRetry(
     (m) => ai.models.generateContent({ model: m, contents, config: { responseMimeType: "application/json", responseSchema: schema, maxOutputTokens: MAX_MODEL_OUTPUT } }).then((r) => r.text),
     { attempts: 2, timeoutMs },
   );
-  const cleaned = (raw || "").replace(/^```jsons*/i, "").replace(/```$/i, "").trim();
-  try {
-    return JSON.parse(cleaned) as T;
-  } catch {
-    throw new Error("AI trả về dữ liệu không đúng định dạng JSON");
-  }
+  return { data: parseJson<T>(raw), provider: "gemini" };
 }
 
 const solveSchema = {
@@ -295,9 +343,10 @@ const oneSchema = {
 async function solveMissingAnswers(
   questions: SmartQuestion[],
   onProgress?: (done: number, total: number) => void,
-): Promise<{ questions: SmartQuestion[]; agreed: number }> {
+): Promise<{ questions: SmartQuestion[]; agreed: number; provider: "gemini" | "groq" }> {
   const todo = questions.filter((q) => q.type === "mcq" && !q.answer);
-  if (todo.length === 0) return { questions, agreed: 0 };
+  if (todo.length === 0) return { questions, agreed: 0, provider: "gemini" };
+  let provider: "gemini" | "groq" = "gemini";
 
   const votes = new Map<number, { a?: string; b?: string; tie?: string }>();
   const totalSteps = todo.length * 2;
@@ -309,14 +358,15 @@ async function solveMissingAnswers(
       callJson<{ answers: { n: number; answer: string }[] }>(geminiModel, solvePrompt(batch, "1"), solveSchema),
       callJson<{ answers: { n: number; answer: string }[] }>(geminiModel, solvePrompt(batch, "2"), solveSchema),
     ]);
+    if (runA.provider === "groq" || runB.provider === "groq") provider = "groq";
     const pick = (res: { answers?: { n: number; answer: string }[] }, n: number) => {
       const hit = res.answers?.find((x) => Number(x.n) === n);
       return hit ? normalizeMcqAnswer(hit.answer, 4) ?? undefined : undefined;
     };
     for (const item of batch) {
       const src = todo[item.n - 1];
-      const a = pick(runA, item.n);
-      const b = pick(runB, item.n);
+      const a = pick(runA.data, item.n);
+      const b = pick(runB.data, item.n);
       votes.set(src.index, { a, b });
       step += 2;
       onProgress?.(Math.min(step, totalSteps), totalSteps);
@@ -337,7 +387,8 @@ async function solveMissingAnswers(
           tieBreakPrompt({ n: q.index + 1, question: q.question, options: q.options }, [votes.get(q.index)!.a!, votes.get(q.index)!.b!]),
           oneSchema,
         );
-        votes.get(q.index)!.tie = normalizeMcqAnswer(res.answer, q.options.length) ?? undefined;
+        if (res.provider === "groq") provider = "groq";
+        votes.get(q.index)!.tie = normalizeMcqAnswer(res.data.answer, q.options.length) ?? undefined;
       } catch (error) {
         console.warn(`[exam-smart] phá thế hoản thất bại câu ${q.index + 1}`, error);
       }
@@ -351,7 +402,7 @@ async function solveMissingAnswers(
   if (unanswered > 0) {
     console.warn(`[exam-smart] còn ${unanswered} câu không lấy được đáp án nào; đánh dấu cho giáo viên xem lại`);
   }
-  return { questions: solved, agreed };
+  return { questions: solved, agreed, provider };
 }
 
 /** Pipeline "AI đọc tài liệu & tự dựng đề". */
@@ -362,11 +413,12 @@ async function runSmartPipeline(
   // AI-7: ảnh chỉ gắn vào chunk đầu (đủ để model thấy toàn cảnh, đỡ tốn quota;
   // các vòng solve sau làm việc trên chữ đã diễn đạt lại).
   images: VisionFile[] = [],
-): Promise<{ payload: SmartPayload; stats: ReturnType<typeof computeStats> }> {
+): Promise<{ payload: SmartPayload; stats: ReturnType<typeof computeStats>; provider: "gemini" | "groq" }> {
   onProgress?.("analyze");
   const chunks = chunkText(content.slice(0, MAX_TEXT_CHARS));
   const merged: SmartPayload = { questions: [] };
   const keyHeuristic = detectAnswerKey(content.slice(0, 60_000));
+  let provider: "gemini" | "groq" = "gemini";
 
   for (const [chunkIndex, chunk] of chunks.entries()) {
     const prompt = `${analyzePrompt}
@@ -379,12 +431,14 @@ ${chunk}`;
       smartSchema,
       90_000,
     );
-    if (!merged.title && part.title) merged.title = part.title;
-    if (!merged.subject && part.subject) merged.subject = part.subject;
-    if (!merged.kind && part.kind) merged.kind = part.kind;
-    merged.answerKeyFound = merged.answerKeyFound || part.answerKeyFound === true;
-    if (!merged.answerKeyNote && part.answerKeyNote) merged.answerKeyNote = part.answerKeyNote;
-    for (const q of part.questions ?? []) merged.questions!.push(q);
+    if (part.provider === "groq") provider = "groq";
+    const body = part.data;
+    if (!merged.title && body.title) merged.title = body.title;
+    if (!merged.subject && body.subject) merged.subject = body.subject;
+    if (!merged.kind && body.kind) merged.kind = body.kind;
+    merged.answerKeyFound = merged.answerKeyFound || body.answerKeyFound === true;
+    if (!merged.answerKeyNote && body.answerKeyNote) merged.answerKeyNote = body.answerKeyNote;
+    for (const q of body.questions ?? []) merged.questions!.push(q);
     onProgress?.("analyze", chunkIndex + 1, chunks.length);
   }
 
@@ -409,6 +463,7 @@ ${chunk}`;
   if (missing > 0) {
     onProgress?.("solve", 0, missing);
     const solved = await solveMissingAnswers(questions, (done, total) => onProgress?.("solve", done, total));
+    if (solved.provider === "groq") provider = "groq";
     merged.questions = solved.questions;
     agreed = solved.agreed;
     if (!merged.answerKeyNote) {
@@ -422,7 +477,7 @@ ${chunk}`;
   merged.answerKeyFound = merged.answerKeyFound === true || keyHeuristic !== null;
 
   const payload: SmartPayload = { ...merged, questions: merged.questions ?? [] };
-  return { payload, stats: computeStats(payload, agreed) };
+  return { payload, stats: computeStats(payload, agreed), provider };
 }
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
@@ -524,30 +579,20 @@ async function runGenerate(
   onProgress?: (done: number, total: number) => void,
   // AI-7: lý thuyết + hình đi cùng nhau nên gắn ảnh mọi chunk (thường 1 chunk).
   images: VisionFile[] = [],
-): Promise<GeneratedPayload> {
+): Promise<{ payload: GeneratedPayload; provider: "gemini" | "groq" }> {
   const chunks = chunkText(content.slice(0, MAX_TEXT_CHARS));
   const total = Math.min(Math.max(Number(opts.count) || 10, 1), 60);
   const results: GeneratedPayload[] = [];
+  let provider: "gemini" | "groq" = "gemini";
   for (let i = 0; i < chunks.length; i++) {
     const perChunk = Math.max(1, Math.ceil(total / chunks.length));
-    const result = await generateWithRetry(
-      (model) =>
-        ai.models.generateContent({
-          model,
-          contents: withVision(buildGeneratePrompt(chunks[i], { ...opts, count: perChunk }), images),
-          config: generationConfig(),
-        }).then((r) => r.text),
-      { attempts: 2, timeoutMs: GENERATE_TIMEOUT_MS },
-    );
-    const cleaned = (result || "").replace(/^```json\s*/i, "").replace(/```$/i, "").trim();
-    try {
-      results.push(JSON.parse(cleaned) as GeneratedPayload);
-    } catch {
-      throw new Error("AI trả về dữ liệu câu hỏi không hợp lệ");
-    }
+    const prompt = buildGeneratePrompt(chunks[i], { ...opts, count: perChunk });
+    const r = await generateTextWithFallback(prompt, images, { attempts: 2, timeoutMs: GENERATE_TIMEOUT_MS });
+    if (r.provider === "groq") provider = "groq";
+    results.push(parseJson<GeneratedPayload>(r.text));
     onProgress?.(i + 1, chunks.length);
   }
-  return mergeGenerated(results);
+  return { payload: mergeGenerated(results), provider };
 }
 
 function mimeTypeFor(file: File) {
@@ -734,6 +779,8 @@ export async function POST(request: NextRequest) {
         } catch {}
         let resultText = "";
         let source: "docx" | "pdf-text" | "pdf-gemini" | "text" | "generate" | "smart" = "text";
+        // AI-8: engine nào phục vụ (để debug outage + hiện trong meta).
+        let llmProvider: "gemini" | "groq" = "gemini";
 
         const readDocument = async (target: File): Promise<string> => {
           const buffer = Buffer.from(await target.arrayBuffer());
@@ -773,15 +820,17 @@ export async function POST(request: NextRequest) {
           const { payload, stats } = await withDocVision(
             file ? Buffer.from(await file.arrayBuffer()) : null,
             file?.name ?? "",
-            (images) => {
+            async (images) => {
               visionCount = images.length;
-              return runSmartPipeline(
+              const r = await runSmartPipeline(
                 content,
                 options,
                 (phase, done, total) =>
                   send({ type: "stage", stage: phase === "solve" ? "solve" : "analyze", meta: { done, total } }),
                 images,
               );
+              if (r.provider === "groq") llmProvider = "groq";
+              return r;
             },
           );
           if (!payload.questions?.length) return send({ type: "error", error: "AI không tìm thấy câu hỏi nào trong tài liệu" });
@@ -809,13 +858,16 @@ export async function POST(request: NextRequest) {
           if (!content) return send({ type: "error", error: "Không đọc được nội dung tài liệu" });
           console.info(`[exam-generate] content=${content.length} chars; count=${options.count}; model=${geminiModel}`);
           send({ type: "stage", stage: "analyze" });
-          const payload = await withDocVision(genBuffer, file?.name ?? "", (images) => {
+          const gen = await withDocVision(genBuffer, file?.name ?? "", async (images) => {
             visionCount = images.length;
-            return runGenerate(content, options, (done, total) =>
+            const r = await runGenerate(content, options, (done, total) =>
               send({ type: "stage", stage: "analyze", meta: { done, total } }),
               images,
             );
+            if (r.provider === "groq") llmProvider = "groq";
+            return r.payload;
           });
+          const payload = gen;
           const wanted = Math.min(Math.max(Number(options.count) || 10, 1), 60);
           const produced = payload.questions?.length ?? 0;
           if (produced < wanted) {
@@ -840,12 +892,15 @@ export async function POST(request: NextRequest) {
             if (!content) return send({ type: "error", error: "Không đọc được nội dung trong file Word" });
             console.info(`[exam-import] docx extracted ${content.length} chars; model=${geminiModel}`);
             send({ type: "stage", stage: "analyze" });
-            const result = await withDocVision(buffer, file.name, (images) => {
+            const result = await withDocVision(buffer, file.name, async (images) => {
               visionCount = images.length;
-              return generateWithRetry(
-                (model) => ai.models.generateContent({ model, contents: withVision(`${extractionPrompt}\n\nNỘI DUNG ĐỀ:\n${content.slice(0, MAX_TEXT_CHARS)}`, images), config: generationConfig() }).then((r) => r.text),
+              const r = await generateTextWithFallback(
+                `${extractionPrompt}\n\nNỘI DUNG ĐỀ:\n${content.slice(0, MAX_TEXT_CHARS)}`,
+                images,
                 retryOpts,
               );
+              if (r.provider === "groq") llmProvider = "groq";
+              return r.text;
             });
             resultText = result;
             source = "docx";
@@ -854,12 +909,15 @@ export async function POST(request: NextRequest) {
             if (extractedText) {
               console.info(`[exam-import] pdf text extracted ${extractedText.length} chars; model=${geminiModel}`);
               send({ type: "stage", stage: "analyze" });
-              const result = await withDocVision(buffer, file.name, (images) => {
+              const result = await withDocVision(buffer, file.name, async (images) => {
                 visionCount = images.length;
-                return generateWithRetry(
-                  (model) => ai.models.generateContent({ model, contents: withVision(`${extractionPrompt}\n\nNỘI DUNG PDF:\n${extractedText}`, images), config: generationConfig() }).then((r) => r.text),
+                const r = await generateTextWithFallback(
+                  `${extractionPrompt}\n\nNỘI DUNG PDF:\n${extractedText}`,
+                  images,
                   retryOpts,
                 );
+                if (r.provider === "groq") llmProvider = "groq";
+                return r.text;
               });
               resultText = result;
               source = "pdf-text";
@@ -872,20 +930,22 @@ export async function POST(request: NextRequest) {
           }
         } else {
           send({ type: "stage", stage: "analyze" });
-          const result = await generateWithRetry(
-            (model) => ai.models.generateContent({ model, contents: `${extractionPrompt}\n\nNỘI DUNG:\n${prompt!}`, config: generationConfig() }).then((r) => r.text),
+          const r = await generateTextWithFallback(
+            `${extractionPrompt}\n\nNỘI DUNG:\n${prompt!}`,
+            [],
             retryOpts,
           );
-          resultText = result;
+          if (r.provider === "groq") llmProvider = "groq";
+          resultText = r.text;
         }
 
         if (!resultText?.trim()) return send({ type: "error", error: "AI không trả về dữ liệu câu hỏi" });
 
         send({ type: "stage", stage: "check" });
         const elapsedMs = Date.now() - startedAt;
-        console.info(`[exam-import] completed in ${elapsedMs}ms; model=${geminiModel}; source=${source}; smart=${JSON.stringify(smartStats)}`);
+        console.info(`[exam-import] completed in ${elapsedMs}ms; model=${geminiModel}; provider=${llmProvider}; source=${source}; smart=${JSON.stringify(smartStats)}`);
         const smartMeta = smartStats ? { smart: smartStats } : {};
-        send({ type: "result", result: resultText, meta: { model: geminiModel, source, elapsedMs, ...(visionCount ? { vision: visionCount } : {}), ...smartMeta } });
+        send({ type: "result", result: resultText, meta: { model: llmProvider === "groq" ? `groq:${process.env.GROQ_MODEL || "openai/gpt-oss-120b"}` : geminiModel, provider: llmProvider, source, elapsedMs, ...(visionCount ? { vision: visionCount } : {}), ...smartMeta } });
         if (aiLogId) {
           await prisma.aiImportLog.update({
             where: { id: aiLogId },

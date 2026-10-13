@@ -216,6 +216,14 @@ Tất cả L1–L4 trong commit `6e0ad48` — verified live: robots.txt/sitemap.
 - [x] **G6b-2 Đổi các chốt còn sót** (`b990ba7`) — `attempts`/`submissions` (role→mode, message chỉ cách đổi mode), `thi/[code]` page (message chỉ cách đổi mode), `de-thi/[id]` page (role→`isTeacherAccess`, admin ở mode GV cũng vào được như thong-ke).
 - [x] **G6b-3 E2E RB-09** (verified live 2/2 + full RBAC 18/18) — học sinh bật mode GV → `POST /api/exams` 201 + `GET` chỉ thấy đề mình → dọn đề + về mode HS → lại 403. Toàn lỗi test, product đúng từ đầu: (1) chờ nút "Xác nhận" trong khi dialog ghi "Chuyển chế độ"; (2) race gọi API trước khi cookie mode mới về; (3) bấm card lúc chưa hydrate; (4) `getByText.first()` trúng link sidebar "Học sinh" bay sang `/hoc-sinh` (scope vào `main`); (5) `isVisible({timeout})` không chờ thật → vòng bấm-lại. Log từng vòng lặp mới tóm được (4).
 
+## 🔁 Groq dự phòng import đề (AI-8, 2026-10-13)
+
+**User:** *"ngoài gemini ra thì có con nào tương tự thay thế lúc cần không"* → chốt thêm Groq dự phòng.
+
+**Thiết kế:** mọi call LLM chữ (smart analyze/solve/tiebreak, generate, extract) đi Gemini trước như cũ; cạn attempts mới qua `groqChatJson` (`lib/groq-import.ts`: JSON mode trước, 400 thì thử lại thường + tự bóc markdown, timeout 60s). Vision/Files API giữ Gemini-only (Groq không có). `meta.provider` (`gemini`|`groq`) + log để biết engine nào phục vụ khi outage. Trung thực: chưa verify được đường Groq live (không ép Gemini sập được, key chỉ có trên Vercel) — code đã gate sạch, đường này chỉ kích hoạt khi Gemini lỗi, tệ nhất vẫn là lỗi thân thiện như cũ.
+- [ ] AI-8a Code + deploy
+- [ ] AI-8b Verify đường chính không hồi quy (1 probe nhỏ) + ghi nhận
+
 ## 🖼️ AI đọc hình minh họa trong tài liệu (AI-7, 2026-10-12)
 
 **User:** *"gửi 1 đề có bảng số liệu và hình ảnh minh họa thì sao?"* → hiện tại bảng bẹp thành chữ, ảnh bị bỏ qua (trừ PDF scan). User chọn làm tiếp, sẽ gửi file mẫu để test thật.
