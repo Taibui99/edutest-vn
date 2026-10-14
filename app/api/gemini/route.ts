@@ -201,11 +201,11 @@ const responseSchema = {
             },
           },
         },
-        required: ["type", "question", "options", "answer"],
+        required: ["type", "question", "options", "answer", "blocks_used"],
       },
     },
   },
-  required: ["title", "questions"],
+  required: ["title", "kind", "questions"],
 };
 
 const analyzePrompt = `Bạn là chuyên gia phân tích đề thi Việt Nam. NHIỆM VỤ: đọc TÀI LIỆU và DỰNG LẠI ĐỀ THI đang có trong tài liệu (đây là đề sẵn có, KHÔNG tự soạn câu hỏi mới).
