@@ -225,6 +225,15 @@ Tất cả L1–L4 trong commit `6e0ad48` — verified live: robots.txt/sitemap.
 - [x] AI-8b Verify đường chính không hồi quy — 1 probe generate nhỏ trên prod: 200, `provider=gemini`, MCQ đúng chủ đề/đáp án.
 - [x] AI-8c A/B Groq vs Gemini — nỗi sợ của user: *"tạo đề đêm không có gemini thì đề không hoàn hảo"*. Thêm hook `forceProvider` (chỉ GV) + chạy cùng lý thuyết: trớ trêu là lúc test Gemini sập thật (ECONNRESET — đúng case cần fallback). Kết quả Groq (`provider=groq`, 7s): **5/5 câu complete theo đúng luật product** (đáp án bare-letter, đủ 4 options, phân bố A/D/B/C/B không dồn, tiếng Việt chuẩn, đủ 3 mức độ khó). Phát hiện khi test: Groq trả `options` dạng object `{"A":...}` (Gemini trả mảng) → review sẽ loại hết → đã chuẩn hoá trong `toReviewItem` (`3f9818b`/`c81ac80`, kèm gỡ script probe lọt commit). Kết luận: **đề Groq soạn đạt chuẩn như Gemini** (cùng prompt, cùng validation, cùng màn review của GV).
 
+## 🧩 Cắt khối + điểm danh chống rớt câu (AI-10, 2026-10-13)
+
+**User:** đề hơn 20 câu mà AI chỉ lọc được 18 — *"các câu lẫn lộn, không theo phần, cần xử lí được"*.
+
+**Nguyên nhân:** đề không đánh số câu, model tự mò ranh giới → rớt lung tung (đếm được 1/2/11/16/20/21 câu trên cùng 1 file).
+- [ ] AI-10a `lib/exam-segment.ts` (thuần hàm, test local): gom dòng thành khối xác định (stem + options, tách đáp án dính nhau, chữ sau đáp án hết thì thành note, mở đầu tách preamble), model không còn phải đoán ranh giới.
+- [ ] AI-10b Điểm danh `blocks_used` + coverage + chạy bù 1 lần đúng khối thiếu; mục `skip` cho khối không phải câu hỏi; `meta.blocks`.
+- [ ] AI-10c Verify bằng file user: coverage full + khớp key đỏ.
+
 ## 🔴 Đọc đáp án tô màu + công thức Word (AI-9, 2026-10-13)
 
 **User:** *"đáp án AI khác key của tôi — do key tôi sai hay AI sửa?"* + *"tôi có bôi màu đáp án, nó không đọc ra à"* + công thức toán không đọc được.

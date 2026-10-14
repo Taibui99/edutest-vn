@@ -9,6 +9,8 @@ export type Difficulty = (typeof DIFFICULTY_LEVELS)[number];
 export type SmartQuestion = {
   index: number;
   type: string;
+  /** AI-10: các số KHỐI đã dùng để dựng câu này (điểm danh độ phủ). */
+  blocks_used?: number[];
   question: string;
   options: string[];
   answer: string;
@@ -130,12 +132,17 @@ export function detectAnswerKey(text: string): Record<string, string> | null {
 
 /** Chuẩn hoá 1 câu từ payload AI, gán index theo thứ tự. */
 export function normalizeQuestion(raw: Partial<SmartQuestion>, index: number): SmartQuestion {
-  const type = ["mcq", "true_false", "short_answer", "essay"].includes(String(raw.type)) ? String(raw.type) : "mcq";
+  // AI-10: "skip" đi qua nguyên để server đếm độ phủ (không thành câu hỏi).
+  const rawType = String(raw.type);
+  const type = rawType === "skip" || ["mcq", "true_false", "short_answer", "essay"].includes(rawType) ? rawType : "mcq";
   const options = Array.isArray(raw.options) ? raw.options.map((o) => String(o).replace(/^\s*[A-Fa-f][\.\)]\s*/, "").trim()) : [];
   const answer = String(raw.answer ?? "").trim();
   return {
     index,
     type,
+    blocks_used: Array.isArray(raw.blocks_used)
+      ? raw.blocks_used.filter((n) => Number.isInteger(n))
+      : undefined,
     question: String(raw.question ?? "").trim(),
     options: type === "mcq" ? (options.length >= 2 ? options.slice(0, 6) : ["", "", "", ""]) : options,
     answer: type === "mcq" ? normalizeMcqAnswer(answer, options.length) ?? "" : answer,

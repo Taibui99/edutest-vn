@@ -21,6 +21,7 @@ import {
 } from "@/lib/ai-exam-build";
 import { extractDocImages, type DocImage } from "@/lib/exam-images";
 import { extractDocxText, reconcileDocKey, type DocxKey } from "@/lib/exam-docx";
+import { segmentQuestions, formatBlocks } from "@/lib/exam-segment";
 import { groqChatJson } from "@/lib/groq-import";
 
 const geminiModel = process.env.EXAM_IMPORT_MODEL || "gemini-3.5-flash-lite";
@@ -136,7 +137,8 @@ const smartSchema = {
       items: {
         type: "object",
         properties: {
-          type: { type: "string", enum: ["mcq", "true_false", "short_answer", "essay"] },
+          type: { type: "string", enum: ["mcq", "true_false", "short_answer", "essay", "skip"] },
+          blocks_used: { type: "array", items: { type: "integer" } },
           question: { type: "string" },
           options: { type: "array", items: { type: "string" } },
           answer: { type: "string" },
@@ -212,7 +214,13 @@ BƯỚC 1 - NHẬN DIỆN:
 - kind: "mcq" nếu đa số câu là trắc nghiệm có lựa chọn A/B/C/D; "theory" nếu câu hỏi tự luận/tra lời ngắn (không có lựa chọn).
 - answerKeyFound: true nếu trong tài liệu CÓ phần đáp án (thường ở cuối: "ĐÁP ÂN", bảng đáp án, hoặc đáp án ghi ngay sau câu). Ghi rõ trong answerKeyNote là đáp án nằm ở đâu.
 
-BƯỚC 2 - DỰNG TỪNG CÂU:
+BƯỚC 2 - DỰNG TỪNG CÂU (ĐIỂM DANH BẮT BUỘC):
+- Tài liệu đã cắt sẵn thành các KHỐI đánh số. Với MỖI khối, trả đúng 1 mục.
+- Mỗi mục ghi "blocks_used" = số các khối đã dùng (kể cả khối chỉ góp 1 ý).
+  Mọi khối từ 1 đến hết bài đều phải xuất hiện trong blocks_used của ít nhất
+  1 mục — kể cả khối không phải câu hỏi (mục lục, tiêu đề, lời giải lẻ) thì
+  vẫn liệt kê với type="skip". TUYỆT ĐỐI không bỏ sót khối nào, không gộp 2
+  khối xa nhau thành 1 câu khi mỗi khối đã là 1 câu hoàn chỉnh.
 - Giữ nguyên nội dung câu hỏi, không tự diễn đạt lại, không thêm bớt.
 - mcq: options đúng 4 lựa chọn (bỏ tiền tố "A." trong text).
 - NẾU đáp án CÓ SẴN trong tài liệu: answer = chữ cái đúng, answerSource = "document",
@@ -439,12 +447,29 @@ async function runSmartPipeline(
   forceGroq = false,
   // AI-9: key đáp án tô màu trích độc lập — đối chiếu sau solve, tính lại stats.
   docKey: DocxKey[] = [],
-): Promise<{ payload: SmartPayload; stats: ReturnType<typeof computeStats>; provider: "gemini" | "groq" }> {
+): Promise<{ payload: SmartPayload; stats: ReturnType<typeof computeStats>; provider: "gemini" | "groq"; coverage: { total: number; covered: number; missing: number[] } | null }> {
   onProgress?.("analyze");
-  const chunks = chunkText(content.slice(0, MAX_TEXT_CHARS));
+  // AI-10: cắt khối xác định + bắt model điểm danh từng khối (kể cả type=skip
+  // cho khối không phải câu hỏi). Không còn chuyện rớt câu im lặng.
+  const { blocks, preamble } = segmentQuestions(content);
+  const useBlocks = blocks.length > 0;
+  const analyzeInput = useBlocks ? formatBlocks(blocks, preamble) : content.slice(0, MAX_TEXT_CHARS);
+  const chunks = chunkText(analyzeInput);
   const merged: SmartPayload = { questions: [] };
   const keyHeuristic = detectAnswerKey(content.slice(0, 60_000));
   let provider: "gemini" | "groq" = "gemini";
+  const covered = new Set<number>();
+  const collect = (items: SmartPayload["questions"]) => {
+    for (const q of items ?? []) {
+      merged.questions!.push(q);
+      const bu = (q as { blocks_used?: unknown }).blocks_used;
+      if (Array.isArray(bu)) {
+        for (const n of bu) {
+          if (Number.isInteger(n) && (n as number) >= 1 && (n as number) <= blocks.length) covered.add(n as number);
+        }
+      }
+    }
+  };
 
   for (const [chunkIndex, chunk] of chunks.entries()) {
     const prompt = `${analyzePrompt}
@@ -468,11 +493,48 @@ ${chunk}`;
     if (!merged.kind && body.kind) merged.kind = body.kind;
     merged.answerKeyFound = merged.answerKeyFound || body.answerKeyFound === true;
     if (!merged.answerKeyNote && body.answerKeyNote) merged.answerKeyNote = body.answerKeyNote;
-    for (const q of body.questions ?? []) merged.questions!.push(q);
+    collect(body.questions);
     onProgress?.("analyze", chunkIndex + 1, chunks.length);
   }
 
-  const questions = (merged.questions ?? []).map((q, i) => normalizeQuestion(q, i)).filter((q) => q.question.length > 0);
+  // Khối nào chưa được điểm danh thì chạy bù đúng các khối đó (tối đa 1 lần).
+  let missingBlocks: number[] = [];
+  if (useBlocks) {
+    missingBlocks = blocks.map((b) => b.index).filter((i) => !covered.has(i));
+  }
+  if (missingBlocks.length) {
+    console.info(`[exam-blocks] thiếu khối ${missingBlocks.join(",")} — chạy bù 1 lần`);
+    onProgress?.("analyze", chunks.length, chunks.length + 1);
+    try {
+      const retryText =
+        `LẦN TRƯỚC CÒN SÓT — chỉ xử lý các khối sau, các khối khác bỏ qua:\n\n` +
+        formatBlocks(blocks.filter((b) => missingBlocks.includes(b.index)));
+      const retry = await callJson<SmartPayload>(
+        geminiModel,
+        `${analyzePrompt}\n\nNỘI DUNG TÀI LIỆU:\n${retryText}`,
+        smartSchema,
+        90_000,
+        forceGroq,
+        0.1,
+      );
+      if (retry.provider === "groq") provider = "groq";
+      const rb = retry.data;
+      if (!merged.title && rb.title) merged.title = rb.title;
+      if (!merged.subject && rb.subject) merged.subject = rb.subject;
+      if (!merged.kind && rb.kind) merged.kind = rb.kind;
+      if (!merged.answerKeyNote && rb.answerKeyNote) merged.answerKeyNote = rb.answerKeyNote;
+      collect(rb.questions);
+    } catch (error) {
+      console.warn("[exam-blocks] chạy bù thất bại", error);
+    }
+    missingBlocks = blocks.map((b) => b.index).filter((i) => !covered.has(i));
+  }
+  const coverage = useBlocks
+    ? { total: blocks.length, covered: covered.size, missing: missingBlocks }
+    : null;
+
+  // AI-10: mục skip chỉ để điểm danh, không phải câu hỏi — loại trước khi chấm/tính.
+  const questions = (merged.questions ?? []).map((q, i) => normalizeQuestion(q, i)).filter((q) => q.question.length > 0 && q.type !== "skip");
   // De nghi tu do phat hien bang thuoc tinh dung chu quy, gan cho cau chua ro nguon dap an
   for (const q of questions) {
     if (q.type === "mcq" && q.answer && !q.answerSource) q.answerSource = "document";
@@ -524,7 +586,7 @@ ${chunk}`;
   }
 
   const payload: SmartPayload = { ...merged, questions: merged.questions ?? [] };
-  return { payload, stats: computeStats(payload, agreed), provider };
+  return { payload, stats: computeStats(payload, agreed), provider, coverage };
 }
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
@@ -809,6 +871,8 @@ export async function POST(request: NextRequest) {
   // AI-7: số ảnh đã nạp cho model (0 = chạy chữ thuần) — trả về trong meta để
   // kiểm chứng được, vì log server không xem được từ ngoài.
   let visionCount = 0;
+  // AI-10: độ phủ khối (total/covered/missing) — null khi tài liệu không cắt được khối nào.
+  let blocksMeta: { total: number; covered: number; missing: number[] } | null = null;
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
       const send = (payload: unknown) => {
@@ -880,7 +944,7 @@ export async function POST(request: NextRequest) {
           }
           if (!content) return send({ type: "error", error: "Không đọc được nội dung tài liệu" });
           console.info(`[exam-smart] content=${content.length} chars; model=${geminiModel}; source=${detected}`);
-          const { payload, stats } = await withDocVision(
+          const { payload, stats, coverage } = await withDocVision(
             file ? Buffer.from(await file.arrayBuffer()) : null,
             file?.name ?? "",
             async (images) => {
@@ -898,6 +962,10 @@ export async function POST(request: NextRequest) {
               return r;
             },
           );
+          blocksMeta = coverage;
+          if (coverage && coverage.missing.length) {
+            console.warn(`[exam-blocks] vẫn thiếu khối sau chạy bù: ${coverage.missing.join(",")}`);
+          }
           if (!payload.questions?.length) return send({ type: "error", error: "AI không tìm thấy câu hỏi nào trong tài liệu" });
           resultText = JSON.stringify(payload);
           source = "smart";
@@ -1015,7 +1083,7 @@ export async function POST(request: NextRequest) {
         const elapsedMs = Date.now() - startedAt;
         console.info(`[exam-import] completed in ${elapsedMs}ms; model=${geminiModel}; provider=${llmProvider}; source=${source}; smart=${JSON.stringify(smartStats)}`);
         const smartMeta = smartStats ? { smart: smartStats } : {};
-        send({ type: "result", result: resultText, meta: { model: llmProvider === "groq" ? `groq:${process.env.GROQ_MODEL || "openai/gpt-oss-120b"}` : geminiModel, provider: llmProvider, source, elapsedMs, ...(visionCount ? { vision: visionCount } : {}), ...smartMeta } });
+        send({ type: "result", result: resultText, meta: { model: llmProvider === "groq" ? `groq:${process.env.GROQ_MODEL || "openai/gpt-oss-120b"}` : geminiModel, provider: llmProvider, source, elapsedMs, ...(visionCount ? { vision: visionCount } : {}), ...(blocksMeta ? { blocks: blocksMeta } : {}), ...smartMeta } });
         if (aiLogId) {
           await prisma.aiImportLog.update({
             where: { id: aiLogId },

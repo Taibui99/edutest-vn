@@ -11,6 +11,7 @@ import {
   computeStats,
   reconcileAnswers,
 } from "../lib/ai-exam-build.ts";
+import { segmentQuestions, splitOptionLine, formatBlocks } from "../lib/exam-segment.ts";
 
 let passed = 0;
 const t = (name, fn) => {
@@ -131,6 +132,39 @@ t("computeStats đếm đúng nguồn đáp án", () => {
   assert.equal(s.needsReview, 1);
   assert.equal(s.missingAnswer, 1);
   assert.equal(s.answerKeyFound, true);
+});
+
+t("normalizeQuestion giữ type=skip để điểm danh độ phủ", () => {
+  const q = normalizeQuestion({ type: "skip", question: "", blocks_used: [3] }, 0);
+  assert.equal(q.type, "skip");
+  assert.deepEqual(q.blocks_used, [3]);
+});
+
+t("splitOptionLine tách đáp án dính nhau, bỏ số liệu giả", () => {
+  assert.deepEqual(splitOptionLine("A. 1 B. 2 C. 3 D. 4"), ["A. 1", "B. 2", "C. 3", "D. 4"]);
+  assert.deepEqual(splitOptionLine("A. 23.105 J.B. 23.104 J."), ["A. 23.105 J.", "B. 23.104 J."]);
+  assert.deepEqual(splitOptionLine("xem hình B.52 ở trên"), ["xem hình B.52 ở trên"]);
+});
+
+t("segmentQuestions gom stem+options, note dính sau, mở đầu tách riêng", () => {
+  const text = [
+    "ĐỀ KIỂM TRA",
+    "Nhiệt lượng là gì?",
+    "A. năng lượng",
+    "B. công suất",
+    "Hướng dẫn: đọc kỹ đề",
+    "2+2 bằng mấy?",
+    "A. 3 B. 4",
+  ].join("\n");
+  const { blocks, preamble } = segmentQuestions(text);
+  assert.equal(blocks.length, 2);
+  assert.ok(blocks[0].stem.includes("Nhiệt lượng là gì?"));
+  assert.deepEqual(blocks[0].options, ["A. năng lượng", "B. công suất"]);
+  assert.equal(blocks[1].stem, "Hướng dẫn: đọc kỹ đề\n2+2 bằng mấy?");
+  assert.deepEqual(blocks[1].options, ["A. 3", "B. 4"]);
+  assert.equal(preamble, ""); // mở đầu ngắn (≤3 dòng) kéo hết xuống stem khối 1, không mất chữ nào
+  const fmt = formatBlocks(blocks, preamble);
+  assert.ok(fmt.includes("--- KHỐI 1 ---") && fmt.includes("--- KHỐI 2 ---"));
 });
 
 console.log(`\n${passed} nhóm test đã pass`);
