@@ -44,12 +44,14 @@ interface Submission {
   durationSeconds: number;
   submittedAt: string;
   answers: Record<string, AnswerValue>;
+  attemptsUsed?: number | null;
   exam: {
     id: string;
     title: string;
     subject: string;
     showAnswers: boolean;
     showScoreImmediately: boolean;
+    maxAttempts: number;
     teacher: { name: string };
     questions: Question[];
   };
@@ -183,6 +185,13 @@ export default function ResultPage({ params }: { params: Promise<{ id: string }>
           </div>
         </div>
 
+        {typeof sub.attemptsUsed === "number" && (
+          <p className={`text-xs font-bold mt-4 px-3 py-2 rounded-xl ${sub.attemptsUsed >= sub.exam.maxAttempts ? "bg-[var(--warning-light)] text-[var(--warning)]" : "bg-[var(--primary-light)] text-[var(--primary)]"}`}>
+            {sub.attemptsUsed >= sub.exam.maxAttempts
+              ? `Đã hết ${sub.exam.maxAttempts} lượt làm bài của đề này`
+              : `Còn ${sub.exam.maxAttempts - sub.attemptsUsed} lượt làm bài (đã dùng ${sub.attemptsUsed}/${sub.exam.maxAttempts}) — bấm Thi tiếp để làm lại`}
+          </p>
+        )}
         <p className="text-xs text-[var(--text-muted)] mt-4">
           Nộp lúc {new Date(sub.submittedAt).toLocaleString("vi-VN")}
         </p>

@@ -28,5 +28,14 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   const isTeacher = submission.exam.teacherId === userId;
   if (!isOwner && !isTeacher) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  return NextResponse.json(submission);
+  // EXAM-2: cho học sinh thấy mình còn mấy lượt (khỏi đoán mò vì sao không thi
+  // lại được: hết lượt / còn lượt).
+  let attemptsUsed: number | null = null;
+  if (isOwner && !isTeacher && submission.studentId) {
+    attemptsUsed = await prisma.submission.count({
+      where: { examId: submission.examId, studentId: submission.studentId },
+    });
+  }
+
+  return NextResponse.json({ ...submission, attemptsUsed });
 }
