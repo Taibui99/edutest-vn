@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { Download, ChevronDown, ChevronRight, Trophy, CheckCircle2, XCircle, MinusCircle, ShieldAlert } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Download, ChevronDown, ChevronRight, Trophy, CheckCircle2, XCircle, MinusCircle, ShieldAlert, RefreshCw } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Dropdown } from "@/components/ui/dropdown";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -150,10 +151,46 @@ function formatDur(s: number) {
 }
 
 export function SubmissionsPanel({ subs, questions }: { subs: SubRow[]; questions: SubQuestion[] }) {
+  const router = useRouter();
   const [sort, setSort] = useState<SortKey>("latest");
   // GĐ2 — lọc nhanh bài có cờ để giáo viên soi từng nhóm thay vì cuộn hết bảng.
   const [riskFilter, setRiskFilter] = useState<"all" | "flagged">("all");
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [updatedAt, setUpdatedAt] = useState<Date>(() => new Date());
+  const [refreshing, setRefreshing] = useState(false);
+
+  /* RT-1 — tự tải lại danh sách mỗi 30s để GV coi thi thấy bài mới nộp mà
+   * không cần F5. router.refresh() render lại phần server (bảng + stats +
+   * phân bố) nhưng giữ nguyên filter/sort/dòng đang mở (state client).
+   * Chỉ chạy khi tab đang hiển thị; tab ẩn thì trình duyệt đã tự giãn timer. */
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      if (document.visibilityState !== "visible") return;
+      setRefreshing(true);
+      setUpdatedAt(new Date());
+      router.refresh();
+    }, 30_000);
+    return () => window.clearInterval(id);
+  }, [router]);
+
+  // Dừng xoay khi dữ liệu mới về (subs đổi tham chiếu); quá 20s chưa về thì
+  // coi như mạng chậm, dừng để không xoay vô hạn.
+  const subsRef = useRef(subs);
+  useEffect(() => {
+    if (subsRef.current !== subs) {
+      subsRef.current = subs;
+      setRefreshing(false);
+    } else {
+      const t = window.setTimeout(() => setRefreshing(false), 20_000);
+      return () => window.clearTimeout(t);
+    }
+  }, [subs, refreshing]);
+
+  const manualRefresh = () => {
+    setRefreshing(true);
+    setUpdatedAt(new Date());
+    router.refresh();
+  };
 
   const flaggedCount = useMemo(() => subs.filter((s) => s.riskLevel !== "none").length, [subs]);
 
@@ -232,6 +269,18 @@ export function SubmissionsPanel({ subs, questions }: { subs: SubRow[]; question
             size="sm"
             ariaLabel="Sắp xếp bài nộp"
           />
+          <span className="hidden text-[11px] text-[var(--text-muted)] sm:inline" title="Tự tải lại mỗi 30 giây">
+            Cập nhật {updatedAt.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+          </span>
+          <button
+            type="button"
+            onClick={manualRefresh}
+            title="Tải lại danh sách ngay"
+            aria-label="Tải lại danh sách bài nộp"
+            className="grid h-8 w-8 place-items-center rounded-lg border border-[var(--surface-border)] text-[var(--text-secondary)] transition hover:bg-[var(--gray-100)] hover:text-[var(--text-primary)]"
+          >
+            <RefreshCw size={13} className={refreshing ? "animate-spin" : undefined} />
+          </button>
           <button
             onClick={exportCsv}
             className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-[var(--primary)]/20 bg-[var(--primary-light)] px-3 text-xs font-bold text-[var(--primary)] transition hover:opacity-80"
