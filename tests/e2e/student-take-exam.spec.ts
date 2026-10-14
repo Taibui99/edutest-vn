@@ -50,7 +50,7 @@ test.describe("STUDENT — Làm bài thi", () => {
   test("S-03: Làm bài MCQ + nộp bài", async ({ page }) => {
     await login(page, STUDENT.email, STUDENT.password);
     await page.goto(`/thi/${CODE}`);
-    await expect(page.getByText(/QA-PW-Exam/i).first()).toBeVisible({ timeout: 15000 });
+    await expect(page.getByText("Câu 1/2").first()).toBeVisible({ timeout: 15000 });
     // Trả lời câu MCQ đầu tiên (1+1=2 → B)
     await page.getByRole("button", { name: /^B/ }).first().click();
     await page.getByRole("button", { name: /nộp bài/i }).first().click();
@@ -66,13 +66,13 @@ test.describe("STUDENT — Làm bài thi", () => {
     await page.getByPlaceholder("Nguyễn Văn A").fill("Guest Playwright");
     await page.getByPlaceholder("12A6").fill("12A9");
     await page.getByRole("button", { name: "Bắt đầu làm bài" }).click();
-    await expect(page.getByText(/QA-PW-Exam/i).first()).toBeVisible({ timeout: 15000 });
+    await expect(page.getByText("Câu 1/2").first()).toBeVisible({ timeout: 15000 });
   });
 
   test("S-05: Anti-cheat — blur 1 lần → toast cảnh báo (sau ân hạn)", async ({ page }) => {
     await login(page, STUDENT.email, STUDENT.password);
     await page.goto(`/thi/${CODE}`);
-    await expect(page.getByText(/QA-PW-Exam/i).first()).toBeVisible({ timeout: 15000 });
+    await expect(page.getByText("Câu 1/2").first()).toBeVisible({ timeout: 15000 });
     // HTML render từ server hiện title TRƯỚC khi React hydrate — listener `blur`
     // chỉ gắn sau khi client chạy. Chờ đồng hồ nhảy 1 nhịp rồi mới bắn blur,
     // nếu không event bị bắn vào lúc chưa có người nghe → mất vô hại.

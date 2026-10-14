@@ -214,9 +214,10 @@ Tất cả L1–L4 trong commit `6e0ad48` — verified live: robots.txt/sitemap.
 - [x] PERF-1 Vào/nộp lag 4–15s — đã đo + cắt 3 round trip (LOAD-3). Sàn còn lại do infra.
 - [ ] EXAM-1 Điểm từng câu / lượt làm / xem kết quả sau nộp — user bảo chưa có/không ổn. Cần verify: G3/Nhỏ-2 từng làm (NumberInput điểm, maxAttempts, showScore). Nếu có mà user không thấy → UI khó tìm; nếu hỏng thật → sửa.
 - [ ] EXAM-2 Thi lại + vào lại link — user: cài đặt rồi vẫn không thi lại được, thoát ra vào lại không được. Cần chi tiết + check activeKey kẹt/maxAttempts.
-- [ ] PROCTOR-1 Quá nhạy + tự nộp oan — treo máy tính 20s tính lỗi; khóa màn hình tính gian lận + nộp luôn; mode TẮT mà vẫn chạy. Cần: toast nổi thay banner cố định; rà flag khi off; xem lại ngưỡng auto-submit + loại trừ khóa màn hình.
-- [ ] RUNNER-1 Header phòng thi mobile — gom lưới câu hỏi vào nút 3 gạch, cạnh là nút nộp + đồng hồ.
-- [ ] EDITOR-1 Nút thêm câu ở cuối danh sách (hiện chỉ có trên đầu, kéo mỏi tay).
+- [x] PROCTOR-1 Quá nhạy + tự nộp oan (`ac58101`, verified live) — nguyên nhân thật: (1) listener blur/hide gắn MỌI chế độ (kể cả off) → tắt mà vẫn đếm + tự nộp; (2) 1 lần rời app bắn cả blur lẫn hidden = 2 lỗi. Sửa: off thì không gắn gì; ân hạn 10s (quay lại kịp thì không tính, 2 event gộp 1); toast nổi có đếm N/3 + nút đóng thay banner cố định; giữ ngưỡng 3 cho light/strict. E2E student-take-exam 10/10 (S-05 chờ toast 25s, đề QA bật light, runner mobile ẩn tiêu đề → assert bộ đếm Câu 1/2).
+- [x] RUNNER-1 Header phòng thi mobile (`ac58101`) — lưới câu hỏi tách component dùng chung: desktop sidebar giữ nguyên, mobile thành nút 3 gạch mở sheet đáy + nút Nộp bài cạnh đồng hồ; tiêu đề ẩn ở mobile cho đủ chỗ.
+- [x] EXAM-1a Nhãn Điểm cho stepper (`ac58101`) — ô điểm từng câu vốn có mà không nhãn nên GV tưởng chưa có.
+- [x] EDITOR-1 Nút thêm câu ở cuối danh sách (`ac58101`).
 - [ ] GRADE-1 Chấm điểm chưa ổn định — chờ user chỉ loại câu + ví dụ.
 - [ ] IMPORT-1 "Sửa đề/đáp án trong file" — chờ user nói rõ ý.
 - [ ] IOS-1 Crash máy yếu + khoá màn hình — chờ chi tiết máy/bước.
