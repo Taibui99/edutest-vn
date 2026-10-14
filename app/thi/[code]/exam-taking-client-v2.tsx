@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ArrowRight, CheckCircle2, Clock, Eye, Flag, Hourglass, Send, TimerOff, Trophy } from "lucide-react";
+import { AlertTriangle, ArrowLeft, ArrowRight, CheckCircle2, Clock, Eye, Flag, Hourglass, Menu, Send, TimerOff, Trophy, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 import { MAX_VIOLATIONS, resolveProctorMode, type ProctorEventType, type ProctorMode } from "@/lib/integrity";
@@ -62,6 +62,43 @@ function scoreColor(score: number) {
   return "var(--score-bad)";
 }
 
+/* RUNNER-1 — lưới câu hỏi dùng chung cho sidebar desktop và sheet mobile. */
+function QuestionPalette({ orderedQuestions, current, setCurrent, marked, answers, preview, totalQuestions, submitting, submitExam }: {
+  orderedQuestions: { id: string }[];
+  current: number;
+  setCurrent: (v: number | ((v: number) => number)) => void;
+  marked: Record<string, boolean>;
+  answers: Record<string, AnswerValue>;
+  preview: boolean;
+  totalQuestions: number;
+  submitting: boolean;
+  submitExam: (auto: boolean) => void;
+}) {
+  return (
+    <div className="bg-[var(--surface-card)] rounded-2xl border border-[var(--surface-border)] p-4 lg:sticky lg:top-24">
+      <p className="text-xs font-bold text-[var(--text-muted)] mb-3">CÂU HỎI</p>
+      <div className="grid grid-cols-5 gap-1.5 mb-3">
+        {orderedQuestions.map((q, i) => (
+          <button
+            key={q.id}
+            type="button"
+            onClick={() => setCurrent(i)}
+            aria-label={`Câu ${i + 1}${answers[q.id] ? " (đã trả lời)" : ""}`}
+            className={cn("aspect-square rounded-lg text-xs font-bold", current === i ? "bg-[var(--primary)] text-white" : marked[q.id] ? "bg-[var(--warning-light)] text-[var(--warning)] border border-[var(--warning-border)]" : answers[q.id] ? "bg-[var(--success-light)] text-[var(--success)] border border-[var(--success-light)]" : "bg-[var(--gray-100)] text-[var(--text-muted)] border border-[var(--surface-border)]")}
+          >
+            {i + 1}
+          </button>
+        ))}
+      </div>
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-[var(--text-secondary)] mb-3">
+        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded border border-[var(--warning-border)] bg-[var(--warning-light)] inline-block" /> Xem lại</span>
+        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded border border-[var(--success-light)] bg-[var(--success-light)] inline-block" /> Đã trả lời</span>
+      </div>
+      <Button className="w-full" onClick={() => submitExam(false)} disabled={preview || totalQuestions === 0} loading={submitting}>{preview ? "Xem trước" : "Nộp bài"}</Button>
+    </div>
+  );
+}
+
 export function ExamTakingClientV2({ exam, attempt, preview = false, backHref }: { exam: Exam; attempt?: Attempt; preview?: boolean; backHref: string }) {
   const router = useRouter();
   // Đồng hồ khởi động từ số giây SERVER tính lúc render — không tự suy ra từ
@@ -83,6 +120,9 @@ export function ExamTakingClientV2({ exam, attempt, preview = false, backHref }:
   const optionShuffleRef = useRef<Record<string, number[]>>(attempt?.optionOrder ?? {});
   const [violations, setViolations] = useState(0);
   const [warnVisible, setWarnVisible] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  // PROCTOR-1: hẹn giờ ân hạn cho rời trang bị động (blur/khóa màn hình).
+  const pendingFlag = useRef<{ type: ProctorEventType; timer: number } | null>(null);
   const [offline, setOffline] = useState(() => typeof navigator === "undefined" ? false : !navigator.onLine);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [strictActive, setStrictActive] = useState(false);
@@ -308,20 +348,50 @@ export function ExamTakingClientV2({ exam, attempt, preview = false, backHref }:
     };
   }, [saveDraft, preview]);
 
-  /* GĐ2 — nền tảng luôn bật (mọi chế độ): rời cửa sổ / chuyển tab đều ghi nhật ký. */
+  /* PROCTOR-1 — theo dõi rời trang BỊ ĐỘNG (blur/khóa màn hình/tab khác):
+   * - Chế độ TẮT (`off`, mặc định): không gắn gì cả — trước đây vẫn đếm +
+   *   tự nộp dù GV không bật, đúng lỗi user báo ("không bật mà vẫn chạy").
+   * - Ân hạn 10s: quay lại kịp thì không tính (bấm máy tính nhanh, liếc tin
+   *   nhắn...). Vẫn đi mới tính 1 lần — blur và hidden của cùng 1 lần rời
+   *   trang gộp làm một (trước đếm double nên 3 lần chạm là nộp oan).
+   * - Hành động CHỦ ĐỘNG (copy/paste/devtools...) vẫn tính ngay, không ân hạn. */
   useEffect(() => {
     if (preview || result || submittedRef.current) return;
-    const onVis = () => {
-      if (document.visibilityState === "hidden") flag("visibility_hidden");
+    const requested = exam.proctorMode === "light" || exam.proctorMode === "strict" ? exam.proctorMode : "off";
+    if (requested === "off") return;
+
+    const cancelPending = () => {
+      if (pendingFlag.current) {
+        window.clearTimeout(pendingFlag.current.timer);
+        pendingFlag.current = null;
+      }
     };
-    const onBlur = () => flag("tab_blur");
+    const schedule = (type: ProctorEventType) => {
+      if (submittedRef.current || pendingFlag.current) return;
+      pendingFlag.current = {
+        type,
+        timer: window.setTimeout(() => {
+          pendingFlag.current = null;
+          flag(type);
+        }, 10_000),
+      };
+    };
+    const onVis = () => {
+      if (document.visibilityState === "hidden") schedule("visibility_hidden");
+      else cancelPending();
+    };
+    const onBlur = () => schedule("tab_blur");
+    const onFocus = () => cancelPending();
     document.addEventListener("visibilitychange", onVis);
     window.addEventListener("blur", onBlur);
+    window.addEventListener("focus", onFocus);
     return () => {
       document.removeEventListener("visibilitychange", onVis);
       window.removeEventListener("blur", onBlur);
+      window.removeEventListener("focus", onFocus);
+      cancelPending();
     };
-  }, [preview, result, flag]);
+  }, [preview, result, flag, exam.proctorMode]);
 
   /* GĐ3 — rào trình duyệt theo chế độ giáo viên chọn. `off` = không gắn gì
    * (mặc định, giữ nguyên hành vi cũ); `light` = phát hiện + ghi nhật ký;
@@ -502,12 +572,27 @@ export function ExamTakingClientV2({ exam, attempt, preview = false, backHref }:
 
   return (
     <div className="min-h-screen bg-[var(--surface-bg)] flex flex-col">
-      <header className="sticky top-0 z-50 bg-[var(--surface-card)] border-b border-[var(--surface-border)] px-3 sm:px-4 py-3 flex items-center justify-between gap-3">
+      <header className="sticky top-0 z-50 bg-[var(--surface-card)] border-b border-[var(--surface-border)] px-3 sm:px-4 py-3 flex items-center justify-between gap-2 sm:gap-3">
         <div className="flex items-center gap-2 min-w-0">
+          {!preview && (
+            <button
+              type="button"
+              onClick={() => setPaletteOpen(true)}
+              aria-label={`Danh sách câu hỏi (đã làm ${answeredCount}/${totalQuestions})`}
+              className="lg:hidden grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-[var(--surface-border)] text-[var(--text-secondary)] hover:bg-[var(--gray-100)]"
+            >
+              <Menu size={17} />
+            </button>
+          )}
           <button type="button" onClick={() => (preview || answeredCount === 0 ? leaveExam() : setShowExitConfirm(true))} className="inline-flex h-10 sm:h-9 items-center gap-1.5 rounded-xl border border-[var(--surface-border)] px-2.5 text-xs font-bold text-[var(--text-secondary)] hover:bg-[var(--gray-100)]"><ArrowLeft size={15}/><span className="hidden sm:inline">{preview ? "Quay lại" : "Thoát"}</span></button>
-          <div className="min-w-0"><p className="truncate text-sm font-semibold text-[var(--text-primary)]">{exam.title}</p>{preview ? <p className="text-[11px] font-semibold text-[var(--primary)] flex items-center gap-1"><Eye size={11}/> Chế độ xem trước</p> : lastSaved ? <p className="text-[11px] font-medium text-[var(--success)] flex items-center gap-1"><CheckCircle2 size={11}/> Đã lưu tự động</p> : <p className="text-[11px] text-[var(--text-muted)]">Tự động lưu bài làm</p>}</div>
+          <div className="min-w-0 hidden sm:block"><p className="truncate text-sm font-semibold text-[var(--text-primary)]">{exam.title}</p>{preview ? <p className="text-[11px] font-semibold text-[var(--primary)] flex items-center gap-1"><Eye size={11}/> Chế độ xem trước</p> : lastSaved ? <p className="text-[11px] font-medium text-[var(--success)] flex items-center gap-1"><CheckCircle2 size={11}/> Đã lưu tự động</p> : <p className="text-[11px] text-[var(--text-muted)]">Tự động lưu bài làm</p>}</div>
         </div>
-        <div className={cn("flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-sm font-black tabular-nums", isLow && !preview ? "bg-[var(--danger-light)] text-[var(--danger)] animate-pulse" : "border border-[var(--surface-border)] text-[var(--text-primary)] bg-[var(--gray-50)]")}><Clock size={15}/>{preview ? "XEM TRƯỚC" : formatTime(remaining)}</div>
+        <div className="flex items-center gap-2 shrink-0">
+          <div className={cn("flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-sm font-black tabular-nums", isLow && !preview ? "bg-[var(--danger-light)] text-[var(--danger)] animate-pulse" : "border border-[var(--surface-border)] text-[var(--text-primary)] bg-[var(--gray-50)]")}><Clock size={15}/>{preview ? "XEM TRƯỚC" : formatTime(remaining)}</div>
+          {!preview && (
+            <Button size="sm" className="lg:hidden" onClick={() => submitExam(false)} disabled={totalQuestions === 0} loading={submitting}>Nộp bài</Button>
+          )}
+        </div>
       </header>
 
       {preview && <div className="bg-[var(--primary-light)] border-b border-[var(--primary-muted)] px-4 py-2 text-center text-xs font-semibold text-[var(--primary)]">Đây là chế độ xem trước. Lựa chọn của bạn sẽ không được nộp.</div>}
@@ -518,7 +603,20 @@ export function ExamTakingClientV2({ exam, attempt, preview = false, backHref }:
             : `Cảnh báo ${violations}/${MAX_VIOLATIONS}: Không rời khỏi trang thi. Rời khỏi trang ${MAX_VIOLATIONS} lần sẽ bị nộp bài tự động!`}
         </div>
       )}
-      {!preview && warnVisible && violations < MAX_VIOLATIONS && <div className="bg-[var(--warning-light)] border-b border-[var(--warning-border)] px-4 py-1.5 text-center text-[11px] font-bold text-[var(--warning)]">Bạn đã rời khỏi trang thi (lần {violations}). Vui lòng quay lại làm bài ngay!</div>}
+      {!preview && warnVisible && violations < MAX_VIOLATIONS && (
+        <div role="alert" className="fixed bottom-6 left-1/2 z-[100] w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 rounded-2xl border border-[var(--warning-border)] bg-[var(--surface-card)] p-4 shadow-xl flex items-start gap-3">
+          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[var(--warning-light)] text-[var(--warning)]">
+            <AlertTriangle size={17} />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-black text-[var(--text-primary)]">Phát hiện rời khỏi bài thi (lần {violations}/{MAX_VIOLATIONS})</p>
+            <p className="mt-0.5 text-xs text-[var(--text-secondary)]">Quay lại làm bài ngay. Đến lần thứ {MAX_VIOLATIONS} hệ thống sẽ tự nộp bài!</p>
+          </div>
+          <button type="button" onClick={() => setWarnVisible(false)} aria-label="Đóng cảnh báo" className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-[var(--text-muted)] hover:bg-[var(--gray-100)]">
+            <X size={15} />
+          </button>
+        </div>
+      )}
       {!preview && strictActive && !isFullscreen && <div className="bg-[var(--warning-light)] border-b border-[var(--warning-border)] px-4 py-2 text-center text-xs font-bold text-[var(--warning)]">Chế độ nghiêm: làm bài ở chế độ toàn màn hình. <button type="button" className="underline font-black" onClick={() => { const p = document.documentElement.requestFullscreen?.(); if (p) void p.catch(() => {}); }}>Bật toàn màn hình</button></div>}
       {!preview && restored && <div className="bg-[var(--primary-light)] border-b border-[var(--primary-muted)] px-4 py-2 text-center text-xs font-semibold text-[var(--primary)]">Đã khôi phục bài làm trước đó của bạn</div>}
       {offline && !preview && (
@@ -556,7 +654,25 @@ export function ExamTakingClientV2({ exam, attempt, preview = false, backHref }:
           <div className="flex items-center justify-between gap-3"><Button variant="outline" onClick={() => setCurrent((v) => Math.max(0, v - 1))} disabled={current === 0}><ArrowLeft size={16}/> Trước</Button>{current < totalQuestions - 1 ? <Button onClick={() => setCurrent((v) => v + 1)}>Tiếp <ArrowRight size={16}/></Button> : <Button onClick={() => submitExam(false)} loading={submitting} disabled={preview || totalQuestions === 0}><Send size={16}/> {preview ? "Không nộp trong xem trước" : "Nộp bài"}</Button>}</div>
         </main>
 
-        <aside className="lg:w-56 lg:shrink-0"><div className="bg-[var(--surface-card)] rounded-2xl border border-[var(--surface-border)] p-4 lg:sticky lg:top-24"><p className="text-xs font-bold text-[var(--text-muted)] mb-3">CÂU HỎI</p><div className="grid grid-cols-5 gap-1.5 mb-3">{orderedQuestions.map((q, i) => <button key={q.id} onClick={() => setCurrent(i)} className={cn("aspect-square rounded-lg text-xs font-bold", current === i ? "bg-[var(--primary)] text-white" : marked[q.id] ? "bg-[var(--warning-light)] text-[var(--warning)] border border-[var(--warning-border)]" : answers[q.id] ? "bg-[var(--success-light)] text-[var(--success)] border border-[var(--success-light)]" : "bg-[var(--gray-100)] text-[var(--text-muted)] border border-[var(--surface-border)]")}>{i + 1}</button>)}</div><div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-[var(--text-secondary)] mb-3"><span className="flex items-center gap-1"><span className="w-3 h-3 rounded border border-[var(--warning-border)] bg-[var(--warning-light)] inline-block" /> Xem lại</span><span className="flex items-center gap-1"><span className="w-3 h-3 rounded border border-[var(--success-light)] bg-[var(--success-light)] inline-block" /> Đã trả lời</span></div><Button className="w-full" onClick={() => submitExam(false)} disabled={preview || totalQuestions === 0} loading={submitting}>{preview ? "Xem trước" : "Nộp bài"}</Button></div></aside>
+        <aside className="hidden lg:block lg:w-56 lg:shrink-0">
+          <QuestionPalette orderedQuestions={orderedQuestions} current={current} setCurrent={setCurrent} marked={marked} answers={answers} preview={preview} totalQuestions={totalQuestions} submitting={submitting} submitExam={submitExam} />
+        </aside>
+        {paletteOpen && !preview && (
+          <div className="fixed inset-0 z-[90] lg:hidden" role="dialog" aria-label="Danh sách câu hỏi">
+            <div className="absolute inset-0 bg-black/40" onClick={() => setPaletteOpen(false)} />
+            <div className="absolute inset-x-3 bottom-3 max-h-[70vh] overflow-y-auto rounded-3xl border border-[var(--surface-border)] bg-[var(--surface-bg)] p-3 shadow-2xl">
+              <div className="mb-2 flex items-center justify-between px-1">
+                <p className="text-xs font-black text-[var(--text-secondary)]">Đã làm {answeredCount}/{totalQuestions} câu</p>
+                <button type="button" onClick={() => setPaletteOpen(false)} aria-label="Đóng danh sách câu hỏi" className="grid h-9 w-9 place-items-center rounded-xl text-[var(--text-muted)] hover:bg-[var(--gray-100)]">
+                  <X size={16} />
+                </button>
+              </div>
+              <div onClick={() => setPaletteOpen(false)}>
+                <QuestionPalette orderedQuestions={orderedQuestions} current={current} setCurrent={setCurrent} marked={marked} answers={answers} preview={preview} totalQuestions={totalQuestions} submitting={submitting} submitExam={submitExam} />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {showConfirm && <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4"><div className="bg-[var(--surface-card)] rounded-2xl p-6 max-w-sm w-full"><h3 className="font-bold mb-2">Xác nhận nộp bài?</h3><p className="text-sm text-[var(--text-secondary)] mb-5">Bạn còn {totalQuestions - answeredCount} câu chưa trả lời. Vẫn nộp bài?</p><div className="flex gap-3"><Button variant="outline" className="flex-1" onClick={() => setShowConfirm(false)}>Làm tiếp</Button><Button className="flex-1" onClick={() => submitExam(true)} loading={submitting}>Nộp bài</Button></div></div></div>}

@@ -18,6 +18,8 @@ test.beforeAll(async () => {
     maxAttempts: 5,
     showAnswers: true,
     showScoreImmediately: true,
+    // S-05 cần theo dõi rời trang BẬT (mode off thì không gắn listener).
+    proctorMode: "light",
     questions: [
       { type: "mcq", question: "1+1=?", options: ["1", "2", "3", "4"], answer: "B", points: 1 },
       { type: "mcq", question: "2+2=?", options: ["3", "4", "5", "6"], answer: "B", points: 1 },
@@ -67,7 +69,7 @@ test.describe("STUDENT — Làm bài thi", () => {
     await expect(page.getByText(/QA-PW-Exam/i).first()).toBeVisible({ timeout: 15000 });
   });
 
-  test("S-05: Anti-cheat — blur 1 lần → cảnh báo", async ({ page }) => {
+  test("S-05: Anti-cheat — blur 1 lần → toast cảnh báo (sau ân hạn)", async ({ page }) => {
     await login(page, STUDENT.email, STUDENT.password);
     await page.goto(`/thi/${CODE}`);
     await expect(page.getByText(/QA-PW-Exam/i).first()).toBeVisible({ timeout: 15000 });
@@ -79,7 +81,8 @@ test.describe("STUDENT — Làm bài thi", () => {
     const firstTick = (await timer.textContent()) ?? "";
     await expect(timer).not.toHaveText(firstTick, { timeout: 8000 });
     await page.evaluate(() => window.dispatchEvent(new Event("blur")));
-    await expect(page.getByText(/cảnh báo|rời khỏi trang thi/i).first()).toBeVisible({ timeout: 8000 });
+    // Ân hạn 10s cho rời trang bị động: toast chỉ hiện khi vẫn đi sau 10s.
+    await expect(page.getByText(/phát hiện rời khỏi bài thi/i).first()).toBeVisible({ timeout: 25000 });
     // Nộp bài để giải phóng activeKey — attempt đang mở (chưa nộp) sẽ chặn lần
     // thi sau: project kia chạy cùng tài khoản, hoặc lần chạy kế tiếp.
     await page.getByRole("button", { name: /nộp bài/i }).first().click();

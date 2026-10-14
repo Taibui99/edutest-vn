@@ -207,7 +207,20 @@ Tất cả L1–L4 trong commit `6e0ad48` — verified live: robots.txt/sitemap.
 - [x] RT-1a Panel tự refresh + chỉ báo giờ (`006c404`) — `router.refresh()` mỗi 30s (chỉ khi tab hiển thị), giữ filter/sort/dòng mở; nút tải tay + giờ cập nhật; spinner dừng theo dữ liệu thật (ref so tham chiếu + failsafe 20s).
 - [x] RT-1b Verify live — mở trang đề (0 bài) → nộp 1 bài từ tài khoản khác, **không F5 → dòng mới tự hiện**; E2E exam-detail 10/10 (không hồi quy).
 
-## 🩹 Fix theo báo cáo user (2026-10-11/12 + thi thật cả lớp)
+## 🔥 Thi thật cả lớp — chùm lỗi (2026-10-14)
+
+**User thi thật cả lớp, báo nhiều lỗi (nặng nhất iOS). Đã xác nhận thêm:** nút mờ dù nhập đủ (đúng nghi án autofill).
+
+- [x] PERF-1 Vào/nộp lag 4–15s — đã đo + cắt 3 round trip (LOAD-3). Sàn còn lại do infra.
+- [ ] EXAM-1 Điểm từng câu / lượt làm / xem kết quả sau nộp — user bảo chưa có/không ổn. Cần verify: G3/Nhỏ-2 từng làm (NumberInput điểm, maxAttempts, showScore). Nếu có mà user không thấy → UI khó tìm; nếu hỏng thật → sửa.
+- [ ] EXAM-2 Thi lại + vào lại link — user: cài đặt rồi vẫn không thi lại được, thoát ra vào lại không được. Cần chi tiết + check activeKey kẹt/maxAttempts.
+- [ ] PROCTOR-1 Quá nhạy + tự nộp oan — treo máy tính 20s tính lỗi; khóa màn hình tính gian lận + nộp luôn; mode TẮT mà vẫn chạy. Cần: toast nổi thay banner cố định; rà flag khi off; xem lại ngưỡng auto-submit + loại trừ khóa màn hình.
+- [ ] RUNNER-1 Header phòng thi mobile — gom lưới câu hỏi vào nút 3 gạch, cạnh là nút nộp + đồng hồ.
+- [ ] EDITOR-1 Nút thêm câu ở cuối danh sách (hiện chỉ có trên đầu, kéo mỏi tay).
+- [ ] GRADE-1 Chấm điểm chưa ổn định — chờ user chỉ loại câu + ví dụ.
+- [ ] IMPORT-1 "Sửa đề/đáp án trong file" — chờ user nói rõ ý.
+- [ ] IOS-1 Crash máy yếu + khoá màn hình — chờ chi tiết máy/bước.
+- [ ] GUEST-1 iPhone kẹt nút (autofill) — xem dưới.
 - [x] **GUEST-1 iPhone kẹt ở nhập tên khách** (`d37acfb`, verified live) — nhiều máy iPhone nhập tên/lớp xong nút "Bắt đầu làm bài" không cho bấm. Nghi án số 1: iOS tự điền (autofill danh bạ) không bắn event cho React → state rỗng → nút `disabled` dù ô hiện chữ. Sửa: nút chỉ disable khi đang gửi; đọc giá trị thật từ FormData lúc submit (kể cả autofill) + thêm `name` cho 2 ô; thiếu thì báo lỗi rõ. E2E guest S-04 2/2. Chờ user xác nhận đúng triệu chứng (nút mờ bấm không được) khi thi lại.
 - [x] **NAV-1 Nút Đăng ký mất chữ + chuyển trang đứng hình** (`f12c24a` + `885e7a7`, verified live) — user: nút Đăng ký pill trắng trơn + bấm link đứng yên ~4s rồi chồng hình. (1) `bg-[var(--gradient-brand)]` sai: Tailwind dịch thành background-*color* (gradient vào đó invalid → nền trong suốt, chữ trắng mất hút) — gặp ở header và `ui/button` variant gradient; trả về `style background`. Đo live nút hiện gradient đúng. (2) Đo cold-click: bấm → 3.9s màn hình đứng yên (server boot) rồi mới trượt → thêm thanh tải mảnh trên cùng (`a6-nav-loading`, hiện ngay khi bấm link nội bộ, gỡ khi đổi pathname, timeout 10s, reduced-motion tĩnh) + skeleton trang auth. Verify: class bật ở +60ms, gỡ khi tới nơi; E2E landing 8/8.
 - [x] **NAV-2 Khác khung thì cắt cảnh, cùng khung mới trượt** (`b4b7818` + `5c64372`, verified live) — user chụp màn hình: auth 2 cột trượt đè lên landing 1 cột 600ms, "khó chịu cực kì". Trượt đẩy chỉ đẹp khi 2 màn cùng khung. `shellOf()` phân landing/auth/vaothi/app/admin/exam/public(+legal chung landing): khác khung → `data-slide="instant"` (tắt cả nhóm nav tách riêng để không bóng ma), cùng khung → trượt; popstate so `lastPath` (back cùng khung trượt ngược, khác khung cắt). Sửa shell 2 lần: lần 1 gộp public quá thô (landing→login vẫn trượt), lần 2 tách landing/auth/vaothi. QA `qa-preloader.mjs` viết lại theo hành vi mới (instant + slide auth→auth): **28/28** trên production (liền mép 0.00px).
