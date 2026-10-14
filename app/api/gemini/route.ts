@@ -305,7 +305,7 @@ function parseJson<U>(raw: string | null | undefined): U {
   }
 }
 
-async function callJson<T>(model: string, contents: string | (string | VisionPart)[], schema: unknown, timeoutMs = 70_000, forceGroq = false): Promise<{ data: T; provider: "gemini" | "groq" }> {
+async function callJson<T>(model: string, contents: string | (string | VisionPart)[], schema: unknown, timeoutMs = 70_000, forceGroq = false, temperature = 0.2): Promise<{ data: T; provider: "gemini" | "groq" }> {
   if (forceGroq && typeof contents !== "string") {
     throw new Error("Chế độ test Groq không hỗ trợ ảnh minh họa");
   }
@@ -316,7 +316,7 @@ async function callJson<T>(model: string, contents: string | (string | VisionPar
   if (typeof contents === "string") {
     try {
       const raw = await generateWithRetry(
-        (m) => ai.models.generateContent({ model: m, contents, config: { responseMimeType: "application/json", responseSchema: schema, maxOutputTokens: MAX_MODEL_OUTPUT } }).then((r) => r.text),
+        (m) => ai.models.generateContent({ model: m, contents, config: { responseMimeType: "application/json", responseSchema: schema, maxOutputTokens: MAX_MODEL_OUTPUT, temperature } }).then((r) => r.text),
         { attempts: 2, timeoutMs },
       );
       return { data: parseJson<T>(raw), provider: "gemini" };
@@ -327,7 +327,7 @@ async function callJson<T>(model: string, contents: string | (string | VisionPar
     }
   }
   const raw = await generateWithRetry(
-    (m) => ai.models.generateContent({ model: m, contents, config: { responseMimeType: "application/json", responseSchema: schema, maxOutputTokens: MAX_MODEL_OUTPUT } }).then((r) => r.text),
+    (m) => ai.models.generateContent({ model: m, contents, config: { responseMimeType: "application/json", responseSchema: schema, maxOutputTokens: MAX_MODEL_OUTPUT, temperature } }).then((r) => r.text),
     { attempts: 2, timeoutMs },
   );
   return { data: parseJson<T>(raw), provider: "gemini" };
@@ -375,8 +375,8 @@ async function solveMissingAnswers(
   for (let i = 0; i < todo.length; i += SOLVE_BATCH) {
     const batch = todo.slice(i, i + SOLVE_BATCH).map((q, j) => ({ n: i + j + 1, question: q.question, options: q.options }));
     const [runA, runB] = await Promise.all([
-      callJson<{ answers: { n: number; answer: string }[] }>(geminiModel, solvePrompt(batch, "1"), solveSchema, 70_000, forceGroq),
-      callJson<{ answers: { n: number; answer: string }[] }>(geminiModel, solvePrompt(batch, "2"), solveSchema, 70_000, forceGroq),
+      callJson<{ answers: { n: number; answer: string }[] }>(geminiModel, solvePrompt(batch, "1"), solveSchema, 70_000, forceGroq, 0.2),
+      callJson<{ answers: { n: number; answer: string }[] }>(geminiModel, solvePrompt(batch, "2"), solveSchema, 70_000, forceGroq, 0.2),
     ]);
     if (runA.provider === "groq" || runB.provider === "groq") provider = "groq";
     const pick = (res: { answers?: { n: number; answer: string }[] }, n: number) => {
@@ -408,6 +408,7 @@ async function solveMissingAnswers(
           oneSchema,
           70_000,
           forceGroq,
+          0.2,
         );
         if (res.provider === "groq") provider = "groq";
         votes.get(q.index)!.tie = normalizeMcqAnswer(res.data.answer, q.options.length) ?? undefined;
@@ -450,12 +451,15 @@ async function runSmartPipeline(
 
 NỘI DUNG TÀI LIỆU:
 ${chunk}`;
+    // Đọc-dựng là việc xác định (deterministic): temperature thấp để số câu
+    // trích ra ổn định giữa các lần chạy, đỡ cảnh lúc 20 lúc 1 câu.
     const part = await callJson<SmartPayload>(
       geminiModel,
       chunkIndex === 0 ? withVision(prompt, images) : prompt,
       smartSchema,
       90_000,
       forceGroq,
+      0.1,
     );
     if (part.provider === "groq") provider = "groq";
     const body = part.data;
