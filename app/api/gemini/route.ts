@@ -218,9 +218,12 @@ BƯỚC 2 - DỰNG TỪNG CÂU (ĐIỂM DANH BẮT BUỘC):
 - Tài liệu đã cắt sẵn thành các KHỐI đánh số. Với MỖI khối, trả đúng 1 mục.
 - Mỗi mục ghi "blocks_used" = số các khối đã dùng (kể cả khối chỉ góp 1 ý).
   Mọi khối từ 1 đến hết bài đều phải xuất hiện trong blocks_used của ít nhất
-  1 mục — kể cả khối không phải câu hỏi (mục lục, tiêu đề, lời giải lẻ) thì
-  vẫn liệt kê với type="skip". TUYỆT ĐỐI không bỏ sót khối nào, không gộp 2
-  khối xa nhau thành 1 câu khi mỗi khối đã là 1 câu hoàn chỉnh.
+  1 mục. TUYỆT ĐỐI không bỏ sót khối nào, không gộp 2 khối xa nhau thành 1 câu
+  khi mỗi khối đã là 1 câu hoàn chỉnh.
+- Khối nào THẬT SỰ không phải câu hỏi (mục lục, tiêu đề chung, lời giải lẻ
+  không kèm câu hỏi) thì liệt kê với type="skip" và ghi rõ lý do vào question
+  (vd "Mục lục"). Tối đa 3 mục skip cho cả bài — CẤM dùng skip để né việc
+  (máy chủ đếm và bắt chạy bù). Không bịa câu hỏi từ khối skip.
 - Giữ nguyên nội dung câu hỏi, không tự diễn đạt lại, không thêm bớt.
 - mcq: options đúng 4 lựa chọn (bỏ tiền tố "A." trong text).
 - NẾU đáp án CÓ SẴN trong tài liệu: answer = chữ cái đúng, answerSource = "document",
@@ -459,17 +462,26 @@ async function runSmartPipeline(
   const keyHeuristic = detectAnswerKey(content.slice(0, 60_000));
   let provider: "gemini" | "groq" = "gemini";
   const covered = new Set<number>();
+  const skipCovered = new Set<number>();
+  // Skip quá 3 thì phần thừa không tính (chống model né việc bằng skip).
+  const MAX_SKIP = 3;
   const collect = (items: SmartPayload["questions"]) => {
     for (const q of items ?? []) {
       merged.questions!.push(q);
       const bu = (q as { blocks_used?: unknown }).blocks_used;
-      if (Array.isArray(bu)) {
-        for (const n of bu) {
-          if (Number.isInteger(n) && (n as number) >= 1 && (n as number) <= blocks.length) covered.add(n as number);
+      if (!Array.isArray(bu)) continue;
+      const isSkip = (q as { type?: unknown }).type === "skip";
+      for (const n of bu) {
+        if (!Number.isInteger(n) || (n as number) < 1 || (n as number) > blocks.length) continue;
+        if (isSkip) {
+          if (skipCovered.size < MAX_SKIP) skipCovered.add(n as number);
+        } else {
+          covered.add(n as number);
         }
       }
     }
   };
+  const isCovered = (i: number) => covered.has(i) || skipCovered.has(i);
 
   for (const [chunkIndex, chunk] of chunks.entries()) {
     const prompt = `${analyzePrompt}
@@ -500,7 +512,7 @@ ${chunk}`;
   // Khối nào chưa được điểm danh thì chạy bù đúng các khối đó (tối đa 1 lần).
   let missingBlocks: number[] = [];
   if (useBlocks) {
-    missingBlocks = blocks.map((b) => b.index).filter((i) => !covered.has(i));
+    missingBlocks = blocks.map((b) => b.index).filter((i) => !isCovered(i));
   }
   if (missingBlocks.length) {
     console.info(`[exam-blocks] thiếu khối ${missingBlocks.join(",")} — chạy bù 1 lần`);
@@ -527,10 +539,10 @@ ${chunk}`;
     } catch (error) {
       console.warn("[exam-blocks] chạy bù thất bại", error);
     }
-    missingBlocks = blocks.map((b) => b.index).filter((i) => !covered.has(i));
+    missingBlocks = blocks.map((b) => b.index).filter((i) => !isCovered(i));
   }
   const coverage = useBlocks
-    ? { total: blocks.length, covered: covered.size, missing: missingBlocks }
+    ? { total: blocks.length, covered: [...blocks.map((b) => b.index)].filter((i) => isCovered(i)).length, missing: missingBlocks }
     : null;
 
   // AI-10: mục skip chỉ để điểm danh, không phải câu hỏi — loại trước khi chấm/tính.
