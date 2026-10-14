@@ -647,7 +647,19 @@ export function ImportExamModal({
                         </button>
                       </div>
 
-                      <p className="text-sm leading-relaxed text-[var(--text-primary)]">{q.question || <span className="text-[var(--danger)]">Câu hỏi rỗng — cần nhập lại</span>}</p>
+                      {/* IMPORT-1: cho sửa luôn NỘI DUNG CÂU HỎI ngay tại bước
+                          duyệt (trước chỉ sửa được đáp án/phương án) — user cần
+                          chỉnh lại đề và đáp án đọc từ file trước khi áp dụng. */}
+                      <label className="mt-1 block">
+                        <span className="text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">Nội dung câu hỏi</span>
+                        <textarea
+                          value={q.question}
+                          onChange={(e) => patchQuestion(i, { question: e.target.value })}
+                          rows={2}
+                          placeholder="Nhập nội dung câu hỏi"
+                          className={`mt-1 w-full resize-y rounded-xl border bg-[var(--surface-card)] p-2.5 text-sm leading-relaxed outline-none focus:border-[var(--primary)] ${q.question ? "border-[var(--surface-border)] text-[var(--text-primary)]" : "border-[var(--danger)] text-[var(--danger)]"}`}
+                        />
+                      </label>
 
                       {q.type === "mcq" ? (
                         <div className="mt-2.5 grid gap-2 sm:grid-cols-2">

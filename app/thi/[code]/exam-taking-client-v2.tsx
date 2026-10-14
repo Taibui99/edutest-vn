@@ -217,10 +217,10 @@ export function ExamTakingClientV2({ exam, attempt, preview = false, backHref }:
   }, [answers, attempt, answeredCount, clearDraft, exam.id, preview, result, router, showConfirm, submitting, totalQuestions]);
 
   /* GĐ2/GĐ3 — báo MỘT sự kiện vi phạm cho server ghi vào nhật ký của lần làm bài.
-   * Mọi sự kiện đều được ghi để giáo viên có timeline đầy đủ. Riêng sự kiện chạm
-   * ngưỡng `MAX_VIOLATIONS` phải CHỜ server ghi xong rồi mới nộp — nộp trước thì
-   * server đếm thiếu → không gán được `autoSubmitted` (server tự suy ra, không tin
-   * cờ do client gửi). Lỗi mạng vẫn nộp, không để mất bài chỉ vì đường ghi nhật ký. */
+   * Hệ thống chỉ GHI NHẬN + CẢNH BÁO; việc đánh giá để giáo viên quyết (đúng bất
+   * biến anti-cheat). Trước đây chạm `MAX_VIOLATIONS` là tự nộp bài — bỏ hẳn:
+   * user báo "đang làm tự nhiên tính vi phạm rồi nộp luôn" (iPhone khoá màn hình
+   * cũng bị). Giờ không đường nào để mất bài vì cờ rủi ro. */
   const flag = useCallback((type: ProctorEventType) => {
     if (submittedRef.current || result || violationsRef.current >= MAX_VIOLATIONS) return;
     violationsRef.current += 1;
@@ -240,9 +240,8 @@ export function ExamTakingClientV2({ exam, attempt, preview = false, backHref }:
         /* mạng lỗi — bỏ qua, không để mất bài vì đường ghi nhật ký */
       }
     };
-    if (violationsRef.current >= MAX_VIOLATIONS) void report().then(() => submitExam(true));
-    else void report();
-  }, [attempt, result, submitExam]);
+    void report();
+  }, [attempt, result]);
 
   // Đồng hồ: chỉ đếm ngược. Việc tự nộp khi về 0 nằm ở effect riêng bên dưới,
   // không đặt trong hàm updater của setState (updater phải thuần, không side-effect).
@@ -351,9 +350,10 @@ export function ExamTakingClientV2({ exam, attempt, preview = false, backHref }:
   /* PROCTOR-1 — theo dõi rời trang BỊ ĐỘNG (blur/khóa màn hình/tab khác):
    * - Chế độ TẮT (`off`, mặc định): không gắn gì cả — trước đây vẫn đếm +
    *   tự nộp dù GV không bật, đúng lỗi user báo ("không bật mà vẫn chạy").
-   * - Ân hạn 10s: quay lại kịp thì không tính (bấm máy tính nhanh, liếc tin
-   *   nhắn...). Vẫn đi mới tính 1 lần — blur và hidden của cùng 1 lần rời
-   *   trang gộp làm một (trước đếm double nên 3 lần chạm là nộp oan).
+   * - Ân hạn 30s: quay lại kịp thì không tính. iPhone tự khoá màn hình / đổi app
+   *   làm `visibilityState` = hidden — trước ân hạn 10s nên ngồi lâu máy tự tắt là
+   *   bị tính oan; nới lên 30s và KHÔNG tự nộp nữa (chỉ ghi nhận). Vẫn đi mới tính
+   *   1 lần — blur và hidden của cùng 1 lần rời trang gộp làm một.
    * - Hành động CHỦ ĐỘNG (copy/paste/devtools...) vẫn tính ngay, không ân hạn. */
   useEffect(() => {
     if (preview || result || submittedRef.current) return;
@@ -373,7 +373,7 @@ export function ExamTakingClientV2({ exam, attempt, preview = false, backHref }:
         timer: window.setTimeout(() => {
           pendingFlag.current = null;
           flag(type);
-        }, 10_000),
+        }, 30_000),
       };
     };
     const onVis = () => {
@@ -599,8 +599,8 @@ export function ExamTakingClientV2({ exam, attempt, preview = false, backHref }:
       {!preview && violations > 0 && (
         <div className={`border-b px-4 py-2 text-center text-xs font-bold ${violations >= MAX_VIOLATIONS ? "bg-[var(--danger)] text-white" : "bg-[var(--warning-light)] border-[var(--warning-border)] text-[var(--warning)]"}`}>
           {violations >= MAX_VIOLATIONS
-            ? "Bạn đã rời khỏi trang thi quá nhiều lần. Bài thi đã được nộp tự động."
-            : `Cảnh báo ${violations}/${MAX_VIOLATIONS}: Không rời khỏi trang thi. Rời khỏi trang ${MAX_VIOLATIONS} lần sẽ bị nộp bài tự động!`}
+            ? `Đã ghi nhận ${violations} lần rời khỏi trang thi. Giáo viên sẽ xem lại phần này.`
+            : `Cảnh báo ${violations}/${MAX_VIOLATIONS}: Không rời khỏi trang thi.`}
         </div>
       )}
       {!preview && warnVisible && violations < MAX_VIOLATIONS && (
@@ -610,7 +610,7 @@ export function ExamTakingClientV2({ exam, attempt, preview = false, backHref }:
           </span>
           <div className="min-w-0 flex-1">
             <p className="text-sm font-black text-[var(--text-primary)]">Phát hiện rời khỏi bài thi (lần {violations}/{MAX_VIOLATIONS})</p>
-            <p className="mt-0.5 text-xs text-[var(--text-secondary)]">Quay lại làm bài ngay. Đến lần thứ {MAX_VIOLATIONS} hệ thống sẽ tự nộp bài!</p>
+            <p className="mt-0.5 text-xs text-[var(--text-secondary)]">Quay lại làm bài ngay. Việc rời trang sẽ được ghi nhận để giáo viên xem lại.</p>
           </div>
           <button type="button" onClick={() => setWarnVisible(false)} aria-label="Đóng cảnh báo" className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-[var(--text-muted)] hover:bg-[var(--gray-100)]">
             <X size={15} />

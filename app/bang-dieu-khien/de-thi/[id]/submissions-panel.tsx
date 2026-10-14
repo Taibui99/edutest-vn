@@ -133,11 +133,11 @@ function RiskChip({ sub }: { sub: SubRow }) {
     <span
       className="inline-flex shrink-0 items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-black"
       style={{ background: r.bg, color: r.text }}
-      title={sub.autoSubmitted ? "Đạt ngưỡng vi phạm nên hệ thống tự nộp bài" : "Có nhật ký vi phạm — giáo viên tự quyết định cách xử lý"}
+      title={sub.autoSubmitted ? `Đã chạm ngưỡng ${MAX_VIOLATIONS} lần vi phạm — giáo viên xem lại` : "Có nhật ký vi phạm — giáo viên tự quyết định cách xử lý"}
     >
       <ShieldAlert size={10} />
       {r.label} · {sub.riskScore}
-      {sub.autoSubmitted ? " · tự nộp" : ""}
+      {sub.autoSubmitted ? " · chạm ngưỡng" : ""}
     </span>
   );
 }
@@ -417,7 +417,7 @@ export function SubmissionsPanel({ subs, questions }: { subs: SubRow[]; question
                     )}
                     {sub.autoSubmitted && (
                       <p className="mt-2 rounded-lg bg-[var(--danger-light)] px-3 py-2 text-[11px] font-bold text-[var(--danger)]">
-                        Đạt ngưỡng {MAX_VIOLATIONS} lần vi phạm nên hệ thống đã tự nộp bài. Giáo viên tự quyết định cách xử lý.
+                        Đã chạm ngưỡng {MAX_VIOLATIONS} lần vi phạm. Hệ thống KHÔNG tự nộp — giáo viên xem nhật ký và tự quyết định cách xử lý.
                       </p>
                     )}
                     <p className="mt-2 text-[11px] text-[var(--text-muted)]">
