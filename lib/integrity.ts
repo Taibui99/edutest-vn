@@ -7,8 +7,10 @@
  * thời gian thực → chạy được bằng script test (`scripts/qa-integrity.mjs`).
  */
 
-/** Số lần vi phạm chạm ngưỡng thì client tự nộp bài; server dùng chính con số
- *  này để gán `Submission.autoSubmitted`. */
+/** Ngưỡng số lần vi phạm. LƯU Ý (IOS-1a): client KHÔNG còn tự nộp khi chạm ngưỡng
+ *  — chỉ ghi nhận + cảnh báo để giáo viên quyết. Server vẫn dùng con số này để
+ *  gán cờ `Submission.autoSubmitted` (ý nghĩa: "đã chạm ngưỡng", không phải "đã
+ *  bị hệ thống nộp"). */
 export const MAX_VIOLATIONS = 3;
 
 export type Severity = "low" | "medium" | "high";
