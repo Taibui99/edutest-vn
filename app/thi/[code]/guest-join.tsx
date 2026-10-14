@@ -14,12 +14,24 @@ export function GuestJoin({ code, title }: { code: string; title: string }) {
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
+    // GUEST-1: iOS tự điền (autofill) không bắn onChange cho React → state có
+    // thể rỗng dù ô hiện chữ. Đọc giá trị THẬT từ DOM qua FormData, rồi đồng
+    // bộ lại state để validate + gửi đi khớp nhau.
+    const fd = new FormData(event.currentTarget);
+    const realName = String(fd.get("name") ?? "").trim();
+    const realClass = String(fd.get("class") ?? "").trim();
+    setName(realName);
+    setClassName(realClass);
+    if (!realName || !realClass) {
+      setError("Vui lòng nhập đầy đủ họ tên và lớp.");
+      return;
+    }
     setLoading(true);
     try {
       const res = await fetch("/api/guest-attempts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ examCode: code, name, className }),
+        body: JSON.stringify({ examCode: code, name: realName, className: realClass }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Không thể vào bài thi");
@@ -55,6 +67,7 @@ export function GuestJoin({ code, title }: { code: string; title: string }) {
                 required
                 maxLength={100}
                 autoComplete="name"
+                name="name"
                 placeholder="Nguyễn Văn A"
                 className="h-12 w-full bg-transparent text-sm text-[var(--text-primary)] outline-none"
               />
@@ -70,6 +83,7 @@ export function GuestJoin({ code, title }: { code: string; title: string }) {
                 onChange={(e) => setClassName(e.target.value)}
                 required
                 maxLength={50}
+                name="class"
                 placeholder="12A6"
                 className="h-12 w-full bg-transparent text-sm text-[var(--text-primary)] outline-none"
               />
@@ -78,7 +92,7 @@ export function GuestJoin({ code, title }: { code: string; title: string }) {
 
           <button
             type="submit"
-            disabled={loading || !name.trim() || !className.trim()}
+            disabled={loading}
             className="h-12 w-full rounded-xl bg-[var(--primary)] text-sm font-semibold text-white transition-colors hover:bg-[var(--primary-hover)] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {loading ? "Đang vào bài thi..." : "Bắt đầu làm bài"}
