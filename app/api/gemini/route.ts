@@ -730,28 +730,38 @@ function withVision(promptText: string, images: VisionFile[]): string | (string 
 }
 
 async function uploadVisionImages(found: DocImage[]): Promise<VisionFile[]> {
-  const out: VisionFile[] = [];
-  // extractDocImages đã giới hạn 8 ảnh — nạp hết, không cắt bớt lần nữa.
-  for (const img of found) {
-    try {
-      const up = await withTimeout(
-        ai.files.upload({
-          // Copy sang ArrayBuffer mới: Uint8Array view từ Buffer pool không
-          // thỏa kiểu BlobPart của TS (dù runtime vẫn chạy).
-          file: new Blob([new Uint8Array(img.bytes)], { type: img.mimeType }),
-          config: { displayName: "doc-image", mimeType: img.mimeType },
-        }),
-        AI_TIMEOUT_MS,
+  // AI-10 fix: upload SONG SONG với trần 20s/ảnh, không nối tiếp — Gemini chập
+  // chờn mà treo từng ảnh 45s thì 8 ảnh = 360s, Vercel giết function giữa chừng
+  // (ECONNRESET) trước cả khi tới fallback Groq. Hỏng/thiếu ảnh nào thì pipeline
+  // chữ vẫn chạy (ghi log để biết).
+  const settled = await Promise.allSettled(
+    // extractDocImages đã giới hạn 8 ảnh — nạp hết, không cắt bớt lần nữa.
+    found.map((img) =>
+      withTimeout(
+        ai.files
+          .upload({
+            // Copy sang ArrayBuffer mới: Uint8Array view từ Buffer pool không
+            // thỏa kiểu BlobPart của TS (dù runtime vẫn chạy).
+            file: new Blob([new Uint8Array(img.bytes)], { type: img.mimeType }),
+            config: { displayName: "doc-image", mimeType: img.mimeType },
+          })
+          .then((up): VisionFile => {
+            const uri = (up as { uri?: string } | null)?.uri;
+            const name = (up as { name?: string | null } | null)?.name ?? null;
+            if (!uri) throw new Error("missing uri");
+            return { uri, mimeType: img.mimeType, name };
+          }),
+        20_000,
         "Gemini tải ảnh quá lâu",
-      );
-      const uri = (up as { uri?: string } | null)?.uri;
-      const name = (up as { name?: string | null } | null)?.name ?? null;
-      if (uri) out.push({ uri, mimeType: img.mimeType, name });
-    } catch {
-      // Bỏ ảnh lỗi, pipeline chữ vẫn chạy.
-    }
-  }
-  return out;
+      ).catch((e: unknown): null => {
+        console.warn("[exam-vision] bỏ 1 ảnh:", e instanceof Error ? e.message.slice(0, 120) : e);
+        return null;
+      }),
+    ),
+  );
+  return settled
+    .filter((r): r is PromiseFulfilledResult<VisionFile> => r.status === "fulfilled" && r.value !== null)
+    .map((r) => r.value);
 }
 
 async function deleteVisionFiles(files: VisionFile[]) {
