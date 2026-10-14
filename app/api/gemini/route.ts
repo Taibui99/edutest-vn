@@ -20,7 +20,7 @@ import {
   type SmartQuestion,
 } from "@/lib/ai-exam-build";
 import { extractDocImages, type DocImage } from "@/lib/exam-images";
-import { extractDocxText } from "@/lib/exam-docx";
+import { extractDocxText, reconcileDocKey, type DocxKey } from "@/lib/exam-docx";
 import { groqChatJson } from "@/lib/groq-import";
 
 const geminiModel = process.env.EXAM_IMPORT_MODEL || "gemini-3.5-flash-lite";
@@ -434,6 +434,8 @@ async function runSmartPipeline(
   // các vòng solve sau làm việc trên chữ đã diễn đạt lại).
   images: VisionFile[] = [],
   forceGroq = false,
+  // AI-9: key đáp án tô màu trích độc lập — đối chiếu sau solve, tính lại stats.
+  docKey: DocxKey[] = [],
 ): Promise<{ payload: SmartPayload; stats: ReturnType<typeof computeStats>; provider: "gemini" | "groq" }> {
   onProgress?.("analyze");
   const chunks = chunkText(content.slice(0, MAX_TEXT_CHARS));
@@ -497,6 +499,17 @@ ${chunk}`;
   }
   // answerKeyFound chi lien quan dap an trong TAI LIEU, khong gan boi so cau AI tu giai.
   merged.answerKeyFound = merged.answerKeyFound === true || keyHeuristic !== null;
+
+  // AI-9: key màu đỏ thắng model (model đã được gợi ý bằng marker inline, đây
+  // là lưới an toàn không tin model). Tính lại stats sau override.
+  if (docKey.length) {
+    const rec = reconcileDocKey(merged.questions ?? [], docKey);
+    merged.questions = rec.questions;
+    if (rec.overridden > 0) {
+      merged.answerKeyFound = true;
+      console.info(`[exam-docx] key màu đỏ override ${rec.overridden} đáp án`);
+    }
+  }
 
   const payload: SmartPayload = { ...merged, questions: merged.questions ?? [] };
   return { payload, stats: computeStats(payload, agreed), provider };
@@ -809,33 +822,37 @@ export async function POST(request: NextRequest) {
         // AI-8: engine nào phục vụ (để debug outage + hiện trong meta).
         let llmProvider: "gemini" | "groq" = "gemini";
 
-        const readDocument = async (target: File): Promise<string> => {
+        const readDocument = async (target: File): Promise<{ text: string; key: DocxKey[] }> => {
           const buffer = Buffer.from(await target.arrayBuffer());
-          if (!buffer.byteLength) return "";
+          if (!buffer.byteLength) return { text: "", key: [] };
           const lowerName = target.name.toLowerCase();
           // AI-9: đọc docx giữ màu đáp án + số mũ (mammoth bỏ cả hai).
           if (lowerName.endsWith(".docx")) {
             const rich = extractDocxText(buffer);
             if (rich.marked > 0) console.info(`[exam-docx] ${rich.marked} đáp án tô màu, ${rich.paragraphs} đoạn`);
             const text = rich.text.trim();
-            if (text) return text;
-            return (await mammoth.extractRawText({ buffer })).value.trim();
+            if (text) return { text, key: rich.key };
+            return { text: (await mammoth.extractRawText({ buffer })).value.trim(), key: [] };
           }
           const parsed = await extractPdfText(buffer);
-          if (parsed) return parsed;
-          return (await target.text()).trim();
+          if (parsed) return { text: parsed, key: [] };
+          return { text: (await target.text()).trim(), key: [] };
         };
 
         if (mode === "smart") {
           send({ type: "stage", stage: "extract" });
           let content = "";
           let detected: "docx" | "pdf-text" | "pdf-gemini" | "text" = "text";
+          // AI-9: key đáp án tô màu (dùng ở reconcile sau solve).
+          let docKey: DocxKey[] = [];
           if (file) {
             const lowerName = file.name.toLowerCase();
             if (!lowerName.endsWith(".docx") && !lowerName.endsWith(".pdf") && !file.type.includes("text")) {
               return send({ type: "error", error: "Chỉ hỗ trợ file PDF, Word (.docx) hoặc văn bản thuần" });
             }
-            content = await readDocument(file);
+            const doc = await readDocument(file);
+            content = doc.text;
+            docKey = doc.key;
             detected = lowerName.endsWith(".docx") ? "docx" : "pdf-text";
           } else {
             content = prompt || "";
@@ -863,6 +880,7 @@ export async function POST(request: NextRequest) {
                   send({ type: "stage", stage: phase === "solve" ? "solve" : "analyze", meta: { done, total } }),
                 images,
                 forceGroq,
+                docKey,
               );
               if (r.provider === "groq") llmProvider = "groq";
               return r;

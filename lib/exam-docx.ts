@@ -104,10 +104,75 @@ export interface DocxExtract {
   marked: number;
   /** Số đoạn text trích được (debug). */
   paragraphs: number;
+  /** Key trích độc lập từ màu đỏ: chữ cái + nội dung đáp án (để đối chiếu). */
+  key: DocxKey[];
+}
+
+/** 1 đáp án tô đỏ trong tài liệu. */
+export interface DocxKey {
+  letter: string;
+  text: string;
+}
+
+function normKey(s: string): string {
+  return s
+    .toLowerCase()
+    .normalize("NFC")
+    .replace(/[\s\p{P}]/gu, "");
+}
+
+/**
+ * Đối chiếu đáp án model với key màu đỏ (không tin model tuyệt đối).
+ * Chỉ override khi khớp DUY NHẤT 1 chữ cái qua nội dung đủ dài (≥8 ký tự sau
+ * chuẩn hoá — tránh "Đúng"/"Sai" ngắn ngủi trùng lung tung). Không khớp hoặc
+ * khớp nhiều chữ → giữ nguyên + bật needsReview để giáo viên quyết.
+ */
+export function reconcileDocKey<
+  T extends {
+    type: string;
+    answer?: string;
+    options?: string[];
+    answerSource?: string;
+    confidence?: number;
+    needsReview?: boolean;
+  },
+>(questions: T[], key: DocxKey[]): { questions: T[]; overridden: number } {
+  let overridden = 0;
+  const usable = key
+    .map((k) => ({ letter: k.letter.toUpperCase(), norm: normKey(k.text) }))
+    .filter((k) => /^[A-D]$/.test(k.letter) && k.norm.length >= 8);
+  if (!usable.length) return { questions, overridden };
+
+  for (const q of questions) {
+    if (q.type !== "mcq" || !Array.isArray(q.options)) continue;
+    const letters = new Set<string>();
+    for (const k of usable) {
+      for (const opt of q.options) {
+        const no = normKey(String(opt ?? ""));
+        if (no.length >= 8 && (no.includes(k.norm) || k.norm.includes(no))) {
+          letters.add(k.letter);
+          break;
+        }
+      }
+    }
+    if (letters.size === 1) {
+      const letter = [...letters][0];
+      if (q.answer !== letter || q.answerSource !== "document") {
+        q.answer = letter;
+        q.answerSource = "document";
+        q.confidence = 1;
+        q.needsReview = false;
+        overridden++;
+      }
+    } else if (letters.size > 1) {
+      q.needsReview = true;
+    }
+  }
+  return { questions, overridden };
 }
 
 export function extractDocxText(docxBuffer: Buffer): DocxExtract {
-  const empty: DocxExtract = { text: "", marked: 0, paragraphs: 0 };
+  const empty: DocxExtract = { text: "", marked: 0, paragraphs: 0, key: [] };
   try {
     // docx là file zip — bung lấy word/document.xml trước (buffer thô toàn rác zip).
     const entry = new AdmZip(docxBuffer).getEntry("word/document.xml");
@@ -115,7 +180,7 @@ export function extractDocxText(docxBuffer: Buffer): DocxExtract {
     const xml = entry.getData().toString("utf8");
     if (!xml.includes("<w:document")) return empty;
 
-    const lines: { text: string; red: boolean }[] = [];
+    const lines: { text: string; red: boolean; segs: OptionSeg[] }[] = [];
     const allSegs: OptionSeg[] = [];
     let paraCount = 0;
     const paraRe = /<w:p(?:\s[^>]*)?>([\s\S]*?)<\/w:p>/g;
@@ -128,9 +193,9 @@ export function extractDocxText(docxBuffer: Buffer): DocxExtract {
       const segs = splitOptions(runs);
       if (segs.length > 0) {
         allSegs.push(...segs);
-        lines.push({ text: segs.map((s) => s.text).join("  "), red: segs.some((s) => s.hasRed) });
+        lines.push({ text: segs.map((s) => s.text).join("  "), red: segs.some((s) => s.hasRed), segs });
       } else {
-        lines.push({ text, red: false });
+        lines.push({ text, red: false, segs: [] });
       }
     }
 
@@ -140,15 +205,22 @@ export function extractDocxText(docxBuffer: Buffer): DocxExtract {
     const useMarks = allSegs.length >= 4 && redSegs > 0 && redSegs < allSegs.length / 2;
 
     let marked = 0;
+    // Key độc lập cho đối chiếu: chữ cái + nội dung đáp án đỏ.
+    const key: DocxKey[] = useMarks
+      ? allSegs.filter((s) => s.hasRed).map((s) => ({ letter: s.letter, text: s.text }))
+      : [];
     const out = lines.map((line) => {
-      if (useMarks && line.red) {
-        marked++;
-        return `${line.text} ${ANSWER_MARK}`;
-      }
-      return line.text;
+      if (!useMarks || !line.red) return line.text;
+      // Marker gắn NGAY SAU đáp án đỏ (không để cuối dòng — dòng có thể chứa
+      // nhiều đáp án, model không biết marker của ai).
+      const parts = line.segs.length
+        ? line.segs.map((s) => (s.hasRed ? `${s.text} ${ANSWER_MARK}` : s.text)).join("  ")
+        : line.text;
+      marked += line.segs.filter((s) => s.hasRed).length || 1;
+      return parts;
     });
 
-    return { text: out.join("\n\n").trim(), marked, paragraphs: paraCount };
+    return { text: out.join("\n\n").trim(), marked, paragraphs: paraCount, key };
   } catch {
     return empty;
   }
