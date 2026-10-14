@@ -138,10 +138,31 @@ export function reconcileDocKey<
   },
 >(questions: T[], key: DocxKey[]): { questions: T[]; overridden: number } {
   let overridden = 0;
+  // Bỏ tiền tố "A." để so khớp nội dung thuần ("A. 775 kJ." → "775kj").
+  // Giữ cả bản full (chứa chữ cái) cho luật bao hàm cũ.
   const usable = key
-    .map((k) => ({ letter: k.letter.toUpperCase(), norm: normKey(k.text) }))
-    .filter((k) => /^[A-D]$/.test(k.letter) && k.norm.length >= 8);
+    .map((k) => ({
+      letter: k.letter.toUpperCase(),
+      full: normKey(k.text),
+      bare: normKey(k.text.replace(/^[A-D][\.\)\:]\s*/i, "")),
+    }))
+    .filter((k) => /^[A-D]$/.test(k.letter) && (k.full.length >= 8 || k.bare.length >= 4));
   if (!usable.length) return { questions, overridden };
+
+  // Tần suất text đáp án trên TOÀN đề: text trùng ở nhiều câu (số "2", "Đúng")
+  // thì khớp tuyệt đối không còn đáng tin → chỉ chứa mới tính.
+  const freq = new Map<string, number>();
+  for (const q of questions) {
+    if (q.type !== "mcq" || !Array.isArray(q.options)) continue;
+    const seen = new Set<string>();
+    for (const opt of q.options) {
+      const n = normKey(String(opt ?? ""));
+      if (n.length >= 4 && !seen.has(n)) {
+        seen.add(n);
+        freq.set(n, (freq.get(n) ?? 0) + 1);
+      }
+    }
+  }
 
   for (const q of questions) {
     if (q.type !== "mcq" || !Array.isArray(q.options)) continue;
@@ -149,7 +170,12 @@ export function reconcileDocKey<
     for (const k of usable) {
       for (const opt of q.options) {
         const no = normKey(String(opt ?? ""));
-        if (no.length >= 8 && (no.includes(k.norm) || k.norm.includes(no))) {
+        // Khớp tuyệt đối + duy nhất toàn đề (kể cả đáp án số ngắn) HOẶC bao
+        // hàm với text đủ dài (chống trùng ngẫu nhiên).
+        const exact = no.length >= 4 && no === k.bare && freq.get(no) === 1;
+        const contains =
+          no.length >= 8 && k.full.length >= 8 && (no.includes(k.full) || k.full.includes(no));
+        if (exact || contains) {
           letters.add(k.letter);
           break;
         }
