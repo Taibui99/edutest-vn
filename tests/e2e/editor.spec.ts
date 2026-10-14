@@ -14,8 +14,8 @@ test.describe("EDITOR — Tạo đề 4 loại câu + xuất bản", () => {
     const opts = await page.getByRole("option").allTextContents();
     expect(opts).toEqual(expect.arrayContaining(["Trắc nghiệm", "Đúng / Sai", "Trả lời ngắn", "Tự luận"]));
     await page.keyboard.press("Escape");
-    // nút thêm câu
-    await expect(page.getByRole("button", { name: /thêm câu/i })).toBeVisible();
+    // nút thêm câu (EDITOR-1 có 2 nút: đầu + cuối danh sách -> chỉ cần 1 hiện)
+    await expect(page.getByRole("button", { name: /thêm câu/i }).first()).toBeVisible();
     // thông tin đề
     await expect(page.getByText("Tên đề thi")).toBeVisible();
     await expect(page.getByText("Môn học").first()).toBeVisible();
