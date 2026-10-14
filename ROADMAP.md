@@ -218,7 +218,7 @@ Tất cả L1–L4 trong commit `6e0ad48` — verified live: robots.txt/sitemap.
 - [x] RUNNER-1 Header phòng thi mobile (`ac58101`) — lưới câu hỏi tách component dùng chung: desktop sidebar giữ nguyên, mobile thành nút 3 gạch mở sheet đáy + nút Nộp bài cạnh đồng hồ; tiêu đề ẩn ở mobile cho đủ chỗ.
 - [x] EXAM-1a Nhãn Điểm cho stepper (`ac58101`) — ô điểm từng câu vốn có mà không nhãn nên GV tưởng chưa có.
 - [x] EDITOR-1 Nút thêm câu ở cuối danh sách (`ac58101`).
-- [ ] GRADE-1 Chấm điểm chưa ổn định — chờ user chỉ loại câu + ví dụ.
+- [x] GRADE-1 Chấm điểm chưa ổn định (`fef2ba9`, verify code+math, prod không hồi quy) — tự soi code chấm thay vì chờ user: **lỗi thật** là điểm KHÔNG có trọng số — `score = correct/autoGradedCount*10`, mọi câu bằng nhau dù GV đã đặt `points` từng câu (đúng chí "setting điểm không ăn"). Sửa: `scoreSubmission()` dùng chung cho nộp bài (POST) + chấm bổ sung (PATCH mới) — cộng theo `points`, mẫu số = tổng điểm các câu. **Chấm tay tự luận**: cột mới `Submission.manualScores` (JSONB, migration `20261014150000`), nút "Lưu điểm" từng câu tự luận trong `submissions-panel` (chỉ chủ đề được chấm, kẹp [0, points]). Tự luận chưa chấm = **0 điểm nhưng vẫn trong mẫu số** → điểm chỉ tăng khi chấm, không nhảy ảo. Verify: unit `scoreSubmission` 5/5 PASS (trọng số/ kẹp trần / kẹp âm / tự luận); prod `results`+`exam-detail` 14 pass 0 fail (cột đã lên DB).
 - [ ] IMPORT-1 "Sửa đề/đáp án trong file" — chờ user nói rõ ý.
 - [ ] IOS-1 Crash máy yếu + khoá màn hình — chờ chi tiết máy/bước.
 - [ ] GUEST-1 iPhone kẹt nút (autofill) — xem dưới.
