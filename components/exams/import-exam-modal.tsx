@@ -105,6 +105,11 @@ function normalizeDifficulty(value: unknown): string | undefined {
 }
 
 /** Chuẩn hoá câu để màn review hiển thị và áp dụng được. */
+/** AI-9: dọn marker đáp án tô màu (chỉ để AI đọc lúc import, không lưu/khoe). */
+function cleanMark(s: string): string {
+  return String(s ?? "").replace(/\s*\[ĐÁP ÁN ĐÚNG[^\]]*\]\s*/gi, "").trim();
+}
+
 export function toReviewItem(raw: ReviewedQuestion): ReviewedQuestion {
   const type = Object.keys(TYPE_NAMES).includes(raw.type) ? raw.type : "mcq";
   // AI-8: Groq trả options dạng object {"A":"...","B":"..."} thay vì mảng —
@@ -114,7 +119,7 @@ export function toReviewItem(raw: ReviewedQuestion): ReviewedQuestion {
     : raw.options && typeof raw.options === "object"
       ? ["A", "B", "C", "D"].map((k) => (raw.options as unknown as Record<string, unknown>)[k]).filter((x) => typeof x === "string" && String(x).trim())
       : [];
-  const options = rawOpts.map((o) => String(o).replace(/^[A-F][.)]\s*/i, "").trim());
+  const options = rawOpts.map((o) => cleanMark(String(o)).replace(/^[A-F][.)]\s*/i, "").trim());
   const rubric = Array.isArray(raw.rubricPoints)
     ? raw.rubricPoints.map(String).filter(Boolean)
     : Array.isArray(raw.grading?.rubricPoints)
@@ -128,7 +133,7 @@ export function toReviewItem(raw: ReviewedQuestion): ReviewedQuestion {
   const mcqAnswer = mcq ? (String(raw.answer ?? "").toUpperCase().match(/[A-D]/)?.[0] ?? "") : "";
   return {
     type,
-    question: String(raw.question ?? "").trim(),
+    question: cleanMark(raw.question),
     // Server chỉ chấp nhận trắc nghiệm 2-4 đáp án nên giới hạn 4 ở đây để giáo viên không phải xử lý lỗi lúc lưu đề.
     options: mcq ? (options.length ? options.slice(0, 4) : ["", "", "", ""]) : [],
     answer: mcq ? mcqAnswer : String(raw.answer ?? ""),

@@ -225,6 +225,15 @@ Tất cả L1–L4 trong commit `6e0ad48` — verified live: robots.txt/sitemap.
 - [x] AI-8b Verify đường chính không hồi quy — 1 probe generate nhỏ trên prod: 200, `provider=gemini`, MCQ đúng chủ đề/đáp án.
 - [x] AI-8c A/B Groq vs Gemini — nỗi sợ của user: *"tạo đề đêm không có gemini thì đề không hoàn hảo"*. Thêm hook `forceProvider` (chỉ GV) + chạy cùng lý thuyết: trớ trêu là lúc test Gemini sập thật (ECONNRESET — đúng case cần fallback). Kết quả Groq (`provider=groq`, 7s): **5/5 câu complete theo đúng luật product** (đáp án bare-letter, đủ 4 options, phân bố A/D/B/C/B không dồn, tiếng Việt chuẩn, đủ 3 mức độ khó). Phát hiện khi test: Groq trả `options` dạng object `{"A":...}` (Gemini trả mảng) → review sẽ loại hết → đã chuẩn hoá trong `toReviewItem` (`3f9818b`/`c81ac80`, kèm gỡ script probe lọt commit). Kết luận: **đề Groq soạn đạt chuẩn như Gemini** (cùng prompt, cùng validation, cùng màn review của GV).
 
+## 🔴 Đọc đáp án tô màu + công thức Word (AI-9, 2026-10-13)
+
+**User:** *"đáp án AI khác key của tôi — do key tôi sai hay AI sửa?"* + *"tôi có bôi màu đáp án, nó không đọc ra à"* + công thức toán không đọc được.
+
+**Đào ra từ file thật của user:** đáp án đúng tô ĐỎ (FF0000), đáp án thường xanh — pipeline mù màu nên AI không thấy key, tự giải rồi lệch. Công thức là object OLE cũ (.bin + preview WMF, ~50 cái) + số mũ bẹp ("10⁶"→"106"). Không có bảng key text riêng.
+- [ ] AI-9a `lib/exam-docx.ts`: unzip + regex document.xml — phát hiện run đỏ trên đáp án (chữ cái HOẶC nội dung) → chèn `[ĐÁP ÁN ĐÚNG THEO TÀI LIỆU]` (chỉ khi đáp án đỏ là thiểu số <50%, tránh tô bừa); số mũ/chỉ số dưới → `^{...}`/`_{...}`; bỏ mã field. OLE/WMF: không parse được server-side — nói rõ.
+- [ ] AI-9b Nối vào 3 chỗ đọc docx + dọn marker ở `toReviewItem` + 1 dòng prompt.
+- [ ] AI-9c Verify bằng key trích độc lập từ file (D,D,A,A,B,C,B,D,B,A): đáp án phải ra `answerSource=document` đúng chữ cái.
+
 ## 🖼️ AI đọc hình minh họa trong tài liệu (AI-7, 2026-10-12)
 
 **User:** *"gửi 1 đề có bảng số liệu và hình ảnh minh họa thì sao?"* → hiện tại bảng bẹp thành chữ, ảnh bị bỏ qua (trừ PDF scan). User chọn làm tiếp, sẽ gửi file mẫu để test thật.

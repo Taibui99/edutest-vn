@@ -20,6 +20,7 @@ import {
   type SmartQuestion,
 } from "@/lib/ai-exam-build";
 import { extractDocImages, type DocImage } from "@/lib/exam-images";
+import { extractDocxText } from "@/lib/exam-docx";
 import { groqChatJson } from "@/lib/groq-import";
 
 const geminiModel = process.env.EXAM_IMPORT_MODEL || "gemini-3.5-flash-lite";
@@ -116,6 +117,7 @@ Loại hợp lệ: mcq, true_false, short_answer, essay.
 QUY TẮC:
 - Không tự tạo câu hỏi mới.
 - Giữ nguyên nội dung và đáp án có trong tài liệu.
+- Dòng đáp án nào cuối có ghi "[ĐÁP ÁN ĐÚNG THEO TÀI LIỆU]" thì lấy đúng chữ cái đó, KHÔNG đưa marker vào options.
 - Không giải bài, không giải thích, không thêm nội dung.
 - Trả về JSON đúng response schema.`;
 
@@ -211,7 +213,9 @@ BƯỚC 1 - NHẬN DIỆN:
 BƯỚC 2 - DỰNG TỪNG CÂU:
 - Giữ nguyên nội dung câu hỏi, không tự diễn đạt lại, không thêm bớt.
 - mcq: options đúng 4 lựa chọn (bỏ tiền tố "A." trong text).
-  - NẾU đáp án CÓ SẴN trong tài liệu: answer = chữ cái đúng, answerSource = "document", confidence = 1, needsReview = false.
+- NẾU đáp án CÓ SẴN trong tài liệu: answer = chữ cái đúng, answerSource = "document",
+confidence = 1, needsReview = false.
+- Dòng đáp án nào cuối có ghi "[ĐÁP ÁN ĐÚNG THEO TÀI LIỆU]" (giáo viên tô màu đáp án đúng) thì lấy đúng chữ cái đó, KHÔNG tự suy luận lại, KHÔNG đưa marker vào options.
   - NẾU KHÔNG có đáp án trong tài liệu: ĐỂ TRỐNG answer = "", answerSource = "unknown", needsReview = true.
     (Bước sau hệ thống sẽ tự giải bằng 2 lượt độc lập rồi đối chiếu — BẠN KHÔNG cần tự đoán ở bước này.)
 - true_false / short_answer / essay: grading theo đúng ý nghĩa (statements cho true_false, acceptedAnswers cho short_answer).
@@ -809,7 +813,14 @@ export async function POST(request: NextRequest) {
           const buffer = Buffer.from(await target.arrayBuffer());
           if (!buffer.byteLength) return "";
           const lowerName = target.name.toLowerCase();
-          if (lowerName.endsWith(".docx")) return (await mammoth.extractRawText({ buffer })).value.trim();
+          // AI-9: đọc docx giữ màu đáp án + số mũ (mammoth bỏ cả hai).
+          if (lowerName.endsWith(".docx")) {
+            const rich = extractDocxText(buffer);
+            if (rich.marked > 0) console.info(`[exam-docx] ${rich.marked} đáp án tô màu, ${rich.paragraphs} đoạn`);
+            const text = rich.text.trim();
+            if (text) return text;
+            return (await mammoth.extractRawText({ buffer })).value.trim();
+          }
           const parsed = await extractPdfText(buffer);
           if (parsed) return parsed;
           return (await target.text()).trim();
@@ -870,7 +881,9 @@ export async function POST(request: NextRequest) {
             const lowerName = file.name.toLowerCase();
             if (lowerName.endsWith(".docx")) {
               send({ type: "stage", stage: "extract" });
-              content = (await mammoth.extractRawText({ buffer })).value.trim();
+              const rich = extractDocxText(buffer);
+              if (rich.marked > 0) console.info(`[exam-docx] ${rich.marked} đáp án tô màu`);
+              content = rich.text.trim() || (await mammoth.extractRawText({ buffer })).value.trim();
             } else {
               send({ type: "stage", stage: "extract" });
               content = await extractPdfText(buffer);
@@ -912,7 +925,9 @@ export async function POST(request: NextRequest) {
           send({ type: "stage", stage: "extract" });
 
           if (isDocx) {
-            const docx = await mammoth.extractRawText({ buffer });
+            const rich = extractDocxText(buffer);
+            if (rich.marked > 0) console.info(`[exam-docx] ${rich.marked} đáp án tô màu`);
+            const docx = rich.text.trim() ? { value: rich.text } : await mammoth.extractRawText({ buffer });
             const content = docx.value.trim();
             if (!content) return send({ type: "error", error: "Không đọc được nội dung trong file Word" });
             console.info(`[exam-import] docx extracted ${content.length} chars; model=${geminiModel}`);
