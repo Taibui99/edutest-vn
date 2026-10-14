@@ -28,7 +28,9 @@ const geminiModel = process.env.EXAM_IMPORT_MODEL || "gemini-3.5-flash-lite";
    ~4.5MB trước khi function chạy nên mức này chỉ là phòng thủ lớp hai. */
 const MAX_FILE_BYTES = 4 * 1024 * 1024;
 const MAX_TEXT_CHARS = 120_000;
-const MAX_MODEL_OUTPUT = 16_384;
+// 20 câu kèm options + giải thích dễ vượt 16k token → JSON cụt đuôi, parse fail
+// ("chẳng nhận diện được câu nào"). 24k đủ cho đề dài, tốn thêm chỉ khi dùng.
+const MAX_MODEL_OUTPUT = 24_576;
 const AI_TIMEOUT_MS = 45_000;
 
 export type GenerateOptions = {
@@ -508,6 +510,12 @@ ${chunk}`;
     if (rec.overridden > 0) {
       merged.answerKeyFound = true;
       console.info(`[exam-docx] key màu đỏ override ${rec.overridden} đáp án`);
+    }
+    // Tài liệu CÓ tô màu đáp án mà câu nào vẫn do AI tự giải (không trúng key)
+    // thì luôn đánh needsReview — đồng thuận ≠ khớp key (đã thấy case AI tự tin
+    // mà lệch key). Im lặng nhận mới là lỗi nghiêm trọng.
+    for (const q of merged.questions ?? []) {
+      if (q.answerSource !== "document") q.needsReview = true;
     }
   }
 

@@ -36,7 +36,7 @@ async function groqOnce(prompt: string, jsonMode: boolean, timeoutMs: number): P
           { role: "user", content: prompt },
         ],
         temperature: 0.3,
-        max_tokens: 16_384,
+        max_tokens: 24_576,
         ...(jsonMode ? { response_format: { type: "json_object" } } : {}),
       }),
       signal: ctrl.signal,
