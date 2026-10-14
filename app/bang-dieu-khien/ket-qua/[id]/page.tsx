@@ -186,10 +186,12 @@ export default function ResultPage({ params }: { params: Promise<{ id: string }>
         </div>
 
         {typeof sub.attemptsUsed === "number" && (
-          <p className={`text-xs font-bold mt-4 px-3 py-2 rounded-xl ${sub.attemptsUsed >= sub.exam.maxAttempts ? "bg-[var(--warning-light)] text-[var(--warning)]" : "bg-[var(--primary-light)] text-[var(--primary)]"}`}>
-            {sub.attemptsUsed >= sub.exam.maxAttempts
-              ? `Đã hết ${sub.exam.maxAttempts} lượt làm bài của đề này`
-              : `Còn ${sub.exam.maxAttempts - sub.attemptsUsed} lượt làm bài (đã dùng ${sub.attemptsUsed}/${sub.exam.maxAttempts}) — bấm Thi tiếp để làm lại`}
+          <p className={`text-xs font-bold mt-4 px-3 py-2 rounded-xl ${sub.exam.maxAttempts > 0 && sub.attemptsUsed >= sub.exam.maxAttempts ? "bg-[var(--warning-light)] text-[var(--warning)]" : "bg-[var(--primary-light)] text-[var(--primary)]"}`}>
+            {sub.exam.maxAttempts <= 0
+              ? `Đề này cho làm lại không giới hạn (đã dùng ${sub.attemptsUsed} lượt) — bấm Thi tiếp để làm lại`
+              : sub.attemptsUsed >= sub.exam.maxAttempts
+                ? `Đã hết ${sub.exam.maxAttempts} lượt làm bài của đề này`
+                : `Còn ${sub.exam.maxAttempts - sub.attemptsUsed} lượt làm bài (đã dùng ${sub.attemptsUsed}/${sub.exam.maxAttempts}) — bấm Thi tiếp để làm lại`}
           </p>
         )}
         <p className="text-xs text-[var(--text-muted)] mt-4">

@@ -48,7 +48,8 @@ export async function POST(request: NextRequest) {
   const allowGuestAttempts = body.allowGuestAttempts === undefined
     ? (await getSetting("allowGuestAttempts", "true")) === "true"
     : Boolean(body.allowGuestAttempts);
-  const maxAttempts = Math.max(1, Number(body.maxAttempts || 1));
+  // EXAM-1b — 0 = số lượt vô hạn; giá trị hợp lệ là số nguyên >= 0.
+  const maxAttempts = Number.isFinite(Number(body.maxAttempts)) ? Math.max(0, Math.trunc(Number(body.maxAttempts))) : 1;
   const showAnswers = body.showAnswers === undefined ? true : Boolean(body.showAnswers);
   const showScoreImmediately = body.showScoreImmediately === undefined ? true : Boolean(body.showScoreImmediately);
   const proctorMode = body.proctorMode === undefined ? "off" : String(body.proctorMode);
@@ -60,7 +61,7 @@ export async function POST(request: NextRequest) {
   if (!title) return NextResponse.json({ error: "Vui lòng nhập tên đề thi" }, { status: 400 });
   if (!subject) return NextResponse.json({ error: "Vui lòng chọn môn học" }, { status: 400 });
   if (!Number.isInteger(durationMinutes) || durationMinutes < 1) return NextResponse.json({ error: "Thời gian làm bài không hợp lệ" }, { status: 400 });
-  if (!Number.isInteger(maxAttempts) || maxAttempts < 1) return NextResponse.json({ error: "Số lần làm tối đa không hợp lệ" }, { status: 400 });
+  if (!Number.isInteger(maxAttempts) || maxAttempts < 0) return NextResponse.json({ error: "Số lần làm tối đa không hợp lệ" }, { status: 400 });
   if (!isProctorMode(proctorMode)) return NextResponse.json({ error: "Chế độ chống gian lận không hợp lệ" }, { status: 400 });
   if (questions.length === 0) return NextResponse.json({ error: "Đề thi cần có ít nhất 1 câu hỏi" }, { status: 400 });
 

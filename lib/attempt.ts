@@ -143,6 +143,9 @@ function toSnapshot(a: {
  * Đây là hàm duy nhất chứa quy tắc trên — `page.tsx` và `POST /api/attempts`
  * đều đi qua đây nên không thể lệch nhau.
  */
+/** EXAM-1b — `maxAttempts <= 0` nghĩa là học sinh được làm lại KHÔNG giới hạn. */
+export const isUnlimitedAttempts = (maxAttempts: number) => maxAttempts <= 0;
+
 export async function startAttempt(opts: {
   exam: { id: string; durationMinutes: number; shuffleQuestions: boolean; shuffleAnswers: boolean; maxAttempts: number };
   studentId: string | null;
@@ -168,7 +171,8 @@ export async function startAttempt(opts: {
 
   if (existing) {
     if (existing.examId !== opts.exam.id) return { status: "active_elsewhere" };
-  } else if (opts.studentId) {
+  } else if (opts.studentId && opts.exam.maxAttempts > 0) {
+    /* EXAM-1b — `maxAttempts <= 0` = số lượt VÔ HẠN: bỏ qua kiểm tra lượt. */
     const used = await prisma.submission.count({ where: { examId: opts.exam.id, studentId: opts.studentId } });
     if (used >= opts.exam.maxAttempts) return { status: "max_attempts" };
   }
