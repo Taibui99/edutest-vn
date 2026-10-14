@@ -204,8 +204,8 @@ Tất cả L1–L4 trong commit `6e0ad48` — verified live: robots.txt/sitemap.
 **User:** *"phần học sinh làm bài này có cập nhật realtime không?"* — chưa: trang chi tiết đề render 1 lần, GV phải F5 mới thấy bài mới nộp.
 
 **Chốt:** polling 30s trong `submissions-panel` (đã là client component) bằng `router.refresh()` — cả bảng + stats + phân bố điểm cùng mới, giữ nguyên filter/sort/dòng đang mở. Chỉ refresh khi tab đang hiển thị + nút tải lại tay + giờ cập nhật. Không dùng Supabase Realtime (cần bật replication + RLS, tốn infra, lợi ích thêm không đáng).
-- [ ] RT-1a Panel tự refresh + chỉ báo giờ
-- [ ] RT-1b Verify live: nộp 1 bài mới, panel tự hiện trong 35s
+- [x] RT-1a Panel tự refresh + chỉ báo giờ (`006c404`) — `router.refresh()` mỗi 30s (chỉ khi tab hiển thị), giữ filter/sort/dòng mở; nút tải tay + giờ cập nhật; spinner dừng theo dữ liệu thật (ref so tham chiếu + failsafe 20s).
+- [x] RT-1b Verify live — mở trang đề (0 bài) → nộp 1 bài từ tài khoản khác, **không F5 → dòng mới tự hiện**; E2E exam-detail 10/10 (không hồi quy).
 
 ## 🩹 Fix theo báo cáo user (2026-10-11/12)
 - [x] **NAV-1 Nút Đăng ký mất chữ + chuyển trang đứng hình** (`f12c24a` + `885e7a7`, verified live) — user: nút Đăng ký pill trắng trơn + bấm link đứng yên ~4s rồi chồng hình. (1) `bg-[var(--gradient-brand)]` sai: Tailwind dịch thành background-*color* (gradient vào đó invalid → nền trong suốt, chữ trắng mất hút) — gặp ở header và `ui/button` variant gradient; trả về `style background`. Đo live nút hiện gradient đúng. (2) Đo cold-click: bấm → 3.9s màn hình đứng yên (server boot) rồi mới trượt → thêm thanh tải mảnh trên cùng (`a6-nav-loading`, hiện ngay khi bấm link nội bộ, gỡ khi đổi pathname, timeout 10s, reduced-motion tĩnh) + skeleton trang auth. Verify: class bật ở +60ms, gỡ khi tới nơi; E2E landing 8/8.
