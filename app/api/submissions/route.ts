@@ -53,7 +53,8 @@ export async function POST(request: NextRequest) {
     studentId = session.user.id;
     participantName = session.user.name || "Học sinh";
     const attemptsUsed = await prisma.submission.count({ where: { examId, studentId: session.user.id } });
-    if (attemptsUsed >= exam.maxAttempts) {
+    // EXAM-1b — `maxAttempts <= 0` = vô hạn: bỏ qua chốt lượt.
+    if (exam.maxAttempts > 0 && attemptsUsed >= exam.maxAttempts) {
       const latest = await prisma.submission.findFirst({ where: { examId, studentId: session.user.id }, orderBy: { submittedAt: "desc" } });
       return NextResponse.json({ error: `Bạn đã hết số lần làm bài (${exam.maxAttempts} lần)`, submission: latest }, { status: 409 });
     }
