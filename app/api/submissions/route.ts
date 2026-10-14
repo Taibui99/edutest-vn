@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { cookies } from "next/headers";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { isQuestionCorrect, isAutoGraded, type AnswerValue } from "@/lib/grading";
+import { scoreSubmission, type AnswerValue } from "@/lib/grading";
 import { ATTEMPT_GRACE_SECONDS, finalizeTimedOutAttempt, riskOfAttempt, currentIpHash } from "@/lib/attempt";
 import { NextRequest, NextResponse } from "next/server";
 import { rateLimit, clientIp } from "@/lib/rate-limit";
@@ -97,10 +97,10 @@ export async function POST(request: NextRequest) {
    * KHÔNG làm mất bài làm (ROADMAP — "Chống gian lận khi thi"). */
   const [risk, ipHash] = await Promise.all([riskOfAttempt(attempt.id), currentIpHash()]);
 
-  const correctCount = exam.questions.reduce((count, question) => isQuestionCorrect(question, answers[question.id]) ? count + 1 : count, 0);
   const totalQuestions = exam.questions.length;
-  const autoGradedCount = exam.questions.filter((q) => isAutoGraded(q)).length;
-  const score = autoGradedCount > 0 ? Number(((correctCount / autoGradedCount) * 10).toFixed(2)) : 0;
+  // GRADE-1: điểm có TRỌNG SỐ theo `points` từng câu (trước đây mọi câu bằng
+  // nhau dù GV đã cấu hình điểm — đúng lỗi user báo "setting điểm không ăn").
+  const { score, correctCount } = scoreSubmission(exam.questions, answers);
 
   const submission = await prisma.$transaction(async (tx) => {
     const created = await tx.submission.create({

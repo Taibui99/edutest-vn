@@ -56,3 +56,40 @@ export function isQuestionCorrect(
 export function isAutoGraded(question: { type: string }) {
   return question.type !== "essay";
 }
+
+export function pointsOf(question: { points?: unknown }) {
+  return typeof question.points === "number" && question.points > 0 ? question.points : 1;
+}
+
+/* GRADE-1 — chấm 1 bài, có TRỌNG SỐ điểm từng câu + điểm chấm tay tự luận.
+ * Dùng chung cho nộp bài (POST) và chấm bổ sung (PATCH) để hai đường không
+ * bao giờ lệch nhau.
+ *
+ * Tự luận LUÔN nằm trong mẫu số; chưa chấm tay thì tạm tính 0 điểm. Nhờ vậy
+ * mẫu số cố định — điểm chỉ TĂNG khi giáo viên chấm, không nhảy lộn xộn (đúng
+ * lỗi user báo "chấm điểm chưa ổn định"). */
+export function scoreSubmission<T extends { id: string; type: string; points?: unknown; answer?: string | null; grading?: unknown }>(
+  questions: T[],
+  answers: Record<string, AnswerValue>,
+  manual: Record<string, number> = {},
+): { score: number; correctCount: number } {
+  let earned = 0;
+  let total = 0;
+  let correctCount = 0;
+  for (const q of questions) {
+    const pts = pointsOf(q);
+    total += pts;
+    if (isAutoGraded(q)) {
+      if (isQuestionCorrect(q, answers[q.id])) {
+        earned += pts;
+        correctCount += 1;
+      }
+    } else {
+      const m = manual[q.id];
+      if (typeof m === "number" && Number.isFinite(m)) {
+        earned += Math.min(pts, Math.max(0, m));
+      }
+    }
+  }
+  return { score: total > 0 ? Number(((earned / total) * 10).toFixed(2)) : 0, correctCount };
+}

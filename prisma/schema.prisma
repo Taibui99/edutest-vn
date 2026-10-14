@@ -220,6 +220,8 @@ model Submission {
   autoSubmitted  Boolean @default(false)
   /// SHA-256 của IP gộp muối — chỉ để gom cùng một người, không lưu IP thô.
   ipHash         String?
+  /// GRADE-1: điểm chấm tay từng câu tự luận {questionId: điểm} — rỗng nếu chưa chấm.
+  manualScores   Json?
   submittedAt        DateTime          @default(now())
   @@index([studentId])
   @@index([examId, studentId])

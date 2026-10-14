@@ -72,6 +72,7 @@ export default async function ExamDetailPage({ params }: { params: Promise<{ id:
     durationSeconds: s.durationSeconds,
     submittedAt: s.submittedAt.toISOString(),
     answers: (s.answers as Record<string, AnswerValue>) || {},
+    manualScores: (s.manualScores && typeof s.manualScores === "object" ? s.manualScores : null) as Record<string, number> | null,
     // GĐ2 — cờ rủi ro server đã tính lúc chốt bài + timeline nhật ký vi phạm.
     violationCount: s.violationCount,
     riskScore: s.riskScore,
@@ -93,6 +94,7 @@ export default async function ExamDetailPage({ params }: { params: Promise<{ id:
     answer: q.answer,
     grading: q.grading ?? undefined,
     order: q.order,
+    points: typeof q.points === "number" && q.points > 0 ? q.points : 1,
   }));
 
   const qStats = exam.questions.map((q) => {

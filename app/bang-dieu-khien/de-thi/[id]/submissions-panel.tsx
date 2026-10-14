@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Download, ChevronDown, ChevronRight, Trophy, CheckCircle2, XCircle, MinusCircle, ShieldAlert, RefreshCw } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Dropdown } from "@/components/ui/dropdown";
+import { NumberInput } from "@/components/ui/number-input";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Users } from "lucide-react";
 import { isQuestionCorrect, isAutoGraded, type AnswerValue } from "@/lib/grading";
@@ -27,6 +28,8 @@ export type SubRow = {
   riskLevel: string;
   autoSubmitted: boolean;
   events: { id: string; type: string; severity: string; at: string }[];
+  /* GRADE-1: điểm chấm tay {questionId: điểm} cho câu tự luận (null = chưa chấm). */
+  manualScores: Record<string, number> | null;
 };
 
 export type SubQuestion = {
@@ -37,9 +40,61 @@ export type SubQuestion = {
   answer: string;
   grading?: unknown;
   order: number;
+  points: number;
 };
 
 type SortKey = "latest" | "scoreDesc" | "scoreAsc" | "fastest";
+
+/* GRADE-1 — chấm điểm từng câu tự luận ngay trong dòng bài nộp. Lưu là PATCH
+ * lên server (tính lại điểm bằng đúng hàm chấm của đường nộp), xong refresh
+ * để bảng + stats cùng mới. */
+function EssayGrader({ subId, questionId, maxPoints, initialValue, onSaved }: {
+  subId: string;
+  questionId: string;
+  maxPoints: number;
+  initialValue: number | null;
+  onSaved: () => void;
+}) {
+  const [val, setVal] = useState<number>(initialValue ?? 0);
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState("");
+  const save = async () => {
+    setSaving(true);
+    setMsg("");
+    try {
+      const res = await fetch(`/api/submissions/${subId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ manualScores: { [questionId]: val } }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(typeof data.error === "string" ? data.error : "Không lưu được điểm");
+      setMsg(`Đã lưu — tổng điểm bài này: ${data.submission.score}/10`);
+      onSaved();
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : "Không lưu được điểm");
+    } finally {
+      setSaving(false);
+    }
+  };
+  return (
+    <div className="mt-2 rounded-lg bg-[var(--warning-light)]/50 border border-[var(--warning-border)] p-2.5 flex flex-wrap items-center gap-2">
+      <span className="text-[11px] font-bold text-[var(--warning-dark)]">
+        {initialValue != null ? `Đã chấm ${initialValue}/${maxPoints}đ` : `Chấm tay (tối đa ${maxPoints}đ):`}
+      </span>
+      <NumberInput value={val} onChange={setVal} min={0} max={maxPoints} step={0.25} className="w-24" />
+      <button
+        type="button"
+        onClick={save}
+        disabled={saving}
+        className="h-8 px-3 rounded-lg bg-[var(--primary)] text-xs font-bold text-white disabled:opacity-50 hover:bg-[var(--primary-hover)]"
+      >
+        {saving ? "Đang lưu..." : "Lưu điểm"}
+      </button>
+      {msg && <span className="text-[11px] font-semibold text-[var(--text-secondary)]">{msg}</span>}
+    </div>
+  );
+}
 
 const SORT_OPTIONS: { key: SortKey; label: string }[] = [
   { key: "latest", label: "Mới nhất" },
@@ -400,7 +455,14 @@ export function SubmissionsPanel({ subs, questions }: { subs: SubRow[]; question
                                 )}
                               </div>
                               {answered && !auto && (
-                                <div className="mt-1 text-[11px] font-semibold text-[var(--warning)]">Tự luận — chờ chấm thủ công</div>
+                                <EssayGrader
+                                  key={`${sub.id}-${q.id}-${sub.manualScores?.[q.id] ?? "-"}`}
+                                  subId={sub.id}
+                                  questionId={q.id}
+                                  maxPoints={q.points > 0 ? q.points : 1}
+                                  initialValue={sub.manualScores?.[q.id] ?? null}
+                                  onSaved={() => router.refresh()}
+                                />
                               )}
                               {answered && auto && !correct && (
                                 <div className="mt-1.5 text-xs">
