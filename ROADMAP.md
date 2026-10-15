@@ -439,6 +439,15 @@ GĐ3 **luôn bypass được** (trình duyệt khác, VM, điện thoại). Ch�
 - [x] **Verify (không hồi quy):** `student-take-exam.spec.ts` **6/6 desktop PASS** trên production sau các thay đổi; timing spec tạm (đã xoá) đo nộp bài/join như trên. `tsc`/`eslint`/`build` sạch.
 - [ ] **Còn chờ user:** (1) đổi `DATABASE_URL` prod sang pooler 6543 (LOAD-2b) — hạ sàn độ trễ DB; (2) dựng UptimeRobot/cron ping `/api/health` giữ ấm function (hết cold start ~4s).
 
+## ⏰ Tự mở đề khi tới giờ + đọc đề bằng Gemini (2026-10-15)
+
+**Yêu cầu user:** *"phần đặt thời gian mở đề ... hệ thống có tự load lại trang cho học sinh vào làm không hay phải thực hiện thủ công?"* (trước đây **thủ công** — trang tĩnh, không có gì tự làm mới) và *"AI đọc đề hiện tại càng ngày càng dốt, để mỗi gemini làm việc đi"*.
+
+- [x] **SCHED-1 Tự tải lại khi tới giờ mở (`/thi/[code]`)** (`fe63d57`) — thay khối tĩnh "Chưa đến giờ mở đề" (`app/thi/[code]/page.tsx`) bằng client **`app/thi/[code]/schedule-gate.tsx`**: đếm ngược `HH:MM:SS` theo đồng hồ máy → `location.reload()` đúng lúc `openAt`. **Chống lặp:** ghi mốc `sessionStorage` → tối đa 1 reload / 5 giây (tránh vòng lặp dày khi đồng hồ client đi trước server); hiện "đã đóng" khi quá `closeAt`; luôn có nút "Tải lại trang" thủ công. Verify prod bằng spec tạm (`tmp-schedule.spec.ts`, **đã xoá**): đề `openAt=+60s` → hiện đếm ngược → **tự vào phòng thi, không cần F5** (2/2 pass).
+- [x] **SCHED-2 `meta refresh` cho máy iOS cũ (`/thi-cu`)** (`fe63d57`) — `app/thi-cu/[code]/html.ts` `messageView` nhận thêm `refresh` (giây) → chèn `<meta http-equiv="refresh" content="N">`; `route.ts` tính N = giây tới `openAt` + 2 (bù lệch đồng hồ). Trang HTML thuần, không JS, vẫn tự mở đúng giờ. Verify: meta có mặt và content > 60s với đề mở xa.
+- [x] **AI-11 Đọc đề bằng Gemini flash thường (bỏ mặc định lite) + hiện engine** (`4839ae6`) — **nguyên nhân "càng ngày càng dốt"**: mặc định đọc đề là `gemini-3.5-flash-lite` (bậc rẻ nhất) và Google liên tục khai tử dòng lite (ghi chú `lib/ai.ts`). Đổi `DEFAULT_MODEL` (`lib/ai.ts`) + mặc định `EXAM_IMPORT_MODEL` (`app/api/gemini/route.ts`) → **`gemini-3.5-flash`** (vẫn free tier), giữ các model lite trong `FALLBACK_MODELS` làm lưới an toàn (nếu flash thường không khả dụng → tự rớt về lite, không vỡ). Fallback **Groq vẫn giữ** nhưng nay **GV thấy rõ**: `import-exam-modal.tsx` + `exam-builder.tsx` hiện "Đọc bởi: Gemini/Groq · model" (tô **đỏ** khi Groq dự phòng) → hết cảnh "tự nhiên đọc kém mà không biết vì sao". Muốn đóng băng chi phí → set `EXAM_IMPORT_MODEL=gemini-3.5-flash-lite` trên Vercel. tsc/eslint/`next build` sạch.
+- [ ] **Còn chờ user (AI):** (1) import thử 1 đề Word thật sau deploy để xác nhận `gemini-3.5-flash` khả dụng với key prod (nếu 400 → tự rớt lite, không vỡ); (2) muốn đọc PDF/ảnh cho **Gemini đọc thẳng** (giữ layout/công thức) thay vì bóc chữ `pdf-parse`? user hiện nhập Word nên chưa cần — làm khi yêu cầu.
+
 ## 🎨 Redesign toàn web — từng vùng, duyệt dần (2026-10-08)
 
 **Yêu cầu của user:** *"cải thiện UI cho toàn bộ web"*, hướng đã chốt: **redesign từng vùng, dừng cho user duyệt sau mỗi vùng** (không đổi layout lớn ồ ạt — bài học từ G12 bị revert).
