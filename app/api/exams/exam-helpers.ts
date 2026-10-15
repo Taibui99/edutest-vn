@@ -1,4 +1,21 @@
 import { Prisma } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
+
+/* Mã vào thi 6 ký tự — bỏ I/O/0/1 dễ nhìn nhầm khi đọc trên bảng. */
+function makeJoinCode() {
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  return Array.from({ length: 6 }, () => alphabet[Math.floor(Math.random() * alphabet.length)]).join("");
+}
+
+/** Sinh mã vào thi chưa ai dùng (thử tối đa 8 lần, xác suất đụng gần như 0). */
+export async function createUniqueJoinCode() {
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    const joinCode = makeJoinCode();
+    const existing = await prisma.exam.findUnique({ where: { joinCode } });
+    if (!existing) return joinCode;
+  }
+  throw new Error("Không thể tạo mã tham gia");
+}
 
 export type QuestionType = "mcq" | "true_false" | "short_answer" | "essay";
 

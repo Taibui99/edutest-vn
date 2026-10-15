@@ -4,21 +4,7 @@ import { isTeacherAccess } from "@/lib/access";
 import { getSetting } from "@/lib/settings";
 import { isProctorMode } from "@/lib/integrity";
 import { NextRequest, NextResponse } from "next/server";
-import { normalizeQuestions, validateQuestion } from "./exam-helpers";
-
-function makeJoinCode() {
-  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  return Array.from({ length: 6 }, () => alphabet[Math.floor(Math.random() * alphabet.length)]).join("");
-}
-
-async function createUniqueJoinCode() {
-  for (let attempt = 0; attempt < 8; attempt += 1) {
-    const joinCode = makeJoinCode();
-    const existing = await prisma.exam.findUnique({ where: { joinCode } });
-    if (!existing) return joinCode;
-  }
-  throw new Error("Không thể tạo mã tham gia");
-}
+import { createUniqueJoinCode, normalizeQuestions, validateQuestion } from "./exam-helpers";
 
 export async function GET() {
   const session = await auth();
