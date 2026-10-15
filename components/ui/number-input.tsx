@@ -12,6 +12,8 @@ interface NumberInputProps {
   step?: number;
   hint?: string;
   className?: string;
+  /** Ẩn 2 nút +/- để vừa chỗ hẹp (vd ô điểm từng mệnh đề Đúng/Sai). */
+  compact?: boolean;
 }
 
 export function NumberInput({
@@ -23,6 +25,7 @@ export function NumberInput({
   step = 1,
   hint,
   className,
+  compact = false,
 }: NumberInputProps) {
   const clamp = (v: number) => Math.min(max, Math.max(min, v));
 
@@ -31,6 +34,24 @@ export function NumberInput({
     if (raw === "" || Number.isNaN(parsed)) return;
     onChange(clamp(parsed));
   };
+
+  if (compact) {
+    return (
+      <div className={cn("flex flex-col gap-1.5", className)}>
+        {label && <span className="text-sm font-medium text-[var(--text-secondary)]">{label}</span>}
+        <input
+          type="number"
+          value={value}
+          min={min}
+          max={max}
+          step={step}
+          onChange={(e) => handleRaw(e.target.value)}
+          className="w-full h-11 sm:h-9 rounded-lg border border-[var(--surface-border)] bg-[var(--surface-input)] px-2 text-center text-sm font-semibold text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)] focus:border-[var(--primary)]"
+        />
+        {hint && <p className="text-xs text-[var(--text-muted)]">{hint}</p>}
+      </div>
+    );
+  }
 
   return (
     <div className={cn("flex flex-col gap-1.5", className)}>
