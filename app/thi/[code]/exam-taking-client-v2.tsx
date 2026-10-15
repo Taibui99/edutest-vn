@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { AlertTriangle, ArrowLeft, ArrowRight, CheckCircle2, Clock, Eye, Flag, Hourglass, Menu, Send, TimerOff, Trophy, X } from "lucide-react";
+import { AlertTriangle, ArrowLeft, ArrowRight, BookOpen, CheckCircle2, ChevronDown, ChevronUp, Clock, Eye, Flag, Hourglass, Menu, MinusCircle, RotateCcw, Send, TimerOff, Trophy, X, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 import { MAX_VIOLATIONS, resolveProctorMode, type ProctorEventType, type ProctorMode } from "@/lib/integrity";
@@ -31,6 +31,7 @@ type Exam = {
   participantName?: string;
   participantClass?: string;
   showScoreImmediately?: boolean;
+  showAnswers?: boolean;
   // GĐ3 — chế độ giáo viên chọn: "off" | "light" | "strict" (mặc định "off").
   proctorMode?: ProctorMode;
   questions: Question[];
@@ -48,7 +49,30 @@ type Attempt = {
   submittedAt: Date | null;
 };
 
-type SubmissionResult = { score: number; correctCount: number; totalQuestions: number; durationSeconds: number };
+/* KQ-1 (khách) — màn kết quả của khách kèm dữ liệu xem lại đáp án do server trả
+   về (chỉ khi GV bật `showAnswers`). Học sinh vẫn được chuyển sang trang
+   `/bang-dieu-khien/ket-qua/[id]` nên không dùng payload này. */
+type ReviewItem = {
+  id: string;
+  order: number;
+  type: string;
+  text: string;
+  options: string[];
+  answer: string;
+  grading: { statements: { text: string; answer: boolean }[]; acceptedAnswers: string[] };
+  explanation?: string | null;
+  userAnswer: AnswerValue | null;
+  correct: boolean | null;
+};
+
+type SubmissionResult = {
+  score: number;
+  correctCount: number;
+  totalQuestions: number;
+  durationSeconds: number;
+  canRetry?: boolean;
+  review?: ReviewItem[];
+};
 
 type AnswerValue = string | Record<string, boolean>;
 
@@ -95,6 +119,94 @@ function QuestionPalette({ orderedQuestions, current, setCurrent, marked, answer
         <span className="flex items-center gap-1"><span className="w-3 h-3 rounded border border-[var(--success-light)] bg-[var(--success-light)] inline-block" /> Đã trả lời</span>
       </div>
       <Button className="w-full" onClick={() => submitExam(false)} disabled={preview || totalQuestions === 0} loading={submitting}>{preview ? "Xem trước" : "Nộp bài"}</Button>
+    </div>
+  );
+}
+
+/* KQ-1 (khách) — bảng "Xem lại bài làm" ngay trên màn kết quả của khách.
+   Khách không có tài khoản nên không vào được `/bang-dieu-khien/ket-qua`. */
+function GuestReview({ items }: { items: ReviewItem[] }) {
+  const [open, setOpen] = useState(true);
+  return (
+    <div className="mt-5">
+      <button
+        type="button"
+        onClick={() => setOpen((s) => !s)}
+        className="w-full flex items-center justify-between rounded-xl border border-[var(--surface-border)] bg-[var(--surface-card)] px-4 py-3"
+      >
+        <span className="text-sm font-black text-[var(--text-primary)] flex items-center gap-2">
+          <BookOpen size={15} className="text-[var(--primary)]" /> Xem lại bài làm
+        </span>
+        {open ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+      </button>
+
+      {open && (
+        <div className="mt-3 flex flex-col gap-3">
+          {items.map((q) => (
+            <div key={q.id} className="rounded-xl border border-[var(--surface-border)] bg-[var(--surface-card)] p-4">
+              <div className="flex items-start gap-2 mb-2">
+                <span className={cn("shrink-0 w-5 h-5 rounded-full flex items-center justify-center", q.correct === null ? "bg-[var(--gray-200)]" : q.correct ? "bg-[var(--success-light)]" : "bg-[var(--danger-light)]")}>
+                  {q.correct === null ? <MinusCircle size={13} className="text-[var(--text-muted)]" /> : q.correct ? <CheckCircle2 size={13} className="text-[var(--success)]" /> : <XCircle size={13} className="text-[var(--danger)]" />}
+                </span>
+                <p className="text-sm font-semibold text-[var(--text-primary)]">
+                  <span className="text-[var(--text-muted)] font-normal mr-1">Câu {q.order}.</span>{q.text}
+                </p>
+              </div>
+
+              {q.type === "mcq" && (
+                <div className="flex flex-col gap-1 pl-7">
+                  {q.options.map((opt, i) => {
+                    const letter = String.fromCharCode(65 + i);
+                    const isUserPick = q.userAnswer === letter;
+                    const isCorrectAnswer = q.answer === letter;
+                    return (
+                      <div key={letter} className={cn("flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm", isCorrectAnswer ? "bg-[var(--success-light)] text-[var(--success-dark)] font-semibold" : isUserPick ? "bg-[var(--danger-light)] text-[var(--danger-dark)]" : "text-[var(--text-secondary)]")}>
+                        <span className="w-5 h-5 rounded-full text-xs font-black flex items-center justify-center shrink-0 bg-[var(--gray-100)] text-[var(--text-muted)]">{letter}</span>
+                        {opt}
+                        {isUserPick && <span className="ml-auto text-[10px] font-bold shrink-0">{isCorrectAnswer ? "Bạn chọn ✓" : "Bạn chọn"}</span>}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {q.type === "true_false" && (
+                <div className="flex flex-col gap-1 pl-7">
+                  {q.grading.statements.map((s, si) => {
+                    const pick = typeof q.userAnswer === "object" && q.userAnswer !== null ? (q.userAnswer as Record<string, unknown>)[String(si)] : undefined;
+                    const ok = pick === s.answer;
+                    return (
+                      <div key={si} className={cn("flex items-center justify-between gap-2 px-3 py-1.5 rounded-lg text-sm", ok ? "bg-[var(--success-light)] text-[var(--success-dark)]" : pick === undefined ? "text-[var(--text-secondary)]" : "bg-[var(--danger-light)] text-[var(--danger-dark)]")}>
+                        <span className="font-medium">{String.fromCharCode(97 + si)}. {s.text}</span>
+                        <span className="shrink-0 text-xs font-bold">Bạn: {pick === true ? "Đúng" : pick === false ? "Sai" : "—"} · Đúng: {s.answer ? "Đúng" : "Sai"}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {(q.type === "short_answer" || q.type === "essay") && (
+                <div className="flex flex-col gap-1 pl-7">
+                  <div className="px-3 py-1.5 rounded-lg text-sm bg-[var(--surface-bg)] border border-[var(--surface-border)] text-[var(--text-primary)]">
+                    <span className="text-xs font-bold text-[var(--text-muted)]">Bạn trả lời: </span>
+                    {String(q.userAnswer ?? "").trim() || <span className="text-[var(--text-muted)]">— bỏ trống —</span>}
+                  </div>
+                  {q.type === "short_answer" && q.grading.acceptedAnswers.length > 0 && (
+                    <div className="px-3 py-1.5 rounded-lg text-sm bg-[var(--success-light)] text-[var(--success-dark)]">
+                      <span className="text-xs font-bold">Đáp án: </span>{q.grading.acceptedAnswers.join(" · ")}
+                    </div>
+                  )}
+                  {q.type === "essay" && <p className="text-xs text-[var(--warning)]">Câu tự luận do giáo viên chấm thủ công.</p>}
+                </div>
+              )}
+
+              {q.explanation && (
+                <p className="mt-2 pl-7 text-xs text-[var(--text-muted)]">Giải thích: {q.explanation}</p>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -209,12 +321,40 @@ export function ExamTakingClientV2({ exam, attempt, preview = false, backHref }:
         router.push(data.resultLink);
         return;
       }
-      setResult(data.submission);
+      setResult({
+        ...data.submission,
+        canRetry: data.canRetry,
+        review: data.review,
+      });
     } catch (err) {
       alert(err instanceof Error ? err.message : "Không thể nộp bài");
       setSubmitting(false);
     }
   }, [answers, attempt, answeredCount, clearDraft, exam.id, preview, result, router, showConfirm, submitting, totalQuestions]);
+
+  /* KQ-1 (khách) — nút "Làm lại": xoá phiên khách rồi quay lại form (điền sẵn
+   * tên/lớp) để tạo người tham gia mới. Học sinh chỉ cần vào lại đề, server tự
+   * quyết định còn lượt hay không. Điều hướng cứng cho chắc trên mọi máy. */
+  const handleRetry = useCallback(async () => {
+    if (!exam.isGuest) {
+      window.location.assign(`/thi/${exam.joinCode}`);
+      return;
+    }
+    try {
+      await fetch("/api/guest-attempts/leave", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ examCode: exam.joinCode }),
+      });
+    } catch {
+      /* vẫn thử vào lại — cookie có thể chưa xoá được nhưng không chặn điều hướng */
+    }
+    const qs = new URLSearchParams();
+    if (exam.participantName) qs.set("name", exam.participantName);
+    if (exam.participantClass) qs.set("class", exam.participantClass);
+    const suffix = qs.toString();
+    window.location.assign(`/thi/${exam.joinCode}${suffix ? `?${suffix}` : ""}`);
+  }, [exam]);
 
   /* GĐ2/GĐ3 — báo MỘT sự kiện vi phạm cho server ghi vào nhật ký của lần làm bài.
    * Hệ thống chỉ GHI NHẬN + CẢNH BÁO; việc đánh giá để giáo viên quyết (đúng bất
@@ -543,24 +683,37 @@ export function ExamTakingClientV2({ exam, attempt, preview = false, backHref }:
   if (result) {
     const col = scoreColor(result.score);
     return (
-      <div className="min-h-screen bg-[var(--surface-bg)] flex items-center justify-center p-4">
-        <div className="bg-[var(--surface-card)] rounded-2xl border border-[var(--surface-border)] p-8 max-w-md w-full text-center">
-          {exam.showScoreImmediately === false ? (
-            <>
-              <div className="w-20 h-20 rounded-full mx-auto mb-5 flex items-center justify-center bg-[var(--warning-light)] text-[var(--warning)]"><Hourglass size={36} /></div>
-              <h1 className="text-2xl font-black tracking-tight mb-2 text-[var(--text-primary)]">Đã nộp bài thành công!</h1>
-              <p className="text-[var(--text-secondary)] text-sm mb-5">
-                Giáo viên sẽ công bố điểm sau khi chấm. Bạn đã trả lời {result.totalQuestions} câu hỏi trong {formatTime(result.durationSeconds)}.
-              </p>
-            </>
-          ) : (
-            <>
-              <div className="w-20 h-20 rounded-full mx-auto mb-5 flex items-center justify-center" style={{ background: `color-mix(in srgb, ${col} 15%, transparent)` }}><Trophy size={36} style={{ color: col }} /></div>
-              <h1 className="text-3xl font-black tracking-tight tabular-nums mb-1" style={{ color: col }}>{result.score}/10</h1>
-              <p className="text-[var(--text-secondary)] text-sm mb-5">{result.correctCount}/{result.totalQuestions} câu được chấm · {formatTime(result.durationSeconds)}</p>
-            </>
-          )}
-          {exam.isGuest ? <p className="text-xs text-[var(--text-muted)]">Kết quả đã được ghi nhận cho bài thi này.</p> : <Button className="w-full" onClick={() => router.push("/bang-dieu-khien")}>Về trang chủ</Button>}
+      <div className="min-h-screen bg-[var(--surface-bg)] flex justify-center p-4">
+        <div className="w-full max-w-2xl">
+          <div className="bg-[var(--surface-card)] rounded-2xl border border-[var(--surface-border)] p-8 w-full text-center">
+            {exam.showScoreImmediately === false ? (
+              <>
+                <div className="w-20 h-20 rounded-full mx-auto mb-5 flex items-center justify-center bg-[var(--warning-light)] text-[var(--warning)]"><Hourglass size={36} /></div>
+                <h1 className="text-2xl font-black tracking-tight mb-2 text-[var(--text-primary)]">Đã nộp bài thành công!</h1>
+                <p className="text-[var(--text-secondary)] text-sm mb-5">
+                  Giáo viên sẽ công bố điểm sau khi chấm. Bạn đã trả lời {result.totalQuestions} câu hỏi trong {formatTime(result.durationSeconds)}.
+                </p>
+              </>
+            ) : (
+              <>
+                <div className="w-20 h-20 rounded-full mx-auto mb-5 flex items-center justify-center" style={{ background: `color-mix(in srgb, ${col} 15%, transparent)` }}><Trophy size={36} style={{ color: col }} /></div>
+                <h1 className="text-3xl font-black tracking-tight tabular-nums mb-1" style={{ color: col }}>{result.score}/10</h1>
+                <p className="text-[var(--text-secondary)] text-sm mb-5">{result.correctCount}/{result.totalQuestions} câu được chấm · {formatTime(result.durationSeconds)}</p>
+              </>
+            )}
+            {exam.isGuest && <p className="text-xs text-[var(--text-muted)]">Kết quả đã được ghi nhận cho bài thi này.</p>}
+          </div>
+
+          {result.review && result.review.length > 0 && <GuestReview items={result.review} />}
+
+          <div className="mt-5 flex flex-col sm:flex-row gap-3">
+            {result.canRetry !== false && (
+              <Button className="flex-1" onClick={handleRetry}><RotateCcw size={16} /> Làm lại</Button>
+            )}
+            <Button variant="outline" className="flex-1" onClick={() => router.push(exam.isGuest ? backHref : "/bang-dieu-khien")}>
+              {exam.isGuest ? "Về danh sách đề thi" : "Về trang chủ"}
+            </Button>
+          </div>
         </div>
       </div>
     );

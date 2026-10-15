@@ -1,8 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { UserRound, School, AlertTriangle } from "lucide-react";
+import { UserRound, School } from "lucide-react";
 
 /* GUEST-3b — Hybrid: server-renderable form (action/method) + JS enhancement.
  * - Có `action="/api/guest-attempts" method="post"` → chạy được khi JS tắt/iOS cũ.
@@ -20,14 +19,17 @@ export function GuestJoin({
   code,
   title,
   error,
+  defaultName = "",
+  defaultClass = "",
 }: {
   code: string;
   title: string;
   error?: string;
+  defaultName?: string;
+  defaultClass?: string;
 }) {
-  const router = useRouter();
-  const [name, setName] = useState("");
-  const [className, setClassName] = useState("");
+  const [name, setName] = useState(defaultName);
+  const [className, setClassName] = useState(defaultClass);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState(error || "");
 
@@ -50,8 +52,8 @@ export function GuestJoin({
       if (!res.ok) {
         let msgKey = "server";
         try {
-          const j = await res.json();
-          const m = (j as any)?.error || "";
+          const j = (await res.json()) as { error?: unknown };
+          const m = typeof j?.error === "string" ? j.error : "";
           if (m.includes("đầy đủ")) msgKey = "invalid";
           else if (m.includes("không tồn tại") || m.includes("chưa được")) msgKey = "notfound";
           else if (m.includes("yêu cầu đăng nhập")) msgKey = "forbidden";
@@ -59,7 +61,10 @@ export function GuestJoin({
         setErr(msgKey);
         return;
       }
-      router.push(`/thi/${code}`);
+      // Hard navigation: `router.push` cùng pathname hiện tại là no-op của App
+      // Router (trang không được render lại) → phải tải lại web mới vào bài.
+      // Điều hướng cứng đảm bảo server chạy lại với cookie khách vừa set.
+      window.location.assign(`/thi/${code}`);
     } catch {
       setErr("server");
     } finally {

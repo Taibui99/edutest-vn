@@ -57,9 +57,9 @@ function BusyElsewhere() {
 }
 
 
-export default async function ThiPage({ params, searchParams }: { params: Promise<{ code: string }>; searchParams: Promise<{ preview?: string; guestError?: string }> }) {
+export default async function ThiPage({ params, searchParams }: { params: Promise<{ code: string }>; searchParams: Promise<{ preview?: string; guestError?: string; name?: string; class?: string }> }) {
   const { code } = await params;
-  const { preview, guestError } = await searchParams;
+  const { preview, guestError, name: prefillName, class: prefillClass } = await searchParams;
   const normalizedCode = code.toUpperCase();
   const session = await auth();
   const exam = await prisma.exam.findUnique({ where: { joinCode: normalizedCode }, include: { questions: { orderBy: { order: "asc" } } } });
@@ -133,11 +133,11 @@ export default async function ThiPage({ params, searchParams }: { params: Promis
   if (!session?.user) {
     if (!exam.allowGuestAttempts) return <div className="min-h-screen grid place-items-center bg-[var(--surface-bg)] p-4"><div className="max-w-md rounded-2xl bg-white p-8 text-center"><UserRound size={30} className="mx-auto mb-4 text-[var(--primary)]"/><p className="text-sm font-semibold text-[var(--primary)]">Đề thi chính thức</p><h1 className="mt-2 text-xl font-bold">Cần đăng nhập</h1><p className="my-4 text-sm text-[var(--text-muted)]">Giáo viên không cho phép khách tham gia đề thi này.</p><Link href="/dang-nhap" className="inline-flex w-full justify-center rounded-lg bg-[var(--primary)] px-5 py-2.5 text-sm font-semibold text-white">Đăng nhập để làm bài</Link></div></div>;
     const token = (await cookies()).get(`edutest_guest_${exam.id}`)?.value;
-    if (!token) return <GuestJoin code={exam.joinCode} title={exam.title} error={guestError} />;
+    if (!token) return <GuestJoin code={exam.joinCode} title={exam.title} error={guestError} defaultName={prefillName} defaultClass={prefillClass} />;
     const { createHash } = await import("node:crypto");
     const guest = await prisma.guestParticipant.findFirst({ where: { examId: exam.id, tokenHash: createHash("sha256").update(token).digest("hex") } });
-    if (!guest) return <GuestJoin code={exam.joinCode} title={exam.title} error={guestError} />;
-    if (guest.submittedAt) { const sub = await prisma.submission.findUnique({ where: { guestParticipantId: guest.id } }); if (sub) return <div className="min-h-screen grid place-items-center bg-[var(--surface-bg)] p-4"><div className="rounded-2xl bg-white p-8 text-center"><Trophy className="mx-auto mb-4 text-[var(--success)]"/><p className="text-sm font-semibold">Đã nộp bài</p><p className="mt-2 text-3xl font-black text-[var(--success)]">{sub.score}/10</p><p className="mt-1 text-sm text-[var(--text-muted)]">{guest.name} · {guest.className}</p></div></div>; }
+    if (!guest) return <GuestJoin code={exam.joinCode} title={exam.title} error={guestError} defaultName={prefillName} defaultClass={prefillClass} />;
+    if (guest.submittedAt) { const sub = await prisma.submission.findUnique({ where: { guestParticipantId: guest.id } }); if (sub) return <div className="min-h-screen grid place-items-center bg-[var(--surface-bg)] p-4"><div className="rounded-2xl bg-white p-8 text-center max-w-sm"><Trophy className="mx-auto mb-4 text-[var(--success)]"/><p className="text-sm font-semibold">Đã nộp bài</p><p className="mt-2 text-3xl font-black text-[var(--success)]">{sub.score}/10</p><p className="mt-1 text-sm text-[var(--text-muted)]">{guest.name} · {guest.className}</p><form action="/api/guest-attempts/leave" method="post" className="mt-5"><input type="hidden" name="examCode" value={exam.joinCode} /><input type="hidden" name="name" value={guest.name} /><input type="hidden" name="class" value={guest.className} /><button type="submit" className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[var(--primary)] px-5 py-2.5 text-sm font-semibold text-white">Làm lại</button></form></div></div>; }
     const started = await startAttempt({ exam, studentId: null, guestParticipantId: guest.id, activeKey: guestActiveKey(token), questions: exam.questions });
     // Khách không bị chặn theo số lượt nên chỉ có thể rơi vào "đang làm bài khác".
     if (started.status !== "ok") return <BusyElsewhere />;

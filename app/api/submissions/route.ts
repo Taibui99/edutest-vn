@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { cookies } from "next/headers";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { scoreSubmission, type AnswerValue } from "@/lib/grading";
+import { scoreSubmission, isQuestionCorrect, type AnswerValue, type GradingPayload } from "@/lib/grading";
 import { ATTEMPT_GRACE_SECONDS, finalizeTimedOutAttempt, riskOfAttempt, currentIpHash } from "@/lib/attempt";
 import { NextRequest, NextResponse } from "next/server";
 import { rateLimit, clientIp } from "@/lib/rate-limit";
@@ -46,6 +46,10 @@ export async function POST(request: NextRequest) {
   let studentId: string | null = null;
   let guestParticipantId: string | null = null;
   let participantName = "Học sinh";
+  /* Làm lại được không — quyết định có hiện nút "Làm lại" ở màn kết quả khách.
+   * Khách luôn được làm lại (vào lại form = người tham gia mới); học sinh theo
+   * số lượt còn lại của đề. */
+  let canRetry = true;
 
   if (session?.user) {
     // G6b — hiệu lực theo mode (xem attempts/route.ts).
@@ -58,6 +62,7 @@ export async function POST(request: NextRequest) {
       const latest = await prisma.submission.findFirst({ where: { examId, studentId: session.user.id }, orderBy: { submittedAt: "desc" } });
       return NextResponse.json({ error: `Bạn đã hết số lần làm bài (${exam.maxAttempts} lần)`, submission: latest }, { status: 409 });
     }
+    canRetry = exam.maxAttempts <= 0 || attemptsUsed + 1 < exam.maxAttempts;
   } else {
     if (!exam.allowGuestAttempts) return NextResponse.json({ error: "Đề thi này yêu cầu đăng nhập tài khoản A6Class Edu" }, { status: 401 });
     const token = (await cookies()).get(`edutest_guest_${exam.id}`)?.value;
@@ -133,5 +138,41 @@ export async function POST(request: NextRequest) {
    * đã chốt chắc ở transaction phía trên nên không ảnh hưởng gì. */
   prisma.notification.create({ data: { userId: exam.teacherId, type: "exam_result", title: "Có người vừa nộp bài", message: `${participantName} vừa nộp bài "${exam.title}" — Điểm: ${score}/10`, link: `/bang-dieu-khien/de-thi/${exam.id}` } }).catch(() => {});
 
-  return NextResponse.json({ submission, isGuest: Boolean(guestParticipantId), resultLink: guestParticipantId ? null : `/bang-dieu-khien/ket-qua/${submission.id}` });
+  /* Màn kết quả của KHÁCH nằm ngay trong runner (khách không có /bang-dieu-khien),
+   * nên trả kèm dữ liệu "Xem lại đáp án" — CHỈ khi giáo viên bật `showAnswers`
+   * (đúng quyền của GV, không rò đáp án ngoài ý muốn). */
+  const review = exam.showAnswers
+    ? exam.questions.map((q) => {
+        const grading = (q.grading ?? null) as GradingPayload | null;
+        const userAnswer = answers[q.id];
+        let correct: boolean | null;
+        if (q.type === "essay" || (q.type === "true_false" && !(grading?.statements ?? []).length) || (q.type === "short_answer" && !(grading?.acceptedAnswers ?? []).length)) {
+          correct = null;
+        } else {
+          correct = isQuestionCorrect({ type: q.type, answer: q.answer, grading }, userAnswer);
+        }
+        return {
+          id: q.id,
+          order: q.order,
+          type: q.type,
+          text: q.text,
+          options: q.options,
+          answer: q.answer,
+          grading: { statements: grading?.statements ?? [], acceptedAnswers: grading?.acceptedAnswers ?? [] },
+          explanation: q.explanation,
+          userAnswer: userAnswer ?? null,
+          correct,
+        };
+      })
+    : undefined;
+
+  return NextResponse.json({
+    submission,
+    isGuest: Boolean(guestParticipantId),
+    resultLink: guestParticipantId ? null : `/bang-dieu-khien/ket-qua/${submission.id}`,
+    showAnswers: exam.showAnswers,
+    showScoreImmediately: exam.showScoreImmediately,
+    canRetry,
+    review,
+  });
 }
