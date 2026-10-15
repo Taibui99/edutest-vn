@@ -200,20 +200,28 @@ export function examView(opts: {
     return `<div class="q"><div class="qhead"><span class="qnum">Câu ${num}</span><span class="qtext">${esc(q.text)}</span></div><span class="pill info" style="margin-bottom:8px">${esc(TYPE_LABEL[q.type] || "Câu hỏi")}</span>${inner}</div>`;
   }).join("");
 
-  const head = `<script>
+  /* Đồng hồ đếm ngược: PHẢI chèn SAU form (cuối <body>). Script nằm trong
+   * <head> chạy TRƯỚC khi <body> được phân tích → `getElementById("tm")` trả
+   * null → thoát sớm → đồng hồ đứng ở "--:--" mãi (đúng lỗi user báo "không
+   * hiện thời gian"). Bọc DOMContentLoaded cho chắc trên máy cũ. */
+  const timerScript = `<script>
 (function(){
-  var el=document.getElementById("tm");
-  if(!el)return;
-  var left=${Math.max(0, Math.floor(opts.remainingSeconds))};
-  function tick(){
-    if(left<=0){el.className="timer gone";el.textContent="Hết giờ";document.getElementById("f").submit();return;}
-    var m=Math.floor(left/60),s=left%60;
-    el.textContent=(m<10?"0":"")+m+":"+(s<10?"0":"")+s;
-    if(left<=60){el.className="timer low";}
-    left--;
+  function boot(){
+    var el=document.getElementById("tm");
+    var form=document.getElementById("f");
+    if(!el||!form)return;
+    var left=${Math.max(0, Math.floor(opts.remainingSeconds))};
+    function tick(){
+      if(left<=0){el.className="timer gone";el.textContent="Hết giờ";form.submit();return;}
+      var m=Math.floor(left/60),s=left%60;
+      el.textContent=(m<10?"0":"")+m+":"+(s<10?"0":"")+s;
+      if(left<=60){el.className="timer low";}
+      left--;
+    }
+    tick();
+    setInterval(tick,1000);
   }
-  tick();
-  setInterval(tick,1000);
+  if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",boot);}else{boot();}
 })();
 </script>`;
   const warn = Math.max(0, Math.floor(opts.remainingSeconds)) <= 60 ? `<div class="note">Sắp hết giờ — hãy bấm Nộp bài ngay khi làm xong.</div>` : "";
@@ -230,7 +238,7 @@ export function examView(opts: {
       <button class="btn big" type="submit">Nộp bài</button>
     </form>
   </div>`;
-  return shell(opts.title, body, head);
+  return shell(opts.title, body + timerScript);
 }
 
 export type ReviewItem = {
