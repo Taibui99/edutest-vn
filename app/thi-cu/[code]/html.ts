@@ -140,7 +140,7 @@ export function joinView(opts: { code: string; title: string; error?: string; na
   return shell(opts.title, body);
 }
 
-type GradingShape = { statements?: Array<{ text?: string; answer?: boolean }>; acceptedAnswers?: string[]; image?: string };
+type GradingShape = { statements?: Array<{ text?: string; answer?: boolean; points?: number }>; acceptedAnswers?: string[]; image?: string };
 
 function gradingOf(q: LegacyQuestion): GradingShape {
   const g = q.grading as GradingShape | null | undefined;
@@ -280,10 +280,16 @@ function answerText(item: ReviewItem): string[] {
       }
     }
     const sts = item.grading.statements || [];
+    let earned = 0;
+    let totalPts = 0;
     sts.forEach((s, i) => {
       const p = picked?.[i];
-      out.push(`${s.text || `Ý ${i + 1}`}: bạn chọn ${p === true ? "Đúng" : p === false ? "Sai" : "—"} · đáp án ${s.answer ? "Đúng" : "Sai"}`);
+      const ok = p === s.answer;
+      totalPts += s.points || 0;
+      if (ok) earned += s.points || 0;
+      out.push(`${s.text || `Ý ${i + 1}`}: bạn chọn ${p === true ? "Đúng" : p === false ? "Sai" : "—"} · đáp án ${s.answer ? "Đúng" : "Sai"}${ok && s.points ? ` (+${s.points}đ)` : ""}`);
     });
+    if (totalPts > 0) out.push(`Điểm câu này: ${earned}/${totalPts}đ`);
   } else if (item.type === "short_answer") {
     const v = typeof item.userAnswer === "string" ? item.userAnswer : (item.userAnswer as { text?: string } | undefined)?.text || "";
     const acc = item.grading.acceptedAnswers || [];

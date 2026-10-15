@@ -17,7 +17,7 @@ import { PROCTOR_MODES, PROCTOR_MODE_DESCRIPTIONS, proctorModeLabel, type Procto
 import { ImportExamModal } from "@/components/exams/import-exam-modal";
 
 type QuestionType = "mcq" | "true_false" | "short_answer" | "essay";
-type Statement = { text: string; answer: boolean };
+type Statement = { text: string; answer: boolean; points?: number };
 type Difficulty = "nhận biết" | "thông hiểu" | "vận dụng";
 const DIFFICULTIES: Difficulty[] = ["nhận biết", "thông hiểu", "vận dụng"];
 const DEFAULT_DIFFICULTY: Difficulty = "nhận biết";
@@ -48,6 +48,24 @@ type DbQuestion = { type: string; text: string; options: string[]; answer: strin
 function normalizeDifficulty(value: unknown): Difficulty | null {
   const s = String(value ?? "").trim().toLowerCase();
   return DIFFICULTIES.find((d) => d === s) ?? null;
+}
+
+/** TF-1 — tổng điểm các mệnh đề Đúng/Sai. Đề cũ chưa đặt điểm riêng thì
+ *  dùng lại điểm câu đang lưu (sau đó chia đều cho từng mệnh đề). */
+function tfStatementsTotal(statements: Statement[] | undefined, fallback: number): number {
+  if (!statements || !statements.length) return fallback;
+  const set = statements.filter((s) => typeof s.points === "number" && Number.isFinite(s.points) && s.points > 0);
+  if (!set.length) return fallback;
+  return Number(set.reduce((a, s) => a + (s.points as number), 0).toFixed(4));
+}
+
+/** Phân bổ đều điểm câu cho mệnh đề chưa có điểm riêng (đề cũ / mới thêm). */
+function withStatementPoints(statements: Statement[], total: number): Statement[] {
+  const each = Number((total / statements.length).toFixed(4));
+  return statements.map((s) => ({
+    ...s,
+    points: typeof s.points === "number" && Number.isFinite(s.points) && s.points > 0 ? s.points : each,
+  }));
 }
 
 /** Giữ metadata độ khó/rubric do AI gợi ý khi nhập hoặc khi mở đề đã lưu. */
@@ -95,7 +113,9 @@ function importedToQuestion(raw: ImportedQuestion): Question {
     q.answer = String(raw.answer ?? "A").trim().charAt(0).toUpperCase() || "A";
   } else if (type === "true_false") {
     const statements = (raw.grading as { statements?: Statement[] } | undefined)?.statements;
-    q.grading = { statements: Array.isArray(statements) && statements.length ? statements : [{ text: "", answer: true }] };
+    const list = withStatementPoints(Array.isArray(statements) && statements.length ? statements : [{ text: "", answer: true }], q.points);
+    q.grading = { statements: list };
+    q.points = tfStatementsTotal(list, q.points);
   } else if (type === "short_answer") {
     const acceptedAnswers = (raw.grading as { acceptedAnswers?: string[] } | undefined)?.acceptedAnswers;
     q.grading = { acceptedAnswers: Array.isArray(acceptedAnswers) && acceptedAnswers.length ? acceptedAnswers.map(String) : [String(raw.answer ?? "")] };
@@ -135,7 +155,9 @@ function dbToQuestion(raw: DbQuestion): Question {
   const type = ["mcq","true_false","short_answer","essay"].includes(raw.type) ? (raw.type as QuestionType) : "mcq";
   if (type === "true_false") {
     const statements = (raw.grading as { statements?: Statement[] } | null | undefined)?.statements;
-    return withAiMetadata({ type, question: raw.text, options: [], answer: raw.answer || "", grading: { statements: Array.isArray(statements) && statements.length ? statements : [{ text: "", answer: true }] }, points: raw.points }, { grading: raw.grading as Grading | null });
+    const base = Number(raw.points) > 0 ? Number(raw.points) : 1;
+    const list = withStatementPoints(Array.isArray(statements) && statements.length ? statements : [{ text: "", answer: true }], base);
+    return withAiMetadata({ type, question: raw.text, options: [], answer: raw.answer || "", grading: { statements: list }, points: tfStatementsTotal(list, base) }, { grading: raw.grading as Grading | null });
   }
   if (type === "short_answer") {
     const acceptedAnswers = (raw.grading as { acceptedAnswers?: string[] } | null | undefined)?.acceptedAnswers;
@@ -257,7 +279,13 @@ export function TaoDeThiEditor({ editId, initialExam }: { editId: string | null;
     if (!stats.valid) { setError("Hãy hoàn thiện tên đề, môn học và các câu hỏi trước khi lưu."); return; }
     setPublishing(true);
     const status = requestedStatus ?? currentStatus;
-    const payload = { title: title.trim(), subject, description: description.trim() || undefined, durationMinutes: Number(duration), shuffleQuestions, shuffleAnswers, allowGuestAttempts: allowGuest, maxAttempts, showAnswers, showScoreImmediately: showScore, proctorMode, openAt: openAt ? new Date(openAt).toISOString() : null, closeAt: closeAt ? new Date(closeAt).toISOString() : null, status, questions };
+    const normalizedQuestions = questions.map((qq) => {
+      if (qq.type !== "true_false") return qq;
+      const base = qq.points > 0 ? qq.points : 1;
+      const list = withStatementPoints(qq.grading?.statements || [{ text: "", answer: true }], base);
+      return { ...qq, grading: { ...qq.grading, statements: list }, points: tfStatementsTotal(list, base) };
+    });
+    const payload = { title: title.trim(), subject, description: description.trim() || undefined, durationMinutes: Number(duration), shuffleQuestions, shuffleAnswers, allowGuestAttempts: allowGuest, maxAttempts, showAnswers, showScoreImmediately: showScore, proctorMode, openAt: openAt ? new Date(openAt).toISOString() : null, closeAt: closeAt ? new Date(closeAt).toISOString() : null, status, questions: normalizedQuestions };
     try {
       const res = editId
         ? await fetch(`/api/exams/${editId}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) })
@@ -287,7 +315,7 @@ export function TaoDeThiEditor({ editId, initialExam }: { editId: string | null;
             <div className="flex flex-col gap-4 p-5">
               {questions.map((q, i) => (
                 <div key={i} className="rounded-2xl border border-[var(--surface-border)] bg-[var(--surface-bg)] p-4 transition-colors focus-within:border-[var(--primary)]/50 focus-within:shadow-sm">
-                  <div className="mb-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-2"><div className="flex items-center gap-2"><span className="grid h-7 w-7 place-items-center rounded-lg bg-[var(--primary-light)] text-xs font-black text-[var(--primary)]">{i+1}</span><Select value={q.type} onChange={(v) => changeType(i, v as QuestionType)} options={TYPE_OPTIONS} ariaLabel="Loại câu hỏi"/></div><div className="flex shrink-0 items-center gap-2"><span className="text-[11px] font-bold text-[var(--text-muted)]">Điểm</span><NumberInput value={q.points} onChange={(v)=>updateQuestion(i,{points:v})} min={0.25} max={20} step={0.25} className="w-40"/><button title="Xóa câu" onClick={() => removeQuestion(i)} className="grid h-10 sm:h-8 w-10 sm:w-8 place-items-center rounded-lg text-[var(--text-muted)] hover:bg-[var(--danger-light)] hover:text-[var(--danger)]"><Trash2 size={15}/></button></div></div>
+                  <div className="mb-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-2"><div className="flex items-center gap-2"><span className="grid h-7 w-7 place-items-center rounded-lg bg-[var(--primary-light)] text-xs font-black text-[var(--primary)]">{i+1}</span><Select value={q.type} onChange={(v) => changeType(i, v as QuestionType)} options={TYPE_OPTIONS} ariaLabel="Loại câu hỏi"/></div><div className="flex shrink-0 items-center gap-2"><span className="text-[11px] font-bold text-[var(--text-muted)]">Điểm</span>{q.type === "true_false" ? <span title="Tổng điểm các mệnh đề — sửa điểm ở từng mệnh đề bên dưới" className="grid h-10 w-40 place-items-center rounded-xl border border-[var(--surface-border)] bg-[var(--gray-100)] text-sm font-bold text-[var(--text-primary)]">{tfStatementsTotal(q.grading?.statements, q.points)}</span> : <NumberInput value={q.points} onChange={(v)=>updateQuestion(i,{points:v})} min={0.25} max={20} step={0.25} className="w-40"/>}<button title="Xóa câu" onClick={() => removeQuestion(i)} className="grid h-10 sm:h-8 w-10 sm:w-8 place-items-center rounded-lg text-[var(--text-muted)] hover:bg-[var(--danger-light)] hover:text-[var(--danger)]"><Trash2 size={15}/></button></div></div>
                   <textarea value={q.question} onChange={(e) => updateQuestion(i,{question:e.target.value})} rows={3} placeholder="Nhập nội dung câu hỏi..." className="w-full rounded-xl border border-[var(--surface-border)] bg-[var(--surface-card)] p-3 text-sm outline-none"/>
 
                   <div className="mt-3">
@@ -321,7 +349,7 @@ export function TaoDeThiEditor({ editId, initialExam }: { editId: string | null;
 
                   {q.type === "mcq" && <div className="mt-3 grid gap-2 md:grid-cols-2">{q.options.map((opt, oi) => { const letter=String.fromCharCode(65+oi); const selected=q.answer===letter; return <div key={letter} className={cn("flex items-center gap-2 rounded-xl border p-3 sm:p-2.5", selected ? "border-[var(--success)] bg-[var(--success-light)]" : "border-[var(--surface-border)] bg-[var(--surface-card)]")}><button onClick={()=>updateQuestion(i,{answer:letter})} className={cn("grid h-10 sm:h-7 w-10 sm:w-7 place-items-center rounded-full text-xs font-black",selected?"bg-[var(--success)] text-white":"bg-[var(--gray-100)] text-[var(--text-secondary)]")}>{letter}</button><input value={opt} onChange={(e)=>{const options=[...q.options]; options[oi]=e.target.value; updateQuestion(i,{options});}} placeholder={`Đáp án ${letter}`} className="min-w-0 flex-1 bg-transparent text-sm outline-none"/></div>;})}</div>}
 
-                  {q.type === "true_false" && <div className="mt-3 flex flex-col gap-2">{(q.grading?.statements || [{text:"",answer:true}]).map((s,si)=><div key={si} className="flex gap-2 rounded-xl border border-[var(--surface-border)] bg-[var(--surface-card)] p-2.5"><input value={s.text} onChange={(e)=>{const statements=[...(q.grading?.statements||[])]; statements[si]={...statements[si],text:e.target.value}; updateQuestion(i,{grading:{...q.grading,statements}})}} placeholder={`Mệnh đề ${si+1}`} className="min-w-0 flex-1 bg-transparent text-sm outline-none"/><Dropdown value={String(s.answer)} onChange={(v)=>{const statements=[...(q.grading?.statements||[])]; statements[si]={...statements[si],answer:v==="true"}; updateQuestion(i,{grading:{...q.grading,statements}})}} options={[{value:"true",label:"Đúng"},{value:"false",label:"Sai"}]} size="sm" className="w-28 shrink-0" ariaLabel={`Đáp án mệnh đề ${si+1}`}/></div>)}<Button size="sm" variant="outline" onClick={()=>updateQuestion(i,{grading:{...q.grading,statements:[...(q.grading?.statements||[]),{text:"",answer:true}]}})}>+ Thêm mệnh đề</Button></div>}
+                  {q.type === "true_false" && <div className="mt-3 flex flex-col gap-2">{(q.grading?.statements || [{text:"",answer:true}]).map((s,si)=><div key={si} className="flex flex-wrap gap-2 rounded-xl border border-[var(--surface-border)] bg-[var(--surface-card)] p-2.5"><input value={s.text} onChange={(e)=>{const statements=[...(q.grading?.statements||[])]; statements[si]={...statements[si],text:e.target.value}; updateQuestion(i,{grading:{...q.grading,statements}})}} placeholder={`Mệnh đề ${si+1}`} className="min-w-0 flex-1 bg-transparent text-sm outline-none"/><Dropdown value={String(s.answer)} onChange={(v)=>{const statements=[...(q.grading?.statements||[])]; statements[si]={...statements[si],answer:v==="true"}; updateQuestion(i,{grading:{...q.grading,statements}})}} options={[{value:"true",label:"Đúng"},{value:"false",label:"Sai"}]} size="sm" className="w-24 shrink-0" ariaLabel={`Đáp án mệnh đề ${si+1}`}/><NumberInput value={s.points ?? 1} onChange={(v)=>{const statements=[...(q.grading?.statements||[])].map((st,idx)=>idx===si?{...st,points:v}:st); updateQuestion(i,{grading:{...q.grading,statements},points:tfStatementsTotal(statements,q.points)})}} min={0.25} max={20} step={0.25} className="w-24 shrink-0"/><button title="Xóa mệnh đề" onClick={()=>{const raw=(q.grading?.statements||[]).filter((_,idx)=>idx!==si); const statements=raw.length?raw:[{text:"",answer:true}]; updateQuestion(i,{grading:{...q.grading,statements},points:tfStatementsTotal(statements,q.points)})}} className="grid h-10 w-9 shrink-0 place-items-center rounded-lg text-[var(--text-muted)] hover:bg-[var(--danger-light)] hover:text-[var(--danger)]"><Trash2 size={14}/></button></div>)}<div className="flex flex-wrap items-center justify-between gap-2"><Button size="sm" variant="outline" onClick={()=>{const statements=[...(q.grading?.statements||[]),{text:"",answer:true,points:1}]; updateQuestion(i,{grading:{...q.grading,statements},points:tfStatementsTotal(statements,q.points)})}}>+ Thêm mệnh đề</Button><span className="text-xs font-bold text-[var(--text-muted)]">Tổng: {tfStatementsTotal(q.grading?.statements, q.points)} điểm</span></div></div>}
 
                   {q.type === "short_answer" && <div className="mt-3"><p className="mb-2 text-xs font-semibold text-[var(--text-secondary)]">Đáp án chấp nhận</p>{(q.grading?.acceptedAnswers||[""]).map((a,ai)=><div key={ai} className="mb-2 flex gap-2"><input value={a} onChange={(e)=>{const arr=[...(q.grading?.acceptedAnswers||[])]; arr[ai]=e.target.value; updateQuestion(i,{grading:{...q.grading,acceptedAnswers:arr}})}} placeholder="Ví dụ: 42 hoặc 42.0" className="flex-1 rounded-xl border border-[var(--surface-border)] bg-[var(--surface-card)] p-2.5 text-sm outline-none focus:border-[var(--primary)]"/></div>)}<Button size="sm" variant="outline" onClick={()=>updateQuestion(i,{grading:{...q.grading,acceptedAnswers:[...(q.grading?.acceptedAnswers||[]),""]}})}>+ Thêm đáp án</Button></div>}
 

@@ -20,7 +20,7 @@ interface Question {
   options: string[];
   answer: string;
   grading?: {
-    statements?: { text: string; answer: boolean }[];
+    statements?: { text: string; answer: boolean; points?: number }[];
     acceptedAnswers?: string[];
     image?: string;
   } | null;
@@ -319,12 +319,14 @@ export default function ResultPage({ params }: { params: Promise<{ id: string }>
                     </div>
                     )}
 
-                    {q.type === "true_false" && (
+                    {q.type === "true_false" && (() => {
+                      const userObj = typeof userAnswer === "object" && userAnswer !== null ? (userAnswer as Record<string, unknown>) : {};
+                      const earned = (q.grading?.statements ?? []).reduce((a, s, si) => a + (userObj[String(si)] === s.answer ? (s.points || 0) : 0), 0);
+                      const totalPts = (q.grading?.statements ?? []).reduce((a, s) => a + (s.points || 0), 0);
+                      return (
                     <div className="flex flex-col gap-1.5 pl-7">
                       {(q.grading?.statements ?? []).map((s, si) => {
-                        const pick = typeof userAnswer === "object" && userAnswer !== null
-                          ? (userAnswer as Record<string, unknown>)[String(si)]
-                          : undefined;
+                        const pick = userObj[String(si)];
                         const ok = pick === s.answer;
                         return (
                           <div
@@ -337,13 +339,15 @@ export default function ResultPage({ params }: { params: Promise<{ id: string }>
                           >
                             <span className="font-medium">{String.fromCharCode(97 + si)}. {s.text}</span>
                             <span className="shrink-0 text-xs font-black">
-                              Bạn: {pick === true ? "Đúng" : pick === false ? "Sai" : "—"} · Chuẩn: {s.answer ? "Đúng" : "Sai"}
+                              {ok && s.points ? `+${s.points}đ · ` : ""}Bạn: {pick === true ? "Đúng" : pick === false ? "Sai" : "—"} · Chuẩn: {s.answer ? "Đúng" : "Sai"}
                             </span>
                           </div>
                         );
                       })}
+                      {totalPts > 0 && <div className="pl-1 text-xs font-bold text-[var(--text-muted)]">Điểm câu này: {earned}/{totalPts}đ</div>}
                     </div>
-                    )}
+                      );
+                    })()}
 
                     {(q.type === "short_answer" || q.type === "essay") && (
                     <div className="flex flex-col gap-1.5 pl-7">

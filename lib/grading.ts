@@ -1,5 +1,5 @@
 export type GradingPayload = {
-  statements?: Array<{ text?: string; answer?: boolean }>;
+  statements?: Array<{ text?: string; answer?: boolean; points?: number }>;
   acceptedAnswers?: string[];
   image?: string;
 };
@@ -23,6 +23,47 @@ function toBooleanArray(selected: Exclude<AnswerValue, string> | undefined): boo
       .map((k) => Boolean(asObj[k]));
   }
   return [];
+}
+
+/* TF-1 — điểm riêng cho TỪNG mệnh đề Đúng/Sai.
+ * Đề cũ (không có `points` cho mệnh đề) được chia đều điểm câu → học sinh
+ * làm đúng bao nhiêu mệnh đề được bấy nhiêu điểm, không còn "đúng hết mới
+ * được điểm câu". */
+function statementPointsArray(question: { points?: unknown; grading?: unknown }): number[] {
+  const statements = ((question.grading as GradingPayload | null | undefined)?.statements || []);
+  if (!statements.length) return [];
+  const total = pointsOf(question);
+  const each = total / statements.length;
+  const raw = statements.map((s) =>
+    typeof s.points === "number" && Number.isFinite(s.points) && s.points > 0 ? s.points : each,
+  );
+  const sum = raw.reduce((a, b) => a + b, 0);
+  if (sum <= 0) return statements.map(() => each);
+  // Chuẩn hoá về đúng tổng điểm câu để tổng điểm các mệnh đề không lệch
+  // với điểm câu (GV đặt 1+1 mà câu đang 1đ → 0.5+0.5).
+  if (Math.abs(sum - total) < 1e-9) return raw;
+  return raw.map((v) => (v / sum) * total);
+}
+
+/** Điểm thực nhận của một câu (0 → điểm câu). Đúng/Sai cộng điểm từng mệnh đề đúng. */
+export function earnedPointsOf(
+  question: { type: string; answer?: string | null; points?: unknown; grading?: unknown },
+  selected: AnswerValue | undefined,
+): number {
+  const pts = pointsOf(question);
+  if (question.type === "essay") return 0;
+  if (question.type === "true_false") {
+    const expected = ((question.grading as GradingPayload | null | undefined)?.statements || []).map((s) => Boolean(s.answer));
+    if (!expected.length) return 0;
+    const actual = toBooleanArray(typeof selected === "string" ? undefined : selected);
+    const weights = statementPointsArray(question);
+    let earned = 0;
+    expected.forEach((value, index) => {
+      if (actual[index] === value) earned += weights[index] || 0;
+    });
+    return Math.min(pts, earned);
+  }
+  return isQuestionCorrect(question, selected) ? pts : 0;
 }
 
 export function isQuestionCorrect(
@@ -81,8 +122,11 @@ export function scoreSubmission<T extends { id: string; type: string; points?: u
     const pts = pointsOf(q);
     total += pts;
     if (isAutoGraded(q)) {
+      // Đúng/Sai cộng điểm từng mệnh đề đúng (TF-1); MCQ/trả lời ngắn vẫn
+      // full điểm câu hoặc 0. `correctCount` giữ nguyên "trọn vẹn" để
+      // leaderboard và số câu đúng không đổi hành vi.
+      earned += earnedPointsOf(q, answers[q.id]);
       if (isQuestionCorrect(q, answers[q.id])) {
-        earned += pts;
         correctCount += 1;
       }
     } else {

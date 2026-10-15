@@ -19,7 +19,7 @@ type Question = {
   text: string;
   options: string[];
   answer?: string;
-  grading?: { statements?: Array<{ text: string; answer?: boolean }>; acceptedAnswers?: string[]; image?: string } | null;
+  grading?: { statements?: Array<{ text: string; answer?: boolean; points?: number }>; acceptedAnswers?: string[]; image?: string } | null;
   order: number;
 };
 
@@ -61,7 +61,7 @@ type ReviewItem = {
   text: string;
   options: string[];
   answer: string;
-  grading: { statements: { text: string; answer: boolean }[]; acceptedAnswers: string[]; image?: string };
+  grading: { statements: { text: string; answer: boolean; points?: number }[]; acceptedAnswers: string[]; image?: string };
   explanation?: string | null;
   userAnswer: AnswerValue | null;
   correct: boolean | null;
@@ -176,20 +176,26 @@ function GuestReview({ items }: { items: ReviewItem[] }) {
                 </div>
               )}
 
-              {q.type === "true_false" && (
+              {q.type === "true_false" && (() => {
+                const userObj = typeof q.userAnswer === "object" && q.userAnswer !== null ? (q.userAnswer as Record<string, unknown>) : {};
+                const earned = q.grading.statements.reduce((a, s, si) => a + (userObj[String(si)] === s.answer ? (s.points || 0) : 0), 0);
+                const totalPts = q.grading.statements.reduce((a, s) => a + (s.points || 0), 0);
+                return (
                 <div className="flex flex-col gap-1 pl-7">
                   {q.grading.statements.map((s, si) => {
-                    const pick = typeof q.userAnswer === "object" && q.userAnswer !== null ? (q.userAnswer as Record<string, unknown>)[String(si)] : undefined;
+                    const pick = userObj[String(si)];
                     const ok = pick === s.answer;
                     return (
                       <div key={si} className={cn("flex items-center justify-between gap-2 px-3 py-1.5 rounded-lg text-sm", ok ? "bg-[var(--success-light)] text-[var(--success-dark)]" : pick === undefined ? "text-[var(--text-secondary)]" : "bg-[var(--danger-light)] text-[var(--danger-dark)]")}>
                         <span className="font-medium">{String.fromCharCode(97 + si)}. {s.text}</span>
-                        <span className="shrink-0 text-xs font-bold">Bạn: {pick === true ? "Đúng" : pick === false ? "Sai" : "—"} · Đúng: {s.answer ? "Đúng" : "Sai"}</span>
+                        <span className="shrink-0 text-xs font-bold">{ok && s.points ? `+${s.points}đ · ` : ""}Bạn: {pick === true ? "Đúng" : pick === false ? "Sai" : "—"} · Đúng: {s.answer ? "Đúng" : "Sai"}</span>
                       </div>
                     );
                   })}
+                  {totalPts > 0 && <div className="pl-1 pt-0.5 text-xs font-bold text-[var(--text-muted)]">Điểm câu này: {earned}/{totalPts}đ</div>}
                 </div>
-              )}
+                );
+              })()}
 
               {(q.type === "short_answer" || q.type === "essay") && (
                 <div className="flex flex-col gap-1 pl-7">
