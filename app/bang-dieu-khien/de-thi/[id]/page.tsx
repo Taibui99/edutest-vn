@@ -15,6 +15,7 @@ import { CopyJoinCode } from "./copy-join-code";
 import { getSubjectColor } from "@/lib/subject";
 import { isQuestionCorrect, isAutoGraded, type AnswerValue } from "@/lib/grading";
 import { SubmissionsPanel, type SubRow, type SubQuestion } from "./submissions-panel";
+import { RegradeButton } from "./regrade-button";
 
 export const metadata: Metadata = { title: "Chi tiết đề thi — A6Class Edu" };
 
@@ -184,6 +185,13 @@ export default async function ExamDetailPage({ params }: { params: Promise<{ id:
           </div>
         ))}
       </div>
+
+      {subs.length > 0 && (
+        <div className="mb-4 flex items-center justify-end gap-2">
+          <span className="text-xs text-[var(--text-muted)]">Đổi công thức/sửa điểm đề? Chấm lại để cập nhật điểm các bài đã nộp.</span>
+          <RegradeButton examId={exam.id} />
+        </div>
+      )}
 
       <div className="grid lg:grid-cols-3 gap-5">
         <div className="lg:col-span-2 min-w-0">
