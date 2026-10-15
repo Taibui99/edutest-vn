@@ -1,9 +1,11 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import dynamic from "next/dynamic";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
+import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { isLegacyBrowser } from "@/lib/browser";
 import { isProctorMode, type ProctorMode } from "@/lib/integrity";
 import { effectiveMode, isStudentAccess } from "@/lib/access";
 import { startAttempt, studentActiveKey, guestActiveKey } from "@/lib/attempt";
@@ -57,10 +59,17 @@ function BusyElsewhere() {
 }
 
 
-export default async function ThiPage({ params, searchParams }: { params: Promise<{ code: string }>; searchParams: Promise<{ preview?: string; guestError?: string; name?: string; class?: string }> }) {
+export default async function ThiPage({ params, searchParams }: { params: Promise<{ code: string }>; searchParams: Promise<{ preview?: string; guestError?: string; name?: string; class?: string; legacy?: string }> }) {
   const { code } = await params;
-  const { preview, guestError, name: prefillName, class: prefillClass } = await searchParams;
+  const { preview, guestError, name: prefillName, class: prefillClass, legacy } = await searchParams;
   const normalizedCode = code.toUpperCase();
+  /* Máy iOS cũ (Safari < 16.4) không chạy nổi React → đưa sang hệ thống thi
+   * HTML thuần ở /thi-cu (không React/Tailwind). Preview của giáo viên luôn ở
+   * bản đầy đủ nên không chuyển hướng. Dùng ?legacy=1 để ép dùng bản nhẹ. */
+  if (!preview) {
+    const ua = (await headers()).get("user-agent");
+    if (legacy === "1" || isLegacyBrowser(ua)) redirect(`/thi-cu/${normalizedCode}`);
+  }
   const session = await auth();
   const exam = await prisma.exam.findUnique({ where: { joinCode: normalizedCode }, include: { questions: { orderBy: { order: "asc" } } } });
 
