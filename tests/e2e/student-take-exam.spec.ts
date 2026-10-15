@@ -96,4 +96,23 @@ test.describe("STUDENT — Làm bài thi", () => {
     await page.getByRole("button", { name: "Nộp bài" }).last().click();
     await expect(page.getByText(/đã nộp|nộp bài thành công|\/10/i).first()).toBeVisible({ timeout: 20000 });
   });
+
+  test("S-06: Guest nộp bài → xem lại đáp án + nút Làm lại", async ({ page }) => {
+    await page.goto("/vao-thi");
+    await page.locator("input[placeholder='VD: ABC123']").fill(CODE);
+    await page.getByRole("button", { name: "Bắt đầu làm bài" }).click();
+    await page.getByPlaceholder("Nguyễn Văn A").fill("Guest Review");
+    await page.getByPlaceholder("12A6").fill("12A9");
+    await page.getByRole("button", { name: "Bắt đầu làm bài" }).click();
+    await expect(page.getByText("Câu 1/2").first()).toBeVisible({ timeout: 15000 });
+    // Trả lời câu 1 (1+1=2 → B) rồi nộp (còn câu chưa trả lời → có hộp xác nhận).
+    await page.getByRole("button", { name: /^B/ }).first().click();
+    await page.getByRole("button", { name: /nộp bài/i }).first().click();
+    await page.getByRole("button", { name: "Nộp bài" }).last().click();
+    // GUEST-4: khách (không có /bang-dieu-khien) phải thấy bảng "Xem lại bài làm"
+    // ngay trong runner + nút "Làm lại". Đề QA bật showAnswers nên review hiện.
+    await expect(page.getByText("Xem lại bài làm").first()).toBeVisible({ timeout: 20000 });
+    await expect(page.getByText(/Câu 1\./).first()).toBeVisible();
+    await expect(page.getByRole("button", { name: "Làm lại" })).toBeVisible();
+  });
 });
