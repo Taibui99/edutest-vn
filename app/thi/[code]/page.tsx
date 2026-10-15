@@ -10,8 +10,9 @@ import { isLegacyBrowser } from "@/lib/browser";
 import { isProctorMode, type ProctorMode } from "@/lib/integrity";
 import { effectiveMode, isStudentAccess } from "@/lib/access";
 import { startAttempt, studentActiveKey, guestActiveKey } from "@/lib/attempt";
-import { Trophy, ArrowLeft, UserRound, Clock, MonitorX } from "lucide-react";
+import { Trophy, ArrowLeft, UserRound, MonitorX } from "lucide-react";
 import { GuestJoin } from "./guest-join";
+import { ScheduleGate } from "./schedule-gate";
 
 const ExamTakingClientV2 = dynamic(() => import("./exam-taking-client-v2").then((m) => m.ExamTakingClientV2));
 
@@ -122,28 +123,13 @@ export default async function ThiPage({ params, searchParams }: { params: Promis
   // Preview cố ý giữ check ROLE (không theo mode): nó lộ đáp án (GĐ0) nên chỉ
   // tài khoản giáo viên thật được xem, kể cả khi học sinh bật chế độ GV.
   const isPreview = preview === "1" && session?.user?.role === "teacher";
-  const fmt = (d: Date) => d.toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" });
   if ((notStarted || expired) && !isPreview) {
     return (
-      <div className="min-h-screen grid place-items-center bg-[var(--surface-bg)] p-4">
-        <div className="max-w-md w-full rounded-2xl bg-white p-8 text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--warning-light)] text-[var(--warning)]"><Clock size={24} /></div>
-          {notStarted ? (
-            <>
-              <h1 className="text-xl font-bold">Chưa đến giờ mở đề</h1>
-              <p className="mt-2 text-sm text-[var(--text-muted)]">Đề thi sẽ mở lúc <span className="font-bold text-[var(--warning)]">{exam.openAt ? fmt(exam.openAt) : ""}</span></p>
-            </>
-          ) : (
-            <>
-              <h1 className="text-xl font-bold">Đề thi đã đóng</h1>
-              <p className="mt-2 text-sm text-[var(--text-muted)]">Đề thi đã đóng lúc <span className="font-bold text-[var(--warning)]">{exam.closeAt ? fmt(exam.closeAt) : ""}</span></p>
-            </>
-          )}
-          <Link href="/vao-thi" className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[var(--primary)] px-5 py-2.5 text-sm font-semibold text-white">
-            <ArrowLeft size={14}/> Nhập mã khác
-          </Link>
-        </div>
-      </div>
+      <ScheduleGate
+        openAt={exam.openAt ? exam.openAt.toISOString() : null}
+        closeAt={exam.closeAt ? exam.closeAt.toISOString() : null}
+        joinCode={exam.joinCode}
+      />
     );
   }
 

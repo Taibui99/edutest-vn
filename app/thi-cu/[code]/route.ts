@@ -142,7 +142,10 @@ async function handleGet(request: NextRequest, ctx: { params: Promise<{ code: st
 
   const now = new Date();
   if (exam.openAt && now < exam.openAt) {
-    return htmlResponse(messageView({ title: "Chưa đến giờ mở đề", text: `Đề sẽ mở lúc ${fmtVN(exam.openAt)}.`, pill: { label: "Chưa mở", cls: "warn" } }));
+    // Meta refresh: trang này không có JS nên đây là cách tới giờ mở mà không
+    // cần học sinh F5 thủ công. Giây = đúng tới giờ mở + 2s bù lệch đồng hồ.
+    const refreshSeconds = Math.max(5, Math.ceil((exam.openAt.getTime() - now.getTime()) / 1000) + 2);
+    return htmlResponse(messageView({ title: "Chưa đến giờ mở đề", text: `Đề sẽ mở lúc ${fmtVN(exam.openAt)}.`, pill: { label: "Chưa mở", cls: "warn" }, refresh: refreshSeconds }));
   }
   if (exam.closeAt && now > exam.closeAt) {
     return htmlResponse(messageView({ title: "Đề thi đã đóng", text: `Đề đã đóng lúc ${fmtVN(exam.closeAt)}.`, pill: { label: "Đã đóng", cls: "bad" } }));

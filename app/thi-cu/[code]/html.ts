@@ -100,16 +100,20 @@ export type LegacyQuestion = {
   order: number;
 };
 
-/** Trang thông báo chung (lỗi / hết lượt / đang làm bài khác...). */
-export function messageView(opts: { title: string; text: string; pill?: { label: string; cls: string }; action?: { href: string; label: string }; secondary?: { href: string; label: string } }): string {
+/** Trang thông báo chung (lỗi / hết lượt / đang làm bài khác...).
+ *  `refresh` (giây): thêm `<meta http-equiv="refresh">` để trang TỰ nạp lại.
+ *  Dùng cho trạng thái "chưa mở" — trang cũ không có JS nên meta refresh là
+ *  cách duy nhất tới giờ mở mà không cần học sinh F5. */
+export function messageView(opts: { title: string; text: string; pill?: { label: string; cls: string }; action?: { href: string; label: string }; secondary?: { href: string; label: string }; refresh?: number }): string {
   const body = `<div class="wrap"><div class="card center">
     ${opts.pill ? `<span class="pill ${opts.pill.cls}">${esc(opts.pill.label)}</span>` : ""}
     <h1>${esc(opts.title)}</h1>
     <p class="muted">${esc(opts.text)}</p>
+    ${opts.refresh ? `<p class="muted">Trang sẽ tự tải lại sau ${esc(opts.refresh)} giây.</p>` : ""}
     ${opts.action ? `<a class="btn" href="${esc(opts.action.href)}">${esc(opts.action.label)}</a>` : ""}
     ${opts.secondary ? `<a class="btn sec" href="${esc(opts.secondary.href)}">${esc(opts.secondary.label)}</a>` : ""}
   </div></div>`;
-  return shell(opts.title, body);
+  return shell(opts.title, body, opts.refresh ? `<meta http-equiv="refresh" content="${Math.max(1, Math.floor(opts.refresh))}">` : "");
 }
 
 /** Form nhập tên/lớp cho khách (máy iOS cũ). POST action=join. */
