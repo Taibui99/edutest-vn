@@ -1,4 +1,4 @@
-import { test, expect, request as pwRequest } from "@playwright/test";
+import { test, expect, request as pwRequest, type APIRequestContext } from "@playwright/test";
 import { STUDENT, TEACHER, login, startAttempt, BASE_URL } from "./helpers";
 
 /* EXAM-2 — nhân bản đề thi:
@@ -13,6 +13,11 @@ test.describe.configure({ mode: "serial" });
 let EXAM_ID = "";
 let ORIG_TITLE = "";
 const CREATED: string[] = [];
+
+/* Đăng nhập 1 lần dùng chung cho cả file — tránh đụng rate-limit của endpoint
+ * đăng nhập khi chạy nhiều spec liên tiếp. */
+let teacher: APIRequestContext;
+let student: APIRequestContext;
 
 async function contextFor(email?: string, password?: string) {
   const req = await pwRequest.newContext({ baseURL: BASE_URL });
@@ -36,6 +41,9 @@ type AnyQ = {
   order: number;
 };
 
+/** Escape chuỗi để nhét vào RegExp (tên đề có thể chứa ký tự đặc biệt). */
+const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
 /** Chỉ so phần NỘI DUNG câu hỏi (id phải khác nhau ở bản sao). */
 const shapeOf = (q: AnyQ) => ({
   type: q.type,
@@ -49,9 +57,14 @@ const shapeOf = (q: AnyQ) => ({
 });
 
 test.beforeAll(async () => {
-  const req = await contextFor(TEACHER.email, TEACHER.password);
+  teacher = await contextFor(TEACHER.email, TEACHER.password);
+  student = await contextFor(STUDENT.email, STUDENT.password);
 
-  const res = await req.post("/api/exams", {
+  // Xác nhận phiên GV thật sự hợp lệ trước khi làm gì (lỗi 401 sẽ lộ rõ tại đây).
+  const who = await teacher.get("/api/exams");
+  expect(who.status(), `đăng nhập giáo viên thất bại: ${await who.text()}`).toBe(200);
+
+  const res = await teacher.post("/api/exams", {
     data: {
       title: `QA-DUP-${Date.now()}`,
       subject: "Toán",
@@ -61,7 +74,7 @@ test.beforeAll(async () => {
       shuffleQuestions: true,
       shuffleAnswers: true,
       proctorMode: "light",
-      openAt: new Date(Date.now() + 86400000).toISOString(),
+      openAt: new Date(Date.now() - 3600000).toISOString(),
       closeAt: new Date(Date.now() + 172800000).toISOString(),
       questions: [
         {
@@ -99,33 +112,31 @@ test.beforeAll(async () => {
   CREATED.push(EXAM_ID);
 
   // Có sẵn 1 bài nộp để chứng minh bản sao KHÔNG mang bài nộp sang.
-  const detail = (await (await req.get(`/api/exams/${EXAM_ID}`)).json()).exam;
+  const detail = (await (await teacher.get(`/api/exams/${EXAM_ID}`)).json()).exam;
   const q = detail.questions as AnyQ[];
-  const stu = await contextFor(STUDENT.email, STUDENT.password);
-  const attemptId = await startAttempt(stu, EXAM_ID);
-  const sub = await stu.post("/api/submissions", {
+  const attemptId = await startAttempt(student, EXAM_ID);
+  const sub = await student.post("/api/submissions", {
     data: { examId: EXAM_ID, attemptId, answers: { [q[0].id]: "C", [q[1].id]: "hà nội" } },
   });
   expect(sub.status(), await sub.text()).toBe(200);
-  await stu.dispose();
-  await req.dispose();
 });
 
 test.afterAll(async () => {
-  if (CREATED.length === 0) return;
   try {
-    const req = await contextFor(TEACHER.email, TEACHER.password);
-    for (const id of CREATED) {
-      await req.fetch(`/api/exams/${id}`, { method: "DELETE" }).catch(() => {});
+    if (teacher && CREATED.length > 0) {
+      for (const id of CREATED) {
+        await teacher.fetch(`/api/exams/${id}`, { method: "DELETE" }).catch(() => {});
+      }
     }
-    await req.dispose();
   } catch {
     /* đề thí nghiệm sót thì chạy lại vẫn dọn được */
   }
+  await teacher?.dispose().catch(() => {});
+  await student?.dispose().catch(() => {});
 });
 
 test("E-01: bản sao có đủ câu hỏi + cài đặt, đặt lại mã, trạng thái nháp, bỏ lịch + bài nộp", async () => {
-  const req = await contextFor(TEACHER.email, TEACHER.password);
+  const req = teacher;
 
   const before = (await (await req.get(`/api/exams/${EXAM_ID}`)).json()).exam;
   const res = await req.post(`/api/exams/${EXAM_ID}/duplicate`);
@@ -160,35 +171,46 @@ test("E-01: bản sao có đủ câu hỏi + cài đặt, đặt lại mã, tr�
   const origQs = (await (await req.get(`/api/exams/${EXAM_ID}`)).json()).exam.questions as AnyQ[];
   expect(copyQs.map(shapeOf)).toEqual(origQs.map(shapeOf));
   expect(copyQs.map((x) => x.id)).not.toEqual(origQs.map((x) => x.id));
-
-  await req.dispose();
 });
 
 test("E-02: đề gốc không bị thay đổi sau khi nhân bản", async () => {
-  const req = await contextFor(TEACHER.email, TEACHER.password);
+  const req = teacher;
   const orig = (await (await req.get(`/api/exams/${EXAM_ID}`)).json()).exam;
 
   expect(orig.title).toBe(ORIG_TITLE);
   expect(orig.status).toBe("published");
   expect(orig.openAt).not.toBeNull();
   expect(orig.closeAt).not.toBeNull();
-  expect(orig._count.submissions).toBe(1);
   expect((orig.questions as AnyQ[])).toHaveLength(3);
 
-  await req.dispose();
+  // GET /api/exams/[id] không kèm _count → lấy số bài nộp từ danh sách đề.
+  const list = (await (await req.get("/api/exams")).json()).exams as { id: string; _count?: { submissions: number } }[];
+  const row = list.find((e) => e.id === EXAM_ID);
+  expect(row?._count?.submissions, "bài nộp của đề gốc phải còn nguyên").toBe(1);
 });
 
 test("E-03: bấm nút Nhân bản → mở thẳng đề mới (bản nháp, 0 bài nộp)", async ({ page }) => {
+  const dialogs: string[] = [];
+  page.on("dialog", async (d) => { dialogs.push(d.message()); await d.dismiss(); });
+
   await login(page, TEACHER.email, TEACHER.password);
   await page.goto(`/bang-dieu-khien/de-thi/${EXAM_ID}`);
+  const dupBtn = page.getByRole("button", { name: /nhân bản/i });
+  await expect(dupBtn).toBeVisible({ timeout: 20000 });
 
-  await page.getByRole("button", { name: /nhân bản/i }).click();
-  await page.waitForURL(/\/bang-dieu-khien\/de-thi\/[A-Za-z0-9_-]+$/, { timeout: 30000 });
-  const newId = new URL(page.url()).pathname.split("/").filter(Boolean).pop()!;
+  const [resp] = await Promise.all([
+    page.waitForResponse((r) => r.url().includes("/duplicate") && r.request().method() === "POST", { timeout: 30000 }),
+    dupBtn.click(),
+  ]);
+  expect(resp.status(), `POST duplicate lỗi: ${await resp.text()}${dialogs.length ? ` | dialog: ${dialogs.join("; ")}` : ""}`).toBe(201);
+
+  const newId = (await resp.json()).exam.id as string;
   CREATED.push(newId);
+  expect(newId, "phải tạo đề MỚI chứ không phải đề gốc").not.toBe(EXAM_ID);
 
-  expect(newId, "phải mở đề MỚI chứ không phải đề gốc").not.toBe(EXAM_ID);
-  await expect(page.getByRole("heading", { name: new RegExp(`${ORIG_TITLE.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} \\(bản sao\\)`) })).toBeVisible();
+  // Next là điều hướng phía client → chờ URL ĐỔI sang đề mới.
+  await page.waitForURL((url) => url.pathname.endsWith(`/de-thi/${newId}`), { timeout: 30000 });
+  await expect(page.getByRole("heading", { name: new RegExp(`${esc(ORIG_TITLE)} \\(bản sao\\)`) })).toBeVisible();
   await expect(page.getByText("0 bài nộp")).toBeVisible();
   await expect(page.getByText("Đã đóng")).toBeVisible();
 });
@@ -198,11 +220,6 @@ test("E-04: chỉ chủ đề mới nhân bản được (khách 401, học sinh
   expect((await anon.post(`/api/exams/${EXAM_ID}/duplicate`)).status(), "khách phải 401").toBe(401);
   await anon.dispose();
 
-  const stu = await contextFor(STUDENT.email, STUDENT.password);
-  expect((await stu.post(`/api/exams/${EXAM_ID}/duplicate`)).status(), "học sinh phải 403").toBe(403);
-  await stu.dispose();
-
-  const req = await contextFor(TEACHER.email, TEACHER.password);
-  expect((await req.post("/api/exams/khong-ton-tai/duplicate")).status(), "id lạ phải 404").toBe(404);
-  await req.dispose();
+  expect((await student.post(`/api/exams/${EXAM_ID}/duplicate`)).status(), "học sinh phải 403").toBe(403);
+  expect((await teacher.post("/api/exams/khong-ton-tai/duplicate")).status(), "id lạ phải 404").toBe(404);
 });
