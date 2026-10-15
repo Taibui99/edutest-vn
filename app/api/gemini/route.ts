@@ -24,7 +24,9 @@ import { extractDocxText, reconcileDocKey, type DocxKey } from "@/lib/exam-docx"
 import { segmentQuestions, formatBlocks } from "@/lib/exam-segment";
 import { groqChatJson } from "@/lib/groq-import";
 
-const geminiModel = process.env.EXAM_IMPORT_MODEL || "gemini-3.5-flash-lite";
+/* Đồng bộ DEFAULT_MODEL ở lib/ai.ts: flash thường (free tier) thay vì flash-lite.
+ * Đổi chi phí/tự chọn model thì set EXAM_IMPORT_MODEL trên Vercel. */
+const geminiModel = process.env.EXAM_IMPORT_MODEL || "gemini-3.5-flash";
 /* Đồng bộ với MAX_UPLOAD_BYTES ở lib/import-exam.ts: Vercel chặn body trên
    ~4.5MB trước khi function chạy nên mức này chỉ là phòng thủ lớp hai. */
 const MAX_FILE_BYTES = 4 * 1024 * 1024;

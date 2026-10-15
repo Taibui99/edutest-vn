@@ -1,12 +1,14 @@
-export const DEFAULT_MODEL = "gemini-3.5-flash-lite";
+/* Đọc đề đang chạy flash-LITE (bậc rẻ nhất) → chất lượng thấp và "càng ngày
+ * càng dốt" vì Google cứ khai tử model lite. Đổi sang flash thường (vẫn free
+ * tier) làm mặc định; lite chỉ còn là LƯỚI AN TOÀN trong chuỗi nếu flash thường
+ * không khả dụng với key này. Muốn đóng băng chi phí thì set EXAM_IMPORT_MODEL
+ * = "gemini-3.5-flash-lite" trên Vercel. */
+export const DEFAULT_MODEL = "gemini-3.5-flash";
 /* Google đang khai tử dần dòng lite cũ: 2.0-flash-lite chết hẳn, 2.5-flash-lite
  * báo "no longer available to new users" với key này (log prod 2026-10-11).
  * Chỉ giữ model Google còn khuyến nghị; khi cả chuỗi fail sẽ lọt lỗi THẬT
  * (quota/quá tải) ra mapError thay vì 404 đánh lạc hướng. */
-/* Ứng viên duy nhất có cơ sở: gemini-3.1-flash-lite đang chạy tốt qua
- * Interactions API ở agent ai-coach — sẽ kiểm chứng 1 lần qua generateContent,
- * 404 thì gỡ. */
-export const FALLBACK_MODELS: string[] = ["gemini-3.1-flash-lite"];
+export const FALLBACK_MODELS: string[] = ["gemini-3.5-flash-lite", "gemini-3.1-flash-lite"];
 
 export function modelChain(): string[] {
   const configured = process.env.EXAM_IMPORT_MODEL?.trim();

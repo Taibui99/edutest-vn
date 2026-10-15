@@ -182,6 +182,9 @@ export function ImportExamModal({
   const [error, setError] = useState("");
   const [payload, setPayload] = useState<ImportedPayload | null>(null);
   const [reviewed, setReviewed] = useState<ReviewedQuestion[]>([]);
+  // Engine thực tế đã đọc đề (Gemini hay Groq dự phòng) — hiện cho GV biết vì
+  // sao có lần đọc kém hơn, thay vì "càng ngày càng dốt" mà không rõ nguyên nhân.
+  const [engine, setEngine] = useState<{ provider?: string; model?: string } | null>(null);
 
   const reset = () => {
     setView("select");
@@ -193,6 +196,7 @@ export function ImportExamModal({
     setError("");
     setPayload(null);
     setReviewed([]);
+    setEngine(null);
   };
   const close = () => {
     reset();
@@ -271,7 +275,7 @@ export function ImportExamModal({
         customNote: customNote.trim() || undefined,
         withExplanation: false,
       };
-      const { result } = await importExamFile(
+      const { result, meta } = await importExamFile(
         next,
         (s, p) => {
           setActiveStage(s);
@@ -279,6 +283,10 @@ export function ImportExamModal({
         },
         { mode, options, text },
       );
+      setEngine({
+        provider: typeof meta?.provider === "string" ? meta.provider : undefined,
+        model: typeof meta?.model === "string" ? meta.model : undefined,
+      });
       const parsed = parseImportResult(result);
       const items = (parsed.questions ?? []).map(toReviewItem);
       if (items.length === 0) throw new Error("AI không tạo được câu hỏi nào. Thử thêm nội dung hoặc đổi yêu cầu.");
@@ -595,6 +603,16 @@ export function ImportExamModal({
                     </p>
                   </div>
                 </div>
+
+                {engine?.provider || engine?.model ? (
+                  <p className="text-xs text-[var(--text-muted)]">
+                    Đọc bởi:{" "}
+                    <span className={engine?.provider === "groq" ? "font-bold text-[var(--warning)]" : "font-semibold text-[var(--text-primary)]"}>
+                      {engine?.provider === "groq" ? "Groq dự phòng (Gemini đang lỗi)" : "Gemini"}
+                    </span>
+                    {engine?.model ? ` · ${engine.model}` : ""}
+                  </p>
+                ) : null}
 
                 {stats.needsReview > 0 ? (
                   <div className="flex items-start gap-2.5 rounded-2xl border border-[var(--warning-light)] bg-[var(--warning-light)] px-4 py-3 text-sm text-[var(--warning)]">

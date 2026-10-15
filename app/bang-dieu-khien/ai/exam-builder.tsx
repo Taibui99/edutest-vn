@@ -60,6 +60,7 @@ export function ExamBuilder({ onClose }: { onClose: () => void }) {
   const [stage, setStage] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<Done | null>(null);
+  const [engine, setEngine] = useState<{ provider?: string; model?: string } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const toggleType = (v: string) =>
@@ -68,6 +69,7 @@ export function ExamBuilder({ onClose }: { onClose: () => void }) {
   const start = async () => {
     setError(null);
     setDone(null);
+    setEngine(null);
     // Kiểm tra đầu vào giống modal import (tránh gọi API rồi mới báo lỗi chung chung).
     const minText = mode === "generate" ? 80 : 40;
     if (!file && text.trim().length < minText) {
@@ -306,6 +308,12 @@ export function ExamBuilder({ onClose }: { onClose: () => void }) {
                 <> · <strong className="text-[var(--warning)]">{done.needsReview} câu AI chưa chắc</strong>, nhớ duyệt trước khi xuất bản</>
               )}
             </p>
+            {engine?.provider || engine?.model ? (
+              <p className="mt-1.5 text-[12px] text-[var(--text-muted)]">
+                Đọc bởi: {engine?.provider === "groq" ? <strong className="text-[var(--warning)]">Groq dự phòng (Gemini đang lỗi)</strong> : <strong className="text-[var(--text-primary)]">Gemini</strong>}
+                {engine?.model ? ` · ${engine.model}` : ""}
+              </p>
+            ) : null}
             <div className="mt-3 flex gap-2">
               <Link
                 href={`/bang-dieu-khien/tao-de-thi?edit=${done.examId}`}
