@@ -93,6 +93,10 @@ try{
       root.classList.add("a6-reveal");
       document.addEventListener("animationend",function(e){ if(e.animationName==="a6-pl-page-in"){root.classList.remove("a6-reveal");} });
       setTimeout(function(){root.classList.remove("a6-reveal");}, 1300);
+      /* Gỡ hẳn overlay khỏi DOM sau khi bùm xong (650ms). Trước đây là component
+         React tự unmount; giờ markup là HTML thô nên phải tự dọn — để lại một
+         lớp position:fixed z-9999 phủ toàn trang là mối nguy chặn click/cuộn. */
+      setTimeout(function(){try{if(el&&el.parentNode){el.parentNode.removeChild(el);}}catch(_){}}, 760);
     }
     window.addEventListener("load",function(){ready=true;});
     try{document.fonts&&document.fonts.ready&&document.fonts.ready.then(function(){ready=true;})["catch"](function(){});}catch(e){}

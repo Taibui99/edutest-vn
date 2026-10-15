@@ -314,33 +314,26 @@ const browser = await chromium.launch();
   await ctx.close();
 }
 
-// ── 4. Failsafe: JS chết thì overlay phải tự ẩn, không kẹt màn hình ────
-// Đây là kịch bản mà <noscript> không cứu được: JS tải được nhưng hỏng khi
-// hydrate. Chặn toàn bộ script để mô phỏng.
+// ── 4. JS tắt hẳn → <noscript> ẩn overlay, không kẹt màn hình ────────
+// LƯU Ý (đổi sau bug desktop): logic preloader giờ nằm ở <script> INLINE trong
+// <head>, KHÔNG phải file bundle — nên không thể "giết JS" bằng cách chặn
+// request `resourceType==="script"` (inline vẫn chạy, node tự gỡ sau bùm → test
+// cũ báo sai "absent"). Kịch bản đúng để thử là TẮT HẲN JavaScript: khi đó
+// <noscript> trong layout phải ẩn overlay. Dùng locator (không cần page JS).
 {
-  const ctx = await browser.newContext({ viewport: { width: 1366, height: 768 } });
+  const ctx = await browser.newContext({
+    viewport: { width: 1366, height: 768 },
+    javaScriptEnabled: false,
+  });
   const page = await ctx.newPage();
-  await page.route("**/*", (r) => (r.request().resourceType() === "script" ? r.abort() : r.continue()));
-
-  await page.goto(BASE, { waitUntil: "domcontentloaded" });
-  const before = await page.evaluate(() => {
-    const el = document.querySelector("#a6-preloader");
-    return el ? getComputedStyle(el).visibility : "absent";
-  });
-  check("PRE-1 · JS chết → overlay vẫn che trang lúc đầu", before === "visible", `visibility=${before}`);
-
-  // Chờ qua mốc 6s của a6-pl-failsafe.
-  await page.waitForTimeout(6600);
-  const after = await page.evaluate(() => {
-    const el = document.querySelector("#a6-preloader");
-    if (!el) return "absent";
-    const s = getComputedStyle(el);
-    return { opacity: Number(s.opacity), pointerEvents: s.pointerEvents };
-  });
+  await page.goto(BASE, { waitUntil: "load" });
+  const el = page.locator("#a6-preloader");
+  const present = (await el.count()) === 1;
+  const hidden = present ? await el.isHidden() : false;
   check(
-    "PRE-1 · JS chết → failsafe tự ẩn sau 6s",
-    after !== "absent" && after.opacity === 0 && after.pointerEvents === "none",
-    JSON.stringify(after),
+    "PRE-1 · JS tắt → <noscript> ẩn overlay (không kẹt)",
+    present && hidden,
+    `present=${present} hidden=${hidden}`,
   );
   await ctx.close();
 }
@@ -386,6 +379,19 @@ const browser = await chromium.launch();
     }),
   );
   check("PRE-2 · đã xóa hết CSS lớp phủ bung tròn", !coverLeft);
+
+  // Lưới an toàn cuối: nếu script inline ném lỗi (không gắn data-burst) thì
+  // overlay vẫn phải tự ẩn sau 6s nhờ animation CSS a6-pl-failsafe.
+  const failsafeRule = await page.evaluate(() =>
+    [...document.styleSheets].some((sheet) => {
+      try {
+        return [...sheet.cssRules].some((r) => r.cssText?.includes("a6-pl-failsafe"));
+      } catch {
+        return false;
+      }
+    }),
+  );
+  check("PRE-1 · có CSS failsafe 6s cho overlay preloader", failsafeRule);
 
   // Trong khi đó rules trượt phải tồn tại.
   const slideRules = await page.evaluate(() =>
