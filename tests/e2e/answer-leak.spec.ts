@@ -41,11 +41,11 @@ test.beforeAll(async () => {
       showScoreImmediately: true,
       questions: [
         // mcq: đáp án đúng là "B" -> payload không được có khoá `answer`.
-        { type: "mcq", question: "Câu MCQ để kiểm tra rò đáp án", options: ["sai 1", "đúng 2", "sai 3", "sai 4"], answer: "B", points: 1 },
+        { type: "mcq", question: "Câu MCQ để kiểm tra rò đáp án", options: ["sai 1", "đúng 2", "sai 3", "sai 4"], answer: "B", points: 4 },
         // true_false: client cần `statements[].text` để vẽ, KHÔNG được có `.answer`.
-        { type: "true_false", question: "Câu Đúng/Sai kiểm tra rò đáp án", grading: { statements: [{ text: STATEMENT_TEXT, answer: true }, { text: "Mệnh đề phụ", answer: false }] }, points: 1 },
+        { type: "true_false", question: "Câu Đúng/Sai kiểm tra rò đáp án", grading: { statements: [{ text: STATEMENT_TEXT, answer: true }, { text: "Mệnh đề phụ", answer: false }] }, points: 3 },
         // short_answer: `acceptedAnswers` phải bị cắt hoàn toàn.
-        { type: "short_answer", question: "Câu trả lời ngắn kiểm tra rò đáp án", grading: { acceptedAnswers: [LEAK_MARKER] }, points: 1 },
+        { type: "short_answer", question: "Câu trả lời ngắn kiểm tra rò đáp án", grading: { acceptedAnswers: [LEAK_MARKER] }, points: 3 },
       ],
     },
   });

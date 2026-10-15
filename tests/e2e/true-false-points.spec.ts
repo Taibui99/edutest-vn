@@ -2,7 +2,8 @@ import { test, expect, request as pwRequest } from "@playwright/test";
 import { TEACHER, BASE_URL } from "./helpers";
 
 /* TF-1 — điểm riêng từng mệnh đề Đúng/Sai: học sinh làm đúng 1/2 mệnh đề
- * (mỗi mệnh đề 1đ) phải được 5/10 điểm, không còn 0 như "đúng hết mới tính". */
+ * (mỗi mệnh đề 5đ/10đ đề) phải được 5/10 điểm, không còn 0 như "đúng hết
+ * mới tính". Đề đặt đúng 10đ để điểm ra theo đúng thang 0–10. */
 
 test.describe.configure({ mode: "serial" });
 
@@ -29,11 +30,11 @@ test.beforeAll(async () => {
           question: "Đúng hay sai?",
           options: [],
           answer: "",
-          points: 2,
+          points: 10,
           grading: {
             statements: [
-              { text: "Mệnh đề MỘT đúng", answer: true, points: 1 },
-              { text: "Mệnh đề HAI sai", answer: false, points: 1 },
+              { text: "Mệnh đề MỘT đúng", answer: true, points: 5 },
+              { text: "Mệnh đề HAI sai", answer: false, points: 5 },
             ],
           },
         },
@@ -73,6 +74,6 @@ test("TF-1: đúng 1/2 mệnh đề → 5/10 điểm + review hiện điểm t�
   await expect(page.getByText("Xem lại bài làm").first()).toBeVisible({ timeout: 20000 });
   // Điểm tổng đúng nửa → 5/10.
   await expect(page.getByText(/5\s*\/\s*10/).first()).toBeVisible({ timeout: 10000 });
-  // Và điểm từng mệnh đề được hiển thị.
-  await expect(page.getByText(/Điểm câu này:\s*1\/2đ/).first()).toBeVisible({ timeout: 10000 });
+  // Và điểm từng mệnh đề được hiển thị (5đ của 10đ câu).
+  await expect(page.getByText(/Điểm câu này:\s*5\/10đ/).first()).toBeVisible({ timeout: 10000 });
 });
