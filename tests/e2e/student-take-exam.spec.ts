@@ -75,6 +75,9 @@ test.describe("STUDENT — Làm bài thi", () => {
   });
 
   test("S-05: Anti-cheat — blur 1 lần → toast cảnh báo (sau ân hạn)", async ({ page }) => {
+    // Test này cố tình chờ HẾT ân hạn 30s rồi chờ dư tới 40s để toast hiện →
+    // tổng thời lượng ~70s, vượt mặc định 60s. Nới riêng cho ca này.
+    test.setTimeout(120000);
     await login(page, STUDENT.email, STUDENT.password);
     await page.goto(`/thi/${CODE}`);
     await expect(page.getByText("Câu 1/2").first()).toBeVisible({ timeout: 15000 });
