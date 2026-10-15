@@ -64,36 +64,43 @@ export default async function RootLayout({
         {/* PRE-1: logic preloader chạy INLINE tại đây (không đặt trong component
             React). Bug iPhone: vòng lặp rAF trong useEffect chỉ chạy sau khi
             hydrate — iOS Safari hoãn rAF lúc đang nạp, và máy/mạng chậm thì
-            hydrate rất muộn → overlay đứng ở "0%" rồi bị failsafe CSS 6s dọn đi.
+            hydrate rất muộn → overlay đứng ở "0%" rồi bị failsafe CSS dọn đi.
             Ở đây bám `DOMContentLoaded` (nổ ngay sau khi HTML xong, không đợi
-            bundle) và dùng `setInterval` (không bị iOS hoãn như rAF). */}
+            bundle). Vòng chạy bằng rAF (mượt 60fps) + WATCHDOG setInterval 400ms
+            (vẫn kết thúc dù rAF bị iOS hoãn). Tối thiểu MIN=5s, trần CAP≈5.6s. */}
         <script
           dangerouslySetInnerHTML={{
             __html: `(function(){
 try{
-  var MIN=1100, CAP=3500, RAMP=900, MAX=88;
-  var MSG=[[0,"Đang khởi tạo A6Class…"],[38,"Đang tải giao diện và chữ…"],[78,"Đang hoàn thiện…"],[100,"Sẵn sàng!"]];
+  var MIN=5000, CAP=5600, RAMP=4300, MAX=92;
+  var MSG=[[0,"Đang khởi tạo A6Class…"],[45,"Đang tải giao diện và chữ…"],[80,"Đang hoàn thiện…"],[100,"Sẵn sàng!"]];
   var reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   var OBS_AFTER = 0;
+  function nodes(el){
+    if(!el.__n){el.__n={num:el.querySelector("[data-a6-pct]"),liquid:el.querySelector(".a6-pl-liquid"),status:el.querySelector(".a6-pl-status")};}
+    return el.__n;
+  }
+  /* Cột nước dùng transform translateY (GPU, KHÔNG layout) thay vì height
+     — sửa jank: đổi height mỗi khung hình bắt trình duyệt tính lại layout toàn
+     overlay. Node được cache để khỏi querySelector mỗi khung. */
   function render(el,v){
-    v=Math.round(v);
-    var num=el.querySelector("[data-a6-pct]");
-    var liquid=el.querySelector(".a6-pl-liquid");
-    var status=el.querySelector(".a6-pl-status");
-    if(num){num.textContent=v;}
-    if(liquid){liquid.style.height=v+"%";}
-    if(status){var t=MSG[0][1];for(var i=0;i<MSG.length;i++){if(v>=MSG[i][0]){t=MSG[i][1];}}status.textContent=t;}
+    v=Math.round(v); if(v<0){v=0;} if(v>100){v=100;}
+    var n=nodes(el);
+    if(n.num){n.num.textContent=v;}
+    if(n.liquid){n.liquid.style.transform="translateY("+(100-v)+"%)";}
+    if(n.status){var t=MSG[0][1];for(var i=0;i<MSG.length;i++){if(v>=MSG[i][0]){t=MSG[i][1];}}n.status.textContent=t;}
   }
   function run(el){
     if(el.__a6){return;}
     el.__a6=1;
     if(reduced){el.style.display="none";return;}
     var ready=document.readyState==="complete";
-    var settled=false, timer=0;
+    var settled=false, timer=0, raf=0;
     function finish(){
       if(settled){return;}
       settled=true;
       if(timer){clearInterval(timer);}
+      if(raf){cancelAnimationFrame(raf);}
       render(el,100);
       el.setAttribute("data-burst","true");
       var root=document.documentElement;
@@ -108,14 +115,26 @@ try{
     window.addEventListener("load",function(){ready=true;});
     try{document.fonts&&document.fonts.ready&&document.fonts.ready.then(function(){ready=true;})["catch"](function(){});}catch(e){}
     window.setTimeout(function(){ready=true;}, CAP);
+    /* Vòng mượt: rAF cho 60fps (thay setInterval 50ms = 20fps thấy "khựng"),
+       nhưng kèm WATCHDOG setInterval 400ms để vẫn kết thúc nếu rAF bị hoãn/treo
+       (tab nền, máy yếu) — vì iOS Safari có thể hoãn rAF lúc nạp. */
     var t0=performance.now();
+    function step(now){
+      if(settled){return;}
+      var elapsed=now-t0;
+      if(ready&&elapsed>=MIN){finish();return;}
+      var p=Math.min(elapsed/RAMP,1);p=1-Math.pow(1-p,3);
+      render(el,p*MAX);
+      raf=window.requestAnimationFrame(step);
+    }
+    if(window.requestAnimationFrame){raf=window.requestAnimationFrame(step);}
     timer=window.setInterval(function(){
       if(settled){window.clearInterval(timer);return;}
       var elapsed=performance.now()-t0;
-      if(ready&&elapsed>=MIN){window.clearInterval(timer);finish();return;}
+      if(ready&&elapsed>=MIN){finish();return;}
       var p=Math.min(elapsed/RAMP,1);p=1-Math.pow(1-p,3);
       render(el,p*MAX);
-    },50);
+    },400);
   }
   /* Bug "vòng lặp nhập tên" (khách trên iPhone): sau khi khách bấm "Bắt đầu làm
      bài", client gọi router.refresh() (soft navigation). React chèn LẠI markup

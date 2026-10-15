@@ -8,7 +8,7 @@
  *  - Logic đếm %/bùm nằm trong `<script>` inline ở `layout.tsx` và PHẢI chạy
  *    trước/độc lập với hydration (iOS Safari hoãn `requestAnimationFrame` lúc
  *    nạp + máy/mạng chậm làm hydrate muộn → nếu chờ React thì overlay đứng ở
- *    "0%" rồi bị failsafe CSS 6s dọn đi, nhìn như "loading đứng").
+ *    "0%" rồi bị failsafe CSS 8s dọn đi, nhìn như "loading đứng").
  *  - Nhưng chính vì script ghi vào DOM *trước* khi React hydrate, nếu để React
  *    quản lý cây này thì nó thấy lệch với HTML server (số % đã nhảy, chiều cao
  *    cột nước đã đổi) → **React thay luôn cả cây DOM**, khiến mọi tham chiếu

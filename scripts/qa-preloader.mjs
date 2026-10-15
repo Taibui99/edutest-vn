@@ -72,7 +72,7 @@ const browser = await chromium.launch();
 
   await page.screenshot({ path: `${SHOTS}/01-preloader.png` }).catch(() => {});
 
-  await page.waitForSelector("#a6-preloader", { state: "detached", timeout: 8000 });
+  await page.waitForSelector("#a6-preloader", { state: "detached", timeout: 12000 });
   check("PRE-1 · tự gỡ khỏi DOM sau khi bùm", true);
 
   // Không còn cờ sessionStorage: preloader phải hiện MỌI lần tải trang.
@@ -121,7 +121,7 @@ const browser = await chromium.launch();
   page.on("pageerror", (e) => errors.push(String(e)));
 
   await page.goto(BASE, { waitUntil: "load" });
-  await page.waitForSelector("#a6-preloader", { state: "detached", timeout: 8000 });
+  await page.waitForSelector("#a6-preloader", { state: "detached", timeout: 12000 });
 
   // 2a. landing → /dang-ky (khác khung): phải CẮT CẢNH, không trượt.
   const link = page.locator('a[href="/dang-ky"]').first();
@@ -343,7 +343,7 @@ const browser = await chromium.launch();
   const ctx = await browser.newContext({ viewport: { width: 1366, height: 768 } });
   const page = await ctx.newPage();
   await page.goto(BASE, { waitUntil: "load" });
-  await page.waitForSelector("#a6-preloader", { state: "detached", timeout: 8000 });
+  await page.waitForSelector("#a6-preloader", { state: "detached", timeout: 12000 });
 
   // Mã thi không hợp lệ vẫn đủ để kiểm tra logic loại trang.
   await page.goto(`${BASE}/thi/zzzz`, { waitUntil: "load" });
@@ -381,7 +381,7 @@ const browser = await chromium.launch();
   check("PRE-2 · đã xóa hết CSS lớp phủ bung tròn", !coverLeft);
 
   // Lưới an toàn cuối: nếu script inline ném lỗi (không gắn data-burst) thì
-  // overlay vẫn phải tự ẩn sau 6s nhờ animation CSS a6-pl-failsafe.
+  // overlay vẫn phải tự ẩn sau 8s nhờ animation CSS a6-pl-failsafe.
   const failsafeRule = await page.evaluate(() =>
     [...document.styleSheets].some((sheet) => {
       try {
@@ -391,7 +391,7 @@ const browser = await chromium.launch();
       }
     }),
   );
-  check("PRE-1 · có CSS failsafe 6s cho overlay preloader", failsafeRule);
+  check("PRE-1 · có CSS failsafe cho overlay preloader", failsafeRule);
 
   // Trong khi đó rules trượt phải tồn tại.
   const slideRules = await page.evaluate(() =>

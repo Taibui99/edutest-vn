@@ -10,7 +10,7 @@ export async function Header() {
   const session = await auth();
 
   return (
-    <header className="sticky top-0 z-50 border-b border-[var(--surface-border)] bg-[var(--surface-card)]/85 backdrop-blur-xl">
+    <header className="sticky top-0 z-50 border-b border-[var(--surface-border)] bg-[var(--surface-card)]/90 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-5">
         <Logo size="sm" href={session?.user ? "/bang-dieu-khien" : "/"} />
 

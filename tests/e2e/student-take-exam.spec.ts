@@ -71,7 +71,7 @@ test.describe("STUDENT — Làm bài thi", () => {
     // router.refresh() tái tạo preloader (HTML thô) NHƯNG script inline không
     // chạy lại → overlay mới đứng ở 0% che kín màn hình. Phải KHÔNG còn overlay
     // hiện (script tự ẩn mọi preloader bị tái tạo sau khi trang tải).
-    await expect(page.locator("#a6-preloader")).toBeHidden({ timeout: 8000 });
+    await expect(page.locator("#a6-preloader")).toBeHidden({ timeout: 12000 });
   });
 
   test("S-05: Anti-cheat — blur 1 lần → toast cảnh báo (sau ân hạn)", async ({ page }) => {

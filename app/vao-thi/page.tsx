@@ -30,7 +30,7 @@ export default function VaoThiPage() {
 
   return (
     <div className="min-h-screen bg-[var(--surface-bg)]">
-      <header className="border-b border-[var(--surface-border)] bg-[var(--surface-card)]/85 backdrop-blur-xl">
+      <header className="border-b border-[var(--surface-border)] bg-[var(--surface-card)]/90 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <Logo size="sm" href="/" />
           <div className="flex items-center gap-2">
