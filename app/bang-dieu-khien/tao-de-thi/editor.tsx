@@ -151,7 +151,16 @@ export function TaoDeThiEditor({ editId, initialExam }: { editId: string | null;
     const m = initialExam?.proctorMode ?? "";
     return (PROCTOR_MODES as readonly string[]).includes(m) ? (m as ProctorMode) : "off";
   });
-  const toInput = (iso: string | null) => (iso ? iso.slice(0, 16) : "");
+  // ISO (UTC) -> giá trị `datetime-local` theo GIỜ ĐỊA PHƯƠNG của máy.
+  // Trước đây cắt thẳng `iso.slice(0,16)` nên ô nhập hiện giờ UTC
+  // (vd 07:25 VN -> "00:25" = 12:25 SA). Editor là client-only (ssr:false).
+  const toInput = (iso: string | null) => {
+    if (!iso) return "";
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return "";
+    const p = (n: number) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+  };
   const [openAt, setOpenAt] = useState(toInput(initialExam?.openAt ?? null));
   const [closeAt, setCloseAt] = useState(toInput(initialExam?.closeAt ?? null));
   const [questions, setQuestions] = useState<Question[]>(() => (initialExam?.questions.length ? initialExam.questions.map(dbToQuestion) : [blankQuestion()]));
