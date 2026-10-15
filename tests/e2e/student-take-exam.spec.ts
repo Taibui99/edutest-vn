@@ -81,8 +81,10 @@ test.describe("STUDENT — Làm bài thi", () => {
     const firstTick = (await timer.textContent()) ?? "";
     await expect(timer).not.toHaveText(firstTick, { timeout: 8000 });
     await page.evaluate(() => window.dispatchEvent(new Event("blur")));
-    // Ân hạn 10s cho rời trang bị động: toast chỉ hiện khi vẫn đi sau 10s.
-    await expect(page.getByText(/phát hiện rời khỏi bài thi/i).first()).toBeVisible({ timeout: 25000 });
+    // Ân hạn 30s cho rời trang bị động (nới cho iPhone tự khoá màn hình): toast
+    // chỉ hiện khi vẫn đi sau 30s → chờ dư 40s. Việc chạm ngưỡng KHÔNG tự nộp
+    // nữa (IOS-1a), nên bên dưới test nộp thủ công để nhả activeKey.
+    await expect(page.getByText(/phát hiện rời khỏi bài thi/i).first()).toBeVisible({ timeout: 40000 });
     // Nộp bài để giải phóng activeKey — attempt đang mở (chưa nộp) sẽ chặn lần
     // thi sau: project kia chạy cùng tài khoản, hoặc lần chạy kế tiếp.
     await page.getByRole("button", { name: /nộp bài/i }).first().click();
