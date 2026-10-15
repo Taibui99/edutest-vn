@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { UserRound, School } from "lucide-react";
+import { TransitionOverlay } from "@/app/components/transition-overlay";
 
 /* GUEST-3b — Hybrid: server-renderable form (action/method) + JS enhancement.
  * - Có `action="/api/guest-attempts" method="post"` → chạy được khi JS tắt/iOS cũ.
@@ -76,7 +77,8 @@ export function GuestJoin({
 
   return (
     <div className="min-h-screen bg-[var(--surface-bg)] flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl border border-[var(--gray-200)] p-6 sm:p-8 max-w-md w-full shadow-sm">
+      <TransitionOverlay show={loading} label="Đang vào phòng thi…" />
+      <div className="animate-fade-in bg-white rounded-2xl border border-[var(--gray-200)] p-6 sm:p-8 max-w-md w-full shadow-sm">
         <div className="w-12 h-12 rounded-2xl bg-[var(--primary-light)] text-[var(--primary)] flex items-center justify-center mb-4">
           <UserRound size={22} />
         </div>

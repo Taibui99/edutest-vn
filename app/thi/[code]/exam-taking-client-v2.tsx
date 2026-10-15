@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AlertTriangle, ArrowLeft, ArrowRight, BookOpen, CheckCircle2, ChevronDown, ChevronUp, Clock, Eye, Flag, Hourglass, Menu, MinusCircle, RotateCcw, Send, TimerOff, Trophy, X, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/components/ui/toast";
+import { TransitionOverlay } from "@/app/components/transition-overlay";
 import { cn } from "@/lib/cn";
 import { MAX_VIOLATIONS, resolveProctorMode, type ProctorEventType, type ProctorMode } from "@/lib/integrity";
 
@@ -213,6 +215,7 @@ function GuestReview({ items }: { items: ReviewItem[] }) {
 
 export function ExamTakingClientV2({ exam, attempt, preview = false, backHref }: { exam: Exam; attempt?: Attempt; preview?: boolean; backHref: string }) {
   const router = useRouter();
+  const { toast } = useToast();
   // Đồng hồ khởi động từ số giây SERVER tính lúc render — không tự suy ra từ
   // `durationMinutes` nữa. Các lần đồng bộ sau lấy từ `/api/attempts/[id]`.
   const [remaining, setRemaining] = useState(() => attempt?.remainingSeconds ?? exam.durationMinutes * 60);
@@ -225,6 +228,7 @@ export function ExamTakingClientV2({ exam, attempt, preview = false, backHref }:
   const [lastSaved, setLastSaved] = useState<number | null>(null);
   const [current, setCurrent] = useState(0);
   const [submitting, setSubmitting] = useState(false);
+  const [retrying, setRetrying] = useState(false);
   const [result, setResult] = useState<SubmissionResult | null>(null);
   const [showConfirm, setShowConfirm] = useState(false);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
@@ -325,6 +329,7 @@ export function ExamTakingClientV2({ exam, attempt, preview = false, backHref }:
       }
       submittedRef.current = true;
       clearDraft();
+      toast("success", "Đã nộp bài thành công", "Kết quả đã được hệ thống ghi nhận.");
       if (data.resultLink) {
         router.push(data.resultLink);
         return;
@@ -335,16 +340,20 @@ export function ExamTakingClientV2({ exam, attempt, preview = false, backHref }:
         review: data.review,
       });
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Không thể nộp bài");
+      toast("error", "Không thể nộp bài", err instanceof Error ? err.message : "Vui lòng kiểm tra mạng rồi thử lại.");
       setSubmitting(false);
     }
-  }, [answers, attempt, answeredCount, clearDraft, exam.id, preview, result, router, showConfirm, submitting, totalQuestions]);
+  }, [answers, attempt, answeredCount, clearDraft, exam.id, preview, result, router, showConfirm, submitting, toast, totalQuestions]);
 
   /* KQ-1 (khách) — nút "Làm lại": xoá phiên khách rồi quay lại form (điền sẵn
    * tên/lớp) để tạo người tham gia mới. Học sinh chỉ cần vào lại đề, server tự
    * quyết định còn lượt hay không. Điều hướng cứng cho chắc trên mọi máy. */
   const handleRetry = useCallback(async () => {
+    if (retrying) return;
+    setRetrying(true);
     if (!exam.isGuest) {
+      // Chờ một nhịp để lớp phủ "Đang vào lại…" kịp vẽ trước khi điều hướng cứng.
+      await new Promise((r) => window.setTimeout(r, 150));
       window.location.assign(`/thi/${exam.joinCode}`);
       return;
     }
@@ -362,7 +371,7 @@ export function ExamTakingClientV2({ exam, attempt, preview = false, backHref }:
     if (exam.participantClass) qs.set("class", exam.participantClass);
     const suffix = qs.toString();
     window.location.assign(`/thi/${exam.joinCode}${suffix ? `?${suffix}` : ""}`);
-  }, [exam]);
+  }, [exam, retrying]);
 
   /* GĐ2/GĐ3 — báo MỘT sự kiện vi phạm cho server ghi vào nhật ký của lần làm bài.
    * Hệ thống chỉ GHI NHẬN + CẢNH BÁO; việc đánh giá để giáo viên quyết (đúng bất
@@ -678,7 +687,7 @@ export function ExamTakingClientV2({ exam, attempt, preview = false, backHref }:
   if (expired) {
     return (
       <div className="min-h-screen bg-[var(--surface-bg)] flex items-center justify-center p-4">
-        <div className="bg-[var(--surface-card)] rounded-2xl border border-[var(--surface-border)] p-8 max-w-md w-full text-center">
+        <div className="animate-pop-in bg-[var(--surface-card)] rounded-2xl border border-[var(--surface-border)] p-8 max-w-md w-full text-center">
           <div className="w-20 h-20 rounded-full mx-auto mb-5 flex items-center justify-center bg-[var(--danger-light)] text-[var(--danger)]"><TimerOff size={36} /></div>
           <h1 className="text-2xl font-black tracking-tight mb-2 text-[var(--text-primary)]">Đã hết thời gian làm bài</h1>
           <p className="text-[var(--text-secondary)] text-sm mb-5">Bài làm của bạn không được ghi nhận vì đã quá thời hạn nộp.</p>
@@ -692,8 +701,9 @@ export function ExamTakingClientV2({ exam, attempt, preview = false, backHref }:
     const col = scoreColor(result.score);
     return (
       <div className="min-h-screen bg-[var(--surface-bg)] flex justify-center p-4">
+        <TransitionOverlay show={retrying} label={exam.isGuest ? "Đang quay lại trang nhập tên…" : "Đang vào lại phòng thi…"} />
         <div className="w-full max-w-2xl">
-          <div className="bg-[var(--surface-card)] rounded-2xl border border-[var(--surface-border)] p-8 w-full text-center">
+          <div className="animate-pop-in bg-[var(--surface-card)] rounded-2xl border border-[var(--surface-border)] p-8 w-full text-center">
             {exam.showScoreImmediately === false ? (
               <>
                 <div className="w-20 h-20 rounded-full mx-auto mb-5 flex items-center justify-center bg-[var(--warning-light)] text-[var(--warning)]"><Hourglass size={36} /></div>
@@ -838,6 +848,7 @@ export function ExamTakingClientV2({ exam, attempt, preview = false, backHref }:
 
       {showConfirm && <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4"><div className="bg-[var(--surface-card)] rounded-2xl p-6 max-w-sm w-full"><h3 className="font-bold mb-2">Xác nhận nộp bài?</h3><p className="text-sm text-[var(--text-secondary)] mb-5">Bạn còn {totalQuestions - answeredCount} câu chưa trả lời. Vẫn nộp bài?</p><div className="flex gap-3"><Button variant="outline" className="flex-1" onClick={() => setShowConfirm(false)}>Làm tiếp</Button><Button className="flex-1" onClick={() => submitExam(true)} loading={submitting}>Nộp bài</Button></div></div></div>}
       {showExitConfirm && <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4"><div className="bg-[var(--surface-card)] rounded-2xl p-6 max-w-sm w-full"><h3 className="font-bold mb-2">Thoát bài thi?</h3><p className="text-sm text-[var(--text-secondary)] mb-5">Bài làm sẽ được lưu tự động. Bạn có thể quay lại làm tiếp trong thời gian còn lại.</p><div className="flex gap-3"><Button variant="outline" className="flex-1" onClick={() => setShowExitConfirm(false)}>Ở lại</Button><Button className="flex-1" onClick={leaveExam}>Thoát</Button></div></div></div>}
+      <TransitionOverlay show={submitting} label="Đang nộp bài…" hint="Vui lòng không tắt trang trong lúc nộp." />
     </div>
   );
 }
