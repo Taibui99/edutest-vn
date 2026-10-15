@@ -188,7 +188,7 @@ function GuestReview({ items }: { items: ReviewItem[] }) {
                     return (
                       <div key={si} className={cn("flex items-center justify-between gap-2 px-3 py-1.5 rounded-lg text-sm", ok ? "bg-[var(--success-light)] text-[var(--success-dark)]" : pick === undefined ? "text-[var(--text-secondary)]" : "bg-[var(--danger-light)] text-[var(--danger-dark)]")}>
                         <span className="font-medium">{String.fromCharCode(97 + si)}. {s.text}</span>
-                        <span className="shrink-0 text-xs font-bold">{ok && s.points ? `+${s.points}đ · ` : ""}Bạn: {pick === true ? "Đúng" : pick === false ? "Sai" : "—"} · Đúng: {s.answer ? "Đúng" : "Sai"}</span>
+                        <span className="shrink-0 text-xs font-bold">{ok && s.points ? `+${s.points}đ · ` : ""}Bạn làm: {pick === true ? "Đúng" : pick === false ? "Sai" : "—"} · Đáp án đúng: {s.answer ? "Đúng" : "Sai"}</span>
                       </div>
                     );
                   })}

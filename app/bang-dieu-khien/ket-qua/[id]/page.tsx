@@ -339,7 +339,7 @@ export default function ResultPage({ params }: { params: Promise<{ id: string }>
                           >
                             <span className="font-medium">{String.fromCharCode(97 + si)}. {s.text}</span>
                             <span className="shrink-0 text-xs font-black">
-                              {ok && s.points ? `+${s.points}đ · ` : ""}Bạn: {pick === true ? "Đúng" : pick === false ? "Sai" : "—"} · Chuẩn: {s.answer ? "Đúng" : "Sai"}
+                              {ok && s.points ? `+${s.points}đ · ` : ""}Bạn làm: {pick === true ? "Đúng" : pick === false ? "Sai" : "—"} · Đáp án đúng: {s.answer ? "Đúng" : "Sai"}
                             </span>
                           </div>
                         );

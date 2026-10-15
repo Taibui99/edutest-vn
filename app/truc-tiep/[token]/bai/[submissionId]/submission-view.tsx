@@ -163,8 +163,8 @@ function Statements({ q }: { q: LiveQuestionView }) {
               {String.fromCharCode(97 + i)}. {s.text}
             </span>
             <span className="shrink-0 text-base font-bold text-white/75">
-              Bạn: {pick === undefined ? "—" : pick ? "Đúng" : "Sai"}
-              {typeof s.answer === "boolean" && <> · Chuẩn: {s.answer ? "Đúng" : "Sai"}</>}
+              Bạn làm: {pick === undefined ? "—" : pick ? "Đúng" : "Sai"}
+              {typeof s.answer === "boolean" && <> · Đáp án đúng: {s.answer ? "Đúng" : "Sai"}</>}
               {typeof s.points === "number" && s.points > 0 && <> · {fmtScore(s.points)}đ</>}
             </span>
           </div>
