@@ -99,6 +99,9 @@ model Exam {
   openAt             DateTime?
   closeAt            DateTime?
   hidden             Boolean   @default(false)
+  /// LIVE-1 — token bí mật cho bảng điểm trực sự (link `/truc-tiep/<token>`
+  /// không cần đăng nhập). NULL = chưa bật; @unique để tra nhanh theo token.
+  liveToken          String?   @unique
   deletedAt          DateTime?
   teacherId          String
   teacher            User     @relation(fields: [teacherId], references: [id], onDelete: Cascade)

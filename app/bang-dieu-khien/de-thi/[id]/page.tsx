@@ -16,6 +16,7 @@ import { getSubjectColor } from "@/lib/subject";
 import { isQuestionCorrect, isAutoGraded, type AnswerValue } from "@/lib/grading";
 import { SubmissionsPanel, type SubRow, type SubQuestion } from "./submissions-panel";
 import { RegradeButton } from "./regrade-button";
+import { LiveBoardButton } from "./live-board-button";
 
 export const metadata: Metadata = { title: "Chi tiết đề thi — A6Class Edu" };
 
@@ -170,6 +171,7 @@ export default async function ExamDetailPage({ params }: { params: Promise<{ id:
             Chia sẻ đề
           </Link>
         </div>
+        <LiveBoardButton examId={exam.id} />
       </Card>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
