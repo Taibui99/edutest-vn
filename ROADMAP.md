@@ -494,6 +494,10 @@ GĐ3 **luôn bypass được** (trình duyệt khác, VM, điện thoại). Ch�
 - ⚠️ **Rủi ro (đã cảnh báo user):** ai có **link bí mật** đều thấy đáp án kể cả khi đề đang mở → dặn **chỉ chiếu lúc chữa bài, chữa xong thu hồi link** (nút "Tắt"/"Đổi link" ở card Chia sẻ đề). **Bảng điểm công khai `/truc-tiep/[token]` vẫn KHÔNG lộ đáp án** — chỉ màn chi tiết mới hiện.
 - [x] **Verify prod** — `live-submission.spec.ts` cập nhật: D-01 đề đang mở → `showAnswerKey=true`; D-03 (GV đóng đề → vẫn thấy đáp án) giữ làm chốt không hồi quy. **4/4 desktop + 4/4 mobile**.
 
+### Nhãn Đúng/Sai rõ nghĩa — "Bạn làm" + "Đáp án đúng" (`81e75be`, 2026-10-16)
+
+**Yêu cầu user:** *"ở phần đúng–sai phải ghi là bạn làm - đáp án đúng chứ ghi từ 'chuẩn' nhìn khó hiểu lắm"*. Đổi nhãn 3 màn: **màn chi tiết trực tiếp** (`submission-view.tsx`), **trang kết quả GV/HS** (`ket-qua/[id]/page.tsx`), **review của khách** (`exam-taking-client-v2.tsx` GuestReview — bản này còn ghi nhầm `Bạn: … · Đúng: …`). Từ `Bạn:` → **`Bạn làm:`**, `Chuẩn:` → **`Đáp án đúng:`**. Màn review HTML cũ (`thi-cu/[code]/html.ts`) vốn đã ghi "bạn chọn … · đáp án …" nên giữ nguyên. Verify prod bằng spec tạm (đã xoá): T-1 màn chi tiết (đề đang mở) + T-2 trang kết quả — **2/2 pass**, không còn chuỗi "Chuẩn:".
+
 ## ♻️ Nhân bản đề thi (EXAM-2, 2026-10-15)
 
 > ⚠️ **Trùng số nhãn:** mục này user đặt là **EXAM-2** cho tính năng **nhân bản**. Một mục **EXAM-2 cũ** (ngày 14/10, *"hiện lượt còn lại ở trang kết quả"*, `b8e291c`) nằm ở chùm *Thi thật cả lớp* phía trên — **khác hẳn nội dung**. Khi tra cứu hãy theo **ngày**.
