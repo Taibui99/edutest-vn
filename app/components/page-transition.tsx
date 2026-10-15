@@ -123,7 +123,9 @@ export function PageTransition(): null {
       const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
       // ── Sóng nước: chỉ ở phần tử thật sự bấm được, bỏ qua nút đang disabled ──
-      if (!reduced) {
+      // Máy yếu (a6-perf-low) bỏ ripple: mỗi cú bấm tạo node + getBoundingClientRect
+      // gây tốn layout/paint không đáng có.
+      if (!reduced && !root.classList.contains("a6-perf-low")) {
         const clickable = target.closest<HTMLElement>(CLICKABLE);
         if (clickable && !clickable.matches(":disabled, [aria-disabled='true']")) {
           const rect = clickable.getBoundingClientRect();

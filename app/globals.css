@@ -366,9 +366,9 @@ input[type="date"], input[type="time"], input[type="datetime-local"] {
   overflow: hidden;
   background: var(--surface-bg);
   /* Lưới an toàn: nếu JS chết trước khi gắn data-burst (lỗi hydration, bundle
-     hỏng, ...) overlay không được phép kẹt vĩnh viễn che kín trang. Sau 8s
-     tự ẩn (dài hơn lối kết thúc ý định MIN 5s + burst 0.65s). */
-  animation: a6-pl-failsafe 0.2s linear 8s forwards;
+     hỏng, ...) overlay không được phép kẹt vĩnh viễn che kín trang. Sau 6s
+     tự ẩn (dài hơn lối kết thúc ý định ~2.2s + burst 0.5s). */
+  animation: a6-pl-failsafe 0.2s linear 6s forwards;
 }
 
 .a6-pl-ambient {
@@ -519,11 +519,11 @@ input[type="date"], input[type="time"], input[type="datetime-local"] {
 
 #a6-preloader[data-burst="true"] {
   animation:
-    a6-pl-failsafe 0.2s linear 8s forwards,
-    a6-pl-burst 650ms cubic-bezier(0.7, 0, 0.84, 0) forwards;
+    a6-pl-failsafe 0.2s linear 6s forwards,
+    a6-pl-burst 500ms cubic-bezier(0.7, 0, 0.84, 0) forwards;
 }
 #a6-preloader[data-burst="true"] .a6-pl-ring {
-  animation: a6-pl-burst-ring 650ms cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
+  animation: a6-pl-burst-ring 500ms cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
 }
 #a6-preloader[data-burst="true"] .a6-pl-card {
   transform: scale(1.15);
@@ -539,7 +539,7 @@ input[type="date"], input[type="time"], input[type="datetime-local"] {
   to   { opacity: 1; }
 }
 html.a6-reveal body > *:not(#a6-preloader) {
-  animation: a6-pl-page-in 560ms var(--ease-smooth) both;
+  animation: a6-pl-page-in 460ms var(--ease-smooth) both;
 }
 
 @media (max-width: 520px) {
@@ -740,4 +740,28 @@ html.a6-no-vt::view-transition-new(*) {
   }
   .a6-ripple { display: none; }
   html.a6-nav-loading::before { animation: none; width: 100%; left: 0; }
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   PERF-1 · Thích ứng máy yếu
+   Script trong <head> gắn `a6-perf-low|mid|high` lên <html> (theo số nhân/RAM,
+   loại mạng, saveData, reduced-motion). Máy yếu tắt các hiệu ứng nền chạy vô
+   hạn và ripple/chuyển cảnh trượt — UI tĩnh nhưng mượt, không giật.
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* Nền động của preloader (animation vô hạn, luôn repaint) — tắt trên máy yếu. */
+html.a6-perf-low .a6-pl-ambient,
+html.a6-perf-low .a6-pl-wave,
+html.a6-perf-low .a6-pl-badge {
+  animation: none !important;
+}
+html.a6-perf-low .a6-pl-ambient { display: none; }
+
+/* Ripple + trượt màn hình: JS cũng bỏ qua ripple (page-transition.tsx);
+   CSS tắt nốt để chắc chắn không có chuyển động thừa. */
+html.a6-perf-low .a6-ripple { display: none; }
+html.a6-perf-low ::view-transition-group(*),
+html.a6-perf-low ::view-transition-old(*),
+html.a6-perf-low ::view-transition-new(*) {
+  animation: none !important;
 }

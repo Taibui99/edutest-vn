@@ -1,14 +1,12 @@
 import { redirect } from "next/navigation";
-import { auth } from "@/auth";
+import { getSession } from "@/lib/session";
 import { Header } from "./components/header";
 import { Hero } from "./components/hero";
 import { Footer } from "./components/footer";
 
 export default async function Home() {
-  try {
-    const session = await auth();
-    if (session?.user) redirect("/bang-dieu-khien");
-  } catch {}
+  const session = await getSession();
+  if (session?.user) redirect("/bang-dieu-khien");
 
   return (
     <>

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Be_Vietnam_Pro, Inter } from "next/font/google";
 import { ViewTransition } from "react";
 import "./globals.css";
-import { auth } from "@/auth";
+import { getSession } from "@/lib/session";
 import { getSetting } from "@/lib/settings";
 import { MaintenanceGate } from "@/components/maintenance-gate";
 import { Preloader } from "@/app/components/preloader";
@@ -43,10 +43,7 @@ export const metadata: Metadata = {
 export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  let session: { user?: { role?: string | null } | null } | null = null;
-  try {
-    session = await auth();
-  } catch {}
+  const session = await getSession();
   const maintenance = await getSetting("maintenanceMode", "false");
 
   return (
@@ -67,14 +64,34 @@ export default async function RootLayout({
             hydrate rất muộn → overlay đứng ở "0%" rồi bị failsafe CSS dọn đi.
             Ở đây bám `DOMContentLoaded` (nổ ngay sau khi HTML xong, không đợi
             bundle). Vòng chạy bằng rAF (mượt 60fps) + WATCHDOG setInterval 400ms
-            (vẫn kết thúc dù rAF bị iOS hoãn). Tối thiểu MIN=5s, trần CAP≈5.6s. */}
+            (vẫn kết thúc dù rAF bị iOS hoãn).
+
+            PERF-1: script TỰ PHÂN LOẠI máy → gắn `a6-perf-low|mid|high` lên
+            <html> để CSS/JS bật-tắt hiệu ứng nặng theo năng lực thiết bị. Thời
+            gian preloader co theo tier (0.6–0.9s sau DOMContentLoaded) và KHÔNG
+            cộng dồn khi trang vốn đã chậm (nếu đã >2.6s thì chỉ nhấp 0.25s).
+            Trần tuyệt đối ~2.2s + bùm 0.5s thay cho MIN cứng 5s trước đây. */}
         <script
           dangerouslySetInnerHTML={{
             __html: `(function(){
 try{
-  var MIN=5000, CAP=5600, RAMP=4300, MAX=92;
+  /* PERF-1: phân loại máy để CSS bật/tắt hiệu ứng nặng (xem globals.css). */
+  var cores=navigator.hardwareConcurrency||4;
+  var mem=navigator.deviceMemory||4;
+  var conn=navigator.connection||{};
+  var et=conn.effectiveType||"";
+  var reduced = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  var tier="mid";
+  if(reduced||conn.saveData||/2g|3g/.test(et)||cores<=2||mem<=2){tier="low";}
+  else if(cores>=8&&mem>=8){tier="high";}
+  try{document.documentElement.classList.add("a6-perf-"+tier);}catch(e){}
+
+  /* Thời gian preloader co theo tier (tính từ lúc DOMContentLoaded). */
+  var MIN=600, CAP=1600, RAMP=600, MAX=92;
+  if(tier==="low"){MIN=900;CAP=2200;RAMP=900;}
+  else if(tier==="mid"){MIN=750;CAP=1900;RAMP=750;}
+
   var MSG=[[0,"Đang khởi tạo A6Class…"],[45,"Đang tải giao diện và chữ…"],[80,"Đang hoàn thiện…"],[100,"Sẵn sàng!"]];
-  var reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   var OBS_AFTER = 0;
   function nodes(el){
     if(!el.__n){el.__n={num:el.querySelector("[data-a6-pct]"),liquid:el.querySelector(".a6-pl-liquid"),status:el.querySelector(".a6-pl-status")};}
@@ -106,11 +123,11 @@ try{
       var root=document.documentElement;
       root.classList.add("a6-reveal");
       document.addEventListener("animationend",function(e){ if(e.animationName==="a6-pl-page-in"){root.classList.remove("a6-reveal");} });
-      setTimeout(function(){root.classList.remove("a6-reveal");}, 1300);
-      /* Gỡ hẳn overlay khỏi DOM sau khi bùm xong (650ms). Trước đây là component
+      setTimeout(function(){root.classList.remove("a6-reveal");}, 1100);
+      /* Gỡ hẳn overlay khỏi DOM sau khi bùm xong (500ms). Trước đây là component
          React tự unmount; giờ markup là HTML thô nên phải tự dọn — để lại một
          lớp position:fixed z-9999 phủ toàn trang là mối nguy chặn click/cuộn. */
-      setTimeout(function(){try{if(el&&el.parentNode){el.parentNode.removeChild(el);}}catch(_){}}, 760);
+      setTimeout(function(){try{if(el&&el.parentNode){el.parentNode.removeChild(el);}}catch(_){}}, 600);
     }
     window.addEventListener("load",function(){ready=true;});
     try{document.fonts&&document.fonts.ready&&document.fonts.ready.then(function(){ready=true;})["catch"](function(){});}catch(e){}
@@ -163,6 +180,9 @@ try{
   }
   function boot(){
     OBS_AFTER = performance.now()+1800;
+    /* Trang vốn đã chậm (mạng yếu/cold start): không cộng thêm thời gian chờ,
+       chỉ nhấp overlay rồi mở ngay. */
+    if(performance.now()>2600){MIN=250;RAMP=250;CAP=Math.min(CAP,900);}
     var el=document.getElementById("a6-preloader");
     if(el){run(el);}
     watch();

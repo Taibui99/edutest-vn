@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 import { auth } from "@/auth";
 import { isAdminAccess, sessionUser } from "@/lib/access";
 import { prisma } from "@/lib/prisma";
@@ -40,6 +41,9 @@ export async function PUT(req: NextRequest) {
     create: { key, value: String(value) },
     update: { value: String(value) },
   });
+
+  // Xoá cache cài đặt để thay đổi (vd bật maintenance) có hiệu lực ngay.
+  revalidateTag("settings", "max");
 
   await logAudit({
     actorId: session.user.id,
