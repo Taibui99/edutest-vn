@@ -129,3 +129,19 @@ test.describe("LEGACY-6 (DB) — tắt JS vẫn thi và nộp được", () => {
     await expect(page.getByText("10/10").first()).toBeVisible();
   });
 });
+
+/* LEGACY-7: lưới đỡ cho LINK CHIA SẺ DUY NHẤT. Mô phỏng máy bị "đoán nhầm UA":
+ * UA hiện đại (middleware KHÔNG chuyển) nhưng bundle React không tải nổi (chặn
+ * /_next/static) → trang phải TỰ chuyển sang /thi-cu nhờ script fallback. Nhờ
+ * vậy chỉ cần một link/QR cho mọi thiết bị. */
+test.describe("LEGACY-7 — lưới đỡ: React chết vẫn tự sang bản nhẹ", () => {
+  test("chặn bundle React → tự chuyển /thi-cu/<CODE>", async ({ page }) => {
+    await page.route("**/_next/static/**", (route) => route.abort());
+    await page.goto(`/thi/${CODE}`);
+    // Middleware (UA hiện đại) KHÔNG chuyển — phải do script fallback lo.
+    expect(page.url()).not.toMatch(/\/thi-cu\//);
+    await page.waitForURL(new RegExp(`/thi-cu/${CODE.toUpperCase()}$`), { timeout: 20000 });
+    // Đã sang bản nhẹ: thấy form nhập tên HTML thuần.
+    await expect(page.getByRole("button", { name: "Vào làm bài" })).toBeVisible({ timeout: 15000 });
+  });
+});
