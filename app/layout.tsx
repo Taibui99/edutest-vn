@@ -33,6 +33,11 @@ export const metadata: Metadata = {
   title: "A6Class Edu — Nền tảng học tập thông minh",
   description:
     "A6Class Edu giúp học sinh ôn thi hiệu quả và giáo viên tạo đề thi dễ dàng. Nền tảng EdTech hàng đầu Việt Nam.",
+  // iOS Safari tự biến số điện thoại/email/ngày trong nội dung thành link →
+  // DOM khác HTML server → lệch hydration (React #418). Vô hiệu hoá auto-detect.
+  other: {
+    "format-detection": "telephone=no, date=no, email=no, address=no",
+  },
 };
 
 export default async function RootLayout({

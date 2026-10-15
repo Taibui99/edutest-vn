@@ -64,18 +64,22 @@ function ScoreGauge({ score }: { score: number }) {
   const C = 2 * Math.PI * 50;
 
   /* Đếm số chạy lên + vòng quét theo (ease-out ~1.2s). Người bật
-   * prefers-reduced-motion thấy số cuối ngay (CSS toàn cục cũng tắt animation). */
-  // Người bật reduced-motion thấy số cuối ngay (khởi tạo đã là số cuối).
-  // Effect chạy đúng 1 lần/instance: ScoreGauge được key theo submission nên
-  // score không bao giờ đổi giữa chừng (deps [] là đúng, không thiếu).
-  const [shown, setShown] = useState(() =>
-    typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches ? score : 0,
-  );
+   * prefers-reduced-motion thấy số cuối ngay (CSS toàn cục cũng tắt animation).
+   *
+   * SSR an toàn: KHÔNG đọc `matchMedia` lúc render (server luôn 0, client lại là
+   * `score` khi bật reduced-motion → lệch hydration). Khởi tạo 0, quyết định trong
+   * effect. Effect chạy đúng 1 lần/instance: ScoreGauge được key theo submission
+   * nên score không đổi giữa chừng (deps [] là đúng). */
+  const [shown, setShown] = useState(0);
   useEffect(() => {
-    if (shown !== 0 || score === 0) return;
+    const reduce = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     let raf = 0;
     const t0 = performance.now();
     const tick = (t: number) => {
+      if (reduce || score === 0) {
+        setShown(score);
+        return;
+      }
       const p = Math.min(1, (t - t0) / 1200);
       setShown(score * (1 - Math.pow(1 - p, 3)));
       if (p < 1) raf = requestAnimationFrame(tick);

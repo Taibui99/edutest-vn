@@ -235,13 +235,21 @@ export function ExamTakingClientV2({ exam, attempt, preview = false, backHref }:
   const [paletteOpen, setPaletteOpen] = useState(false);
   // PROCTOR-1: hẹn giờ ân hạn cho rời trang bị động (blur/khóa màn hình).
   const pendingFlag = useRef<{ type: ProctorEventType; timer: number } | null>(null);
-  const [offline, setOffline] = useState(() => typeof navigator === "undefined" ? false : !navigator.onLine);
+  /* SSR an toàn: KHÔNG đọc `navigator` lúc render. Node hiện đại (21+) có
+   * `navigator` toàn cục nhưng KHÔNG có `onLine` → `!navigator.onLine` = `!undefined`
+   * = true → HTML server LUÔN kèm banner "Mất kết nối", client lại tính false →
+   * lệch hydration (#418) và trên máy yếu (iOS cũ) React phải dựng lại cả cây →
+   * trang đứng, không bấm được. Khởi tạo false rồi đồng bộ trong effect (client). */
+  const [offline, setOffline] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [strictActive, setStrictActive] = useState(false);
   const violationsRef = useRef(0);
   const multiTabRef = useRef(false);
 
   useEffect(() => {
+    // Đồng bộ trạng thái mạng THẬT sau khi mount (chỉ client chạy) — tránh lệch SSR.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setOffline(!navigator.onLine);
     const goOffline = () => setOffline(true);
     const goOnline = () => setOffline(false);
     window.addEventListener("offline", goOffline);
