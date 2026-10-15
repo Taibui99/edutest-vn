@@ -450,6 +450,18 @@ GĐ3 **luôn bypass được** (trình duyệt khác, VM, điện thoại). Ch�
   - **Không rò dữ liệu:** payload học sinh vẫn chỉ gửi `statements[].text`.
   - **Verify prod** (`tests/e2e/true-false-points.spec.ts`): 2 mệnh đề 1+1 → đúng 1 → **5/10**, review hiện `1/2đ` (1/1 pass).
 
+## 🎯 Công thức điểm mới: `10 − điểm mất` (SCORE-1, 2026-10-15)
+
+**Yêu cầu user:** *"score = 8.95? ... wtf"*. Phân tích ra **2 lỗi riêng**: (1) câu Đúng/Sai bị mất điểm mệnh đề đầu (đã fix ở `c6f8aac`) → tổng đề 9.5; (2) công thức `earned/total × 10` cho số lẻ. User chốt: **"Dùng `10 − điểm mất` cho mọi đề"**.
+
+- [x] **SCORE-1 Công thức `điểm = 10 − (tổng điểm câu/ý SAI)`** (`12f0b77`) — `lib/grading.ts` `scoreSubmission` bỏ `earned / total × 10` → `score = clamp(10 − (total − earned), 0, 10)`.
+  - **Khi tổng đề = 10 → y hệt điểm đạt** (`10 − (10 − đạt) = đạt`), nên đề chuẩn vẫn ra số chẵn. **Khi tổng lệch 9.5** → đạt 8.5, mất 1 → **9** (hết 8.95).
+  - `correctCount` "trọn vẹn" + leaderboard **giữ nguyên**.
+  - Hint editor đổi: *"Điểm = 10 − tổng điểm các câu/ý sai. Nên để tổng điểm đề = 10đ cho thang điểm chuẩn"*.
+  - ⚠️ **Hệ quả khi tổng đề ≠ 10:** sàn điểm = `10 − tổng đề` (đề 7đ sai hết vẫn 3đ; đề 30đ mất 30đ → 0) → **vẫn phải giữ cảnh báo tổng = 10đ** ở editor. Không đổi công thức cho vế tỉ lệ vì user chọn nguyên tắc này cho mọi đề.
+  - **Verify:** `answer-leak.spec.ts` (đề 10đ: đúng hết → **10**, sai hết → **0**) + `true-false-points.spec.ts` (đúng 5/10đ → **5/10**, review `5/10đ`) — 2 fixture được đổi cho tổng = 10đ (trước `3đ`/`2đ` → sai hết sẽ ra 7/9 theo công thức mới).
+- [x] **SCORE-1b Nút "Chấm lại toàn bộ bài nộp"** (`c22f012`) — `POST /api/exams/[id]/regrade` (teacher-only, `isTeacherAccess`) chấm lại mọi bài nộp từ `answers` + `manualScores` **sẵn có** (transaction); nút ở trang chi tiết đề khi có ≥1 bài, kèm chú thích. Dùng khi đổi công thức hoặc sửa điểm → bài cũ khớp bài mới (kể cả bài đã nộp lúc vẫn còn 8.95).
+
 ## 🖼️ Chèn ảnh minh hoạ vào câu hỏi (IMG-1, 2026-10-15)
 
 **Yêu cầu user (khẩn):** *"tính năng tới giờ tự mở ra... khoan, làm tính năng chèn ảnh minh hoạ vào câu hỏi đi"* — GV muốn gắn ảnh (hình vẽ, sơ đồ, biểu đồ) vào từng câu hỏi, ảnh phải hiện khi học sinh làm bài, xem lại bài và cả trên máy iOS yếu.
