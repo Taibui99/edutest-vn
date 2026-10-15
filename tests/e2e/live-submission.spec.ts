@@ -71,6 +71,9 @@ test.beforeAll(async () => {
   await stu.post("/api/auth/callback/credentials", {
     form: { csrfToken: stuCsrf, email: STUDENT.email, password: STUDENT.password },
   });
+  // Khai báo lớp để màn chi tiết có đủ thông tin định danh.
+  const grade = await stu.patch("/api/profile", { data: { grade: "10A1" } });
+  expect(grade.status(), await grade.text()).toBe(200);
   const attemptId = await startAttempt(stu, EXAM_ID);
   const sub = await stu.post("/api/submissions", {
     data: { examId: EXAM_ID, attemptId, answers: { [Q[0]]: "A", [Q[1]]: "hà nội", [Q[2]]: "A" } },
@@ -118,7 +121,7 @@ test("D-01: API chi tiết không đăng nhập — đủ thông tin, GIẤU đ�
   expect(d.submission.totalQuestions).toBe(3);
   expect(d.submission.rank).toBe(1);
   expect(d.submission.submittedTotal).toBe(1);
-  expect(d.submission.className).toBeTruthy();
+  expect(d.submission.className, "lớp của học sinh phải hiện trên màn chi tiết").toBe("10A1");
   expect(d.submission.durationSeconds).toBeGreaterThanOrEqual(0);
   expect(d.submission.submittedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
 
@@ -152,6 +155,7 @@ test("D-02: bấm tên trên bảng xếp hạng → màn chi tiết chữ to, �
 
   // Đầy đủ thông tin: học sinh, hạng, điểm, số câu, toàn bộ câu hỏi.
   await expect(page.getByRole("heading", { name: "Tester HS" })).toBeVisible();
+  await expect(page.getByText("10A1"), "lớp phải hiện trên màn chi tiết").toBeVisible();
   await expect(page.getByText("Hạng 1/1")).toBeVisible();
   await expect(page.getByText("/ 10 điểm")).toBeVisible();
   await expect(page.getByText("2/3", { exact: true }).first()).toBeVisible();
