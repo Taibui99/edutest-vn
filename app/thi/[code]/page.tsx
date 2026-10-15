@@ -31,13 +31,14 @@ export async function generateMetadata({ params }: { params: Promise<{ code: str
     : { title: "Mã tham gia không hợp lệ — A6Class Edu" };
 }
 
-type ClientGrading = { statements?: Array<{ text: string; answer: boolean }>; acceptedAnswers?: string[] } | null;
+type ClientGrading = { statements?: Array<{ text: string; answer: boolean }>; acceptedAnswers?: string[]; image?: string } | null;
 
 /** Bản cắt cho học sinh/khách: chỉ giữ đúng thứ client thật sự render.
- *  Client đọc `statements[].text` để vẽ câu đúng/sai, không đọc `answer` lẫn
- *  `acceptedAnswers` (xem `exam-taking-client-v2.tsx`). Khai báo hẳn kiểu ở đây
- *  để lỡ ai thêm nhầm `answer` vào đây thì TypeScript bắt ngay. */
-type StudentGrading = { statements?: Array<{ text: string }> } | null;
+ *  Client đọc `statements[].text` để vẽ câu đúng/sai và `image` để hiện ảnh
+ *  minh hoạ; KHÔNG đọc `answer` lẫn `acceptedAnswers` (xem
+ *  `exam-taking-client-v2.tsx`). Khai báo hẳn kiểu ở đây để lỡ ai thêm nhầm
+ *  `answer` vào đây thì TypeScript bắt ngay. */
+type StudentGrading = { statements?: Array<{ text: string }>; image?: string } | null;
 
 type StudentQuestion = {
   id: string;
@@ -90,13 +91,18 @@ export default async function ThiPage({ params, searchParams }: { params: Promis
   const mapQuestionsForStudent = (): StudentQuestion[] =>
     exam?.questions.map((q) => {
       const grading = q.grading as ClientGrading;
+      const statements = grading?.statements ? grading.statements.map((s) => ({ text: s.text })) : undefined;
+      const image = grading && typeof grading.image === "string" ? grading.image : undefined;
+      const studentGrading: StudentGrading = statements || image
+        ? { ...(statements ? { statements } : {}), ...(image ? { image } : {}) }
+        : null;
       return {
         id: q.id,
         type: q.type,
         text: q.text,
         options: q.options,
         order: q.order,
-        grading: grading?.statements ? { statements: grading.statements.map((s) => ({ text: s.text })) } : null,
+        grading: studentGrading,
       };
     }) || [];
 

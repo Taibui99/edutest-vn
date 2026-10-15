@@ -98,7 +98,7 @@ function buildReview(exam: ExamFull, answers: Record<string, AnswerValue>): Revi
       text: q.text,
       options: q.options,
       answer: q.answer,
-      grading: { statements: grading?.statements ?? [], acceptedAnswers: grading?.acceptedAnswers ?? [] },
+      grading: { statements: grading?.statements ?? [], acceptedAnswers: grading?.acceptedAnswers ?? [], image: grading?.image },
       explanation: q.explanation,
       userAnswer: userAnswer ?? null,
       correct,

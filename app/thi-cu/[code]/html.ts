@@ -41,6 +41,7 @@ p{margin:6px 0}
 .qhead{display:flex;gap:8px;align-items:baseline;margin-bottom:10px}
 .qnum{flex:0 0 auto;font-weight:800;color:#1d4ed8}
 .qtext{font-weight:600}
+.qimg{display:block;max-width:100%;height:auto;border:1px solid #e2e8f0;border-radius:12px;margin:8px 0}
 .opt{display:flex;align-items:flex-start;gap:10px;border:1.5px solid #e2e8f0;border-radius:12px;padding:12px;margin:8px 0;cursor:pointer}
 .opt:active{background:#f8fafc}
 .opt input{width:20px;height:20px;margin:2px 0 0;flex:0 0 auto}
@@ -139,11 +140,11 @@ export function joinView(opts: { code: string; title: string; error?: string; na
   return shell(opts.title, body);
 }
 
-type GradingShape = { statements?: Array<{ text?: string; answer?: boolean }>; acceptedAnswers?: string[] };
+type GradingShape = { statements?: Array<{ text?: string; answer?: boolean }>; acceptedAnswers?: string[]; image?: string };
 
 function gradingOf(q: LegacyQuestion): GradingShape {
   const g = q.grading as GradingShape | null | undefined;
-  return { statements: g?.statements || [], acceptedAnswers: g?.acceptedAnswers || [] };
+  return { statements: g?.statements || [], acceptedAnswers: g?.acceptedAnswers || [], image: g?.image };
 }
 
 /** Thứ tự câu hiển thị theo `attempt.questionOrder` (server sinh). */
@@ -201,7 +202,8 @@ export function examView(opts: {
     } else {
       inner = `<input type="text" name="s_${esc(q.id)}" placeholder="Nhập câu trả lời" autocomplete="off">`;
     }
-    return `<div class="q"><div class="qhead"><span class="qnum">Câu ${num}</span><span class="qtext">${esc(q.text)}</span></div><span class="pill info" style="margin-bottom:8px">${esc(TYPE_LABEL[q.type] || "Câu hỏi")}</span>${inner}</div>`;
+    const img = gradingOf(q).image ? `<img class="qimg" src="${esc(gradingOf(q).image)}" alt="Hình minh hoạ câu hỏi">` : "";
+    return `<div class="q"><div class="qhead"><span class="qnum">Câu ${num}</span><span class="qtext">${esc(q.text)}</span></div>${img}<span class="pill info" style="margin-bottom:8px">${esc(TYPE_LABEL[q.type] || "Câu hỏi")}</span>${inner}</div>`;
   }).join("");
 
   /* Đồng hồ đếm ngược: PHẢI chèn SAU form (cuối <body>). Script nằm trong
@@ -318,7 +320,8 @@ export function resultView(opts: {
       const badge = item.correct === true ? `<span class="pill ok">Đúng</span>` : item.correct === false ? `<span class="pill bad">Sai</span>` : `<span class="pill warn">Chờ chấm</span>`;
       const lines = answerText(item).map((t) => `<span class="ans">${esc(t)}</span>`).join("");
       const expl = item.explanation ? `<span class="ans muted">Giải thích: ${esc(item.explanation)}</span>` : "";
-      return `<div class="q"><div class="qhead"><span class="qnum">Câu ${item.order}</span><span class="qtext">${esc(item.text)}</span></div>${badge}${lines}${expl}</div>`;
+      const img = item.grading.image ? `<img class="qimg" src="${esc(item.grading.image)}" alt="Hình minh hoạ câu hỏi">` : "";
+      return `<div class="q"><div class="qhead"><span class="qnum">Câu ${item.order}</span><span class="qtext">${esc(item.text)}</span></div>${img}${badge}${lines}${expl}</div>`;
     }).join("");
     reviewBlock = `<div class="card"><h2>Xem lại bài làm</h2>${items}</div>`;
   } else if (!opts.showAnswers) {

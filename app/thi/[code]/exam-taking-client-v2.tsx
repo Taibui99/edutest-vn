@@ -19,7 +19,7 @@ type Question = {
   text: string;
   options: string[];
   answer?: string;
-  grading?: { statements?: Array<{ text: string; answer?: boolean }>; acceptedAnswers?: string[] } | null;
+  grading?: { statements?: Array<{ text: string; answer?: boolean }>; acceptedAnswers?: string[]; image?: string } | null;
   order: number;
 };
 
@@ -61,7 +61,7 @@ type ReviewItem = {
   text: string;
   options: string[];
   answer: string;
-  grading: { statements: { text: string; answer: boolean }[]; acceptedAnswers: string[] };
+  grading: { statements: { text: string; answer: boolean }[]; acceptedAnswers: string[]; image?: string };
   explanation?: string | null;
   userAnswer: AnswerValue | null;
   correct: boolean | null;
@@ -146,6 +146,10 @@ function GuestReview({ items }: { items: ReviewItem[] }) {
         <div className="mt-3 flex flex-col gap-3">
           {items.map((q) => (
             <div key={q.id} className="rounded-xl border border-[var(--surface-border)] bg-[var(--surface-card)] p-4">
+              {q.grading.image && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={q.grading.image} alt="Hình minh hoạ câu hỏi" className="mb-2 max-h-64 w-auto rounded-lg border border-[var(--surface-border)] bg-white" />
+              )}
               <div className="flex items-start gap-2 mb-2">
                 <span className={cn("shrink-0 w-5 h-5 rounded-full flex items-center justify-center", q.correct === null ? "bg-[var(--gray-200)]" : q.correct ? "bg-[var(--success-light)]" : "bg-[var(--danger-light)]")}>
                   {q.correct === null ? <MinusCircle size={13} className="text-[var(--text-muted)]" /> : q.correct ? <CheckCircle2 size={13} className="text-[var(--success)]" /> : <XCircle size={13} className="text-[var(--danger)]" />}
@@ -810,6 +814,10 @@ export function ExamTakingClientV2({ exam, attempt, preview = false, backHref }:
               </button>
             )}
           </div>
+            {question?.grading?.image && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={question.grading.image} alt="Hình minh hoạ câu hỏi" className="mb-4 max-h-80 w-auto rounded-xl border border-[var(--surface-border)] bg-white" />
+            )}
             <p className="text-base font-medium leading-relaxed text-[var(--text-primary)] mb-5">{question?.text}</p>
 
             {question?.type === "mcq" && <div className="flex flex-col gap-2">{(() => { const perm = optionShuffleRef.current[question.id] || Array.from({ length: question.options.length }, (_, i) => i); // eslint-disable-line react-hooks/refs

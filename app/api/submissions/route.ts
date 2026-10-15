@@ -171,7 +171,7 @@ export async function POST(request: NextRequest) {
           text: q.text,
           options: q.options,
           answer: q.answer,
-          grading: { statements: grading?.statements ?? [], acceptedAnswers: grading?.acceptedAnswers ?? [] },
+          grading: { statements: grading?.statements ?? [], acceptedAnswers: grading?.acceptedAnswers ?? [], image: grading?.image },
           explanation: q.explanation,
           userAnswer: userAnswer ?? null,
           correct,

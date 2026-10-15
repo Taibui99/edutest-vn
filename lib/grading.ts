@@ -1,6 +1,7 @@
 export type GradingPayload = {
   statements?: Array<{ text?: string; answer?: boolean }>;
   acceptedAnswers?: string[];
+  image?: string;
 };
 
 export type AnswerValue = string | boolean[] | { statements?: boolean[]; text?: string } | Record<string, boolean>;

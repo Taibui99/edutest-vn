@@ -3,7 +3,7 @@
 import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Eye, FileText, Plus, Save, Send, Trash2, X } from "lucide-react";
+import { ArrowLeft, Eye, FileText, Image as ImageIcon, Plus, Save, Send, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -27,6 +27,8 @@ type Grading = {
   acceptedAnswers?: string[];
   difficulty?: Difficulty;
   rubricPoints?: string[];
+  /** IMG-1 — URL ảnh minh hoạ cho câu hỏi (Supabase Storage công khai). */
+  image?: string;
 };
 interface Question { type: QuestionType; question: string; options: string[]; answer: string; grading?: Grading; points: number }
 
@@ -57,9 +59,12 @@ function withAiMetadata(q: Question, source: { grading?: Grading | null; difficu
       ? fromGrading.rubricPoints.filter(Boolean)
       : [];
   const difficulty = normalizeDifficulty(source.difficulty) ?? normalizeDifficulty(fromGrading.difficulty);
-  if (!difficulty && rubric.length === 0) return q;
+  // IMG-1 — giữ ảnh minh hoạ khi mở lại đề đã lưu hoặc khi import.
+  const image = typeof fromGrading.image === "string" && fromGrading.image ? fromGrading.image : undefined;
+  if (!image && !difficulty && rubric.length === 0) return q;
   q.grading = {
     ...(q.grading ?? {}),
+    ...(image ? { image } : {}),
     ...(difficulty ? { difficulty } : {}),
     ...(rubric.length ? { rubricPoints: rubric } : {}),
   };
@@ -96,6 +101,34 @@ function importedToQuestion(raw: ImportedQuestion): Question {
     q.grading = { acceptedAnswers: Array.isArray(acceptedAnswers) && acceptedAnswers.length ? acceptedAnswers.map(String) : [String(raw.answer ?? "")] };
   }
   return withAiMetadata(q, raw);
+}
+
+/** IMG-1 — thu nhỏ ảnh lớn trước khi tải lên (điện thoại hay chụp 3-6 MB).
+ *  Ảnh ≤ 3.5 MB giữ nguyên; ảnh lớn hơn được vẽ lại tối đa 1600px cạnh dài,
+ *  nén JPEG 0.85 để luôn nằm dưới ngưỡng 4 MB của API. */
+async function downscaleImage(file: File): Promise<File> {
+  if (file.size <= 3.5 * 1024 * 1024) return file;
+  try {
+    const bitmap = await createImageBitmap(file);
+    const max = 1600;
+    const scale = Math.min(1, max / Math.max(bitmap.width, bitmap.height));
+    const w = Math.max(1, Math.round(bitmap.width * scale));
+    const h = Math.max(1, Math.round(bitmap.height * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return file;
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, w, h);
+    ctx.drawImage(bitmap, 0, 0, w, h);
+    bitmap.close();
+    const blob: Blob | null = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.85));
+    if (!blob || blob.size >= file.size) return file;
+    return new File([blob], file.name.replace(/\.[^.]+$/, "") + ".jpg", { type: "image/jpeg" });
+  } catch {
+    return file;
+  }
 }
 
 function dbToQuestion(raw: DbQuestion): Question {
@@ -168,6 +201,8 @@ export function TaoDeThiEditor({ editId, initialExam }: { editId: string | null;
   const [preview, setPreview] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [error, setError] = useState("");
+  // IMG-1 — câu đang tải ảnh lên (để hiện trạng thái "Đang tải ảnh…").
+  const [uploadingImg, setUploadingImg] = useState<number | null>(null);
   const currentStatus = initialExam?.status === "draft" ? "draft" : "published";
   const backHref = editId ? `/bang-dieu-khien/de-thi/${editId}` : "/bang-dieu-khien/de-thi";
 
@@ -186,6 +221,31 @@ export function TaoDeThiEditor({ editId, initialExam }: { editId: string | null;
   const changeType = (index: number, type: QuestionType) => updateQuestion(index, blankQuestion(type));
   const addQuestion = (type: QuestionType = "mcq") => setQuestions((all) => [...all, blankQuestion(type)]);
   const removeQuestion = (index: number) => setQuestions((all) => all.length === 1 ? [blankQuestion()] : all.filter((_, i) => i !== index));
+
+  const setQuestionImage = (index: number, image: string | undefined) =>
+    setQuestions((all) => all.map((q, i) => (i === index ? { ...q, grading: { ...q.grading, image } } : q)));
+
+  const handleImage = async (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
+    const input = e.target;
+    const file = input.files?.[0];
+    input.value = "";
+    if (!file) return;
+    setError("");
+    setUploadingImg(index);
+    try {
+      const prepared = await downscaleImage(file);
+      const fd = new FormData();
+      fd.append("file", prepared);
+      const res = await fetch("/api/uploads/question-image", { method: "POST", body: fd });
+      const data = (await res.json()) as { url?: string; error?: string };
+      if (!res.ok || !data.url) throw new Error(data.error || "Không tải được ảnh");
+      setQuestionImage(index, data.url);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Không tải được ảnh");
+    } finally {
+      setUploadingImg(null);
+    }
+  };
 
   const applyImported = (parsed: { title?: unknown; questions?: unknown[] }) => {
     if (parsed.title) setTitle(String(parsed.title));
@@ -230,6 +290,21 @@ export function TaoDeThiEditor({ editId, initialExam }: { editId: string | null;
                   <div className="mb-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-2"><div className="flex items-center gap-2"><span className="grid h-7 w-7 place-items-center rounded-lg bg-[var(--primary-light)] text-xs font-black text-[var(--primary)]">{i+1}</span><Select value={q.type} onChange={(v) => changeType(i, v as QuestionType)} options={TYPE_OPTIONS} ariaLabel="Loại câu hỏi"/></div><div className="flex shrink-0 items-center gap-2"><span className="text-[11px] font-bold text-[var(--text-muted)]">Điểm</span><NumberInput value={q.points} onChange={(v)=>updateQuestion(i,{points:v})} min={0.25} max={20} step={0.25} className="w-40"/><button title="Xóa câu" onClick={() => removeQuestion(i)} className="grid h-10 sm:h-8 w-10 sm:w-8 place-items-center rounded-lg text-[var(--text-muted)] hover:bg-[var(--danger-light)] hover:text-[var(--danger)]"><Trash2 size={15}/></button></div></div>
                   <textarea value={q.question} onChange={(e) => updateQuestion(i,{question:e.target.value})} rows={3} placeholder="Nhập nội dung câu hỏi..." className="w-full rounded-xl border border-[var(--surface-border)] bg-[var(--surface-card)] p-3 text-sm outline-none"/>
 
+                  <div className="mt-3">
+                    {q.grading?.image ? (
+                      <div className="relative inline-block">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={q.grading.image} alt="Ảnh minh hoạ câu hỏi" className="max-h-40 rounded-xl border border-[var(--surface-border)] bg-white" />
+                        <button type="button" title="Xóa ảnh" onClick={() => setQuestionImage(i, undefined)} className="absolute -right-2 -top-2 grid h-7 w-7 place-items-center rounded-full bg-[var(--danger)] text-white shadow"><X size={13}/></button>
+                      </div>
+                    ) : (
+                      <label className={cn("inline-flex cursor-pointer items-center gap-2 rounded-xl border border-dashed border-[var(--surface-border)] px-3 py-2 text-xs font-semibold text-[var(--text-secondary)] transition hover:border-[var(--primary)] hover:text-[var(--primary)]", uploadingImg === i && "pointer-events-none opacity-60")}>
+                        <ImageIcon size={14}/> {uploadingImg === i ? "Đang tải ảnh…" : "Thêm ảnh"}
+                        <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImage(i, e)} />
+                      </label>
+                    )}
+                  </div>
+
                   <div className="mt-3 flex flex-wrap items-center gap-2">
                     <span className="text-xs font-semibold text-[var(--text-secondary)]">Độ khó</span>
                     <div className="flex flex-wrap gap-1.5">
@@ -265,7 +340,10 @@ export function TaoDeThiEditor({ editId, initialExam }: { editId: string | null;
       </div>
 
       <ImportExamModal open={importOpen} onClose={()=>setImportOpen(false)} onSuccess={applyImported}/>
-      {preview && <div className="fixed inset-0 z-[100] overflow-y-auto bg-black/50 p-4 backdrop-blur-sm"><div className="mx-auto max-w-4xl rounded-2xl bg-[var(--surface-card)] p-6 shadow-2xl"><div className="mb-5 flex items-center justify-between"><div><p className="text-xs text-[var(--text-secondary)]">Xem trước</p><h2 className="text-xl font-black">{title || "Đề thi mới"}</h2></div><button onClick={()=>setPreview(false)} className="grid h-10 sm:h-9 w-10 sm:w-9 place-items-center rounded-lg bg-[var(--gray-100)]"><X size={17}/></button></div><div className="flex flex-col gap-4">{questions.map((q,i)=><div key={i} className="rounded-xl border p-4"><p className="mb-3 font-semibold">Câu {i+1}. {q.question}</p>{q.type==="mcq"&&q.options.map((o,oi)=><div key={oi} className="mb-1 rounded-lg border p-2 text-sm">{String.fromCharCode(65+oi)}. {o}</div>)}{q.type==="true_false"&&(q.grading?.statements||[]).map((s,si)=><div key={si} className="mb-1 flex justify-between rounded-lg border p-2 text-sm"><span>{String.fromCharCode(97+si)}) {s.text}</span><strong>{s.answer?"Đúng":"Sai"}</strong></div>)}{q.type==="short_answer"&&<div className="rounded-lg border bg-[var(--gray-100)] p-3 text-sm">Ô trả lời ngắn</div>}{q.type==="essay"&&<div className="min-h-28 rounded-lg border bg-[var(--gray-100)] p-3 text-sm">Ô trả lời tự luận</div>}</div>)}</div></div></div>}
+      {preview && <div className="fixed inset-0 z-[100] overflow-y-auto bg-black/50 p-4 backdrop-blur-sm"><div className="mx-auto max-w-4xl rounded-2xl bg-[var(--surface-card)] p-6 shadow-2xl"><div className="mb-5 flex items-center justify-between"><div><p className="text-xs text-[var(--text-secondary)]">Xem trước</p><h2 className="text-xl font-black">{title || "Đề thi mới"}</h2></div><button onClick={()=>setPreview(false)} className="grid h-10 sm:h-9 w-10 sm:w-9 place-items-center rounded-lg bg-[var(--gray-100)]"><X size={17}/></button></div><div className="flex flex-col gap-4">{questions.map((q,i)=><div key={i} className="rounded-xl border p-4">{q.grading?.image&&(<>
+{/* eslint-disable-next-line @next/next/no-img-element */}
+<img src={q.grading.image} alt="Ảnh minh hoạ" className="mb-3 max-h-64 rounded-lg border border-[var(--surface-border)]"/>
+</>)}<p className="mb-3 font-semibold">Câu {i+1}. {q.question}</p>{q.type==="mcq"&&q.options.map((o,oi)=><div key={oi} className="mb-1 rounded-lg border p-2 text-sm">{String.fromCharCode(65+oi)}. {o}</div>)}{q.type==="true_false"&&(q.grading?.statements||[]).map((s,si)=><div key={si} className="mb-1 flex justify-between rounded-lg border p-2 text-sm"><span>{String.fromCharCode(97+si)}) {s.text}</span><strong>{s.answer?"Đúng":"Sai"}</strong></div>)}{q.type==="short_answer"&&<div className="rounded-lg border bg-[var(--gray-100)] p-3 text-sm">Ô trả lời ngắn</div>}{q.type==="essay"&&<div className="min-h-28 rounded-lg border bg-[var(--gray-100)] p-3 text-sm">Ô trả lời tự luận</div>}</div>)}</div></div></div>}
     </div>
   );
 }

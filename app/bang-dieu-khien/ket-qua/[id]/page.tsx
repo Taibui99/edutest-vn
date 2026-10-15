@@ -22,6 +22,7 @@ interface Question {
   grading?: {
     statements?: { text: string; answer: boolean }[];
     acceptedAnswers?: string[];
+    image?: string;
   } | null;
   explanation?: string;
   order: number;
@@ -266,6 +267,10 @@ export default function ResultPage({ params }: { params: Promise<{ id: string }>
                 const isCorrect = mark === true;
                 return (
                   <div key={q.id} className="p-5">
+                    {q.grading?.image && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={q.grading.image} alt="Hình minh hoạ câu hỏi" className="mb-3 max-h-64 w-auto rounded-lg border border-[var(--surface-border)] bg-white" />
+                    )}
                     <div className="flex items-start gap-2 mb-3">
                       <span className={`shrink-0 w-5 h-5 rounded-full flex items-center justify-center ${
                         mark === null ? "bg-[var(--gray-200)]" :
