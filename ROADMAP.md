@@ -439,6 +439,17 @@ GĐ3 **luôn bypass được** (trình duyệt khác, VM, điện thoại). Ch�
 - [x] **Verify (không hồi quy):** `student-take-exam.spec.ts` **6/6 desktop PASS** trên production sau các thay đổi; timing spec tạm (đã xoá) đo nộp bài/join như trên. `tsc`/`eslint`/`build` sạch.
 - [ ] **Còn chờ user:** (1) đổi `DATABASE_URL` prod sang pooler 6543 (LOAD-2b) — hạ sàn độ trễ DB; (2) dựng UptimeRobot/cron ping `/api/health` giữ ấm function (hết cold start ~4s).
 
+## ✅ Điểm riêng từng mệnh đề Đúng/Sai (TF-1, 2026-10-15)
+
+**Yêu cầu user:** *"phần đúng sai sao không set được điểm từng đáp án, vì đúng sai không tính điểm cả câu"*.
+
+- [x] **TF-1 Điểm riêng từng mệnh đề Đúng/Sai** (`697ddfa`, verified prod 1/1) — trước đây `grading.statements[]` chỉ có `{text, answer}`, `isQuestionCorrect` đòi **đúng hết mới được điểm câu** → 4 mệnh đề đúng 3 = 0 điểm. Nay mỗi mệnh đề có `points` riêng; điểm câu = **tổng điểm các mệnh đề làm đúng**.
+  - **Chấm:** `lib/grading.ts` thêm `earnedPointsOf` + `statementPointsArray` (chuẩn hoá về tổng điểm câu; đề cũ/thiếu điểm → **chia đều**). `scoreSubmission` cộng điểm từng mệnh đề; `correctCount`/leaderboard **giữ nguyên** "trọn vẹn".
+  - **Editor** (`tao-de-khien/tao-de-thi/editor.tsx`): mỗi mệnh đề có ô **"Điểm"** + nút xoá; ô "Điểm" đầu câu Đúng/Sai chỉ hiển thị **tổng tự cộng**; lưu luôn đồng bộ `points` = tổng.
+  - **Xem lại:** guest review (`exam-taking-client-v2.tsx`), kết quả GV (`ket-qua/[id]`), bản HTML máy iOS cũ (`thi-cu/[code]/html.ts`) đều hiện `+{điểm}đ` mỗi mệnh đề đúng + dòng "Điểm câu này: X/Yđ".
+  - **Không rò dữ liệu:** payload học sinh vẫn chỉ gửi `statements[].text`.
+  - **Verify prod** (`tests/e2e/true-false-points.spec.ts`): 2 mệnh đề 1+1 → đúng 1 → **5/10**, review hiện `1/2đ` (1/1 pass).
+
 ## 🖼️ Chèn ảnh minh hoạ vào câu hỏi (IMG-1, 2026-10-15)
 
 **Yêu cầu user (khẩn):** *"tính năng tới giờ tự mở ra... khoan, làm tính năng chèn ảnh minh hoạ vào câu hỏi đi"* — GV muốn gắn ảnh (hình vẽ, sơ đồ, biểu đồ) vào từng câu hỏi, ảnh phải hiện khi học sinh làm bài, xem lại bài và cả trên máy iOS yếu.
