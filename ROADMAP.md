@@ -439,7 +439,19 @@ GĐ3 **luôn bypass được** (trình duyệt khác, VM, điện thoại). Ch�
 - [x] **Verify (không hồi quy):** `student-take-exam.spec.ts` **6/6 desktop PASS** trên production sau các thay đổi; timing spec tạm (đã xoá) đo nộp bài/join như trên. `tsc`/`eslint`/`build` sạch.
 - [ ] **Còn chờ user:** (1) đổi `DATABASE_URL` prod sang pooler 6543 (LOAD-2b) — hạ sàn độ trễ DB; (2) dựng UptimeRobot/cron ping `/api/health` giữ ấm function (hết cold start ~4s).
 
-## ⏰ Tự mở đề khi tới giờ + đọc đề bằng Gemini (2026-10-15)
+## 🖼️ Chèn ảnh minh hoạ vào câu hỏi (IMG-1, 2026-10-15)
+
+**Yêu cầu user (khẩn):** *"tính năng tới giờ tự mở ra... khoan, làm tính năng chèn ảnh minh hoạ vào câu hỏi đi"* — GV muốn gắn ảnh (hình vẽ, sơ đồ, biểu đồ) vào từng câu hỏi, ảnh phải hiện khi học sinh làm bài, xem lại bài và cả trên máy iOS yếu.
+
+- [x] **IMG-1 Chèn ảnh minh hoạ vào câu hỏi** (`4b53096`, verified prod 3/3 pass) — GV tải ảnh ngay trong editor câu hỏi → lưu **URL vào `grading.image`** (JSON, **không cần migration**) → ảnh render ở cả 3 nơi.
+  - **Upload:** `app/api/uploads/question-image/route.ts` (teacher-only, rate limit 20/60s, png/jpeg/webp/gif, **≤4MB**) → **bucket công khai `question-images`** trên Supabase Storage (tự tạo nếu thiếu) → trả `{ url }`.
+  - **Editor** (`tao-de-thi/editor.tsx`): `Grading.image`, nút **"Thêm ảnh"** + thumbnail + xoá; **client thu nhỏ ảnh** (`downscaleImage`: canvas cạnh ≤1600px, JPEG 0.85, chỉ khi >3.5MB) để giữ dưới cap body Vercel 4.5MB; `withAiMetadata` **giữ image** khi AI gợi ý đề; preview modal có ảnh.
+  - **Học sinh:** `app/thi/[code]/page.tsx` **whitelist `mapQuestionsForStudent` gộp `image`** (giữ nguyên chống rò đáp án) → `exam-taking-client-v2.tsx` render ảnh **trên text câu** + trong `GuestReview`; kết quả GV `ket-qua/[id]` cũng thấy ảnh.
+  - **Máy iOS cũ:** bản HTML thuần `thi-cu/[code]/html.ts` (`buildReview` + CSS `.qimg`) — không JS, ảnh vẫn hiện.
+  - CSP `next.config.ts` đã sẵn `img-src https://*.supabase.co` → không phải sửa.
+  - **Verify prod** (`tests/e2e/question-image.spec.ts`, **giữ làm regression**): (1) tải ảnh lên + tạo đề có ảnh; (2) học sinh khách thấy ảnh **và tải được** (`naturalWidth>0`); (3) bản HTML cũ cũng thấy ảnh → **3/3 pass**.
+
+
 
 **Yêu cầu user:** *"phần đặt thời gian mở đề ... hệ thống có tự load lại trang cho học sinh vào làm không hay phải thực hiện thủ công?"* (trước đây **thủ công** — trang tĩnh, không có gì tự làm mới) và *"AI đọc đề hiện tại càng ngày càng dốt, để mỗi gemini làm việc đi"*.
 
