@@ -714,11 +714,11 @@ export function ExamTakingClientV2({ exam, attempt, preview = false, backHref }:
 
           {result.review && result.review.length > 0 && <GuestReview items={result.review} />}
 
-          <div className="mt-5 flex flex-col sm:flex-row gap-3">
+          <div className="mt-6 flex flex-col gap-3">
             {result.canRetry !== false && (
-              <Button className="flex-1" onClick={handleRetry}><RotateCcw size={16} /> Làm lại</Button>
+              <Button size="lg" className="w-full h-14 sm:h-14 text-base" onClick={handleRetry}><RotateCcw size={18} /> Làm lại</Button>
             )}
-            <Button variant="outline" className="flex-1" onClick={() => router.push(exam.isGuest ? backHref : "/bang-dieu-khien")}>
+            <Button variant="outline" className="w-full" onClick={() => router.push(exam.isGuest ? backHref : "/bang-dieu-khien")}>
               {exam.isGuest ? "Về danh sách đề thi" : "Về trang chủ"}
             </Button>
           </div>

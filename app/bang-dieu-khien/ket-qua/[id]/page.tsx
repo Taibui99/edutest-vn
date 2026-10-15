@@ -5,7 +5,7 @@ import Link from "next/link";
 import {
   CheckCircle2, XCircle, Clock, Trophy, ArrowLeft,
   ChevronDown, ChevronUp, BookOpen, BarChart3, PenLine, Hourglass,
-  MinusCircle, EyeOff
+  MinusCircle, EyeOff, RotateCcw
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -372,12 +372,12 @@ export default function ResultPage({ params }: { params: Promise<{ id: string }>
         </Card>
       )}
 
-      <div className="flex gap-3 mt-6">
-        <Link href="/bang-dieu-khien" className="flex-1">
-          <Button variant="outline" className="w-full">Về Dashboard</Button>
+      <div className="flex flex-col gap-3 mt-6">
+        <Link href="/vao-thi" className="w-full">
+          <Button size="lg" className="w-full h-14 sm:h-14 text-base"><RotateCcw size={18} /> Thi tiếp</Button>
         </Link>
-        <Link href="/vao-thi" className="flex-1">
-          <Button className="w-full">Thi tiếp</Button>
+        <Link href="/bang-dieu-khien" className="w-full">
+          <Button variant="outline" className="w-full">Về Dashboard</Button>
         </Link>
       </div>
     </div>
