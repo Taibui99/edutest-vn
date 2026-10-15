@@ -10,7 +10,8 @@ import type { LiveQuestionView, LiveSubmissionDetail } from "@/lib/live-board";
 import { livePath, liveSubmissionApiPath } from "@/lib/live-paths";
 
 /* LIVE-1b — màn chi tiết 1 bài làm mở từ bảng điểm (bấm tên học sinh).
- * Chữ to để giáo viên đọc khi chữa đề miệng. Tự poll như bảng; CHỈ XEM. */
+ * Chữ to để giáo viên đọc khi chữa đề miệng. Tự poll như bảng; CHỈ XEM.
+ * LIVE-1c — hiện đáp án chuẩn + lời giải kể cả khi đề đang mở (GV chữa bài). */
 
 const POLL_MS = 5000;
 
@@ -420,11 +421,6 @@ export function LiveSubmissionView({ initial, token, submissionId }: Props) {
             </p>
           )}
 
-          {!showAnswerKey && (
-            <p className="mt-3 rounded-xl px-4 py-2.5 text-sm font-bold text-white/55" style={{ background: "rgba(255,255,255,.06)" }}>
-              Đáp án chuẩn và lời giải sẽ hiển thị khi đề kết thúc (hoặc khi giáo viên của đề đăng nhập).
-            </p>
-          )}
         </section>
 
         {/* ── Chi tiết từng câu ─────────────────────────────────────── */}

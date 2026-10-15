@@ -1,7 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { isAdminAccess, isTeacherAccess } from "@/lib/access";
 import { earnedPointsOf, isAutoGraded, pointsOf, type AnswerValue } from "@/lib/grading";
 
 export { livePath, liveSubmissionPath } from "@/lib/live-paths";
@@ -169,9 +167,9 @@ export async function getLiveBoardByToken(token: string): Promise<LiveBoard> {
  * Bấm tên học sinh trên bảng điểm → màn riêng xem TOÀN BỘ bài làm, chữ to
  * để giáo viên chữa đề miệng. CHỈ ĐỌC — không sửa điểm ở trang này.
  *
- * Quy tắc lộ đáp án chuẩn: giáo viên CỦA đề (hoặc admin) luôn thấy; người
- * cầm link (kể cả tivi chưa đăng nhập) chỉ thấy khi đề ĐÃ ĐÓNG — tránh lộ
- * đáp án cho lớp trong lúc đề vẫn đang mở. */
+ * LIVE-1c — đáp án chuẩn LUÔN hiện trên màn này (kể cả khi đề đang mở) vì
+ * đây là màn của GV chữa bài. Trang KHÔNG cần đăng nhập nên ai có link bí mật
+ * đều thấy đáp án → chỉ chiếu khi đang chữa, xong thì thu hồi link. */
 
 export interface LiveQuestionView {
   id: string;
@@ -205,7 +203,7 @@ export interface LiveQuestionView {
 export interface LiveSubmissionDetail {
   found: boolean;
   phase: "waiting" | "live" | "closed";
-  /** Người xem này được thấy đáp án chuẩn không (GV/admin hoặc đề đã đóng). */
+  /** LIVE-1c — màn chi tiết luôn hiện đáp án chuẩn (GV chữa đề miệng). */
   showAnswerKey: boolean;
   exam: {
     id: string;
@@ -238,19 +236,9 @@ export interface LiveSubmissionDetail {
   serverTime: string;
 }
 
-/** Người xem màn chi tiết có phải giáo viên CỦA đề này (hoặc admin) không? */
-async function viewerIsStaff(teacherId: string): Promise<boolean> {
-  try {
-    const session = await auth();
-    const user = session?.user;
-    if (!user) return false;
-    if (isAdminAccess(user)) return true;
-    if (!isTeacherAccess(user)) return false;
-    return Boolean(user.id) && user.id === teacherId;
-  } catch {
-    return false;
-  }
-}
+/** LIVE-1c — màn chi tiết là màn của GV chữa bài nên LUÔN cho xem đáp án.
+ * (Bảng điểm công khai vẫn không lộ đáp án; chỉ trang chi tiết này mở.) */
+const SHOW_ANSWER_KEY = true;
 
 export async function getLiveSubmissionByToken(token: string, submissionId: string): Promise<LiveSubmissionDetail> {
   const empty: LiveSubmissionDetail = {
@@ -275,7 +263,6 @@ export async function getLiveSubmissionByToken(token: string, submissionId: stri
       status: true,
       openAt: true,
       closeAt: true,
-      teacherId: true,
       questions: {
         orderBy: { order: "asc" },
         select: {
@@ -289,7 +276,7 @@ export async function getLiveSubmissionByToken(token: string, submissionId: stri
   if (!exam) return empty;
 
   const phase = phaseOf(exam);
-  const showAnswerKey = (await viewerIsStaff(exam.teacherId)) || phase === "closed";
+  const showAnswerKey = SHOW_ANSWER_KEY;
 
   const sub = await prisma.submission.findFirst({
     where: { id: submissionId, examId: exam.id },

@@ -2,7 +2,7 @@ import { test, expect, request as pwRequest } from "@playwright/test";
 import { STUDENT, TEACHER, startAttempt, BASE_URL } from "./helpers";
 
 /* LIVE-1b — màn hình chi tiết bài làm khi bấm tên trên bảng điểm:
- *  D-01 API chi tiết: không đăng nhập, đề đang mở → đủ thông tin NHƯNG giấu đáp án
+ *  D-01 API chi tiết: không đăng nhập, đủ thông tin + đáp án chuẩn (LIVE-1c)
  *  D-02 bấm tên trên bảng → màn riêng, chữ to, đủ thông tin, quay lại bảng được
  *  D-03 GV đóng đề → người xem không đăng nhập thấy đáp án chuẩn
  *  D-04 token lạ / submission không thuộc token → 404 */
@@ -100,7 +100,7 @@ test.afterAll(async () => {
   }
 });
 
-test("D-01: API chi tiết không đăng nhập — đủ thông tin, GIẤU đáp án khi đề đang mở", async () => {
+test("D-01: API chi tiết không đăng nhập — đủ thông tin + hiện đáp án dù đề đang mở", async () => {
   const pub = await pwRequest.newContext({ baseURL: BASE_URL });
   const res = await pub.get(publicDetail(TOKEN, SUB_ID));
   expect(res.status(), await res.text()).toBe(200);
@@ -109,7 +109,7 @@ test("D-01: API chi tiết không đăng nhập — đủ thông tin, GIẤU đ�
   const d = await res.json();
   expect(d.found).toBe(true);
   expect(d.phase, "chưa set closeAt → đề đang diễn ra").toBe("live");
-  expect(d.showAnswerKey, "không đăng nhập + đề đang mở → không được thấy đáp án").toBe(false);
+  expect(d.showAnswerKey, "LIVE-1c — màn chi tiết luôn hiện đáp án để GV chữa bài").toBe(true);
 
   expect(d.exam.title).toContain("QA-LIVEDET-");
   expect(d.exam.totalPoints).toBe(10);
@@ -131,12 +131,12 @@ test("D-01: API chi tiết không đăng nhập — đủ thông tin, GIẤU đ�
   expect(d.questions[0].earned).toBe(4);
   expect(d.questions[0].points).toBe(4);
   expect(d.questions[0].studentAnswer).toBe("A");
-  expect(d.questions[0].key, "đề đang mở → không có đáp án MCQ").toBeFalsy();
-  // Câu trả lời ngắn: đúng 3đ, nhưng acceptedAnswers bị giấu.
+  expect(d.questions[0].key?.answer, "phải có đáp án MCQ dù đề đang mở").toBe("A");
+  // Câu trả lời ngắn: đúng 3đ, đáp án chấp nhận hiện luôn.
   expect(d.questions[1].status).toBe("correct");
   expect(d.questions[1].earned).toBe(3);
   expect(d.questions[1].answered).toBe(true);
-  expect(d.questions[1].key?.acceptedAnswers, "không được lộ đáp án chấp nhận").toBeUndefined();
+  expect(d.questions[1].key?.acceptedAnswers, "phải có đáp án chấp nhận").toContain("hà nội");
   // Câu sai: 0đ.
   expect(d.questions[2].status).toBe("wrong");
   expect(d.questions[2].earned).toBe(0);
@@ -166,10 +166,10 @@ test("D-02: bấm tên trên bảng xếp hạng → màn chi tiết chữ to, �
   await expect(page.getByText("hà nội").first()).toBeVisible();
   await expect(page.getByText("Đúng", { exact: true }).first()).toBeVisible();
 
-  // Đề đang mở + chưa đăng nhập → không lộ đáp án.
-  await expect(page.getByText("Đáp án chấp nhận")).toHaveCount(0);
-  await expect(page.getByText("Đáp án đúng")).toHaveCount(0);
-  await expect(page.getByText(/Đáp án chuẩn và lời giải sẽ hiển thị/)).toBeVisible();
+  // LIVE-1c — đề đang mở nhưng màn chi tiết của GV vẫn hiện đáp án chuẩn.
+  await expect(page.getByText("Đáp án chấp nhận")).toBeVisible();
+  await expect(page.getByText("hà nội").first()).toBeVisible();
+  await expect(page.getByText("Đáp án đúng", { exact: true }).first()).toBeVisible();
 
   // Quay lại bảng điểm.
   await page.getByRole("link", { name: /Quay lại bảng điểm/ }).first().click();
