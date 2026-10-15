@@ -68,26 +68,28 @@ export default async function RootLayout({
 try{
   var MIN=1100, CAP=3500, RAMP=900, MAX=88;
   var MSG=[[0,"Đang khởi tạo A6Class…"],[38,"Đang tải giao diện và chữ…"],[78,"Đang hoàn thiện…"],[100,"Sẵn sàng!"]];
-  function start(){
-    var el=document.getElementById("a6-preloader");
-    if(!el){return;}
-    if(window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches){el.style.display="none";return;}
+  var reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var OBS_AFTER = 0;
+  function render(el,v){
+    v=Math.round(v);
     var num=el.querySelector("[data-a6-pct]");
     var liquid=el.querySelector(".a6-pl-liquid");
     var status=el.querySelector(".a6-pl-status");
+    if(num){num.textContent=v;}
+    if(liquid){liquid.style.height=v+"%";}
+    if(status){var t=MSG[0][1];for(var i=0;i<MSG.length;i++){if(v>=MSG[i][0]){t=MSG[i][1];}}status.textContent=t;}
+  }
+  function run(el){
+    if(el.__a6){return;}
+    el.__a6=1;
+    if(reduced){el.style.display="none";return;}
     var ready=document.readyState==="complete";
     var settled=false, timer=0;
-    function render(v){
-      v=Math.round(v);
-      if(num){num.textContent=v;}
-      if(liquid){liquid.style.height=v+"%";}
-      if(status){var t=MSG[0][1];for(var i=0;i<MSG.length;i++){if(v>=MSG[i][0]){t=MSG[i][1];}}status.textContent=t;}
-    }
     function finish(){
       if(settled){return;}
       settled=true;
       if(timer){clearInterval(timer);}
-      render(100);
+      render(el,100);
       el.setAttribute("data-burst","true");
       var root=document.documentElement;
       root.classList.add("a6-reveal");
@@ -107,10 +109,41 @@ try{
       var elapsed=performance.now()-t0;
       if(ready&&elapsed>=MIN){window.clearInterval(timer);finish();return;}
       var p=Math.min(elapsed/RAMP,1);p=1-Math.pow(1-p,3);
-      render(p*MAX);
+      render(el,p*MAX);
     },50);
   }
-  if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",start);}else{start();}
+  /* Bug "vòng lặp nhập tên" (khách trên iPhone): sau khi khách bấm "Bắt đầu làm
+     bài", client gọi router.refresh() (soft navigation). React chèn LẠI markup
+     preloader (HTML thô, là một phần cây layout) nhưng <script> inline trong
+     <head> KHÔNG chạy lại khi soft-navigate → overlay mới đứng nguyên ở 0%,
+     che kín màn hình. Quan sát DOM: preloader nào xuất hiện SAU khi trang đã
+     tải (ngoài cửa sổ nạp đầu) là do soft-nav tái tạo → ẩn ngay, không animate
+     (soft-nav vốn do PageTransition lo, không cần preloader). */
+  function watch(){
+    try{
+      var mo=new MutationObserver(function(muts){
+        if(performance.now()<OBS_AFTER){return;}
+        for(var i=0;i<muts.length;i++){
+          var adds=muts[i].addedNodes;
+          for(var j=0;j<adds.length;j++){
+            var n=adds[j];
+            if(n&&n.nodeType===1){
+              var t=(n.id==="a6-preloader")?n:(n.querySelector?n.querySelector("#a6-preloader"):null);
+              if(t&&!t.__a6){t.__a6=1;t.style.display="none";}
+            }
+          }
+        }
+      });
+      mo.observe(document.documentElement,{childList:true,subtree:true});
+    }catch(e){}
+  }
+  function boot(){
+    OBS_AFTER = performance.now()+1800;
+    var el=document.getElementById("a6-preloader");
+    if(el){run(el);}
+    watch();
+  }
+  if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",boot);}else{boot();}
 }catch(e){try{var x=document.getElementById("a6-preloader");if(x){x.style.display="none";}}catch(_){}}
 })();`,
           }}

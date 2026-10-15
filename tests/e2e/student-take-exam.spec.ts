@@ -67,6 +67,11 @@ test.describe("STUDENT — Làm bài thi", () => {
     await page.getByPlaceholder("12A6").fill("12A9");
     await page.getByRole("button", { name: "Bắt đầu làm bài" }).click();
     await expect(page.getByText("Câu 1/2").first()).toBeVisible({ timeout: 15000 });
+    // Regression (bug "vòng lặp nhập tên" trên iPhone): sau khi khách tham gia,
+    // router.refresh() tái tạo preloader (HTML thô) NHƯNG script inline không
+    // chạy lại → overlay mới đứng ở 0% che kín màn hình. Phải KHÔNG còn overlay
+    // hiện (script tự ẩn mọi preloader bị tái tạo sau khi trang tải).
+    await expect(page.locator("#a6-preloader")).toBeHidden({ timeout: 8000 });
   });
 
   test("S-05: Anti-cheat — blur 1 lần → toast cảnh báo (sau ân hạn)", async ({ page }) => {
