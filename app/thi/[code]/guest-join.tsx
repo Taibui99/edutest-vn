@@ -1,46 +1,73 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { UserRound, School } from "lucide-react";
+import { UserRound, School, AlertTriangle } from "lucide-react";
 
-export function GuestJoin({ code, title }: { code: string; title: string }) {
+/* GUEST-3b — Hybrid: server-renderable form (action/method) + JS enhancement.
+ * - Có `action="/api/guest-attempts" method="post"` → chạy được khi JS tắt/iOS cũ.
+ * - Có `onSubmit` preventDefault → dùng fetch JSON + `router.refresh()` khi JS có.
+ * → Mọi thiết bị đều chạy, UX mượt trên thiết bị hiện đại. */
+
+const ERRORS: Record<string, string> = {
+  invalid: "Vui lòng nhập đầy đủ họ tên và lớp.",
+  notfound: "Đề thi không tồn tại hoặc chưa được công bố.",
+  forbidden: "Đề thi này yêu cầu đăng nhập tài khoản A6Class Edu.",
+  server: "Không thể bắt đầu bài thi. Vui lòng thử lại.",
+};
+
+export function GuestJoin({
+  code,
+  title,
+  error,
+}: {
+  code: string;
+  title: string;
+  error?: string;
+}) {
   const router = useRouter();
   const [name, setName] = useState("");
   const [className, setClassName] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [err, setErr] = useState(error || "");
 
-  async function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setError("");
-    // GUEST-1: iOS tự điền (autofill) không bắn onChange cho React → state có
-    // thể rỗng dù ô hiện chữ. Đọc giá trị THẬT từ DOM qua FormData, rồi đồng
-    // bộ lại state để validate + gửi đi khớp nhau.
-    const fd = new FormData(event.currentTarget);
-    const realName = String(fd.get("name") ?? "").trim();
-    const realClass = String(fd.get("class") ?? "").trim();
-    setName(realName);
-    setClassName(realClass);
-    if (!realName || !realClass) {
-      setError("Vui lòng nhập đầy đủ họ tên và lớp.");
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const trimmedName = name.trim();
+    const trimmedClass = className.trim();
+    if (!trimmedName || !trimmedClass) {
+      setErr("invalid");
       return;
     }
-    setLoading(true);
     try {
+      setLoading(true);
+      setErr("");
       const res = await fetch("/api/guest-attempts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ examCode: code, name: realName, className: realClass }),
+        body: JSON.stringify({ examCode: code, name: trimmedName, className: trimmedClass }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Không thể vào bài thi");
+      if (!res.ok) {
+        let msgKey = "server";
+        try {
+          const j = await res.json();
+          const m = (j as any)?.error || "";
+          if (m.includes("đầy đủ")) msgKey = "invalid";
+          else if (m.includes("không tồn tại") || m.includes("chưa được")) msgKey = "notfound";
+          else if (m.includes("yêu cầu đăng nhập")) msgKey = "forbidden";
+        } catch {}
+        setErr(msgKey);
+        return;
+      }
       router.refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Không thể vào bài thi");
+    } catch {
+      setErr("server");
+    } finally {
       setLoading(false);
     }
   }
+
+  const message = err ? (ERRORS[err] ?? ERRORS.server) : "";
 
   return (
     <div className="min-h-screen bg-[var(--surface-bg)] flex items-center justify-center p-4">
@@ -54,20 +81,25 @@ export function GuestJoin({ code, title }: { code: string; title: string }) {
           Nhập họ tên và lớp để hệ thống ghi nhận bạn là người tham gia chính thức của bài thi.
         </p>
 
-        {error && <div className="mb-4 rounded-xl border border-[var(--danger-light)] bg-[var(--danger-light)] px-4 py-3 text-sm text-[var(--danger)]">{error}</div>}
+        {message && (
+          <div className="mb-4 rounded-xl border border-[var(--danger-light)] bg-[var(--danger-light)] px-4 py-3 text-sm text-[var(--danger)]">
+            {message}
+          </div>
+        )}
 
-        <form onSubmit={submit} className="space-y-4">
+        <form action="/api/guest-attempts" method="post" onSubmit={handleSubmit} className="space-y-4">
+          <input type="hidden" name="examCode" value={code} />
           <label className="block">
             <span className="text-sm font-semibold text-[var(--gray-700)]">Họ và tên</span>
             <div className="mt-1.5 flex items-center gap-2 rounded-xl border border-[var(--gray-200)] bg-white px-3 focus-within:border-[var(--primary)]">
               <UserRound size={16} className="text-[var(--gray-400)] shrink-0" />
               <input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
                 required
                 maxLength={100}
                 autoComplete="name"
                 name="name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
                 placeholder="Nguyễn Văn A"
                 className="h-12 w-full bg-transparent text-sm text-[var(--text-primary)] outline-none"
               />
@@ -79,11 +111,11 @@ export function GuestJoin({ code, title }: { code: string; title: string }) {
             <div className="mt-1.5 flex items-center gap-2 rounded-xl border border-[var(--gray-200)] bg-white px-3 focus-within:border-[var(--primary)]">
               <School size={16} className="text-[var(--gray-400)] shrink-0" />
               <input
-                value={className}
-                onChange={(e) => setClassName(e.target.value)}
                 required
                 maxLength={50}
                 name="class"
+                value={className}
+                onChange={(e) => setClassName(e.target.value)}
                 placeholder="12A6"
                 className="h-12 w-full bg-transparent text-sm text-[var(--text-primary)] outline-none"
               />
@@ -93,9 +125,9 @@ export function GuestJoin({ code, title }: { code: string; title: string }) {
           <button
             type="submit"
             disabled={loading}
-            className="h-12 w-full rounded-xl bg-[var(--primary)] text-sm font-semibold text-white transition-colors hover:bg-[var(--primary-hover)] disabled:cursor-not-allowed disabled:opacity-50"
+            className="h-12 w-full rounded-xl bg-[var(--primary)] text-sm font-semibold text-white transition-colors hover:bg-[var(--primary-hover)] disabled:opacity-60"
           >
-            {loading ? "Đang vào bài thi..." : "Bắt đầu làm bài"}
+            {loading ? "Đang vào..." : "Bắt đầu làm bài"}
           </button>
         </form>
       </div>
