@@ -298,8 +298,7 @@ export async function finalizeTimedOutAttempt(attemptId: string): Promise<Submis
 
   // GĐ2 — chốt cùng lúc cờ rủi ro: bài hết giờ vẫn được ghi nhật ký để giáo
   // viên thấy vì sao học sinh không kịp nộp.
-  const risk = await riskOfAttempt(attempt.id);
-  const ipHash = await currentIpHash();
+  const [risk, ipHash] = await Promise.all([riskOfAttempt(attempt.id), currentIpHash()]);
 
   let participantName = "Học sinh";
   if (attempt.studentId) {

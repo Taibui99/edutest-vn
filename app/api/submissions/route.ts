@@ -51,19 +51,29 @@ export async function POST(request: NextRequest) {
    * số lượt còn lại của đề. */
   let canRetry = true;
 
-  if (session?.user) {
-    // G6b — hiệu lực theo mode (xem attempts/route.ts).
-    if (!isStudentAccess(session.user)) return NextResponse.json({ error: `Bạn đang ở chế độ ${effectiveMode(session.user) === "admin" ? "Quản trị" : "Giáo viên"}. Hãy chuyển sang chế độ Học sinh để nộp bài thi.` }, { status: 403 });
-    studentId = session.user.id;
-    participantName = session.user.name || "Học sinh";
-    const attemptsUsed = await prisma.submission.count({ where: { examId, studentId: session.user.id } });
-    // EXAM-1b — `maxAttempts <= 0` = vô hạn: bỏ qua chốt lượt.
-    if (exam.maxAttempts > 0 && attemptsUsed >= exam.maxAttempts) {
-      const latest = await prisma.submission.findFirst({ where: { examId, studentId: session.user.id }, orderBy: { submittedAt: "desc" } });
-      return NextResponse.json({ error: `Bạn đã hết số lần làm bài (${exam.maxAttempts} lần)`, submission: latest }, { status: 409 });
+  /* Tiết kiệm 1 round trip (~1s+ trên Supabase): đọc nhật ký vi phạm + băm IP
+   * chạy SONG SONG với việc xác định người nộp bên dưới (hai việc độc lập nhau).
+   * `catch` rỗng để lỡ đường thoát sớm (attempt không hợp lệ) không thành
+   * unhandled rejection — `await` vẫn ném lại lỗi như cũ khi chạy tới. */
+  const riskPromise = attempt && attempt.examId === examId ? riskOfAttempt(attempt.id) : null;
+  riskPromise?.catch(() => {});
+  const ipHashPromise = currentIpHash();
+
+  const participantError = await (async (): Promise<NextResponse | null> => {
+    if (session?.user) {
+      // G6b — hiệu lực theo mode (xem attempts/route.ts).
+      if (!isStudentAccess(session.user)) return NextResponse.json({ error: `Bạn đang ở chế độ ${effectiveMode(session.user) === "admin" ? "Quản trị" : "Giáo viên"}. Hãy chuyển sang chế độ Học sinh để nộp bài thi.` }, { status: 403 });
+      studentId = session.user.id;
+      participantName = session.user.name || "Học sinh";
+      const attemptsUsed = await prisma.submission.count({ where: { examId, studentId: session.user.id } });
+      // EXAM-1b — `maxAttempts <= 0` = vô hạn: bỏ qua chốt lượt.
+      if (exam.maxAttempts > 0 && attemptsUsed >= exam.maxAttempts) {
+        const latest = await prisma.submission.findFirst({ where: { examId, studentId: session.user.id }, orderBy: { submittedAt: "desc" } });
+        return NextResponse.json({ error: `Bạn đã hết số lần làm bài (${exam.maxAttempts} lần)`, submission: latest }, { status: 409 });
+      }
+      canRetry = exam.maxAttempts <= 0 || attemptsUsed + 1 < exam.maxAttempts;
+      return null;
     }
-    canRetry = exam.maxAttempts <= 0 || attemptsUsed + 1 < exam.maxAttempts;
-  } else {
     if (!exam.allowGuestAttempts) return NextResponse.json({ error: "Đề thi này yêu cầu đăng nhập tài khoản A6Class Edu" }, { status: 401 });
     const token = (await cookies()).get(`edutest_guest_${exam.id}`)?.value;
     if (!token) return NextResponse.json({ error: "Phiên khách không hợp lệ hoặc đã hết hạn" }, { status: 401 });
@@ -72,7 +82,9 @@ export async function POST(request: NextRequest) {
     if (guest.submittedAt) return NextResponse.json({ error: "Bạn đã nộp bài này rồi" }, { status: 409 });
     guestParticipantId = guest.id;
     participantName = guest.name;
-  }
+    return null;
+  })();
+  if (participantError) return participantError;
 
   /* GĐ1 — kiểm chứng lần làm bài TRƯỚC khi chấm điểm.
    * Attempt là nguồn sự thật duy nhất về thời gian: `startedAt`/`deadlineAt`
@@ -101,15 +113,17 @@ export async function POST(request: NextRequest) {
   /* GĐ2 — chốt cờ rủi ro cùng lúc với bài làm. Đọc nhật ký vi phạm đã ghi
    * trong lúc thi rồi cộng điểm: chỉ để giáo viên xem, KHÔNG trừ điểm,
    * KHÔNG làm mất bài làm (ROADMAP — "Chống gian lận khi thi"). */
-  const [risk, ipHash] = await Promise.all([riskOfAttempt(attempt.id), currentIpHash()]);
+  const [risk, ipHash] = await Promise.all([riskPromise ?? riskOfAttempt(attempt.id), ipHashPromise]);
 
   const totalQuestions = exam.questions.length;
   // GRADE-1: điểm có TRỌNG SỐ theo `points` từng câu (trước đây mọi câu bằng
   // nhau dù GV đã cấu hình điểm — đúng lỗi user báo "setting điểm không ăn").
   const { score, correctCount } = scoreSubmission(exam.questions, answers);
 
-  const submission = await prisma.$transaction(async (tx) => {
-    const created = await tx.submission.create({
+  // Dạng mảng: Prisma gửi cả gói trong MỘT round trip. Bản `async (tx) => ...`
+  // trước đây phải tuần tự từng lệnh, mỗi lệnh ~1s+ trên Supabase.
+  const [submission] = await prisma.$transaction([
+    prisma.submission.create({
       data: {
         examId,
         studentId,
@@ -126,12 +140,11 @@ export async function POST(request: NextRequest) {
         autoSubmitted: risk.autoSubmitted,
         ipHash,
       },
-    });
+    }),
     // Đóng attempt: xoá `activeKey` (mở lại lượt mới) và ghi mốc đã nộp.
-    await tx.attempt.update({ where: { id: attempt.id }, data: { submittedAt: now, activeKey: null } });
-    if (guestParticipantId) await tx.guestParticipant.update({ where: { id: guestParticipantId }, data: { submittedAt: now } });
-    return created;
-  });
+    prisma.attempt.update({ where: { id: attempt.id }, data: { submittedAt: now, activeKey: null } }),
+    ...(guestParticipantId ? [prisma.guestParticipant.update({ where: { id: guestParticipantId }, data: { submittedAt: now } })] : []),
+  ]);
 
   /* Chuông báo cho giáo viên: bắn rồi không đợi (fire-and-forget) để khỏi cộng
    * thêm 1 round trip vào đường nộp bài. Rớt thì mất 1 chuông, bài làm và điểm

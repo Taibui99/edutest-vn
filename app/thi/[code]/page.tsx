@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import dynamic from "next/dynamic";
+import { cache } from "react";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
@@ -14,9 +15,16 @@ import { GuestJoin } from "./guest-join";
 
 const ExamTakingClientV2 = dynamic(() => import("./exam-taking-client-v2").then((m) => m.ExamTakingClientV2));
 
+/* `cache()` gộp truy vấn đề giữa `generateMetadata` và thân trang trong CÙNG
+ * một request — trước đây mỗi lượt mở đề tốn 2 round trip DB (~1s+ mỗi lượt
+ * trên Supabase). Hai chỗ gọi dùng chung đúng một `joinCode` đã chuẩn hoá. */
+const getExamByCode = cache(async (code: string) =>
+  prisma.exam.findUnique({ where: { joinCode: code }, include: { questions: { orderBy: { order: "asc" } } } }),
+);
+
 export async function generateMetadata({ params }: { params: Promise<{ code: string }> }): Promise<Metadata> {
   const { code } = await params;
-  const exam = await prisma.exam.findUnique({ where: { joinCode: code.toUpperCase() }, select: { title: true } });
+  const exam = await getExamByCode(code.toUpperCase());
   return exam
     ? { title: `${exam.title} — A6Class Edu` }
     : { title: "Mã tham gia không hợp lệ — A6Class Edu" };
@@ -71,7 +79,7 @@ export default async function ThiPage({ params, searchParams }: { params: Promis
     if (legacy === "1" || isLegacyBrowser(ua)) redirect(`/thi-cu/${normalizedCode}`);
   }
   const session = await auth();
-  const exam = await prisma.exam.findUnique({ where: { joinCode: normalizedCode }, include: { questions: { orderBy: { order: "asc" } } } });
+  const exam = await getExamByCode(normalizedCode);
 
   /* GĐ0: KHÔNG được gửi `q.answer`/`acceptedAnswers` xuống client cho học sinh.
    * Prop của RSC nằm thẳng trong payload mà View Source / tab Network đọc được —
