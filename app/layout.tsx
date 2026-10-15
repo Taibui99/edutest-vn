@@ -111,7 +111,10 @@ try{
     if(el.__a6){return;}
     el.__a6=1;
     if(reduced){el.style.display="none";return;}
-    var ready=document.readyState==="complete";
+    /* PERF-1: đủ khi DOM sẵn sàng (CSS render-blocking đã áp, HTML đã parse) —
+       không chờ sự kiện load của toàn bộ chunk JS/font nữa. Trước đây chờ load
+       khiến overlay kéo dài tới khi tải xong ~400KB script. */
+    var ready=document.readyState!=="loading";
     var settled=false, timer=0, raf=0;
     function finish(){
       if(settled){return;}
