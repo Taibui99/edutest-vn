@@ -1,8 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { CheckCircle2, Clock, GraduationCap, QrCode, Trophy, Users, Wifi } from "lucide-react";
 import type { LiveBoard } from "@/lib/live-board";
+import { liveSubmissionPath } from "@/lib/live-paths";
 
 /* LIVE-1 — máy chiếu bảng điểm. Tự poll vài giây (không cần đăng nhập vì
  * đi qua token bí mật ở URL), chữ to đọc rõ trên tivi. */
@@ -200,7 +202,13 @@ export function LiveBoardClient({ initial, token, qrUrl, joinUrl }: Props) {
                       <div className="text-4xl font-black leading-none sm:text-5xl" style={{ color: MEDAL[place - 1] }}>
                         {fmtScore(r!.score)}
                       </div>
-                      <div className="mt-1 truncate text-sm font-black sm:text-base">{r!.name}</div>
+                      <Link
+                        href={liveSubmissionPath(token, r!.id)}
+                        title="Xem chi tiết bài làm"
+                        className="mt-1 block truncate text-sm font-black transition-colors hover:text-[#7dd3fc] sm:text-base"
+                      >
+                        {r!.name}
+                      </Link>
                       <div className="truncate text-xs text-white/55">{r!.className || "—"}</div>
                     </div>
                     <div
@@ -253,7 +261,13 @@ export function LiveBoardClient({ initial, token, qrUrl, joinUrl }: Props) {
                   <span className="text-base font-black tabular-nums" style={{ color: r.rank <= 3 ? MEDAL[r.rank - 1] : "rgba(255,255,255,.55)" }}>
                     {r.rank}
                   </span>
-                  <span className="truncate text-base font-bold sm:text-lg">{r.name}</span>
+                  <Link
+                    href={liveSubmissionPath(token, r.id)}
+                    title="Xem chi tiết bài làm"
+                    className="truncate text-base font-bold transition-colors hover:text-[#7dd3fc] sm:text-lg"
+                  >
+                    {r.name}
+                  </Link>
                   <span className="hidden truncate text-sm text-white/55 sm:block">{r.className || "—"}</span>
                   <span className="hidden text-right text-sm tabular-nums text-white/60 sm:block">
                     {r.correctCount}/{r.totalQuestions}
