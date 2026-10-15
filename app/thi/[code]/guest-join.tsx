@@ -59,7 +59,7 @@ export function GuestJoin({
         setErr(msgKey);
         return;
       }
-      router.refresh();
+      router.push(`/thi/${code}`);
     } catch {
       setErr("server");
     } finally {
