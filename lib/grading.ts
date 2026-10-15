@@ -136,5 +136,11 @@ export function scoreSubmission<T extends { id: string; type: string; points?: u
       }
     }
   }
-  return { score: total > 0 ? Number(((earned / total) * 10).toFixed(2)) : 0, correctCount };
+  /* SCORE-1 — điểm = 10 − tổng điểm các câu/ý SAI (không phụ thuộc tổng đề).
+   * Nhờ vậy kể cả khi tổng điểm đề lệch khỏi 10 thì điểm vẫn ra đúng theo
+   * nghĩa "làm mất bao nhiêu điểm". Khi tổng đề = 10 thì đây đúng bằng điểm
+   * đạt (10 − điểm mất = 10 − (10 − đạt) = đạt). */
+  const lost = Math.max(0, total - earned);
+  const score = total > 0 ? Number(Math.min(10, Math.max(0, 10 - lost)).toFixed(2)) : 0;
+  return { score, correctCount };
 }
