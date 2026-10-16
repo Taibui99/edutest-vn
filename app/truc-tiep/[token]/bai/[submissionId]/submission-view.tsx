@@ -321,7 +321,7 @@ export function LiveSubmissionView({ initial, token, submissionId }: Props) {
 
   const { exam, submission: s, showAnswerKey } = detail;
   const meta = PHASE[detail.phase];
-  const scoreColor = s.score >= 5 ? "#4ade80" : "#f87171";
+  const scoreColor = s.score >= 7 ? "#4ade80" : "#f87171";
   const wrongCount = Math.max(0, s.totalQuestions - s.correctCount);
 
   const stats = [
@@ -389,7 +389,9 @@ export function LiveSubmissionView({ initial, token, submissionId }: Props) {
               <p className="text-xs font-black uppercase tracking-widest text-white/45">
                 Hạng {s.rank}/{s.submittedTotal}{s.isGuest ? " · Học sinh khách" : ""}
               </p>
-              <h2 className="mt-1 text-4xl font-black leading-none text-balance sm:text-5xl">{s.name}</h2>
+              <h2 className="mt-1 text-4xl font-black leading-none text-balance sm:text-5xl" style={{ color: s.score >= 7 ? undefined : "#f87171" }}>
+                {s.name}
+              </h2>
               <p className="mt-2 text-lg font-bold text-white/60">{s.className || "Chưa có lớp"}</p>
             </div>
             <div className="text-right">

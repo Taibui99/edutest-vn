@@ -156,7 +156,7 @@ export async function getLiveBoardByToken(token: string): Promise<LiveBoard> {
     stats: {
       avg: scores.length ? Number((scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(2)) : null,
       highest: scores.length ? Math.max(...scores) : null,
-      passCount: scores.filter((s) => s >= 5).length,
+      passCount: scores.filter((s) => s >= 7).length,
       total: submittedCount,
     },
     serverTime: now.toISOString(),

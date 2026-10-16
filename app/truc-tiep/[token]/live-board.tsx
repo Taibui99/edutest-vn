@@ -12,6 +12,15 @@ import { liveSubmissionPath } from "@/lib/live-paths";
 const POLL_MS = 3000;
 const VISIBLE_ROWS = 15;
 
+/* Ngưỡng màu điểm: dưới 7đ (≤ 6) đỏ — cần lưu ý; từ 7đ trở lên xanh. Ô "Đạt" cũng tính từ 7đ. */
+const PASS_SCORE = 7;
+const GREEN = "#4ade80";
+const RED = "#f87171";
+
+function scoreColor(score: number): string {
+  return score >= PASS_SCORE ? GREEN : RED;
+}
+
 const PHASE = {
   live: { label: "TRỰC TIẾP", color: "#22c55e", glow: "rgba(34,197,94,.35)" },
   waiting: { label: "CHƯA MỞ ĐỀ", color: "#f5b942", glow: "rgba(245,185,66,.3)" },
@@ -158,7 +167,7 @@ export function LiveBoardClient({ initial, token, qrUrl, joinUrl, initialShowAll
             { icon: GraduationCap, label: "Đang làm", value: board.activeCount },
             { icon: Trophy, label: "Điểm TB", value: board.stats.avg !== null ? fmtScore(board.stats.avg) : "—" },
             { icon: Trophy, label: "Cao nhất", value: board.stats.highest !== null ? fmtScore(board.stats.highest) : "—" },
-            { icon: CheckCircle2, label: "Đạt ≥ 5đ", value: board.stats.total ? `${Math.round((board.stats.passCount / board.stats.total) * 100)}%` : "—" },
+            { icon: CheckCircle2, label: "Đạt ≥ 7đ", value: board.stats.total ? `${Math.round((board.stats.passCount / board.stats.total) * 100)}%` : "—" },
           ].map(({ icon: Icon, label, value }) => (
             <div
               key={label}
@@ -258,7 +267,8 @@ export function LiveBoardClient({ initial, token, qrUrl, joinUrl, initialShowAll
                   }`}
                   style={{
                     borderBottom: "1px solid rgba(255,255,255,.07)",
-                    background: flash.has(r.id) ? "rgba(34,197,94,.14)" : undefined,
+                    background: flash.has(r.id) ? "rgba(34,197,94,.14)" : r.score < PASS_SCORE ? "rgba(248,113,113,.10)" : undefined,
+                    boxShadow: r.score < PASS_SCORE && !flash.has(r.id) ? "inset 3px 0 0 0 #f87171" : undefined,
                   }}
                 >
                   <span className="text-base font-black tabular-nums" style={{ color: r.rank <= 3 ? MEDAL[r.rank - 1] : "rgba(255,255,255,.55)" }}>
@@ -267,7 +277,9 @@ export function LiveBoardClient({ initial, token, qrUrl, joinUrl, initialShowAll
                   <Link
                     href={liveSubmissionPath(token, r.id)}
                     title="Xem chi tiết bài làm"
-                    className="truncate text-base font-bold transition-colors hover:text-[#7dd3fc] sm:text-lg"
+                    className={`truncate text-base font-bold transition-colors hover:text-[#7dd3fc] sm:text-lg ${
+                      r.score < PASS_SCORE ? "text-[#f87171]" : ""
+                    }`}
                   >
                     {r.name}
                   </Link>
@@ -278,7 +290,7 @@ export function LiveBoardClient({ initial, token, qrUrl, joinUrl, initialShowAll
                   <span className="flex items-center justify-end gap-1 text-sm tabular-nums text-white/55">
                     <Clock size={12} /> {fmtDuration(r.durationSeconds)}
                   </span>
-                  <span className="text-right text-2xl font-black tabular-nums sm:text-3xl" style={{ color: r.score >= 5 ? "#4ade80" : "#f87171" }}>
+                  <span className="text-right text-2xl font-black tabular-nums sm:text-3xl" style={{ color: scoreColor(r.score) }}>
                     {fmtScore(r.score)}
                   </span>
                 </li>
