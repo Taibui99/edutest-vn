@@ -24,7 +24,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   return (
     <div className="min-h-screen bg-[var(--surface-bg)]">
-      <MobileTopbar user={user} />
+      <MobileTopbar user={user} logoutAction={logoutAction} />
 
       <div className="flex">
         <Sidebar user={user} logoutAction={logoutAction} />

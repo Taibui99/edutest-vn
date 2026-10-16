@@ -1,10 +1,11 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, FileText, Sparkles, User,
-  Users, MoreHorizontal, TrendingUp, GraduationCap,
+  Users, MoreHorizontal, TrendingUp, GraduationCap, LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { NotificationBell } from "@/components/ui/notification-bell";
@@ -27,8 +28,27 @@ const teacherMobileNav = [
   { href: "/bang-dieu-khien/thong-ke",   label: "More",      icon: <MoreHorizontal size={20} /> },
 ];
 
-export function MobileTopbar({ user }: { user: { name: string; role: string; mode: string } }) {
+export function MobileTopbar({ user, logoutAction }: { user: { name: string; role: string; mode: string }; logoutAction: () => Promise<void> }) {
   const mode = user.mode === "student" ? "student" : "teacher";
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    function handleClick(e: MouseEvent) {
+      if (!menuRef.current?.contains(e.target as Node)) setMenuOpen(false);
+    }
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setMenuOpen(false);
+    }
+    document.addEventListener("mousedown", handleClick);
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("mousedown", handleClick);
+      document.removeEventListener("keydown", handleKey);
+    };
+  }, [menuOpen]);
+
   return (
     <header
       className="lg:hidden flex items-center justify-between px-4 h-14 bg-[var(--surface-sidebar)] border-b border-[var(--surface-border)] sticky top-0 z-40"
@@ -44,8 +64,45 @@ export function MobileTopbar({ user }: { user: { name: string; role: string; mod
         </span>
         <ThemeToggle />
         <NotificationBell />
-        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[var(--primary)] to-[var(--primary-muted)] flex items-center justify-center text-white text-xs font-bold">
-          {user.name.charAt(0).toUpperCase()}
+        <div ref={menuRef} className="relative">
+          <button
+            type="button"
+            onClick={() => setMenuOpen((o) => !o)}
+            aria-label="Tài khoản"
+            aria-haspopup="menu"
+            aria-expanded={menuOpen}
+            className="w-8 h-8 rounded-full bg-gradient-to-br from-[var(--primary)] to-[var(--primary-muted)] flex items-center justify-center text-white text-xs font-bold active:scale-95 transition-transform"
+          >
+            {user.name.charAt(0).toUpperCase()}
+          </button>
+
+          {menuOpen && (
+            <div
+              role="menu"
+              className="absolute right-0 top-[calc(100%+8px)] z-50 w-56 rounded-2xl border border-[var(--surface-border)] bg-[var(--surface-card)] shadow-2xl overflow-hidden"
+            >
+              <div className="px-4 py-3 border-b border-[var(--surface-border)]">
+                <p className="text-sm font-semibold text-[var(--text-primary)] truncate">{user.name}</p>
+              </div>
+              <Link
+                href="/bang-dieu-khien/ho-so"
+                role="menuitem"
+                onClick={() => setMenuOpen(false)}
+                className="flex items-center gap-3 px-4 py-3 text-sm font-semibold text-[var(--text-secondary)] hover:bg-[var(--gray-100)] transition-colors"
+              >
+                <User size={16} /> Hồ sơ cá nhân
+              </Link>
+              <form action={logoutAction}>
+                <button
+                  type="submit"
+                  role="menuitem"
+                  className="w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold text-[var(--danger)] hover:bg-[var(--gray-100)] transition-colors"
+                >
+                  <LogOut size={16} /> Đăng xuất
+                </button>
+              </form>
+            </div>
+          )}
         </div>
       </div>
     </header>

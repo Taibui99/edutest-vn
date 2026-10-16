@@ -75,4 +75,17 @@ test.describe("DASHBOARD — Bảng điều khiển", () => {
       await expect(link).toBeVisible({ timeout: 10000 });
     }
   });
+
+  test("D-05: Mobile — nhấn avatar mở menu Hồ sơ + Đăng xuất", async ({ page }) => {
+    test.skip(test.info().project.name !== "mobile", "chỉ áp dụng cho mobile");
+    await login(page, TEACHER.email, TEACHER.password);
+    await page.goto("/bang-dieu-khien");
+    const avatar = page.getByRole("button", { name: "Tài khoản" });
+    await expect(avatar).toBeVisible({ timeout: 20000 });
+    await avatar.click();
+    await expect(page.getByRole("menuitem", { name: /hồ sơ cá nhân/i })).toBeVisible();
+    await expect(page.getByRole("menuitem", { name: /đăng xuất/i })).toBeVisible();
+    await page.getByRole("menuitem", { name: /hồ sơ cá nhân/i }).click();
+    await expect(page).toHaveURL(/\/bang-dieu-khien\/ho-so/);
+  });
 });
