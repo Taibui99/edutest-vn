@@ -92,7 +92,7 @@ test.describe("STUDENT — Làm bài thi", () => {
     // Ân hạn 30s cho rời trang bị động (nới cho iPhone tự khoá màn hình): toast
     // chỉ hiện khi vẫn đi sau 30s → chờ dư 40s. Việc chạm ngưỡng KHÔNG tự nộp
     // nữa (IOS-1a), nên bên dưới test nộp thủ công để nhả activeKey.
-    await expect(page.getByText(/phát hiện rời khỏi bài thi/i).first()).toBeVisible({ timeout: 40000 });
+    await expect(page.getByText(/phát hiện vi phạm quy chế thi/i).first()).toBeVisible({ timeout: 40000 });
     // Nộp bài để giải phóng activeKey — attempt đang mở (chưa nộp) sẽ chặn lần
     // thi sau: project kia chạy cùng tài khoản, hoặc lần chạy kế tiếp.
     await page.getByRole("button", { name: /nộp bài/i }).first().click();
