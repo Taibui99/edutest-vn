@@ -319,6 +319,8 @@ Tất cả L1–L4 trong commit `6e0ad48` — verified live: robots.txt/sitemap.
 
 **Quyết định đã chốt:** chỉ **ghi log + gắn cờ rủi ro**, giáo viên xem timeline rồi tự quyết — **không** tự 0 điểm, **không** từ chối nộp bài. Giáo viên **chọn chế độ** siết (nghiêm / nhẹ / tắt). **Không** dùng webcam/micro.
 
+**Chốt thêm (2026-10-16):** mặc định vẫn là **`off`** — *"bật hay không là do giáo viên setting"* (user). **Không** đổi mặc định sang `light`; mỗi GV tự bật cho đề của mình. Mô tả `off` trong editor viết **trung lập** ("Tắt — không theo dõi. Giáo viên tự bật…"), không dùng giọng phán quyết.
+
 ### 🚨 Lỗ hổng nghiêm trọng nhất — đáp án đúng đang lộ xuống máy học sinh
 `app/thi/[code]/page.tsx:28` serialize **toàn bộ đáp án** (`q.answer`) + `grading.acceptedAnswers` xuống client cho **mọi học sinh**, không riêng giáo viên preview. Đây là prop của React Server Component nên nằm ngay trong payload RSC → học sinh chỉ cần View Source hoặc tab Network là đọc được đáp án toàn đề, **không cần DevTools**. Trong khi đó client không hề dùng `question.answer` để làm gì (`exam-taking-client-v2.tsx:247-253`), điểm do server chấm ở `app/api/submissions/route.ts:59`.
 → **Mọi biện pháp rào trình duyệt hiện tại đều vô nghĩa** vì bài đã bị lộ trước khi học sinh làm bất cứ điều gì. Phải sửa cái này trước.
