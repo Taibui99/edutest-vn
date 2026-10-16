@@ -66,7 +66,7 @@ export const PROCTOR_MODE_LABELS: Record<ProctorMode, string> = {
 };
 
 export const PROCTOR_MODE_DESCRIPTIONS: Record<ProctorMode, string> = {
-  off: "Không theo dõi (không khuyến khích khi thi).",
+  off: "Tắt — không theo dõi. Giáo viên tự bật Nhẹ/Nghiêm khi muốn có nhật ký vi phạm.",
   light: "Phát hiện và ghi nhận mọi vi phạm: rời tab, copy/paste, menu chuột phải, phím tắt DevTools, in ấn, nhiều tab, chụp màn hình. Không chặn cứng, không bắt toàn màn hình.",
   strict: "Như Nhẹ, thêm: chặn cứng copy/paste/menu/in ấn và bắt buộc toàn màn hình (chỉ máy tính). Áp dụng trên mọi thiết bị.",
 }

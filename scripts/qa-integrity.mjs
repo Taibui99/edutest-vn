@@ -1,6 +1,6 @@
 // Test thuần cho `lib/integrity.ts` (GĐ2) — không cần server, không cần DB.
 // Cách chạy: node scripts/qa-integrity.mjs
-import { computeRisk, severityOf, isProctorEventType, labelOf, MAX_VIOLATIONS, isProctorMode, resolveProctorMode, proctorModeLabel } from "../lib/integrity.ts";
+import { computeRisk, severityOf, isProctorEventType, labelOf, MAX_VIOLATIONS, isProctorMode, resolveProctorMode, proctorModeLabel, PROCTOR_MODE_DESCRIPTIONS } from "../lib/integrity.ts";
 
 let failures = 0;
 function check(ok, label, extra = "") {
@@ -97,6 +97,20 @@ eq(resolveProctorMode("light"), "light", "dien thoai: light giu nguyen");
 eq(resolveProctorMode("off"), "off", "off luon la off");
 eq(proctorModeLabel("strict"), "Nghiêm", "co nhan tieng Viet cho strict");
 eq(proctorModeLabel("khong-hop-le"), "Tắt", "che do la → nhan mac dinh Tat");
+
+// Mô tả 3 chế độ phải đủ nội dung (editor hiển thị cho giáo viên).
+{
+  const modes = ["off", "light", "strict"];
+  check(
+    modes.every((m) => (PROCTOR_MODE_DESCRIPTIONS[m] || "").length > 10),
+    "mo ta cho du 3 che do cho editor",
+  );
+  check(
+    PROCTOR_MODE_DESCRIPTIONS.off.startsWith("Tắt — không theo dõi."),
+    "off trung lap: chi mo ta, khong su dung giong phan quyet",
+    PROCTOR_MODE_DESCRIPTIONS.off,
+  );
+}
 
 // print đẩy rủi ro lên nhanh: 1 lần print (high=30) đã là low, 2 lần = high
 eq(computeRisk([{ type: "print" }]).riskScore, 30, "1 lan print = 30");
