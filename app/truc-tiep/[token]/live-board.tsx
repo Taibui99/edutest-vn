@@ -221,6 +221,9 @@ export function LiveBoardClient({ initial, token, qrUrl, joinUrl, initialShowAll
                       >
                         {r!.name}
                       </Link>
+                      {r!.attemptCount > 1 && (
+                        <div className="text-[10px] font-black text-[#7dd3fc]">{r!.attemptCount} lần làm</div>
+                      )}
                       <div className="truncate text-xs text-white/55">{r!.className || "—"}</div>
                     </div>
                     <div
@@ -274,15 +277,26 @@ export function LiveBoardClient({ initial, token, qrUrl, joinUrl, initialShowAll
                   <span className="text-base font-black tabular-nums" style={{ color: r.rank <= 3 ? MEDAL[r.rank - 1] : "rgba(255,255,255,.55)" }}>
                     {r.rank}
                   </span>
-                  <Link
-                    href={liveSubmissionPath(token, r.id)}
-                    title="Xem chi tiết bài làm"
-                    className={`truncate text-base font-bold transition-colors hover:text-[#7dd3fc] sm:text-lg ${
-                      r.score < PASS_SCORE ? "text-[#f87171]" : ""
-                    }`}
-                  >
-                    {r.name}
-                  </Link>
+                  <div className="flex min-w-0 items-center gap-1.5">
+                    <Link
+                      href={liveSubmissionPath(token, r.id)}
+                      title="Xem chi tiết bài làm"
+                      className={`truncate text-base font-bold transition-colors hover:text-[#7dd3fc] sm:text-lg ${
+                        r.score < PASS_SCORE ? "text-[#f87171]" : ""
+                      }`}
+                    >
+                      {r.name}
+                    </Link>
+                    {r.attemptCount > 1 && (
+                      <span
+                        className="shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-black"
+                        style={{ background: "rgba(125,211,252,.16)", color: "#7dd3fc" }}
+                        title={`Học sinh đã làm ${r.attemptCount} lần`}
+                      >
+                        {r.attemptCount} lần
+                      </span>
+                    )}
+                  </div>
                   <span className="hidden truncate text-sm text-white/55 sm:block">{r.className || "—"}</span>
                   <span className="hidden text-right text-sm tabular-nums text-white/60 sm:block">
                     {r.correctCount}/{r.totalQuestions}

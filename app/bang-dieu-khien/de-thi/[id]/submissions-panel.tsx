@@ -20,6 +20,8 @@ export type SubRow = {
   totalQuestions: number;
   durationSeconds: number;
   submittedAt: string;
+  /* Số lần học sinh đã làm bài (điểm lấy theo lượt MỚI NHẤT). 1 = chưa làm lại. */
+  attemptCount: number;
   answers: Record<string, AnswerValue>;
   /* GĐ2 — cờ rủi ro do SERVER tính lúc chốt bài (`lib/integrity.ts`).
    * Chỉ để giáo viên xem, không ảnh hưởng điểm. */
@@ -259,12 +261,13 @@ export function SubmissionsPanel({ subs, questions }: { subs: SubRow[]; question
   }, [subs, sort, riskFilter]);
 
   const exportCsv = () => {
-    const header = ["STT", "Tên", "Lớp", "Điểm", "Đúng", "Tổng câu", "Thời gian", "Ngày nộp", "Cờ rủi ro", "Số lần vi phạm"];
+    const header = ["STT", "Tên", "Lớp", "Điểm", "Số lần làm", "Đúng", "Tổng câu", "Thời gian", "Ngày nộp", "Cờ rủi ro", "Số lần vi phạm"];
     const rows = sorted.map((s, i) => [
       i + 1,
       s.studentName,
       s.studentClass,
       s.score,
+      s.attemptCount,
       s.correctCount,
       s.totalQuestions,
       formatDur(s.durationSeconds),
@@ -371,6 +374,14 @@ export function SubmissionsPanel({ subs, questions }: { subs: SubRow[]; question
                   <p className="text-sm font-semibold text-[var(--text-primary)] truncate flex items-center gap-1.5">
                     {sub.studentName}
                     {sub.studentClass && <span className="text-[11px] font-medium text-[var(--text-muted)]">· {sub.studentClass}</span>}
+                    {sub.attemptCount > 1 && (
+                      <span
+                        className="shrink-0 rounded-md bg-[var(--blue-light)] px-1.5 py-0.5 text-[10px] font-black text-[var(--blue)]"
+                        title={`Học sinh đã làm ${sub.attemptCount} lần — điểm lấy theo lượt mới nhất`}
+                      >
+                        {sub.attemptCount} lần làm
+                      </span>
+                    )}
                     <RiskChip sub={sub} />
                   </p>
                   <p className="text-xs text-[var(--text-muted)]">

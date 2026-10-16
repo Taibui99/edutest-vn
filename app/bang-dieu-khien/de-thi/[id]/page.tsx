@@ -14,6 +14,7 @@ import { ExamActions } from "./exam-actions";
 import { CopyJoinCode } from "./copy-join-code";
 import { getSubjectColor } from "@/lib/subject";
 import { isQuestionCorrect, isAutoGraded, type AnswerValue } from "@/lib/grading";
+import { groupLatestByParticipant } from "@/lib/live-board";
 import { SubmissionsPanel, type SubRow, type SubQuestion } from "./submissions-panel";
 import { RegradeButton } from "./regrade-button";
 import { LiveBoardButton } from "./live-board-button";
@@ -46,7 +47,11 @@ export default async function ExamDetailPage({ params }: { params: Promise<{ id:
   if (!exam) notFound();
 
   type Sub = typeof exam.submissions[0];
-  const subs = exam.submissions;
+  // Gộp theo NGƯỜI: mỗi học sinh 1 dòng, tính điểm theo LƯỢT NỘP MỚI NHẤT; đếm
+  // số lần làm. Thống kê/điểm cũng theo học sinh (không đếm trùng khi làm lại).
+  const groups = groupLatestByParticipant(exam.submissions);
+  const subs = groups.map((g) => g.latest);
+  const attemptCountById = new Map(groups.map((g) => [g.latest.id, g.attemptCount]));
   const avgScore = subs.length > 0
     ? subs.reduce((s: number, x: Sub) => s + x.score, 0) / subs.length
     : null;
@@ -73,6 +78,7 @@ export default async function ExamDetailPage({ params }: { params: Promise<{ id:
     totalQuestions: s.totalQuestions,
     durationSeconds: s.durationSeconds,
     submittedAt: s.submittedAt.toISOString(),
+    attemptCount: attemptCountById.get(s.id) ?? 1,
     answers: (s.answers as Record<string, AnswerValue>) || {},
     manualScores: (s.manualScores && typeof s.manualScores === "object" ? s.manualScores : null) as Record<string, number> | null,
     // GĐ2 — cờ rủi ro server đã tính lúc chốt bài + timeline nhật ký vi phạm.
@@ -146,7 +152,7 @@ export default async function ExamDetailPage({ params }: { params: Promise<{ id:
           <div className="flex flex-wrap items-center gap-4 mt-4 text-white/70 text-sm">
             <span className="flex items-center gap-1.5"><FileText size={13} /> {exam.questions.length} câu hỏi</span>
             <span className="flex items-center gap-1.5"><Clock size={13} /> {exam.durationMinutes} phút</span>
-            <span className="flex items-center gap-1.5"><Users size={13} /> {subs.length} bài nộp</span>
+            <span className="flex items-center gap-1.5"><Users size={13} /> {subs.length} học sinh nộp</span>
             {exam.proctorMode !== "off" && <span className="flex items-center gap-1.5"><ShieldCheck size={13} /> Chống gian lận: {proctorModeLabel(exam.proctorMode)}</span>}
           </div>
         </div>
@@ -176,7 +182,7 @@ export default async function ExamDetailPage({ params }: { params: Promise<{ id:
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         {[
-          { label: "Bài nộp", value: subs.length, color: "bg-[var(--primary-light)] dark:bg-[var(--gray-900)] text-[var(--primary)]" },
+          { label: "Học sinh nộp", value: subs.length, color: "bg-[var(--primary-light)] dark:bg-[var(--gray-900)] text-[var(--primary)]" },
           { label: "Điểm TB", value: avgScore !== null ? avgScore.toFixed(1) : "—", color: "bg-[var(--warning-light)] dark:bg-[var(--gray-900)] text-[var(--warning)]" },
           { label: "Điểm cao nhất", value: highest !== null ? highest.toFixed(1) : "—", color: "bg-[var(--success-light)] dark:bg-[var(--gray-900)] text-[var(--success)]" },
           { label: "Tỉ lệ đậu", value: subs.length > 0 ? `${Math.round((passCount / subs.length) * 100)}%` : "—", color: "bg-[var(--blue-light)] dark:bg-[var(--gray-900)] text-[var(--blue)]" },

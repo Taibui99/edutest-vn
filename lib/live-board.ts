@@ -18,6 +18,29 @@ export interface LiveRow {
   durationSeconds: number;
   submittedAt: string;
   isGuest: boolean;
+  /** Số lần học sinh đã làm bài (số lượt nộp). > 1 nghĩa là có làm lại. */
+  attemptCount: number;
+}
+
+/* LIVE-1b — gộp bài nộp theo NGƯỜI làm (học sinh tài khoản hoặc khách), giữ
+ * LƯỢT NỘP MỚI NHẤT làm điểm chính thức; đếm số lần làm. Nhờ vậy học sinh làm
+ * lại không chiếm nhiều dòng và không thổi phồng thống kê.
+ * Khách mỗi lần vào là một người mới (guestParticipantId riêng) nên không gộp. */
+export function groupLatestByParticipant<
+  T extends { studentId: string | null; guestParticipantId: string | null; submittedAt: Date },
+>(subs: T[]): { latest: T; attemptCount: number }[] {
+  const groups = new Map<string, { latest: T; attemptCount: number }>();
+  for (const s of subs) {
+    const key = s.studentId ? `u:${s.studentId}` : `g:${s.guestParticipantId ?? "unknown"}`;
+    const cur = groups.get(key);
+    if (!cur) {
+      groups.set(key, { latest: s, attemptCount: 1 });
+    } else {
+      cur.attemptCount += 1;
+      if (s.submittedAt.getTime() > cur.latest.submittedAt.getTime()) cur.latest = s;
+    }
+  }
+  return [...groups.values()];
 }
 
 export interface LiveBoard {
@@ -94,7 +117,8 @@ export async function getLiveBoardByToken(token: string): Promise<LiveBoard> {
       openAt: true,
       closeAt: true,
       questions: { select: { points: true } },
-      _count: { select: { attempts: true } },
+      // Chỉ đếm lượt đang làm dở (đã nộp thì `submittedAt` khác null).
+      _count: { select: { attempts: { where: { submittedAt: null } } } },
       submissions: {
         orderBy: { submittedAt: "asc" },
         select: {
@@ -105,6 +129,7 @@ export async function getLiveBoardByToken(token: string): Promise<LiveBoard> {
           durationSeconds: true,
           submittedAt: true,
           studentId: true,
+          guestParticipantId: true,
           student: { select: { name: true, grade: true } },
           guestParticipant: { select: { name: true, className: true } },
         },
@@ -116,7 +141,9 @@ export async function getLiveBoardByToken(token: string): Promise<LiveBoard> {
 
   const now = new Date();
   const subs = exam.submissions;
-  const rows: LiveRow[] = subs.map((s) => ({
+  // Gộp theo người: mỗi học sinh 1 dòng, lấy điểm lượt nộp MỚI NHẤT.
+  const groups = groupLatestByParticipant(subs);
+  const rows: LiveRow[] = groups.map(({ latest: s, attemptCount }) => ({
     rank: 0,
     id: s.id,
     name: s.student?.name || s.guestParticipant?.name || "Khách",
@@ -127,15 +154,17 @@ export async function getLiveBoardByToken(token: string): Promise<LiveBoard> {
     durationSeconds: s.durationSeconds,
     submittedAt: s.submittedAt.toISOString(),
     isGuest: !s.studentId,
+    attemptCount,
   }));
   rows.sort(compareRankable);
   rows.forEach((r, i) => {
     r.rank = i + 1;
   });
 
-  const scores = subs.map((s) => s.score);
-  const submittedCount = subs.length;
-  const startedCount = Math.max(exam._count.attempts, submittedCount);
+  const scores = groups.map((g) => g.latest.score);
+  const submittedCount = groups.length;
+  const activeCount = exam._count.attempts;
+  const startedCount = submittedCount + activeCount;
 
   return {
     found: true,
@@ -151,7 +180,7 @@ export async function getLiveBoardByToken(token: string): Promise<LiveBoard> {
     phase: phaseOf(exam, now),
     submittedCount,
     startedCount,
-    activeCount: Math.max(0, startedCount - submittedCount),
+    activeCount,
     rows: rows.slice(0, LIVE_ROW_LIMIT),
     stats: {
       avg: scores.length ? Number((scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(2)) : null,
