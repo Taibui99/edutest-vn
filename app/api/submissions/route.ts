@@ -13,13 +13,25 @@ type AnswerMap = Record<string, AnswerValue>;
 function hashToken(token: string) { return createHash("sha256").update(token).digest("hex"); }
 
 export async function POST(request: NextRequest) {
-  const rl = rateLimit(`submit:${clientIp(request)}`, 20, 60_000);
-  if (!rl.ok) return NextResponse.json({ error: "Bạn nộp bài quá nhanh. Thử lại sau 1 phút." }, { status: 429 });
+  /* LOAD-3 — Nộp bài khoá theo TỪNG lần làm (attemptId) thay vì theo IP.
+   * Cả lớp thường đi chung một IP (wifi trường/NAT), nên trần 20/phút theo IP
+   * trước đây làm rớt oan bài khi cả lớp cùng bấm nộp. Vẫn giữ một lưới an
+   * toàn theo IP nhưng nâng cao (120/phút) để chặn lạm dụng mà không chặn lớp. */
+  const ipRl = rateLimit(`submit-ip:${clientIp(request)}`, 120, 60_000);
+  if (!ipRl.ok) return NextResponse.json({ error: "Bạn nộp bài quá nhanh. Thử lại sau 1 phút." }, { status: 429 });
+
   const session = await auth();
   const body = await request.json() as { examId?: unknown; attemptId?: unknown; answers?: unknown };
   const examId = typeof body.examId === "string" ? body.examId : "";
   const attemptId = typeof body.attemptId === "string" ? body.attemptId : "";
   const answers = (body.answers && typeof body.answers === "object" ? body.answers : {}) as AnswerMap;
+
+  /* Giới hạn theo từng bài: 10 lượt/phút đủ cho vài lần thử lại của MỘT bài
+   * (bấm đúp, mạng chập chờn) mà không đếm chung với các bạn khác trong lớp. */
+  if (attemptId) {
+    const rl = rateLimit(`submit:attempt:${attemptId}`, 10, 60_000);
+    if (!rl.ok) return NextResponse.json({ error: "Bạn nộp bài quá nhanh. Thử lại sau 1 phút." }, { status: 429 });
+  }
   if (!examId) return NextResponse.json({ error: "Thiếu mã đề thi" }, { status: 400 });
   /* GĐ1: thời gian do server chốt từ `Attempt.startedAt`/`deadlineAt`.
    * Không nhận `durationSeconds` từ client nữa — trước đây client gửi con số
