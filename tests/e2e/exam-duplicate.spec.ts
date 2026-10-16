@@ -211,7 +211,8 @@ test("E-03: bấm nút Nhân bản → mở thẳng đề mới (bản nháp, 0 
   // Next là điều hướng phía client → chờ URL ĐỔI sang đề mới.
   await page.waitForURL((url) => url.pathname.endsWith(`/de-thi/${newId}`), { timeout: 30000 });
   await expect(page.getByRole("heading", { name: new RegExp(`${esc(ORIG_TITLE)} \\(bản sao\\)`) })).toBeVisible();
-  await expect(page.getByText("0 bài nộp")).toBeVisible();
+  // LIVE-1d (275687b) đổi nhãn trang đề từ "{n} bài nộp" → "{n} học sinh nộp".
+  await expect(page.getByText("0 học sinh nộp")).toBeVisible();
   await expect(page.getByText("Đã đóng")).toBeVisible();
 });
 
