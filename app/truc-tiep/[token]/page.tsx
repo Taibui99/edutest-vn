@@ -23,8 +23,15 @@ async function requestOrigin(): Promise<string> {
   return `${proto}://${host}`;
 }
 
-export default async function LiveBoardPage({ params }: { params: Promise<{ token: string }> }) {
+export default async function LiveBoardPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ token: string }>;
+  searchParams: Promise<{ all?: string }>;
+}) {
   const { token } = await params;
+  const sp = await searchParams;
   const board = await getLiveBoardByToken(decodeURIComponent(token ?? ""));
   if (!board.found || !board.exam) notFound();
 
@@ -32,5 +39,6 @@ export default async function LiveBoardPage({ params }: { params: Promise<{ toke
   const joinUrl = `${origin}/thi/${encodeURIComponent(board.exam.joinCode)}`;
   const qrUrl = origin ? await QRCode.toDataURL(joinUrl, { width: 600, margin: 2 }) : null;
 
-  return <LiveBoardClient initial={board} token={token} qrUrl={qrUrl} joinUrl={joinUrl} />;
+  // `?all=1` để mở sẵn bảng xếp hạng đầy đủ (dùng khi chiếu trên màn to / máy tính).
+  return <LiveBoardClient initial={board} token={token} qrUrl={qrUrl} joinUrl={joinUrl} initialShowAll={sp?.all === "1"} />;
 }

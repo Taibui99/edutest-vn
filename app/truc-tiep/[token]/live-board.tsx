@@ -43,12 +43,15 @@ interface Props {
   token: string;
   qrUrl: string | null;
   joinUrl: string | null;
+  /** Mở sẵn toàn bộ bảng (mặc định chỉ Top 15 cho vừa màn chiếu). */
+  initialShowAll?: boolean;
 }
 
-export function LiveBoardClient({ initial, token, qrUrl, joinUrl }: Props) {
+export function LiveBoardClient({ initial, token, qrUrl, joinUrl, initialShowAll = false }: Props) {
   const [board, setBoard] = useState<LiveBoard>(initial);
   const [flash, setFlash] = useState<Set<string>>(new Set());
   const [revoked, setRevoked] = useState(false);
+  const [showAll, setShowAll] = useState(initialShowAll);
   const [updatedAt, setUpdatedAt] = useState<string>(initial.serverTime);
   const knownIds = useRef<Set<string>>(new Set(initial.rows.map((r) => r.id)));
 
@@ -107,7 +110,7 @@ export function LiveBoardClient({ initial, token, qrUrl, joinUrl }: Props) {
   const podium = rows.slice(0, 3);
   const order = [podium[1], podium[0], podium[2]].filter(Boolean);
   const meta = PHASE[board.phase];
-  const visible = rows.slice(0, VISIBLE_ROWS);
+  const visible = showAll ? rows : rows.slice(0, VISIBLE_ROWS);
 
   return (
     <div
@@ -283,9 +286,27 @@ export function LiveBoardClient({ initial, token, qrUrl, joinUrl }: Props) {
             </ul>
           )}
 
-          {rows.length > visible.length && (
+          {rows.length > VISIBLE_ROWS && (
+            <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5">
+              <p className="text-xs text-white/45">
+                {showAll
+                  ? `Đang hiện toàn bộ ${rows.length} bài nộp`
+                  : `+ ${rows.length - VISIBLE_ROWS} bài nộp nữa (xem đầy đủ ở trang kết quả của giáo viên)`}
+              </p>
+              <button
+                type="button"
+                onClick={() => setShowAll((v) => !v)}
+                className="rounded-lg px-3 py-1.5 text-xs font-bold transition-colors"
+                style={{ background: "rgba(255,255,255,.1)", color: "rgba(255,255,255,.85)", border: "1px solid rgba(255,255,255,.18)" }}
+              >
+                {showAll ? "Thu gọn" : "Xem tất cả"}
+              </button>
+            </div>
+          )}
+
+          {showAll && board.submittedCount > rows.length && (
             <p className="px-4 py-2.5 text-xs text-white/45">
-              + {rows.length - visible.length} bài nộp nữa (xem đầy đủ ở trang kết quả của giáo viên)
+              Còn {board.submittedCount - rows.length} bài nữa (xem ở trang kết quả của giáo viên)
             </p>
           )}
         </section>
