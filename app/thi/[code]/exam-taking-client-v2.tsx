@@ -248,7 +248,8 @@ export function ExamTakingClientV2({ exam, attempt, preview = false, backHref }:
   const [warnVisible, setWarnVisible] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
   // PROCTOR-1: hẹn giờ ân hạn cho rời trang bị động (blur/khóa màn hình).
-  const pendingFlag = useRef<{ type: ProctorEventType; timer: number } | null>(null);
+  // `type` = mức vừa (rời ≥30s / rời thật); `quick` = mức nhẹ (quay lại <30s).
+  const pendingFlag = useRef<{ type: ProctorEventType; quick: ProctorEventType; timer: number } | null>(null);
   /* SSR an toàn: KHÔNG đọc `navigator` lúc render. Node hiện đại (21+) có
    * `navigator` toàn cục nhưng KHÔNG có `onLine` → `!navigator.onLine` = `!undefined`
    * = true → HTML server LUÔN kèm banner "Mất kết nối", client lại tính false →
@@ -387,9 +388,15 @@ export function ExamTakingClientV2({ exam, attempt, preview = false, backHref }:
    * Hệ thống chỉ GHI NHẬN + CẢNH BÁO; việc đánh giá để giáo viên quyết (đúng bất
    * biến anti-cheat). Trước đây chạm `MAX_VIOLATIONS` là tự nộp bài — bỏ hẳn:
    * user báo "đang làm tự nhiên tính vi phạm rồi nộp luôn" (iPhone khoá màn hình
-   * cũng bị). Giờ không đường nào để mất bài vì cờ rủi ro. */
+   * cũng bị). Giờ không đường nào để mất bài vì cờ rủi ro.
+   *
+   * PROCTOR-1b: KHÔNG còn ngừng ghi sau `MAX_VIOLATIONS`. Cap cũ (sót lại từ thời
+   * tự nộp) khiến client im lặng vĩnh viễn sau 3 vi phạm — học sinh chỉ cần giật
+   * 3 phát nhẹ rồi gian lận thoải mái. Giờ ghi MỌI sự kiện; server tự giới hạn
+   * số bản ghi (`MAX_EVENTS_PER_ATTEMPT`). `MAX_VIOLATIONS` chỉ còn là mốc để
+   * server gắn cờ "đã chạm ngưỡng" cho giáo viên xem. */
   const flag = useCallback((type: ProctorEventType) => {
-    if (submittedRef.current || result || violationsRef.current >= MAX_VIOLATIONS) return;
+    if (submittedRef.current || result) return;
     violationsRef.current += 1;
     setViolations(violationsRef.current);
     setWarnVisible(true);
@@ -517,53 +524,72 @@ export function ExamTakingClientV2({ exam, attempt, preview = false, backHref }:
   /* PROCTOR-1 — theo dõi rời trang BỊ ĐỘNG (blur/khóa màn hình/tab khác):
    * - Chế độ TẮT (`off`, mặc định): không gắn gì cả — trước đây vẫn đếm +
    *   tự nộp dù GV không bật, đúng lỗi user báo ("không bật mà vẫn chạy").
-   * - Ân hạn 30s: quay lại kịp thì không tính. iPhone tự khoá màn hình / đổi app
-   *   làm `visibilityState` = hidden — trước ân hạn 10s nên ngồi lâu máy tự tắt là
-   *   bị tính oan; nới lên 30s và KHÔNG tự nộp nữa (chỉ ghi nhận). Vẫn đi mới tính
-   *   1 lần — blur và hidden của cùng 1 lần rời trang gộp làm một.
+   * - PROCTOR-1b: MỌI lần rời trang đều được GHI NHẬN. Trước đây quay lại trong
+   *   30s thì huỷ trắng → học sinh cứ rời tab <30s lặp lại mà không bị ghi gì.
+   *   Giờ: quay lại <30s ⇒ ghi mức NHẸ (`*_quick`); vẫn rời ≥30s hoặc đóng/đổi
+   *   trang (pagehide) ⇒ ghi mức VỪA. blur và hidden của cùng 1 lần rời gộp một.
    * - Hành động CHỦ ĐỘNG (copy/paste/devtools...) vẫn tính ngay, không ân hạn. */
   useEffect(() => {
     if (preview || result || submittedRef.current) return;
     const requested = exam.proctorMode === "light" || exam.proctorMode === "strict" ? exam.proctorMode : "off";
     if (requested === "off") return;
 
-    const cancelPending = () => {
-      if (pendingFlag.current) {
-        window.clearTimeout(pendingFlag.current.timer);
-        pendingFlag.current = null;
-      }
+    const LEAVE_GRACE_MS = 30_000;
+    /* Quay lại kịp → ghi mức nhẹ (đã rời nhưng ngắn). */
+    const resolveLeave = () => {
+      const p = pendingFlag.current;
+      if (!p) return;
+      window.clearTimeout(p.timer);
+      pendingFlag.current = null;
+      flag(p.quick);
     };
-    const schedule = (type: ProctorEventType) => {
+    /* Đóng/đổi trang khi đang rời → ghi ngay mức vừa (không kịp hẹn giờ). */
+    const flushLeave = () => {
+      const p = pendingFlag.current;
+      if (!p) return;
+      window.clearTimeout(p.timer);
+      pendingFlag.current = null;
+      flag(p.type);
+    };
+    const schedule = (type: ProctorEventType, quick: ProctorEventType) => {
       if (submittedRef.current || pendingFlag.current) return;
       pendingFlag.current = {
         type,
+        quick,
         timer: window.setTimeout(() => {
+          const p = pendingFlag.current;
           pendingFlag.current = null;
-          flag(type);
-        }, 30_000),
+          if (p) flag(p.type);
+        }, LEAVE_GRACE_MS),
       };
     };
     const onVis = () => {
-      if (document.visibilityState === "hidden") schedule("visibility_hidden");
-      else cancelPending();
+      if (document.visibilityState === "hidden") schedule("visibility_hidden", "visibility_hidden_quick");
+      else resolveLeave();
     };
-    const onBlur = () => schedule("tab_blur");
-    const onFocus = () => cancelPending();
+    const onBlur = () => schedule("tab_blur", "tab_blur_quick");
+    const onFocus = () => resolveLeave();
     document.addEventListener("visibilitychange", onVis);
     window.addEventListener("blur", onBlur);
     window.addEventListener("focus", onFocus);
+    window.addEventListener("pagehide", flushLeave);
     return () => {
       document.removeEventListener("visibilitychange", onVis);
       window.removeEventListener("blur", onBlur);
       window.removeEventListener("focus", onFocus);
-      cancelPending();
+      window.removeEventListener("pagehide", flushLeave);
+      const p = pendingFlag.current;
+      if (p) {
+        window.clearTimeout(p.timer);
+        pendingFlag.current = null;
+      }
     };
   }, [preview, result, flag, exam.proctorMode]);
 
   /* GĐ3 — rào trình duyệt theo chế độ giáo viên chọn. `off` = không gắn gì
    * (mặc định, giữ nguyên hành vi cũ); `light` = phát hiện + ghi nhật ký;
-   * `strict` = như light nhưng chặn cứng thao tác + bắt toàn màn hình. Thi trên
-   * điện thoại tự hạ `strict` → `light` (không có bàn phím/fullscreen hữu ích).
+   * `strict` = như light nhưng chặn cứng thao tác + bắt toàn màn hình (chỉ máy
+   * tính — mobile bỏ phần toàn màn hình nhưng VẪN giữ chặn cứng, theo PROCTOR-1b).
    *
    * TRUNG THỰC: rào này LUÔN bypass được (Ctrl+Shift+Esc, trình duyệt khác, VM,
    * tắt JS) — chỉ có giá trị răn đe. GĐ0/GĐ1/GĐ2 mới thực sự chống gian lận vì
@@ -572,10 +598,12 @@ export function ExamTakingClientV2({ exam, attempt, preview = false, backHref }:
     if (preview || result || submittedRef.current) return;
     const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) && navigator.maxTouchPoints > 0;
     const requested = exam.proctorMode === "light" || exam.proctorMode === "strict" ? exam.proctorMode : "off";
-    const mode = resolveProctorMode(requested, { isMobile });
+    const mode = resolveProctorMode(requested);
     if (mode === "off") return;
     const strict = mode === "strict";
-    setStrictActive(strict); // eslint-disable-line react-hooks/set-state-in-effect
+    /* Toàn màn hình vô nghĩa trên mobile → chỉ bật/bắt trên máy tính. */
+    const fullscreenMode = strict && !isMobile;
+    setStrictActive(fullscreenMode); // eslint-disable-line react-hooks/set-state-in-effect
 
     const onCopy = (e: Event) => { flag("copy"); if (strict) e.preventDefault(); };
     const onPaste = (e: Event) => { flag("paste"); if (strict) e.preventDefault(); };
@@ -596,10 +624,10 @@ export function ExamTakingClientV2({ exam, attempt, preview = false, backHref }:
       const active = !!document.fullscreenElement;
       setIsFullscreen(active);
       if (active) hadFullscreen = true;
-      else if (strict && hadFullscreen) flag("fullscreen_exit");
+      else if (fullscreenMode && hadFullscreen) flag("fullscreen_exit");
     };
     const enterFullscreen = () => {
-      if (!strict || document.fullscreenElement) return;
+      if (!fullscreenMode || document.fullscreenElement) return;
       const p = document.documentElement.requestFullscreen?.();
       if (p) void p.catch(() => {});
     };
@@ -659,7 +687,7 @@ export function ExamTakingClientV2({ exam, attempt, preview = false, backHref }:
     document.addEventListener("keydown", onKeyDown);
     document.addEventListener("fullscreenchange", onFullscreenChange);
     window.addEventListener("beforeunload", onBeforeUnload);
-    if (strict) {
+    if (fullscreenMode) {
       window.addEventListener("pointerdown", enterFullscreen, { once: true });
       window.addEventListener("keydown", enterFullscreen, { once: true });
     }
@@ -780,8 +808,8 @@ export function ExamTakingClientV2({ exam, attempt, preview = false, backHref }:
       {!preview && violations > 0 && (
         <div className={`border-b px-4 py-2 text-center text-xs font-bold ${violations >= MAX_VIOLATIONS ? "bg-[var(--danger)] text-white" : "bg-[var(--warning-light)] border-[var(--warning-border)] text-[var(--warning)]"}`}>
           {violations >= MAX_VIOLATIONS
-            ? `Đã ghi nhận ${violations} lần rời khỏi trang thi. Giáo viên sẽ xem lại phần này.`
-            : `Cảnh báo ${violations}/${MAX_VIOLATIONS}: Không rời khỏi trang thi.`}
+            ? `Đã ghi nhận ${violations} lần vi phạm quy chế thi. Giáo viên sẽ xem lại phần này.`
+            : `Cảnh báo vi phạm quy chế thi ${violations}/${MAX_VIOLATIONS}: không rời trang, không sao chép.`}
         </div>
       )}
       {!preview && warnVisible && violations < MAX_VIOLATIONS && (
@@ -790,8 +818,8 @@ export function ExamTakingClientV2({ exam, attempt, preview = false, backHref }:
             <AlertTriangle size={17} />
           </span>
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-black text-[var(--text-primary)]">Phát hiện rời khỏi bài thi (lần {violations}/{MAX_VIOLATIONS})</p>
-            <p className="mt-0.5 text-xs text-[var(--text-secondary)]">Quay lại làm bài ngay. Việc rời trang sẽ được ghi nhận để giáo viên xem lại.</p>
+            <p className="text-sm font-black text-[var(--text-primary)]">Phát hiện vi phạm quy chế thi (lần {violations}/{MAX_VIOLATIONS})</p>
+            <p className="mt-0.5 text-xs text-[var(--text-secondary)]">Quay lại làm bài ngay. Vi phạm sẽ được ghi nhận để giáo viên xem lại.</p>
           </div>
           <button type="button" onClick={() => setWarnVisible(false)} aria-label="Đóng cảnh báo" className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-[var(--text-muted)] hover:bg-[var(--gray-100)]">
             <X size={15} />

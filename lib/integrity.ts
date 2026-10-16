@@ -19,7 +19,9 @@ export type RiskLevel = "none" | "low" | "medium" | "high";
 /** Whitelist — client chỉ được báo các tên này; tên lạ bị API từ chối. */
 export const PROCTOR_EVENT_TYPES = [
   "tab_blur",
+  "tab_blur_quick",
   "visibility_hidden",
+  "visibility_hidden_quick",
   "copy",
   "paste",
   "context_menu",
@@ -32,8 +34,10 @@ export const PROCTOR_EVENT_TYPES = [
   "fullscreen_exit",
 ] as const;
 
-/** Chế độ giáo viên chọn cho từng đề. `strict` tự hạ cấp thành `light` khi thi
- *  trên điện thoại (không có bàn phím/F11 → bắt fullscreen là vô nghĩa). */
+/** Chế độ giáo viên chọn cho từng đề. `strict` giữ nguyên trên MỌI thiết bị —
+ *  PROCTOR-1b bỏ quy tắc tự hạ `strict` → `light` trên điện thoại: giáo viên
+ *  chọn Nghiêm thì phải nghiêm. Việc bắt toàn màn hình (vô nghĩa trên mobile)
+ *  do client tự bỏ qua; hard-block copy/paste/menu vẫn áp dụng. */
 export const PROCTOR_MODES = ["off", "light", "strict"] as const;
 export type ProctorMode = (typeof PROCTOR_MODES)[number];
 
@@ -43,11 +47,14 @@ export function isProctorMode(value: string): value is ProctorMode {
 
 /**
  * Chế độ thực thi trên máy học sinh. Thuần hàm để test được.
- * `off` giữ nguyên hành vi cũ; GĐ2 (tab_blur/visibility_hidden) luôn chạy bất kể
- * chế độ vì đó là nền tảng đã chốt ở GĐ2.
+ * `off` = không gắn rào nào (đúng lỗi user báo "không bật mà vẫn chạy" đã sửa;
+ * client không gắn listener khi `off`). `light`/`strict` mới ghi nhận.
+ *
+ * PROCTOR-1b: không còn hạ `strict` xuống `light` trên điện thoại — mức Nghiêm
+ * được giữ nguyên mọi thiết bị (client tự bỏ phần toàn màn hình trên mobile).
+ * Giữ hàm làm điểm chốt duy nhất để sau này thêm quy tắc mà không lệch client.
  */
-export function resolveProctorMode(mode: ProctorMode, opts: { isMobile: boolean }): ProctorMode {
-  if (mode === "strict" && opts.isMobile) return "light";
+export function resolveProctorMode(mode: ProctorMode): ProctorMode {
   return mode;
 }
 
@@ -59,9 +66,9 @@ export const PROCTOR_MODE_LABELS: Record<ProctorMode, string> = {
 };
 
 export const PROCTOR_MODE_DESCRIPTIONS: Record<ProctorMode, string> = {
-  off: "Chỉ ghi nhận khi học sinh rời tab (mặc định).",
-  light: "Chặn copy/paste/menu chuột phải, phím tắt DevTools, in ấn; phát hiện nhiều tab và chụp màn hình. Không bắt toàn màn hình.",
-  strict: "Như Nhẹ, thêm: bắt buộc toàn màn hình, chặn cứng các thao tác sao chép/in. Thi trên điện thoại tự hạ về mức Nhẹ.",
+  off: "Không theo dõi (không khuyến khích khi thi).",
+  light: "Phát hiện và ghi nhận mọi vi phạm: rời tab, copy/paste, menu chuột phải, phím tắt DevTools, in ấn, nhiều tab, chụp màn hình. Không chặn cứng, không bắt toàn màn hình.",
+  strict: "Như Nhẹ, thêm: chặn cứng copy/paste/menu/in ấn và bắt buộc toàn màn hình (chỉ máy tính). Áp dụng trên mọi thiết bị.",
 }
 
 export function proctorModeLabel(mode: string): string {
@@ -73,7 +80,9 @@ export type ProctorEventType = (typeof PROCTOR_EVENT_TYPES)[number];
 /** Mức nghiêm trọng do SERVER quy cho từng loại sự kiện — không nhận từ client. */
 const SEVERITY_BY_TYPE: Record<string, Severity> = {
   tab_blur: "medium",
+  tab_blur_quick: "low",
   visibility_hidden: "medium",
+  visibility_hidden_quick: "low",
   copy: "high",
   paste: "high",
   context_menu: "medium",
@@ -105,7 +114,9 @@ export function severityOf(type: string): Severity | null {
 /** Nhãn tiếng Việt cho timeline của giáo viên. */
 export const PROCTOR_EVENT_LABELS: Record<ProctorEventType, string> = {
   tab_blur: "Rời khỏi cửa sổ thi",
+  tab_blur_quick: "Rời cửa sổ thi (quay lại nhanh)",
   visibility_hidden: "Chuyển sang tab khác",
+  visibility_hidden_quick: "Chuyển sang tab khác (quay lại nhanh)",
   copy: "Sao chép nội dung",
   paste: "Dán nội dung",
   context_menu: "Mở menu chuột phải",

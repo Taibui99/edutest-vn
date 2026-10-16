@@ -91,16 +91,26 @@ eq(isProctorMode("off"), true, "off la che do hop le");
 eq(isProctorMode("light"), true, "light la che do hop le");
 eq(isProctorMode("strict"), true, "strict la che do hop le");
 eq(isProctorMode("max"), false, "che do la bi tu choi");
-eq(resolveProctorMode("strict", { isMobile: false }), "strict", "may tinh: strict giu nguyen");
-eq(resolveProctorMode("strict", { isMobile: true }), "light", "dien thoai: strict ha xuong light");
-eq(resolveProctorMode("light", { isMobile: true }), "light", "dien thoai: light giu nguyen");
-eq(resolveProctorMode("off", { isMobile: true }), "off", "off luon la off");
+eq(resolveProctorMode("strict"), "strict", "may tinh: strict giu nguyen");
+eq(resolveProctorMode("strict"), "strict", "dien thoai: strict VAN giu nguyen (PROCTOR-1b)");
+eq(resolveProctorMode("light"), "light", "dien thoai: light giu nguyen");
+eq(resolveProctorMode("off"), "off", "off luon la off");
 eq(proctorModeLabel("strict"), "Nghiêm", "co nhan tieng Viet cho strict");
 eq(proctorModeLabel("khong-hop-le"), "Tắt", "che do la → nhan mac dinh Tat");
 
 // print đẩy rủi ro lên nhanh: 1 lần print (high=30) đã là low, 2 lần = high
 eq(computeRisk([{ type: "print" }]).riskScore, 30, "1 lan print = 30");
 eq(computeRisk([{ type: "print" }, { type: "print" }]).riskLevel, "high", "2 lan print → high");
+
+// PROCTOR-1b — sự kiện "quay lại nhanh" (rời tab <30s): có thật trong whitelist,
+// mức nhẹ, vẫn được ghi nhận (không còn huỷ trắng).
+eq(isProctorEventType("tab_blur_quick"), true, "tab_blur_quick nam trong whitelist");
+eq(isProctorEventType("visibility_hidden_quick"), true, "visibility_hidden_quick nam trong whitelist");
+eq(severityOf("tab_blur_quick"), "low", "roi cua so quay lai nhanh = low");
+eq(severityOf("visibility_hidden_quick"), "low", "chuyen tab quay lai nhanh = low");
+check(labelOf("tab_blur_quick").length > 0, "co nhan tieng Viet cho su kien quick", labelOf("tab_blur_quick"));
+eq(computeRisk([{ type: "tab_blur_quick" }]), { violationCount: 1, riskScore: 5, riskLevel: "low", autoSubmitted: false }, "1 lan roi nhanh → low/5");
+eq(computeRisk([{ type: "visibility_hidden_quick" }, { type: "visibility_hidden_quick" }, { type: "visibility_hidden_quick" }]).autoSubmitted, true, "3 lan roi nhanh cung cham nguong (van ghi du)");
 
 console.log(failures === 0 ? "\nALL PASS" : `\n${failures} FAIL`);
 process.exit(failures === 0 ? 0 : 1);
