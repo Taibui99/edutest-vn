@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { getSubjectColor } from "@/lib/subject";
 import { cn } from "@/lib/cn";
+import { vnDate } from "@/lib/time";
 import { ModeSwitchButton } from "@/components/mode-switch";
 import { ContinueDraftCard } from "./continue-draft";
 
@@ -163,7 +164,7 @@ async function StudentDashboard({ userId, name }: { userId: string; name: string
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold text-[var(--text-primary)] truncate">{sub.exam.title}</p>
                         <p className="text-xs text-[var(--text-muted)]">
-                          {sub.exam.subject} · {new Date(sub.submittedAt).toLocaleDateString("vi-VN")}
+                          {sub.exam.subject} · {vnDate(sub.submittedAt)}
                         </p>
                       </div>
                       <div

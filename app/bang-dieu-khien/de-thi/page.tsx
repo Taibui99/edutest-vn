@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { getSubjectColor } from "@/lib/subject";
+import { vnDate, vnDateTime } from "@/lib/time";
 import { ExamListFilters } from "./exam-list-filters";
 
 export const metadata: Metadata = { title: "Đề thi — A6Class Edu" };
@@ -84,10 +85,13 @@ export default async function ExamListPage({ searchParams }: { searchParams: Pro
                 ? exam.submissions.reduce((s, sub) => s + sub.score, 0) / exam.submissions.length
                 : null;
               const now = new Date();
+              /* Giờ/ngày PHẢI ghim `Asia/Ho_Chi_Minh`: đây là server component —
+                 render bằng toLocaleString mặc định (UTC trên Vercel) → GV thấy
+                 lệch 7 giờ VÀ chuỗi server ≠ chuỗi máy khách lúc hydrate (#418). */
               const schedule = exam.openAt || exam.closeAt
-                ? exam.openAt && now < exam.openAt ? `Mở lúc ${exam.openAt.toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" })}`
-                  : exam.closeAt && now > exam.closeAt ? `Đóng lúc ${exam.closeAt.toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" })}`
-                    : exam.closeAt ? `Đóng lúc ${exam.closeAt.toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" })}` : null
+                ? exam.openAt && now < exam.openAt ? `Mở lúc ${vnDateTime(exam.openAt, { dateStyle: "short", timeStyle: "short" })}`
+                  : exam.closeAt && now > exam.closeAt ? `Đóng lúc ${vnDateTime(exam.closeAt, { dateStyle: "short", timeStyle: "short" })}`
+                    : exam.closeAt ? `Đóng lúc ${vnDateTime(exam.closeAt, { dateStyle: "short", timeStyle: "short" })}` : null
                 : null;
 
               return (
@@ -181,7 +185,7 @@ export default async function ExamListPage({ searchParams }: { searchParams: Pro
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-[var(--text-primary)] truncate">{sub.exam.title}</p>
                       <p className="text-xs text-[var(--text-muted)] mt-0.5">
-                        {sub.exam.subject} · {new Date(sub.submittedAt).toLocaleDateString("vi-VN")}
+                        {sub.exam.subject} · {vnDate(sub.submittedAt)}
                         · {Math.floor(sub.durationSeconds / 60)}:{String(sub.durationSeconds % 60).padStart(2, "0")} phút làm bài
                       </p>
                     </div>

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Clock, RefreshCw } from "lucide-react";
+import { vnDateTime } from "@/lib/time";
 
 function pad(n: number) {
   return String(n).padStart(2, "0");
@@ -33,17 +34,28 @@ function fmtCountdown(ms: number) {
 export function ScheduleGate({ openAt, closeAt, joinCode }: { openAt: string | null; closeAt: string | null; joinCode: string }) {
   const openTs = openAt ? new Date(openAt).getTime() : null;
   const closeTs = closeAt ? new Date(closeAt).getTime() : null;
-  const [now, setNow] = useState<number>(() => Date.now());
+  /* `now` phải là `null` lúc SSR/hydration: nếu dùng `Date.now()` ngay trong
+   * useState thì server đếm ngược theo giờ server, máy khách đếm theo giờ máy
+   * khách (khác nhau vài trăm mili-giây) → chuỗi "còn lại" lệch → React #418.
+   * Mới mount mới bắt đầu đếm → màn hình hiện "--:--:--" đúng 1 nhịp. */
+  const [now, setNow] = useState<number | null>(null);
   const reloadedRef = useRef(false);
 
   useEffect(() => {
-    const id = window.setInterval(() => setNow(Date.now()), 1000);
-    return () => window.clearInterval(id);
+    const update = () => setNow(Date.now());
+    /* Không gọi `setNow` đồng bộ trong effect (lint) — rAF chạy trước lần
+       paint đầu nên máy khách hiện "--:--:--" đúng 0 khung hình. */
+    const raf = window.requestAnimationFrame(update);
+    const id = window.setInterval(update, 1000);
+    return () => {
+      window.cancelAnimationFrame(raf);
+      window.clearInterval(id);
+    };
   }, []);
 
   useEffect(() => {
     if (openTs === null) return;
-    if (now < openTs) return;
+    if (now === null || now < openTs) return;
     if (reloadedRef.current) return;
     const key = `a6-sched-${joinCode}`;
     let last = 0;
@@ -62,10 +74,10 @@ export function ScheduleGate({ openAt, closeAt, joinCode }: { openAt: string | n
     window.location.reload();
   }, [now, openTs, joinCode]);
 
-  const fmt = (ts: number) => new Date(ts).toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" });
+  const fmt = (ts: number) => vnDateTime(ts, { dateStyle: "short", timeStyle: "short" });
 
-  const notStarted = openTs !== null && now < openTs;
-  const expired = closeTs !== null && now > closeTs;
+  const notStarted = openTs !== null && (now === null || now < openTs);
+  const expired = closeTs !== null && now !== null && now > closeTs;
 
   const reloadNow = () => window.location.reload();
 
@@ -84,7 +96,7 @@ export function ScheduleGate({ openAt, closeAt, joinCode }: { openAt: string | n
             </p>
             <div className="mt-5 rounded-xl bg-[var(--warning-light)] px-4 py-3">
               <p className="text-xs font-semibold text-[var(--warning)]">Còn lại</p>
-              <p className="mt-0.5 text-2xl font-black tabular-nums text-[var(--warning)]">{openTs !== null ? fmtCountdown(openTs - now) : "--:--:--"}</p>
+              <p className="mt-0.5 text-2xl font-black tabular-nums text-[var(--warning)]">{openTs !== null && now !== null ? fmtCountdown(openTs - now) : "--:--:--"}</p>
             </div>
             <p className="mt-3 text-xs text-[var(--text-muted)]">Trang sẽ tự mở khi tới giờ. Em không cần tải lại.</p>
           </>

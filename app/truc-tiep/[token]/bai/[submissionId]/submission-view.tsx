@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import type { LiveQuestionView, LiveSubmissionDetail } from "@/lib/live-board";
 import { livePath, liveSubmissionApiPath } from "@/lib/live-paths";
+import { vnClock, vnDateTime } from "@/lib/time";
 
 /* LIVE-1b — màn chi tiết 1 bài làm mở từ bảng điểm (bấm tên học sinh).
  * Chữ to để giáo viên đọc khi chữa đề miệng. Tự poll như bảng; CHỈ XEM.
@@ -52,7 +53,7 @@ function fmtDuration(sec: number): string {
 
 function fmtClock(iso: string): string {
   try {
-    return new Date(iso).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+    return vnClock(iso);
   } catch {
     return "";
   }
@@ -60,7 +61,7 @@ function fmtClock(iso: string): string {
 
 function fmtDateTime(iso: string): string {
   try {
-    return new Date(iso).toLocaleString("vi-VN", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit" });
+    return vnDateTime(iso, { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit" });
   } catch {
     return "";
   }

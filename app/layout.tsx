@@ -62,13 +62,28 @@ export default async function RootLayout({
             React). Bug iPhone: vòng lặp rAF trong useEffect chỉ chạy sau khi
             hydrate — iOS Safari hoãn rAF lúc đang nạp, và máy/mạng chậm thì
             hydrate rất muộn → overlay đứng ở "0%" rồi bị failsafe CSS dọn đi.
-            Ở đây bám `DOMContentLoaded` (nổ ngay sau khi HTML xong, không đợi
-            bundle). Vòng chạy bằng rAF (mượt 60fps) + WATCHDOG setInterval 400ms
-            (vẫn kết thúc dù rAF bị iOS hoãn).
+
+            PRE-4 (18/10/2026) — 2 lỗi đo được trên prod bằng Playwright:
+            1) Chờ `DOMContentLoaded` mới bắt đầu → overlay hiện ra lúc HTML mới
+               parse xong nhưng đứng yên "0%" hàng trăm mili-giây chờ sự kiện.
+               GIỜ: MutationObserver bám ngay lúc `#a6-preloader` vừa vào DOM →
+               hiện % ngay lập tức.
+            2) React #418 (chuỗi giờ server UTC ≠ máy khách VN) làm React THAY
+               node preloader giữa chừng → vòng lặp vẫn animate node đã gỡ khỏi
+               DOM → overlay thật đứng 0% tới khi failsafe CSS 6s dọn ("đứng
+               đơ rồi vào luôn", đo trên /truc-tiep). GIỜ: `start()` thấy node
+               cũ đã `!isConnected` thì NHẬN node mới và GIỮ tiến trình (t0,
+               % hiện tại) — ngoài ra #418 đã bị chặn gốc ở lib/time.ts.
+               Lưới an toàn: soft-nav chèn preloader trùng thì ẩn (không animate),
+               và `finish()` ẩn mọi node preloader còn sót — không bao giờ để
+               lớp phủ treo che trang.
+            SẴN sàng = `load` (CSS/font/chunk xong) + trần CAP theo tier — bỏ
+            cách `readyState!=="loading"` (đúng ngay lúc DOMContentLoaded nên
+            overlay là bấm giờ cố định, không phản ánh tải thật).
 
             PERF-1: script TỰ PHÂN LOẠI máy → gắn `a6-perf-low|mid|high` lên
             <html> để CSS/JS bật-tắt hiệu ứng nặng theo năng lực thiết bị. Thời
-            gian preloader co theo tier (0.6–0.9s sau DOMContentLoaded) và KHÔNG
+            gian preloader co theo tier (0.6–0.9s sau lúc node xuất hiện) và KHÔNG
             cộng dồn khi trang vốn đã chậm (nếu đã >2.6s thì chỉ nhấp 0.25s).
             Trần tuyệt đối ~2.2s + bùm 0.5s thay cho MIN cứng 5s trước đây. */}
         <script
@@ -86,13 +101,18 @@ try{
   else if(cores>=8&&mem>=8){tier="high";}
   try{document.documentElement.classList.add("a6-perf-"+tier);}catch(e){}
 
-  /* Thời gian preloader co theo tier (tính từ lúc DOMContentLoaded). */
+  /* Thời gian preloader theo tier — tính TỪ LÚC NODE XUẤT HIỆN (t0),
+     không chờ DOMContentLoaded nữa. */
   var MIN=600, CAP=1600, RAMP=600, MAX=92;
   if(tier==="low"){MIN=900;CAP=2200;RAMP=900;}
   else if(tier==="mid"){MIN=750;CAP=1900;RAMP=750;}
 
   var MSG=[[0,"Đang khởi tạo A6Class…"],[45,"Đang tải giao diện và chữ…"],[80,"Đang hoàn thiện…"],[100,"Sẵn sàng!"]];
-  var OBS_AFTER = 0;
+  /* Trạng thái chung cho TOÀN BỘ vòng đời: có thể có nhiều node preloader
+     theo thời gian (node đầu do HTML sinh, node React thay lúc hydration,
+     node soft-nav tái tạo) — vòng lặp luôn bám node cur đang kết nối. */
+  var cur=null, last=0, t0=0, ready=false, started=false, settled=false, raf=0, timer=0;
+
   function nodes(el){
     if(!el.__n){el.__n={num:el.querySelector("[data-a6-pct]"),liquid:el.querySelector(".a6-pl-liquid"),status:el.querySelector(".a6-pl-status")};}
     return el.__n;
@@ -102,95 +122,108 @@ try{
      overlay. Node được cache để khỏi querySelector mỗi khung. */
   function render(el,v){
     v=Math.round(v); if(v<0){v=0;} if(v>100){v=100;}
+    last=v;
     var n=nodes(el);
     if(n.num){n.num.textContent=v;}
     if(n.liquid){n.liquid.style.transform="translateY("+(100-v)+"%)";}
     if(n.status){var t=MSG[0][1];for(var i=0;i<MSG.length;i++){if(v>=MSG[i][0]){t=MSG[i][1];}}n.status.textContent=t;}
   }
-  function run(el){
-    if(el.__a6){return;}
-    el.__a6=1;
-    if(reduced){el.style.display="none";return;}
-    /* PERF-1: đủ khi DOM sẵn sàng (CSS render-blocking đã áp, HTML đã parse) —
-       không chờ sự kiện load của toàn bộ chunk JS/font nữa. Trước đây chờ load
-       khiến overlay kéo dài tới khi tải xong ~400KB script. */
-    var ready=document.readyState!=="loading";
-    var settled=false, timer=0, raf=0;
-    function finish(){
-      if(settled){return;}
-      settled=true;
-      if(timer){clearInterval(timer);}
-      if(raf){cancelAnimationFrame(raf);}
+  function tick(){
+    if(settled||!cur){return;}
+    var elapsed=performance.now()-t0;
+    if(ready&&elapsed>=MIN){finish();return;}
+    var p=Math.min(elapsed/RAMP,1);p=1-Math.pow(1-p,3);
+    render(cur,p*MAX);
+  }
+  function step(now){
+    if(settled){return;}
+    var elapsed=now-t0;
+    if(ready&&elapsed>=MIN){finish();return;}
+    var p=Math.min(elapsed/RAMP,1);p=1-Math.pow(1-p,3);
+    if(cur){render(cur,p*MAX);}
+    raf=window.requestAnimationFrame(step);
+  }
+  function finish(){
+    if(settled){return;}
+    settled=true;
+    if(timer){window.clearInterval(timer);timer=0;}
+    if(raf){window.cancelAnimationFrame(raf);raf=0;}
+    var el=cur;
+    if(el){
       render(el,100);
       el.setAttribute("data-burst","true");
-      var root=document.documentElement;
-      root.classList.add("a6-reveal");
-      document.addEventListener("animationend",function(e){ if(e.animationName==="a6-pl-page-in"){root.classList.remove("a6-reveal");} });
-      setTimeout(function(){root.classList.remove("a6-reveal");}, 1100);
-      /* Gỡ hẳn overlay khỏi DOM sau khi bùm xong (500ms). Trước đây là component
+      /* Gỡ hẳn overlay khỏi DOM sau khi bùm xong (600ms). Trước đây là component
          React tự unmount; giờ markup là HTML thô nên phải tự dọn — để lại một
          lớp position:fixed z-9999 phủ toàn trang là mối nguy chặn click/cuộn. */
       setTimeout(function(){try{if(el&&el.parentNode){el.parentNode.removeChild(el);}}catch(_){}}, 600);
     }
-    window.addEventListener("load",function(){ready=true;});
-    try{document.fonts&&document.fonts.ready&&document.fonts.ready.then(function(){ready=true;})["catch"](function(){});}catch(e){}
-    window.setTimeout(function(){ready=true;}, CAP);
-    /* Vòng mượt: rAF cho 60fps (thay setInterval 50ms = 20fps thấy "khựng"),
-       nhưng kèm WATCHDOG setInterval 400ms để vẫn kết thúc nếu rAF bị hoãn/treo
-       (tab nền, máy yếu) — vì iOS Safari có thể hoãn rAF lúc nạp. */
-    var t0=performance.now();
-    function step(now){
-      if(settled){return;}
-      var elapsed=now-t0;
-      if(ready&&elapsed>=MIN){finish();return;}
-      var p=Math.min(elapsed/RAMP,1);p=1-Math.pow(1-p,3);
-      render(el,p*MAX);
-      raf=window.requestAnimationFrame(step);
-    }
-    if(window.requestAnimationFrame){raf=window.requestAnimationFrame(step);}
-    timer=window.setInterval(function(){
-      if(settled){window.clearInterval(timer);return;}
-      var elapsed=performance.now()-t0;
-      if(ready&&elapsed>=MIN){finish();return;}
-      var p=Math.min(elapsed/RAMP,1);p=1-Math.pow(1-p,3);
-      render(el,p*MAX);
-    },400);
-  }
-  /* Bug "vòng lặp nhập tên" (khách trên iPhone): sau khi khách bấm "Bắt đầu làm
-     bài", client gọi router.refresh() (soft navigation). React chèn LẠI markup
-     preloader (HTML thô, là một phần cây layout) nhưng <script> inline trong
-     <head> KHÔNG chạy lại khi soft-navigate → overlay mới đứng nguyên ở 0%,
-     che kín màn hình. Quan sát DOM: preloader nào xuất hiện SAU khi trang đã
-     tải (ngoài cửa sổ nạp đầu) là do soft-nav tái tạo → ẩn ngay, không animate
-     (soft-nav vốn do PageTransition lo, không cần preloader). */
-  function watch(){
+    /* Lưới an toàn: che mọi node preloader còn sót (soft-nav chèn trùng lúc
+       animation chạy) — không bao giờ để lớp phủ treo che trang. */
     try{
-      var mo=new MutationObserver(function(muts){
-        if(performance.now()<OBS_AFTER){return;}
-        for(var i=0;i<muts.length;i++){
-          var adds=muts[i].addedNodes;
-          for(var j=0;j<adds.length;j++){
-            var n=adds[j];
-            if(n&&n.nodeType===1){
-              var t=(n.id==="a6-preloader")?n:(n.querySelector?n.querySelector("#a6-preloader"):null);
-              if(t&&!t.__a6){t.__a6=1;t.style.display="none";}
-            }
-          }
-        }
-      });
-      mo.observe(document.documentElement,{childList:true,subtree:true});
-    }catch(e){}
+      var all=document.querySelectorAll("#a6-preloader");
+      for(var i=0;i<all.length;i++){if(all[i]!==el){all[i].style.display="none";}}
+    }catch(_){}
+    var root=document.documentElement;
+    root.classList.add("a6-reveal");
+    document.addEventListener("animationend",function(e){ if(e.animationName==="a6-pl-page-in"){root.classList.remove("a6-reveal");} });
+    setTimeout(function(){root.classList.remove("a6-reveal");}, 1100);
   }
-  function boot(){
-    OBS_AFTER = performance.now()+1800;
-    /* Trang vốn đã chậm (mạng yếu/cold start): không cộng thêm thời gian chờ,
-       chỉ nhấp overlay rồi mở ngay. */
-    if(performance.now()>2600){MIN=250;RAMP=250;CAP=Math.min(CAP,900);}
-    var el=document.getElementById("a6-preloader");
-    if(el){run(el);}
-    watch();
+  function start(el){
+    if(el.__a6){return;}
+    el.__a6=1;
+    /* Giảm chuyển động: ẩn luôn, không animate, không hẹn giờ. */
+    if(reduced){el.style.display="none";return;}
+    if(settled){el.style.display="none";return;}
+    if(cur&&cur!==el){
+      /* Node khác đang animate && còn trong DOM → node mới là bản chèn trùng
+         (soft-nav tái tạo markup layout) → ẩn, để PageTransition lo. */
+      if(cur.isConnected){el.style.display="none";return;}
+      /* Node cũ ĐÃ bị gỡ (React thay node lúc hydration — lệch #418) → nhận
+         node mới, GIỮ tiến trình: t0/% không đổi, chỉ đổi đích render. */
+      cur=el;
+      render(el,last);
+      return;
+    }
+    cur=el;
+    if(!started){
+      started=true;
+      /* Trang vốn đã chậm (mạng yếu/cold start): không cộng thêm thời gian chờ,
+         chỉ nhấp overlay rồi mở ngay. */
+      if(performance.now()>2600){MIN=250;RAMP=250;CAP=Math.min(CAP,900);}
+      t0=performance.now();
+      /* SẴN = load của toàn trang (CSS render-blocking + font + chunk xong).
+         Không dùng readyState!=="loading" vì nó đúng ngay lúc DOMContentLoaded
+         → overlay chỉ là bấm giờ cố định. Trần CAP để không bị treo nếu có
+         tài nguyên treo. */
+      if(document.readyState==="complete"){ready=true;}
+      window.addEventListener("load",function(){ready=true;});
+      window.setTimeout(function(){ready=true;}, CAP);
+      /* Vòng mượt: rAF cho 60fps, nhưng kèm WATCHDOG setInterval 400ms để vẫn
+         kết thúc nếu rAF bị hoãn/treo (tab nền, máy yếu) — vì iOS Safari có
+         thể hoãn rAF lúc nạp. */
+      if(window.requestAnimationFrame){raf=window.requestAnimationFrame(step);}
+      timer=window.setInterval(tick,400);
+    }
+    render(el,last);
   }
-  if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",boot);}else{boot();}
+  /* Chạy NGAY khi node vào DOM (không chờ DOMContentLoaded) → overlay hiện %,
+     không "đứng 0%" chờ sự kiện sau. */
+  function onAdded(n){
+    if(!n||n.nodeType!==1){return;}
+    var t=(n.id==="a6-preloader")?n:(n.querySelector?n.querySelector("#a6-preloader"):null);
+    if(t){start(t);}
+  }
+  try{
+    var mo=new MutationObserver(function(muts){
+      for(var i=0;i<muts.length;i++){
+        var adds=muts[i].addedNodes;
+        for(var j=0;j<adds.length;j++){onAdded(adds[j]);}
+      }
+    });
+    mo.observe(document.documentElement,{childList:true,subtree:true});
+  }catch(e){}
+  var el0=document.getElementById("a6-preloader");
+  if(el0){start(el0);}
 }catch(e){try{var x=document.getElementById("a6-preloader");if(x){x.style.display="none";}}catch(_){}}
 })();`,
           }}

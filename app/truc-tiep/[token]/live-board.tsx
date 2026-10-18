@@ -5,6 +5,7 @@ import Link from "next/link";
 import { CheckCircle2, Clock, GraduationCap, QrCode, Trophy, Users, Wifi } from "lucide-react";
 import type { LiveBoard } from "@/lib/live-board";
 import { liveSubmissionPath } from "@/lib/live-paths";
+import { vnClock } from "@/lib/time";
 
 /* LIVE-1 — máy chiếu bảng điểm. Tự poll vài giây (không cần đăng nhập vì
  * đi qua token bí mật ở URL), chữ to đọc rõ trên tivi. */
@@ -41,7 +42,7 @@ function fmtDuration(sec: number): string {
 
 function fmtClock(iso: string): string {
   try {
-    return new Date(iso).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+    return vnClock(iso);
   } catch {
     return "";
   }
