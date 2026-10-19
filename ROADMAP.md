@@ -270,6 +270,16 @@ Tất cả L1–L4 trong commit `6e0ad48` — verified live: robots.txt/sitemap.
 - [x] AI-10b Điểm danh `blocks_used` + coverage + chạy bù 1 lần đúng khối thiếu; mục `skip` cho khối không phải câu hỏi; `meta.blocks` (`81cacf4` + `824e640` ép schema, `97f00ef` chặn model né việc bằng skip + đếm độ phủ, `f5a3876` upload ảnh song song).
 - [ ] AI-10c Verify bằng file user: coverage full + khớp key đỏ.
 
+## ⚡ Đọc đề thuần rule PARSE-1 (2026-10-19)
+
+**User:** import đề phải nhanh, không tốn quota AI; AI chỉ cần khi file lạ. Chốt V1: rule-first, AI làm dự phòng bằng nút riêng, thêm nút "AI giải giúp" cho câu thiếu đáp án.
+
+- [x] PARSE-1a `lib/exam-parse.ts` (`82242a7`) — bộ đọc thuần xác định: `Câu N (2đ):`, số trần `1.`/`)`, đáp án inline + bảng đáp án cuối bài, marker tô màu, Đúng/Sai thành statements, trả lời ngắn; fallback cắt theo khối lựa chọn khi không đánh số; gỡ đáp án bị nuốt vào stem câu kế tiếp. QA `scripts/qa-exam-parse.mjs` **13/13**.
+- [x] PARSE-1b PDF bố cục `lib/pdf-layout.ts` — pdfjs theo toạ độ: 2 cột (đọc hết cột trái trước), tiêu đề trải ngang; fallback `pdf-parse` khi pdfjs lỗi hoặc <10 ký tự; PDF scan/không lớp chữ → báo "Dùng nút Đọc bằng AI". QA `scripts/qa-pdf-layout.mjs` **4/4**.
+- [x] PARSE-1c Nút riêng + AI giải giúp — `mode=parse` trong route (KHÔNG gọi AI, log `rule:PARSE-1`); modal 3 tab "Đọc đề (chuẩn)" (mặc định) / "AI đọc tài liệu" / "AI soạn mới"; parse fail → nút "Đọc bằng AI"; box ghi chú `parseIssues` + engine "Quy tắc đọc đề". Tách solve ra `lib/ai-solve.ts` + `POST /api/ai-solve` (GV-only, ≤20 câu, 2 lượt độc lập + phá thế hoản) cho nút "AI giải giúp" từng câu thiếu đáp án.
+- [x] PARSE-1d Bảng số liệu + hình ảnh — `<w:tbl>` DOCX serialize thành lưới `| cột |` (bảng dính vào stem câu hỏi); đếm ảnh `word/media/*`; parser flag câu tham chiếu "hình N / hình vẽ / hình dưới đây / biểu đồ / sơ đồ / đồ thị" → `needsReview` + ghi chú (KHÔNG flag "hình tam giác" — hình học thuần túy); note khi phát hiện dòng bảng.
+- [ ] PARSE-1e (feature riêng, chưa làm) — dựng lưới bảng PDF từ toạ độ X; lưu ảnh thật vào câu hỏi (migration schema Question + upload + render khi thi).
+
 ## 🔴 Đọc đáp án tô màu + công thức Word (AI-9, 2026-10-13)
 
 **User:** *"đáp án AI khác key của tôi — do key tôi sai hay AI sửa?"* + *"tôi có bôi màu đáp án, nó không đọc ra à"* + công thức toán không đọc được.
