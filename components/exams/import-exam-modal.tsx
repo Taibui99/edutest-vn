@@ -169,7 +169,8 @@ export function ImportExamModal({
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [view, setView] = useState<View>("select");
-  const [mode, setMode] = useState<ImportMode>("smart");
+  // PARSE-1: đọc thuần rule là mặc định; AI (smart) chỉ khi GV tự chọn.
+  const [mode, setMode] = useState<ImportMode>("parse");
   const [file, setFile] = useState<File | null>(null);
   const [text, setText] = useState("");
   const [count, setCount] = useState("10");
@@ -182,9 +183,13 @@ export function ImportExamModal({
   const [error, setError] = useState("");
   const [payload, setPayload] = useState<ImportedPayload | null>(null);
   const [reviewed, setReviewed] = useState<ReviewedQuestion[]>([]);
-  // Engine thực tế đã đọc đề (Gemini hay Groq dự phòng) — hiện cho GV biết vì
+  // Engine thực tế đã đọc đề (Gemini/Groq/rules) — hiện cho GV biết vì
   // sao có lần đọc kém hơn, thay vì "càng ngày càng dốt" mà không rõ nguyên nhân.
   const [engine, setEngine] = useState<{ provider?: string; model?: string } | null>(null);
+  // Cảnh báo đọc rule (thiếu đáp án, khối không rõ…) từ meta.parseIssues.
+  const [parseIssues, setParseIssues] = useState<string[]>([]);
+  const [solveBusy, setSolveBusy] = useState<number | null>(null);
+  const [solveError, setSolveError] = useState("");
 
   const reset = () => {
     setView("select");
@@ -197,6 +202,9 @@ export function ImportExamModal({
     setPayload(null);
     setReviewed([]);
     setEngine(null);
+    setParseIssues([]);
+    setSolveBusy(null);
+    setSolveError("");
   };
   const close = () => {
     reset();
@@ -219,7 +227,13 @@ export function ImportExamModal({
     return () => window.removeEventListener("keydown", onKey);
   });
 
-  const stages = useMemo(() => STAGES.filter((s) => !(s.smartOnly && mode !== "smart")), [mode]);
+  const stages = useMemo(
+    () =>
+      STAGES.filter((s) => !(s.smartOnly && mode !== "smart")).map((s) =>
+        s.key === "analyze" && mode === "parse" ? { ...s, label: "Nhận diện câu hỏi theo quy tắc" } : s,
+      ),
+    [mode],
+  );
   const stats = useMemo<SmartStats>(() => {
     const list = reviewed;
     const mcq = list.filter((q) => q.type === "mcq").length;
@@ -236,9 +250,13 @@ export function ImportExamModal({
 
   if (!open) return null;
 
-  const start = async (next: File | null) => {
+  const start = async (next: File | null, modeOverride?: ImportMode) => {
+    // modeOverride: nút "Đọc bằng AI" khi parse fail — setState async nên phải
+    // truyền chế độ chạy tường minh, không đọc được state vừa set.
+    const runMode = modeOverride ?? mode;
     setError("");
-    if (mode === "generate") {
+    setSolveError("");
+    if (runMode === "generate") {
       const n = Number(count);
       if (!next && text.trim().length < 80) {
         setError("Cần tài liệu: tải file lên hoặc dán ít nhất vài dòng nội dung lý thuyết.");
@@ -263,7 +281,7 @@ export function ImportExamModal({
     }
 
     setFile(next);
-    setActiveStage(mode === "generate" && next ? "upload" : "extract");
+    setActiveStage(runMode === "generate" && next ? "upload" : "extract");
     setProgress({});
     setElapsed(0);
     setView("processing");
@@ -281,21 +299,28 @@ export function ImportExamModal({
           setActiveStage(s);
           if (p) setProgress({ done: p.done, total: p.total });
         },
-        { mode, options, text },
+        { mode: runMode, options, text },
       );
       setEngine({
         provider: typeof meta?.provider === "string" ? meta.provider : undefined,
         model: typeof meta?.model === "string" ? meta.model : undefined,
       });
+      setParseIssues(
+        Array.isArray(meta?.parseIssues)
+          ? (meta.parseIssues as { question?: number | null; message?: string }[]).map((x) =>
+              x?.question ? `Câu ${x.question}: ${x?.message ?? ""}` : String(x?.message ?? ""),
+            )
+          : [],
+      );
       const parsed = parseImportResult(result);
       const items = (parsed.questions ?? []).map(toReviewItem);
-      if (items.length === 0) throw new Error("AI không tạo được câu hỏi nào. Thử thêm nội dung hoặc đổi yêu cầu.");
+      if (items.length === 0) throw new Error("Không tạo được câu hỏi nào. Thử thêm nội dung hoặc đổi sang AI đọc tài liệu.");
       setPayload(parsed);
       setReviewed(items);
       setActiveStage("done");
       setView("review");
     } catch (e) {
-      setError(e instanceof Error ? e.message : mode === "generate" ? "Không thể soạn đề." : "Không thể đọc tài liệu.");
+      setError(e instanceof Error ? e.message : runMode === "generate" ? "Không thể soạn đề." : "Không thể đọc tài liệu.");
       setActiveStage(null);
       setView("error");
     }
@@ -313,6 +338,30 @@ export function ImportExamModal({
     const options = [...reviewed[index].options];
     options[oi] = value;
     patchQuestion(index, { options });
+  };
+
+  /** "AI giải giúp": hỏi /api/ai-solve giải 1 câu trắc nghiệm đang thiếu đáp án. */
+  const aiSolve = async (i: number) => {
+    const q = reviewed[i];
+    if (!q || q.type !== "mcq" || q.answer || solveBusy !== null) return;
+    setSolveError("");
+    setSolveBusy(i);
+    try {
+      const res = await fetch("/api/ai-solve", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ questions: [{ question: q.question, options: q.options }] }),
+      });
+      const data = (await res.json().catch(() => ({}))) as { answers?: { answer?: string }[]; error?: string };
+      if (!res.ok) throw new Error(typeof data?.error === "string" ? data.error : "AI giải không được. Thử lại sau nhé.");
+      const answer = String(data?.answers?.[0]?.answer ?? "").toUpperCase();
+      if (!/^[A-D]$/.test(answer)) throw new Error("AI chưa chốt được đáp án cho câu này — bạn hãy tự chọn đáp án đúng.");
+      patchQuestion(i, { answer, answerSource: "ai", needsReview: false, solveNote: "AI tự giải (2 lượt đối chiếu)" });
+    } catch (e) {
+      setSolveError(e instanceof Error ? e.message : "AI giải thất bại. Thử lại sau.");
+    } finally {
+      setSolveBusy(null);
+    }
   };
 
   const apply = () => {
@@ -344,12 +393,14 @@ export function ImportExamModal({
               <FileUp size={17} /> Tạo đề bằng AI
             </div>
             <h2 className="text-xl font-bold text-[var(--text-primary)]">
-              {mode === "smart" ? "AI đọc tài liệu và dựng đề" : "Soạn đề thi từ tài liệu"}
+              {mode === "parse" ? "Đọc đề theo quy tắc (không AI)" : mode === "smart" ? "AI đọc tài liệu và dựng đề" : "Soạn đề thi từ tài liệu"}
             </h2>
             <p className="mt-1 text-sm text-[var(--text-muted)]">
-              {mode === "smart"
-                ? "AI dựng lại đề có sẵn trong tài liệu, tự làm phần đáp án còn thiếu rồi để bạn duyệt."
-                : "Tải file Word/PDF hoặc dán phần lý thuyết, AI tự sinh câu hỏi theo yêu cầu."}
+              {mode === "parse"
+                ? "Bóc câu hỏi, lựa chọn và đáp án ngay trong tài liệu — nhanh, ổn định, không tốn quota AI."
+                : mode === "smart"
+                  ? "AI dựng lại đề có sẵn trong tài liệu, tự làm phần đáp án còn thiếu rồi để bạn duyệt."
+                  : "Tải file Word/PDF hoặc dán phần lý thuyết, AI tự sinh câu hỏi theo yêu cầu."}
             </p>
           </div>
           <button
@@ -367,14 +418,22 @@ export function ImportExamModal({
           <div className="space-y-4 p-5 sm:p-7">
             {view === "select" ? (
               <>
-                <div className="grid grid-cols-2 gap-1 rounded-2xl bg-[var(--gray-100)] p-1">
+                <div className="grid grid-cols-3 gap-1 rounded-2xl bg-[var(--gray-100)] p-1">
+                  <button
+                    type="button"
+                    onClick={() => (mode === "parse" || (setMode("parse"), setError("")))}
+                    aria-pressed={mode === "parse"}
+                    className={`flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold transition ${mode === "parse" ? "bg-[var(--surface-card)] text-[var(--primary)] shadow-sm" : "text-[var(--text-muted)]"}`}
+                  >
+                    <ListChecks size={15} /> Đọc đề (chuẩn)
+                  </button>
                   <button
                     type="button"
                     onClick={() => (mode === "smart" || (setMode("smart"), setError("")))}
                     aria-pressed={mode === "smart"}
                     className={`flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold transition ${mode === "smart" ? "bg-[var(--surface-card)] text-[var(--primary)] shadow-sm" : "text-[var(--text-muted)]"}`}
                   >
-                    <ListChecks size={15} /> AI đọc tài liệu, dựng đề
+                    <Sparkles size={15} /> AI đọc tài liệu
                   </button>
                   <button
                     type="button"
@@ -382,7 +441,7 @@ export function ImportExamModal({
                     aria-pressed={mode === "generate"}
                     className={`flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold transition ${mode === "generate" ? "bg-[var(--surface-card)] text-[var(--primary)] shadow-sm" : "text-[var(--text-muted)]"}`}
                   >
-                    <Wand2 size={15} /> AI soạn câu hỏi mới
+                    <Wand2 size={15} /> AI soạn mới
                   </button>
                 </div>
 
@@ -425,6 +484,23 @@ export function ImportExamModal({
                       />
                     </label>
                   </>
+                ) : mode === "parse" ? (
+                  <div className="rounded-2xl bg-[var(--surface-bg)] px-4 py-3 text-sm leading-relaxed text-[var(--text-secondary)]">
+                    <p className="font-semibold text-[var(--text-primary)]">Chế độ đọc chuẩn (không gọi AI):</p>
+                    <ul className="mt-1.5 list-disc space-y-1 pl-5 text-[var(--text-muted)]">
+                      <li>Bóc đúng thứ tự câu, lựa chọn A/B/C/D và phần đáp án ghi trong tài liệu.</li>
+                      <li>Nhận diện cả Đúng/Sai, trả lời ngắn và điểm số từng câu.</li>
+                      <li>PDF cần có lớp chữ (bản scan ảnh thì dùng tab &ldquo;AI đọc tài liệu&rdquo;).</li>
+                    </ul>
+                    <pre className="mt-2.5 overflow-x-auto rounded-xl bg-[var(--surface-card)] p-3 text-xs leading-relaxed text-[var(--text-muted)] ring-1 ring-[var(--surface-border)]">
+{`Câu 1: 1 + 1 = ?
+A. 1
+B. 2
+C. 3
+D. 4
+Đáp án: B`}
+                    </pre>
+                  </div>
                 ) : (
                   <div className="rounded-2xl bg-[var(--surface-bg)] px-4 py-3 text-sm leading-relaxed text-[var(--text-secondary)]">
                     <p className="font-semibold text-[var(--text-primary)]">AI sẽ làm 4 việc:</p>
@@ -450,10 +526,10 @@ export function ImportExamModal({
                   <UploadCloud size={24} className="text-[var(--primary)]" />
                   <span className="text-left">
                     <span className="block text-sm font-bold text-[var(--text-primary)]">
-                      {mode === "smart" ? "Tải tài liệu đề thi (PDF / Word)" : "Tải file Word / PDF (không bắt buộc)"}
+                      {mode === "generate" ? "Tải file Word / PDF (không bắt buộc)" : "Tải tài liệu đề thi (PDF / Word)"}
                     </span>
                     <span className="block text-xs text-[var(--text-muted)]">
-                      {mode === "smart" ? "Kéo thả file đề vào đây (tối đa 25MB)" : "Kéo thả vào đây (tối đa 25MB), hoặc dán nội dung lý thuyết bên dưới"}
+                      {mode === "generate" ? "Kéo thả vào đây (tối đa 25MB), hoặc dán nội dung lý thuyết bên dưới" : "Kéo thả file đề vào đây (tối đa 25MB)"}
                     </span>
                   </span>
                 </button>
@@ -479,15 +555,15 @@ export function ImportExamModal({
                   onChange={(e) => setText(e.target.value)}
                   rows={6}
                   placeholder={
-                    mode === "smart"
-                      ? "Dán nội dung đề thi (câu hỏi, lựa chọn A/B/C/D, phần đáp án nếu có)."
-                      : "Dán phần lý thuyết bạn muốn AI soạn câu hỏi. Càng rõ ràng, AI càng bám sát kiến thức."
+                    mode === "generate"
+                      ? "Dán phần lý thuyết bạn muốn AI soạn câu hỏi. Càng rõ ràng, AI càng bám sát kiến thức."
+                      : "Dán nội dung đề thi (câu hỏi, lựa chọn A/B/C/D, phần đáp án nếu có)."
                   }
                   className="w-full resize-y rounded-2xl border border-[var(--surface-border)] px-4 py-3 text-sm leading-relaxed outline-none focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--focus-ring)]"
                 />
                 <Button type="button" onClick={() => void start(null)} className="w-full justify-center gap-2">
-                  {mode === "smart" ? <ListChecks size={16} /> : <Sparkles size={16} />}
-                  {mode === "smart" ? "Đọc tài liệu và dựng đề" : "Tạo đề từ nội dung đã dán"}
+                  {mode === "generate" ? <Sparkles size={16} /> : <ListChecks size={16} />}
+                  {mode === "generate" ? "Tạo đề từ nội dung đã dán" : mode === "parse" ? "Đọc đề từ nội dung đã dán" : "Đọc tài liệu và dựng đề"}
                 </Button>
               </>
             ) : null}
@@ -502,9 +578,11 @@ export function ImportExamModal({
                     <p className="font-bold text-[var(--text-primary)]">
                       {view === "error"
                         ? "Xử lý thất bại"
-                        : mode === "smart"
-                          ? "AI đang đọc tài liệu và dựng đề..."
-                          : "AI đang soạn câu hỏi..."}
+                        : mode === "parse"
+                          ? "Đang đọc đề theo quy tắc..."
+                          : mode === "smart"
+                            ? "AI đang đọc tài liệu và dựng đề..."
+                            : "AI đang soạn câu hỏi..."}
                     </p>
                     <p className="mt-1 truncate text-sm text-[var(--text-muted)]">{file ? file.name : "Nội dung đã dán"}</p>
                   </div>
@@ -542,7 +620,9 @@ export function ImportExamModal({
                     </ol>
                     <div className="mt-4 flex flex-wrap items-center justify-center gap-2 rounded-xl bg-[var(--surface-card)] px-4 py-3 text-sm text-[var(--text-muted)] ring-1 ring-[var(--surface-border)]">
                       <Clock3 size={15} className="text-[var(--secondary-dark)]" /> Đã chạy {elapsed}s
-                      {mode === "smart" ? (
+                      {mode === "parse" ? (
+                        <span>— đọc theo quy tắc nên thường chỉ mất vài giây</span>
+                      ) : mode === "smart" ? (
                         <span>— tài liệu dài và nhiều câu thiếu đáp án sẽ mất vài phút</span>
                       ) : (
                         <span>— đang soạn câu hỏi, có thể mất 1-2 phút</span>
@@ -566,6 +646,18 @@ export function ImportExamModal({
                     >
                       <RotateCcw size={15} /> Thử lại
                     </button>
+                    {mode === "parse" ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setMode("smart");
+                          void start(file, "smart");
+                        }}
+                        className="flex items-center gap-1.5 rounded-xl bg-[var(--secondary-dark)] px-4 py-2.5 text-sm font-semibold text-white hover:opacity-90"
+                      >
+                        <Sparkles size={15} /> Đọc bằng AI
+                      </button>
+                    ) : null}
                     <button
                       type="button"
                       onClick={reset}
@@ -599,12 +691,21 @@ export function ImportExamModal({
                     <p className="mt-0.5 text-[var(--text-muted)]">
                       {payload?.answerKeyFound
                         ? "Tài liệu có sẵn phần đáp án."
-                        : payload?.answerKeyNote || "Không thấy phần đáp án sẵn — AI đã tự làm và đối chiếu."}
+                        : payload?.answerKeyNote ||
+                          (mode === "parse"
+                            ? 'Chưa thấy phần đáp án trong tài liệu — nhập tay hoặc bấm "AI giải giúp".'
+                            : "Không thấy phần đáp án sẵn — AI đã tự làm và đối chiếu.")}
                     </p>
                   </div>
                 </div>
 
-                {engine?.provider || engine?.model ? (
+                {engine?.provider === "rule" ? (
+                  <p className="text-xs text-[var(--text-muted)]">
+                    Đọc bởi:{" "}
+                    <span className="font-semibold text-[var(--mint)]">Quy tắc đọc đề (không AI)</span>
+                    {engine?.model ? ` · ${engine.model}` : ""}
+                  </p>
+                ) : engine?.provider || engine?.model ? (
                   <p className="text-xs text-[var(--text-muted)]">
                     Đọc bởi:{" "}
                     <span className={engine?.provider === "groq" ? "font-bold text-[var(--warning)]" : "font-semibold text-[var(--text-primary)]"}>
@@ -612,6 +713,22 @@ export function ImportExamModal({
                     </span>
                     {engine?.model ? ` · ${engine.model}` : ""}
                   </p>
+                ) : null}
+
+                {parseIssues.length ? (
+                  <div className="rounded-2xl border border-[var(--surface-border)] bg-[var(--surface-bg)] px-4 py-3 text-sm text-[var(--text-secondary)]">
+                    <p className="font-semibold text-[var(--text-primary)]">Ghi chú khi đọc file:</p>
+                    <ul className="mt-1 list-disc space-y-0.5 pl-5 text-[var(--text-muted)]">
+                      {parseIssues.slice(0, 8).map((m, mi) => (
+                        <li key={mi}>{m}</li>
+                      ))}
+                      {parseIssues.length > 8 ? <li>… và {parseIssues.length - 8} ghi chú khác.</li> : null}
+                    </ul>
+                  </div>
+                ) : null}
+
+                {solveError ? (
+                  <div className="rounded-xl border border-[var(--danger-light)] bg-[var(--danger-light)] px-4 py-3 text-sm font-medium text-[var(--danger)]">{solveError}</div>
                 ) : null}
 
                 {stats.needsReview > 0 ? (
@@ -710,6 +827,20 @@ export function ImportExamModal({
                               </label>
                             );
                           })}
+                        </div>
+                      ) : null}
+
+                      {q.type === "mcq" && !q.answer ? (
+                        <div className="mt-2.5 flex flex-wrap items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => void aiSolve(i)}
+                            disabled={solveBusy !== null}
+                            className="flex items-center gap-1.5 rounded-xl bg-[var(--secondary-dark)] px-3.5 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
+                          >
+                            {solveBusy === i ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />} AI giải giúp
+                          </button>
+                          <span className="text-xs text-[var(--text-muted)]">AI tự giải và đối chiếu 2 lượt — bạn vẫn nên kiểm tra lại.</span>
                         </div>
                       ) : null}
 

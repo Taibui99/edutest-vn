@@ -52,6 +52,9 @@ const run = async () => {
   await page.waitForTimeout(800);
 
   const dialog = page.getByRole("dialog");
+  // PARSE-1: mặc định modal là "Đọc đề (chuẩn)" — smoke này test pipeline smart.
+  await dialog.getByRole("button", { name: /^AI đọc tài liệu$/i }).click();
+  await page.waitForTimeout(400);
   await dialog.locator("textarea").first().fill(sample);
   const started = Date.now();
   await dialog.getByRole("button", { name: /Đọc tài liệu và dựng đề/i }).click();

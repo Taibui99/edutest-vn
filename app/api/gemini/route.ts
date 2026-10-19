@@ -13,15 +13,15 @@ import {
   computeStats,
   detectAnswerKey,
   normalizeDifficulty,
-  normalizeMcqAnswer,
   normalizeQuestion,
-  reconcileAnswers,
   type SmartPayload,
-  type SmartQuestion,
 } from "@/lib/ai-exam-build";
+import { solveMissingAnswers } from "@/lib/ai-solve";
 import { extractDocImages, type DocImage } from "@/lib/exam-images";
 import { extractDocxText, reconcileDocKey, type DocxKey } from "@/lib/exam-docx";
 import { segmentQuestions, formatBlocks } from "@/lib/exam-segment";
+import { parseExamText, type ParseIssue } from "@/lib/exam-parse";
+import { extractPdfLayoutText } from "@/lib/pdf-layout";
 import { groqChatJson } from "@/lib/groq-import";
 
 /* Đồng bộ DEFAULT_MODEL ở lib/ai.ts: flash thường (free tier) thay vì flash-lite.
@@ -242,37 +242,6 @@ BƯỚC 3 - ĐỘ KHÓ (bắt buộc với câu tự luận/trả lời ngắn, 
 
 Trả về JSON đúng response schema.`;
 
-const solvePrompt = (items: { n: number; question: string; options: string[] }[], run: string) => `Bạn là chuyên gia giải trắc nghiệm Việt Nam. Lượt ${run}.
-
-DANH SÁCH CÂU HỎI CẦN GIẢI (giữ nguyên số thứ tự "n"):
-${items
-  .map(
-    (it) => `[n=${it.n}]
-${it.question}
-${it.options.map((o, i) => `${String.fromCharCode(65 + i)}. ${o}`).join("\n")}`,
-  )
-  .join("\n\n")}
-
-Với MỖI câu trên, hãy TỰ GIẢI và chọn đáp án đúng duy nhất.
-- Suy luận từ kiến thức trong chính câu hỏi và các lựa chọn; nếu cần dùng kiến thức phổ thông của môn học đó.
-- Không đoán theo thói quen, không chọn đáp án ngẫu nhiên.
-- PHẢI trả lời đủ cho mọi câu, giữ đúng trường "n" đã cho.
-
-Trả về JSON: { "answers": [ { "n": <số thứ tự câu>, "answer": "A|B|C|D", "confidence": 0..1 } ] }`;
-
-const tieBreakPrompt = (q: { n: number; question: string; options: string[] }, cands: string[]) => `Hai lượt giải độc lập cho câu hỏi dưới đây đã cho hai đáp án khác nhau: ${cands.join(" và ")}.
-
-Câu ${q.n}: ${q.question}
-A. ${q.options[0] ?? ""}
-B. ${q.options[1] ?? ""}
-C. ${q.options[2] ?? ""}
-D. ${q.options[3] ?? ""}
-
-Hãy tự giải lại từ đầu, phân tích kỹ từng lựa chọn rồi chốt đáp án đúng.
-Trả về JSON: { "answer": "A|B|C|D", "confidence": 0..1 }`;
-
-const SOLVE_BATCH = 8;
-
 /**
  * AI-8 — gọi Gemini trước, sập hết (429/503/5xx, hết attempts) mới qua Groq.
  * Groq chỉ gánh được prompt CHỮ thuần (không vision/schema) — có ảnh thì ném
@@ -344,101 +313,6 @@ async function callJson<T>(model: string, contents: string | (string | VisionPar
     { attempts: 2, timeoutMs },
   );
   return { data: parseJson<T>(raw), provider: "gemini" };
-}
-
-const solveSchema = {
-  type: "object",
-  properties: {
-    answers: {
-      type: "array",
-      items: {
-        type: "object",
-        properties: { n: { type: "number" }, answer: { type: "string" }, confidence: { type: "number" } },
-        required: ["n", "answer"],
-      },
-    },
-  },
-  required: ["answers"],
-};
-
-const oneSchema = {
-  type: "object",
-  properties: { answer: { type: "string" }, confidence: { type: "number" } },
-  required: ["answer"],
-};
-
-/**
- * Tu lam dap an khi tai lieu khong co phan dap an:
- * 2 luot giai doc lap -> doi chieu -> lech nhau thi pha the hoan (luot 3).
- * Khong chay cho cau da co dap san trong tai lieu.
- */
-async function solveMissingAnswers(
-  questions: SmartQuestion[],
-  onProgress?: (done: number, total: number) => void,
-  forceGroq = false,
-): Promise<{ questions: SmartQuestion[]; agreed: number; provider: "gemini" | "groq" }> {
-  const todo = questions.filter((q) => q.type === "mcq" && !q.answer);
-  if (todo.length === 0) return { questions, agreed: 0, provider: "gemini" };
-  let provider: "gemini" | "groq" = "gemini";
-
-  const votes = new Map<number, { a?: string; b?: string; tie?: string }>();
-  const totalSteps = todo.length * 2;
-  let step = 0;
-
-  for (let i = 0; i < todo.length; i += SOLVE_BATCH) {
-    const batch = todo.slice(i, i + SOLVE_BATCH).map((q, j) => ({ n: i + j + 1, question: q.question, options: q.options }));
-    const [runA, runB] = await Promise.all([
-      callJson<{ answers: { n: number; answer: string }[] }>(geminiModel, solvePrompt(batch, "1"), solveSchema, 70_000, forceGroq, 0.2),
-      callJson<{ answers: { n: number; answer: string }[] }>(geminiModel, solvePrompt(batch, "2"), solveSchema, 70_000, forceGroq, 0.2),
-    ]);
-    if (runA.provider === "groq" || runB.provider === "groq") provider = "groq";
-    const pick = (res: { answers?: { n: number; answer: string }[] }, n: number) => {
-      const hit = res.answers?.find((x) => Number(x.n) === n);
-      return hit ? normalizeMcqAnswer(hit.answer, 4) ?? undefined : undefined;
-    };
-    for (const item of batch) {
-      const src = todo[item.n - 1];
-      const a = pick(runA.data, item.n);
-      const b = pick(runB.data, item.n);
-      votes.set(src.index, { a, b });
-      step += 2;
-      onProgress?.(Math.min(step, totalSteps), totalSteps);
-    }
-  }
-
-  const conflicts = todo.filter((q) => {
-    const v = votes.get(q.index);
-    return v?.a && v?.b && v.a !== v.b;
-  });
-  console.info(`[exam-smart] giải tay ${todo.length} câu; ${votes.size - conflicts.length} đồng thuận; ${conflicts.length} cần phá thế hoản`);
-  if (conflicts.length) {
-    step = todo.length * 2;
-    for (const q of conflicts) {
-      try {
-        const res = await callJson<{ answer: string }>(
-          geminiModel,
-          tieBreakPrompt({ n: q.index + 1, question: q.question, options: q.options }, [votes.get(q.index)!.a!, votes.get(q.index)!.b!]),
-          oneSchema,
-          70_000,
-          forceGroq,
-          0.2,
-        );
-        if (res.provider === "groq") provider = "groq";
-        votes.get(q.index)!.tie = normalizeMcqAnswer(res.data.answer, q.options.length) ?? undefined;
-      } catch (error) {
-        console.warn(`[exam-smart] phá thế hoản thất bại câu ${q.index + 1}`, error);
-      }
-      step += 1;
-      onProgress?.(Math.min(step, totalSteps + conflicts.length), totalSteps + conflicts.length);
-    }
-  }
-
-  const { questions: solved, agreed } = reconcileAnswers(questions, votes);
-  const unanswered = solved.filter((q) => q.type === "mcq" && !q.answer).length;
-  if (unanswered > 0) {
-    console.warn(`[exam-smart] còn ${unanswered} câu không lấy được đáp án nào; đánh dấu cho giáo viên xem lại`);
-  }
-  return { questions: solved, agreed, provider };
 }
 
 /** Pipeline "AI đọc tài liệu & tự dựng đề". */
@@ -879,7 +753,7 @@ export async function POST(request: NextRequest) {
     if (formData.get("forceProvider") === "groq") forceGroq = true;
   }
 
-  const mode: "smart" | "generate" | "extract" = rawMode === "generate" ? "generate" : rawMode === "extract" ? "extract" : "smart";
+  const mode: "smart" | "generate" | "extract" | "parse" = rawMode === "parse" ? "parse" : rawMode === "generate" ? "generate" : rawMode === "extract" ? "extract" : "smart";
   if (!file && !prompt) return NextResponse.json({ error: "Thiếu file hoặc nội dung cần xử lý" }, { status: 400 });
   if (mode === "generate" && !file && !prompt) {
     return NextResponse.json({ error: "Thiếu nội dung để soạn câu hỏi" }, { status: 400 });
@@ -892,6 +766,11 @@ export async function POST(request: NextRequest) {
   const encoder = new TextEncoder();
   let aiLogId: string | null = null;
   let smartStats: ReturnType<typeof computeStats> | null = null;
+  // PARSE-1: cảnh báo đọc rule (thiếu đáp án, khối không rõ…) — trả trong meta.
+  let parseIssues: ParseIssue[] | null = null;
+  // PARSE-1: số ảnh nhúng trong docx (chỉ đếm) — parser dùng để cảnh báo
+  // "file có hình, kiểm tra câu phụ thuộc hình".
+  let docxImages = 0;
   // AI-7: số ảnh đã nạp cho model (0 = chạy chữ thuần) — trả về trong meta để
   // kiểm chứng được, vì log server không xem được từ ngoài.
   let visionCount = 0;
@@ -909,18 +788,18 @@ export async function POST(request: NextRequest) {
             data: {
               userId: session.user.id,
               action: "exam_import",
-              provider: "gemini",
+              provider: mode === "parse" ? "rule" : "gemini",
               status: "running",
-              model: geminiModel,
+              model: mode === "parse" ? "rule:PARSE-1" : geminiModel,
               prompt: prompt ? prompt.slice(0, 2000) : null,
             },
           });
           aiLogId = log.id;
         } catch {}
         let resultText = "";
-        let source: "docx" | "pdf-text" | "pdf-gemini" | "text" | "generate" | "smart" = "text";
+        let source: "docx" | "pdf-text" | "pdf-gemini" | "text" | "generate" | "smart" | "parse" = "text";
         // AI-8: engine nào phục vụ (để debug outage + hiện trong meta).
-        let llmProvider: "gemini" | "groq" = "gemini";
+        let llmProvider: "gemini" | "groq" | "rule" = "gemini";
 
         const readDocument = async (target: File): Promise<{ text: string; key: DocxKey[] }> => {
           const buffer = Buffer.from(await target.arrayBuffer());
@@ -994,7 +873,58 @@ export async function POST(request: NextRequest) {
           resultText = JSON.stringify(payload);
           source = "smart";
           smartStats = stats;
-        } else         if (mode === "generate") {
+        } else if (mode === "parse") {
+          // PARSE-1 — đọc đề thuần rule, KHÔNG gọi AI. PDF scan/không có lớp
+          // chữ thì báo GV dùng nút "Đọc bằng AI" (mode smart) thay vì tự đoán.
+          send({ type: "stage", stage: "extract" });
+          let content = "";
+          let docKey: DocxKey[] = [];
+          if (file) {
+            const lowerName = file.name.toLowerCase();
+            if (!lowerName.endsWith(".docx") && !lowerName.endsWith(".pdf") && !file.type.includes("text")) {
+              return send({ type: "error", error: "Chỉ hỗ trợ file PDF, Word (.docx) hoặc văn bản thuần" });
+            }
+            if (lowerName.endsWith(".docx")) {
+              const buffer = Buffer.from(await file.arrayBuffer());
+              const rich = extractDocxText(buffer);
+              if (rich.marked > 0) console.info(`[exam-parse] ${rich.marked} đáp án tô màu, ${rich.paragraphs} đoạn`);
+              content = rich.text.trim() || (await mammoth.extractRawText({ buffer })).value.trim();
+              docKey = rich.key;
+              docxImages = rich.images;
+            } else if (lowerName.endsWith(".pdf")) {
+              const pdf = await extractPdfLayoutText(Buffer.from(await file.arrayBuffer()));
+              content = pdf.text.trim();
+              console.info(`[exam-parse] pdf engine=${pdf.engine}; chars=${content.length}`);
+              if (!content) {
+                return send({
+                  type: "error",
+                  error: 'PDF này không có lớp chữ (có thể là bản scan). Hãy dùng nút "Đọc bằng AI", hoặc nhập lại đề bằng Word.',
+                });
+              }
+            } else {
+              content = (await file.text()).trim();
+            }
+          } else {
+            content = prompt || "";
+          }
+          if (!content) return send({ type: "error", error: "Không đọc được nội dung tài liệu" });
+          console.info(`[exam-parse] content=${content.length} chars; engine=rule`);
+          send({ type: "stage", stage: "analyze" });
+          let parsed: ReturnType<typeof parseExamText>;
+          try {
+            parsed = parseExamText(content.slice(0, MAX_TEXT_CHARS), { docKey, images: docxImages });
+          } catch (error) {
+            return send({ type: "error", error: mapError(error instanceof Error ? error.message : "Không nhận diện được câu hỏi nào") });
+          }
+          if (!parsed.payload.questions?.length) {
+            return send({ type: "error", error: 'Không nhận diện được câu hỏi nào trong tài liệu. Hãy kiểm tra lại hoặc dùng nút "Đọc bằng AI".' });
+          }
+          resultText = JSON.stringify(parsed.payload);
+          source = "parse";
+          parseIssues = parsed.issues.length ? parsed.issues : null;
+          smartStats = computeStats(parsed.payload, 0);
+          llmProvider = "rule";
+        } else if (mode === "generate") {
           let content = "";
           let genBuffer: Buffer | null = null;
           if (file) {
@@ -1107,11 +1037,12 @@ export async function POST(request: NextRequest) {
         const elapsedMs = Date.now() - startedAt;
         console.info(`[exam-import] completed in ${elapsedMs}ms; model=${geminiModel}; provider=${llmProvider}; source=${source}; smart=${JSON.stringify(smartStats)}`);
         const smartMeta = smartStats ? { smart: smartStats } : {};
-        send({ type: "result", result: resultText, meta: { model: llmProvider === "groq" ? `groq:${process.env.GROQ_MODEL || "openai/gpt-oss-120b"}` : geminiModel, provider: llmProvider, source, elapsedMs, ...(visionCount ? { vision: visionCount } : {}), ...(blocksMeta ? { blocks: blocksMeta } : {}), ...smartMeta } });
+        const parseMeta = parseIssues?.length ? { parseIssues } : {};
+        send({ type: "result", result: resultText, meta: { model: llmProvider === "rule" ? "rule:PARSE-1" : llmProvider === "groq" ? `groq:${process.env.GROQ_MODEL || "openai/gpt-oss-120b"}` : geminiModel, provider: llmProvider, source, elapsedMs, ...(visionCount ? { vision: visionCount } : {}), ...(blocksMeta ? { blocks: blocksMeta } : {}), ...smartMeta, ...parseMeta } });
         if (aiLogId) {
           await prisma.aiImportLog.update({
             where: { id: aiLogId },
-            data: { status: "success", meta: { source, elapsedMs, ...smartMeta } },
+            data: { status: "success", meta: { source, elapsedMs, ...smartMeta, ...parseMeta } },
           }).catch(() => {});
         }
       } catch (error) {

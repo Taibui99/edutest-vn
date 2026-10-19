@@ -106,6 +106,9 @@ export interface DocxExtract {
   paragraphs: number;
   /** Key trích độc lập từ màu đỏ: chữ cái + nội dung đáp án (để đối chiếu). */
   key: DocxKey[];
+  /** Số ảnh nhúng trong docx (word/media/*) — không trích nội dung, chỉ đếm
+   *  để báo giáo viên "file có hình". */
+  images: number;
 }
 
 /** 1 đáp án tô đỏ trong tài liệu. */
@@ -197,22 +200,64 @@ export function reconcileDocKey<
   return { questions, overridden };
 }
 
+/**
+ * Serialize 1 bảng DOCX thành các dòng "| ô | ô |" — giữ cấu trúc lưới
+ * (thay vì để mỗi ô thành dòng rời như trước). Ô có run đỏ (đáp án tô
+ * màu) được gắn marker. Bảng lồng nhau rất hiếm — làm phẳng, không giữ
+ * cấp.
+ */
+function serializeTable(tblXml: string): string[] {
+  const rowRe = /<w:tr(?:\s[^>]*)?>([\s\S]*?)<\/w:tr>/g;
+  const rows: string[] = [];
+  let rm: RegExpExecArray | null;
+  while ((rm = rowRe.exec(tblXml)) !== null) {
+    const cells: string[] = [];
+    const cellRe = /<w:tc(?:\s[^>]*)?>([\s\S]*?)<\/w:tc>/g;
+    let cm: RegExpExecArray | null;
+    while ((cm = cellRe.exec(rm[1])) !== null) {
+      const runs: Run[] = [];
+      const pRe = /<w:p(?:\s[^>]*)?>([\s\S]*?)<\/w:p>/g;
+      let pm: RegExpExecArray | null;
+      while ((pm = pRe.exec(cm[1])) !== null) runs.push(...parseRuns(pm[1]));
+      const text = runs.map((r) => r.text).join("").replace(/[ \t]+/g, " ").trim() || " ";
+      const red = runs.some((r) => r.color !== null && ANSWER_RED.test(r.color as string));
+      cells.push(red ? `${text} ${ANSWER_MARK}` : text);
+    }
+    if (cells.length) rows.push(`| ${cells.join(" | ")} |`);
+  }
+  return rows;
+}
+
 export function extractDocxText(docxBuffer: Buffer): DocxExtract {
-  const empty: DocxExtract = { text: "", marked: 0, paragraphs: 0, key: [] };
+  const empty: DocxExtract = { text: "", marked: 0, paragraphs: 0, key: [], images: 0 };
   try {
     // docx là file zip — bung lấy word/document.xml trước (buffer thô toàn rác zip).
-    const entry = new AdmZip(docxBuffer).getEntry("word/document.xml");
+    const zip = new AdmZip(docxBuffer);
+    const entry = zip.getEntry("word/document.xml");
     if (!entry) return empty;
     const xml = entry.getData().toString("utf8");
     if (!xml.includes("<w:document")) return empty;
+    const images = zip
+      .getEntries()
+      .filter((e) => e.entryName.startsWith("word/media/") && !e.entryName.endsWith("/")).length;
 
     const lines: { text: string; red: boolean; segs: OptionSeg[] }[] = [];
     const allSegs: OptionSeg[] = [];
     let paraCount = 0;
-    const paraRe = /<w:p(?:\s[^>]*)?>([\s\S]*?)<\/w:p>/g;
+    // Duyệt theo thứ tự tài liệu: gặp <w:tbl> thì serialize thành lưới
+    // (các <w:p> bên trong bảng đã bị consumes — không lẫn vào pass đoạn văn).
+    const blockRe = /<w:tbl(?:\s[^>]*)?>([\s\S]*?)<\/w:tbl>|<w:p(?:\s[^>]*)?>([\s\S]*?)<\/w:p>/g;
     let pm: RegExpExecArray | null;
-    while ((pm = paraRe.exec(xml)) !== null) {
-      const runs = parseRuns(pm[1]);
+    while ((pm = blockRe.exec(xml)) !== null) {
+      if (pm[1] !== undefined) {
+        const rows = serializeTable(pm[1]);
+        if (rows.length) {
+          paraCount++;
+          lines.push({ text: rows.join("\n"), red: false, segs: [] });
+        }
+        continue;
+      }
+      const runs = parseRuns(pm[2]);
       const text = runs.map((r) => r.text).join("").replace(/[ \t]+/g, " ").trim();
       if (!text) continue;
       paraCount++;
@@ -246,7 +291,7 @@ export function extractDocxText(docxBuffer: Buffer): DocxExtract {
       return parts;
     });
 
-    return { text: out.join("\n\n").trim(), marked, paragraphs: paraCount, key };
+    return { text: out.join("\n\n").trim(), marked, paragraphs: paraCount, key, images };
   } catch {
     return empty;
   }

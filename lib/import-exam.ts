@@ -1,6 +1,7 @@
 export type ImportStage = "upload" | "extract" | "analyze" | "solve" | "check" | "done";
 
-export type ImportMode = "smart" | "generate";
+/** parse = đọc thuần rule (PARSE-1, không AI); smart = AI đọc; generate = AI soạn. */
+export type ImportMode = "parse" | "smart" | "generate";
 
 /* AI-6f — hai đường upload:
  * - ≤4MB: gửi thẳng File qua Vercel như cũ (nhanh, ít bước).
@@ -51,6 +52,8 @@ export type GenerateOptions = {
 const GENERATE_TIMEOUT_MS = 240_000;
 // Smart import chạy nhiều lượt Gemini (đọc tài liệu → 2 lượt giải → phá thế hoản) nên cần thời gian dài hơn.
 const SMART_TIMEOUT_MS = 420_000;
+// Parse mode không gọi AI — chỉ bóc chữ + regex; timeout chỉ để bắt treo upload/PDF.
+const PARSE_TIMEOUT_MS = 120_000;
 
 function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
   return Promise.race([
@@ -74,8 +77,8 @@ export async function importExamFile(
   onStage: (stage: ImportStage, progress?: { done?: number; total?: number }) => void,
   opts: { mode?: ImportMode; options?: GenerateOptions; text?: string; forceProvider?: "groq" } = {},
 ): Promise<{ result: string; meta?: Record<string, unknown> }> {
-  const mode = opts.mode ?? "smart";
-  const timeout = mode === "generate" ? GENERATE_TIMEOUT_MS : SMART_TIMEOUT_MS;
+  const mode = opts.mode ?? "parse";
+  const timeout = mode === "generate" ? GENERATE_TIMEOUT_MS : mode === "parse" ? PARSE_TIMEOUT_MS : SMART_TIMEOUT_MS;
   if (file && file.size > MAX_UPLOAD_BYTES) {
     throw new Error(
       `File nặng ${mb(file.size)}, vượt quá 25 MB cho phép. Hãy chia nhỏ tài liệu, hoặc copy đoạn cần thiết dán vào ô văn bản.`,
@@ -168,6 +171,6 @@ export async function importExamFile(
     }
   }
 
-  if (!result) throw new Error("AI không trả về dữ liệu câu hỏi");
+  if (!result) throw new Error(mode === "parse" ? "Không đọc được dữ liệu câu hỏi" : "AI không trả về dữ liệu câu hỏi");
   return { result, meta };
 }
