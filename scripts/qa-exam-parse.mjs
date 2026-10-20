@@ -274,4 +274,16 @@ D. 1,5 atm
   assert.ok(issues.some((i) => /chứa 3 ảnh/.test(i.message)));
 });
 
+t("opts.equations/legacyEquations → ghi chú công thức", () => {
+  const text = `Câu 1: Nước sôi ở 100 độ C ở áp suất nào?
+A. 1 atm
+B. 2 atm
+C. 0,5 atm
+D. 1,5 atm
+Đáp án: A`;
+  const { issues } = parseExamText(text, { equations: 5, legacyEquations: 2 });
+  assert.ok(issues.some((i) => /chuyển 5 công thức Word/.test(i.message)));
+  assert.ok(issues.some((i) => /2 công thức Equation Editor 3.0/.test(i.message)));
+});
+
 console.log(`\n${passed} test pass`);

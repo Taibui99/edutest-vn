@@ -17,6 +17,7 @@
  */
 
 import AdmZip from "adm-zip";
+import { injectOmmlText, countLegacyMathOle } from "./omml-text.ts";
 
 const ANSWER_MARK = "[ĐÁP ÁN ĐÚNG THEO TÀI LIỆU]";
 
@@ -109,6 +110,10 @@ export interface DocxExtract {
   /** Số ảnh nhúng trong docx (word/media/*) — không trích nội dung, chỉ đếm
    *  để báo giáo viên "file có hình". */
   images: number;
+  /** PARSE-3: số công thức Word (OMML) đã render thành chữ dễ đọc. */
+  equations: number;
+  /** PARSE-3: số công thức Equation Editor 3.0 cũ (nhị phân, không đọc được). */
+  legacyEquations: number;
 }
 
 /** 1 đáp án tô đỏ trong tài liệu. */
@@ -229,17 +234,31 @@ function serializeTable(tblXml: string): string[] {
 }
 
 export function extractDocxText(docxBuffer: Buffer): DocxExtract {
-  const empty: DocxExtract = { text: "", marked: 0, paragraphs: 0, key: [], images: 0 };
+  const empty: DocxExtract = {
+    text: "",
+    marked: 0,
+    paragraphs: 0,
+    key: [],
+    images: 0,
+    equations: 0,
+    legacyEquations: 0,
+  };
   try {
     // docx là file zip — bung lấy word/document.xml trước (buffer thô toàn rác zip).
     const zip = new AdmZip(docxBuffer);
     const entry = zip.getEntry("word/document.xml");
     if (!entry) return empty;
-    const xml = entry.getData().toString("utf8");
-    if (!xml.includes("<w:document")) return empty;
+    const rawXml = entry.getData().toString("utf8");
+    if (!rawXml.includes("<w:document")) return empty;
     const images = zip
       .getEntries()
       .filter((e) => e.entryName.startsWith("word/media/") && !e.entryName.endsWith("/")).length;
+
+    // PARSE-3: render công thức OMML thành chữ + chèn lại vào XML dưới dạng
+    // <w:r><w:t> để parseRuns (chỉ đọc w:t) thấy công thức ở đúng vị trí.
+    const legacyEquations = countLegacyMathOle(rawXml);
+    const injected = injectOmmlText(rawXml);
+    const xml = injected.xml;
 
     const lines: { text: string; red: boolean; segs: OptionSeg[] }[] = [];
     const allSegs: OptionSeg[] = [];
@@ -291,7 +310,15 @@ export function extractDocxText(docxBuffer: Buffer): DocxExtract {
       return parts;
     });
 
-    return { text: out.join("\n\n").trim(), marked, paragraphs: paraCount, key, images };
+    return {
+      text: out.join("\n\n").trim(),
+      marked,
+      paragraphs: paraCount,
+      key,
+      images,
+      equations: injected.equations,
+      legacyEquations,
+    };
   } catch {
     return empty;
   }

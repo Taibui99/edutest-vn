@@ -252,6 +252,12 @@ export function TaoDeThiEditor({ editId, initialExam }: { editId: string | null;
     const file = input.files?.[0];
     input.value = "";
     if (!file) return;
+    await uploadQuestionImage(index, file);
+  };
+
+  /** IMG-1b — nhận File từ nhiều nguồn (chọn file, kéo-thả, dán clipboard). */
+  const uploadQuestionImage = async (index: number, file: File) => {
+    if (!file.type.startsWith("image/")) return;
     setError("");
     setUploadingImg(index);
     try {
@@ -266,6 +272,23 @@ export function TaoDeThiEditor({ editId, initialExam }: { editId: string | null;
       setError(err instanceof Error ? err.message : "Không tải được ảnh");
     } finally {
       setUploadingImg(null);
+    }
+  };
+
+  /** IMG-1b — bóc ảnh từ clipboard (Ctrl+V) / kéo-thả vào câu hỏi. */
+  const takeImageFromData = (index: number, data: DataTransfer | null): boolean => {
+    if (!data) return false;
+    const file = Array.from(data.items).find((it) => it.kind === "file" && it.type.startsWith("image/"))?.getAsFile()
+      ?? Array.from(data.files).find((f) => f.type.startsWith("image/"));
+    if (!file) return false;
+    void uploadQuestionImage(index, file);
+    return true;
+  };
+  const onPaste = (index: number, e: React.ClipboardEvent) => {
+    // Dán ảnh (chụp màn hình, copy từ web…) → tải lên luôn, khỏi down về rồi up.
+    if (e.clipboardData?.items && Array.from(e.clipboardData.items).some((it) => it.kind === "file" && it.type.startsWith("image/"))) {
+      e.preventDefault();
+      takeImageFromData(index, e.clipboardData);
     }
   };
 
@@ -317,7 +340,11 @@ export function TaoDeThiEditor({ editId, initialExam }: { editId: string | null;
             <div className="flex items-center justify-between border-b border-[var(--surface-border)] px-5 py-4"><div className="flex items-center gap-2"><FileText size={17} className="text-[var(--primary)]"/><div><h2 className="text-sm font-black text-[var(--text-primary)]">Câu hỏi</h2><p className="text-xs text-[var(--text-muted)]">{stats.total} câu · {stats.errors ? `${stats.errors} lỗi cần sửa` : "Đã kiểm tra"}</p></div></div><Button size="sm" variant="outline" onClick={() => addQuestion() } icon={<Plus size={14}/>}>Thêm câu</Button></div>
             <div className="flex flex-col gap-4 p-5">
               {questions.map((q, i) => (
-                <div key={i} className="rounded-2xl border border-[var(--surface-border)] bg-[var(--surface-bg)] p-4 transition-colors focus-within:border-[var(--primary)]/50 focus-within:shadow-sm">
+                <div key={i} className="rounded-2xl border border-[var(--surface-border)] bg-[var(--surface-bg)] p-4 transition-colors focus-within:border-[var(--primary)]/50 focus-within:shadow-sm"
+                  onPaste={(e) => onPaste(i, e)}
+                  onDragOver={(e) => { if (Array.from(e.dataTransfer.items).some((it) => it.kind === "file" && it.type.startsWith("image/"))) e.preventDefault(); }}
+                  onDrop={(e) => { if (takeImageFromData(i, e.dataTransfer)) e.preventDefault(); }}
+                >
                   <div className="mb-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-2"><div className="flex items-center gap-2"><span className="grid h-7 w-7 place-items-center rounded-lg bg-[var(--primary-light)] text-xs font-black text-[var(--primary)]">{i+1}</span><Select value={q.type} onChange={(v) => changeType(i, v as QuestionType)} options={TYPE_OPTIONS} ariaLabel="Loại câu hỏi"/></div><div className="flex shrink-0 items-center gap-2"><span className="text-[11px] font-bold text-[var(--text-muted)]">Điểm</span>{q.type === "true_false" ? <span title="Tổng điểm các mệnh đề — sửa điểm ở từng mệnh đề bên dưới" className="grid h-10 w-40 place-items-center rounded-xl border border-[var(--surface-border)] bg-[var(--gray-100)] text-sm font-bold text-[var(--text-primary)]">{tfStatementsTotal(q.grading?.statements, q.points)}</span> : <NumberInput value={q.points} onChange={(v)=>updateQuestion(i,{points:v})} min={0.25} max={20} step={0.25} className="w-40"/>}<button title="Xóa câu" onClick={() => removeQuestion(i)} className="grid h-10 sm:h-8 w-10 sm:w-8 place-items-center rounded-lg text-[var(--text-muted)] hover:bg-[var(--danger-light)] hover:text-[var(--danger)]"><Trash2 size={15}/></button></div></div>
                   <textarea value={q.question} onChange={(e) => updateQuestion(i,{question:e.target.value})} rows={3} placeholder="Nhập nội dung câu hỏi..." className="w-full rounded-xl border border-[var(--surface-border)] bg-[var(--surface-card)] p-3 text-sm outline-none"/>
 
@@ -330,7 +357,7 @@ export function TaoDeThiEditor({ editId, initialExam }: { editId: string | null;
                       </div>
                     ) : (
                       <label className={cn("inline-flex cursor-pointer items-center gap-2 rounded-xl border border-dashed border-[var(--surface-border)] px-3 py-2 text-xs font-semibold text-[var(--text-secondary)] transition hover:border-[var(--primary)] hover:text-[var(--primary)]", uploadingImg === i && "pointer-events-none opacity-60")}>
-                        <ImageIcon size={14}/> {uploadingImg === i ? "Đang tải ảnh…" : "Thêm ảnh"}
+                        <ImageIcon size={14}/> {uploadingImg === i ? "Đang tải ảnh…" : "Thêm ảnh (hoặc dán Ctrl+V)"}
                         <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImage(i, e)} />
                       </label>
                     )}

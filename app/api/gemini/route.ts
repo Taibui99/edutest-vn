@@ -772,6 +772,9 @@ export async function POST(request: NextRequest) {
   // PARSE-1: số ảnh nhúng trong docx (chỉ đếm) — parser dùng để cảnh báo
   // "file có hình, kiểm tra câu phụ thuộc hình".
   let docxImages = 0;
+  // PARSE-3: công thức Word (OMML) đã render + công thức Equation Editor cũ.
+  let docxEquations = 0;
+  let docxLegacyEquations = 0;
   // PARSE-2: AI giám khảo (đối chiếu kết quả rule với nguyên văn).
   let judgeProvider: "gemini" | "groq" | null = null;
   let judgeFindings = 0;
@@ -895,6 +898,8 @@ export async function POST(request: NextRequest) {
               content = rich.text.trim() || (await mammoth.extractRawText({ buffer })).value.trim();
               docKey = rich.key;
               docxImages = rich.images;
+              docxEquations = rich.equations;
+              docxLegacyEquations = rich.legacyEquations;
             } else if (lowerName.endsWith(".pdf")) {
               const pdf = await extractPdfLayoutText(Buffer.from(await file.arrayBuffer()));
               content = pdf.text.trim();
@@ -916,7 +921,12 @@ export async function POST(request: NextRequest) {
           send({ type: "stage", stage: "analyze" });
           let parsed: ReturnType<typeof parseExamText>;
           try {
-            parsed = parseExamText(content.slice(0, MAX_TEXT_CHARS), { docKey, images: docxImages });
+            parsed = parseExamText(content.slice(0, MAX_TEXT_CHARS), {
+              docKey,
+              images: docxImages,
+              equations: docxEquations,
+              legacyEquations: docxLegacyEquations,
+            });
           } catch (error) {
             return send({ type: "error", error: mapError(error instanceof Error ? error.message : "Không nhận diện được câu hỏi nào") });
           }

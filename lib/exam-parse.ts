@@ -194,7 +194,10 @@ function finalize(seg: Seg, issues: ParseIssue[]): SmartQuestion | null {
  * Đọc đề từ chữ đã bóc (DOCX/PDF text/dán) thành payload đúng khung SmartPayload
  * để màn review dùng lại y hệt. Ném lỗi khi không nhận diện được câu nào.
  */
-export function parseExamText(raw: string, opts: { docKey?: DocxKey[]; images?: number } = {}): ParseExamResult {
+export function parseExamText(
+  raw: string,
+  opts: { docKey?: DocxKey[]; images?: number; equations?: number; legacyEquations?: number } = {},
+): ParseExamResult {
   const issues: ParseIssue[] = [];
   const lines = raw
     .split(/\r?\n/)
@@ -400,6 +403,20 @@ export function parseExamText(raw: string, opts: { docKey?: DocxKey[]; images?: 
     issues.push({
       question: null,
       message: `Tài liệu chứa ${imageCount} ảnh — đọc theo quy tắc không giữ ảnh, kiểm tra câu hỏi có phụ thuộc hình không`,
+    });
+  }
+  const equationCount = opts.equations ?? 0;
+  if (equationCount > 0) {
+    issues.push({
+      question: null,
+      message: `Đã chuyển ${equationCount} công thức Word sang chữ (phân số/căn/lũy thừa) — kiểm tra lại các công thức phức tạp`,
+    });
+  }
+  const legacyCount = opts.legacyEquations ?? 0;
+  if (legacyCount > 0) {
+    issues.push({
+      question: null,
+      message: `Tài liệu có ${legacyCount} công thức Equation Editor 3.0 (đời cũ, dạng nhị phân) — mở bằng Word 2016 trở lên rồi lưu lại để Word tự chuyển sang công thức mới, sau đó import lại`,
     });
   }
 
