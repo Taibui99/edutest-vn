@@ -186,6 +186,8 @@ export function ImportExamModal({
   // Engine thực tế đã đọc đề (Gemini/Groq/rules) — hiện cho GV biết vì
   // sao có lần đọc kém hơn, thay vì "càng ngày càng dốt" mà không rõ nguyên nhân.
   const [engine, setEngine] = useState<{ provider?: string; model?: string } | null>(null);
+  // PARSE-2: kết quả đối chiếu AI giám khảo (meta.judge) — hiện trong review.
+  const [judgeInfo, setJudgeInfo] = useState<{ provider?: string; findings?: number } | null>(null);
   // Cảnh báo đọc rule (thiếu đáp án, khối không rõ…) từ meta.parseIssues.
   const [parseIssues, setParseIssues] = useState<string[]>([]);
   const [solveBusy, setSolveBusy] = useState<number | null>(null);
@@ -202,6 +204,7 @@ export function ImportExamModal({
     setPayload(null);
     setReviewed([]);
     setEngine(null);
+    setJudgeInfo(null);
     setParseIssues([]);
     setSolveBusy(null);
     setSolveError("");
@@ -305,6 +308,12 @@ export function ImportExamModal({
         provider: typeof meta?.provider === "string" ? meta.provider : undefined,
         model: typeof meta?.model === "string" ? meta.model : undefined,
       });
+      const judge = meta?.judge as { provider?: string; findings?: number } | undefined;
+      setJudgeInfo(
+        judge && typeof judge === "object"
+          ? { provider: typeof judge.provider === "string" ? judge.provider : undefined, findings: Number(judge.findings) || 0 }
+          : null,
+      );
       setParseIssues(
         Array.isArray(meta?.parseIssues)
           ? (meta.parseIssues as { question?: number | null; message?: string }[]).map((x) =>
@@ -490,6 +499,7 @@ export function ImportExamModal({
                     <ul className="mt-1.5 list-disc space-y-1 pl-5 text-[var(--text-muted)]">
                       <li>Bóc đúng thứ tự câu, lựa chọn A/B/C/D và phần đáp án ghi trong tài liệu.</li>
                       <li>Nhận diện cả Đúng/Sai, trả lời ngắn và điểm số từng câu.</li>
+                      <li>Xong rồi AI đối chiếu tự động với nguyên văn và đánh dấu câu lệch — không tự sửa đáp án.</li>
                       <li>PDF cần có lớp chữ (bản scan ảnh thì dùng tab &ldquo;AI đọc tài liệu&rdquo;).</li>
                     </ul>
                     <pre className="mt-2.5 overflow-x-auto rounded-xl bg-[var(--surface-card)] p-3 text-xs leading-relaxed text-[var(--text-muted)] ring-1 ring-[var(--surface-border)]">
@@ -712,6 +722,20 @@ D. 4
                       {engine?.provider === "groq" ? "Groq dự phòng (Gemini đang lỗi)" : "Gemini"}
                     </span>
                     {engine?.model ? ` · ${engine.model}` : ""}
+                  </p>
+                ) : null}
+
+                {judgeInfo ? (
+                  <p className="text-xs text-[var(--text-muted)]">
+                    Đối chiếu AI:{" "}
+                    {judgeInfo.findings ? (
+                      <span className="font-bold text-[var(--danger)]">
+                        {judgeInfo.findings} phát hiện lệch — xem ghi chú bên dưới
+                      </span>
+                    ) : (
+                      <span className="font-semibold text-[var(--mint)]">khớp nguyên văn toàn bộ</span>
+                    )}{" "}
+                    · người kiểm: {judgeInfo.provider === "groq" ? "Groq" : "Gemini"}
                   </p>
                 ) : null}
 

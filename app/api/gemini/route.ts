@@ -21,6 +21,7 @@ import { extractDocImages, type DocImage } from "@/lib/exam-images";
 import { extractDocxText, reconcileDocKey, type DocxKey } from "@/lib/exam-docx";
 import { segmentQuestions, formatBlocks } from "@/lib/exam-segment";
 import { parseExamText, type ParseIssue } from "@/lib/exam-parse";
+import { judgeParsedExam, applyJudgeFindings } from "@/lib/ai-judge";
 import { extractPdfLayoutText } from "@/lib/pdf-layout";
 import { groqChatJson } from "@/lib/groq-import";
 
@@ -771,6 +772,9 @@ export async function POST(request: NextRequest) {
   // PARSE-1: số ảnh nhúng trong docx (chỉ đếm) — parser dùng để cảnh báo
   // "file có hình, kiểm tra câu phụ thuộc hình".
   let docxImages = 0;
+  // PARSE-2: AI giám khảo (đối chiếu kết quả rule với nguyên văn).
+  let judgeProvider: "gemini" | "groq" | null = null;
+  let judgeFindings = 0;
   // AI-7: số ảnh đã nạp cho model (0 = chạy chữ thuần) — trả về trong meta để
   // kiểm chứng được, vì log server không xem được từ ngoài.
   let visionCount = 0;
@@ -919,6 +923,22 @@ export async function POST(request: NextRequest) {
           if (!parsed.payload.questions?.length) {
             return send({ type: "error", error: 'Không nhận diện được câu hỏi nào trong tài liệu. Hãy kiểm tra lại hoặc dùng nút "Đọc bằng AI".' });
           }
+          // PARSE-2 — AI giám khảo đối chiếu JSON với nguyên văn. Lỗi thì bỏ
+          // qua + ghi chú (KHÔNG chặn import, KHÔNG sửa đáp án — chỉ thêm cờ).
+          send({ type: "stage", stage: "check" });
+          try {
+            const judged = await judgeParsedExam(content.slice(0, MAX_TEXT_CHARS), parsed.payload, forceGroq);
+            const applied = applyJudgeFindings(parsed.payload, parsed.issues, judged.findings);
+            judgeProvider = judged.provider;
+            judgeFindings = judged.findings.length;
+            console.info(`[exam-parse] judge provider=${judged.provider}; findings=${judged.findings.length}; flagged=${applied.flagged}`);
+          } catch (error) {
+            console.warn("[exam-parse] judge failed", error);
+            parsed.issues.push({
+              question: null,
+              message: "Đối chiếu AI chưa chạy được lần này — kết quả đọc rule vẫn giữ, giáo viên nên soát kỹ",
+            });
+          }
           resultText = JSON.stringify(parsed.payload);
           source = "parse";
           parseIssues = parsed.issues.length ? parsed.issues : null;
@@ -1037,7 +1057,8 @@ export async function POST(request: NextRequest) {
         const elapsedMs = Date.now() - startedAt;
         console.info(`[exam-import] completed in ${elapsedMs}ms; model=${geminiModel}; provider=${llmProvider}; source=${source}; smart=${JSON.stringify(smartStats)}`);
         const smartMeta = smartStats ? { smart: smartStats } : {};
-        const parseMeta = parseIssues?.length ? { parseIssues } : {};
+        const judgeMeta = judgeProvider ? { judge: { provider: judgeProvider, findings: judgeFindings } } : {};
+        const parseMeta = { ...(parseIssues?.length ? { parseIssues } : {}), ...judgeMeta };
         send({ type: "result", result: resultText, meta: { model: llmProvider === "rule" ? "rule:PARSE-1" : llmProvider === "groq" ? `groq:${process.env.GROQ_MODEL || "openai/gpt-oss-120b"}` : geminiModel, provider: llmProvider, source, elapsedMs, ...(visionCount ? { vision: visionCount } : {}), ...(blocksMeta ? { blocks: blocksMeta } : {}), ...smartMeta, ...parseMeta } });
         if (aiLogId) {
           await prisma.aiImportLog.update({
