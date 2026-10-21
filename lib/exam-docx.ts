@@ -241,6 +241,40 @@ function serializeTable(tblXml: string): string[] {
   return rows;
 }
 
+/** Một định nghĩa numbering cấp 0: lvlText ("Câu %1.") + start. */
+export interface NumberingDef {
+  lvlText: string;
+  start: number;
+}
+
+/**
+ * Đọc word/numbering.xml → map numId → định nghĩa cấp 0 (lvlText, start).
+ * numId trỏ tới abstractNumId; lấy <w:lvl w:ilvl="0"> của abstract đó.
+ */
+export function parseNumbering(numberingXml: string): Map<string, NumberingDef> {
+  const out = new Map<string, NumberingDef>();
+  if (!numberingXml || !numberingXml.includes("<w:numbering")) return out;
+
+  const abstractLvl0 = new Map<string, NumberingDef>();
+  const absRe = /<w:abstractNum\b[^>]*w:abstractNumId="(\d+)"[\s\S]*?<\/w:abstractNum>/g;
+  let am: RegExpExecArray | null;
+  while ((am = absRe.exec(numberingXml)) !== null) {
+    const lvl0Re = /<w:lvl\b[^>]*w:ilvl="0"[^>]*>([\s\S]*?)<\/w:lvl>/;
+    const lvl0 = lvl0Re.exec(am[0])?.[1] ?? "";
+    const lvlText = /<w:lvlText\b[^>]*w:val="([^"]*)"/.exec(lvl0)?.[1] ?? "";
+    const start = Number(/<w:start\b[^>]*w:val="(\d+)"/.exec(lvl0)?.[1] ?? "1");
+    abstractLvl0.set(am[1], { lvlText, start: Number.isFinite(start) && start > 0 ? start : 1 });
+  }
+
+  const numRe = /<w:num\b[^>]*w:numId="(\d+)"[^>]*>([\s\S]*?)<\/w:num>/g;
+  let nm: RegExpExecArray | null;
+  while ((nm = numRe.exec(numberingXml)) !== null) {
+    const abstractId = /<w:abstractNumId\b[^>]*w:val="(\d+)"/.exec(nm[2])?.[1];
+    if (abstractId && abstractLvl0.has(abstractId)) out.set(nm[1], abstractLvl0.get(abstractId)!);
+  }
+  return out;
+}
+
 export function extractDocxText(docxBuffer: Buffer): DocxExtract {
   const empty: DocxExtract = {
     text: "",
@@ -268,6 +302,12 @@ export function extractDocxText(docxBuffer: Buffer): DocxExtract {
     const injected = injectOmmlText(rawXml);
     const xml = injected.xml;
 
+    // PARSE-5: đề 2025 đánh số câu bằng numbering tự động của Word — chữ "Câu N."
+    // KHÔNG nằm trong <w:t> mà ở word/numbering.xml (lvlText "Câu %1.") + <w:numPr>.
+    // Đọc bảng numbering để sinh lại tiền tố khi bóc chữ.
+    const numbering = parseNumbering(zip.getEntry("word/numbering.xml")?.getData().toString("utf8") ?? "");
+    const numCounters = new Map<string, number>();
+
     const lines: { text: string; red: boolean; segs: OptionSeg[] }[] = [];
     const allSegs: OptionSeg[] = [];
     let paraCount = 0;
@@ -285,7 +325,17 @@ export function extractDocxText(docxBuffer: Buffer): DocxExtract {
         continue;
       }
       const runs = parseRuns(pm[2]);
-      const text = runs.map((r) => r.text).join("").replace(/[ \t]+/g, " ").trim();
+      let text = runs.map((r) => r.text).join("").replace(/[ \t]+/g, " ").trim();
+      // PARSE-5: paragraph có numbering tự động → sinh tiền tố "Câu N." (theo
+      // lvlText của numId). Bộ đếm RIÊNG cho từng numId (mỗi list tự đếm từ start).
+      const numId = /<w:numId w:val="(\d+)"/.exec(pm[2])?.[1];
+      if (numId && numbering.has(numId)) {
+        const def = numbering.get(numId)!;
+        const count = (numCounters.get(numId) ?? def.start - 1) + 1;
+        numCounters.set(numId, count);
+        const prefix = def.lvlText.replace(/%\d+/g, String(count)).trim();
+        if (prefix) text = `${prefix} ${text}`.trim();
+      }
       if (!text) continue;
       paraCount++;
       const segs = splitOptions(runs);

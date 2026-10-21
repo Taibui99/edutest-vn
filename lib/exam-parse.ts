@@ -34,7 +34,12 @@ export type ParseExamResult = { payload: SmartPayload; issues: ParseIssue[] };
 const QNUM_RE = /^câu\s*(?:hỏi\s*|đề\s*câu\s*)?(\d{1,3})\s*(?:\(\s*(\d+(?:[.,]\d+)?)\s*(?:đ|điểm)\s*\)|\([^)]*\))?\s*[:.\-–—)]\s*(.*)$/i;
 const BARENUM_RE = /^(\d{1,3})\s*[.)]\s+(\S.*)$/;
 const ANSWER_RE = /^(?:đáp\s*án(?:\s*đúng)?|dap\s*an)\s*[:\-–—]\s*(.*)$/i;
-const EXPL_RE = /^(?:giải\s*thích|lời\s*giải)\s*[:\-–—]\s*(.*)$/i;
+/** Đáp án MCQ kiểu đề 2025: dòng riêng "Chọn D" / "Chọn B". */
+const CHOSEN_RE = /^(?:chọn|lựa\s*chọn|chon)\s*[:.\-–—]?\s*([A-Da-d])\s*[.)]?\s*$/i;
+/** Mệnh đề Đúng/Sai 2025: "a) …", "b) …", "c) …", "d) …" (chữ thường để KHÔNG
+ *  đụng lựa chọn MCQ "A. …" viết hoa). */
+const STATEMENT_RE = /^\s*([a-d])\s*[.)]\s*(\S.*)$/;
+const EXPL_RE = /^(?:giải\s*thích|lời\s*giải)\s*[:\-–—]?\s*(.*)$/i;
 const POINTS_LINE_RE = /^(?:điểm|diem)\s*[:\-–—]\s*(\d+(?:[.,]\d+)?)\s*$/i;
 const POINTS_TAIL_RE = /[\s([{]*(\d+(?:[.,]\d+)?)\s*(?:đ|điểm)\s*[\])]?\s*$/i;
 const SINGLE_TOKEN_RE = /^\s*([A-Fa-f]|[1-9])\s*[.,]?\s*$/;
@@ -65,16 +70,26 @@ function extractMarker(line: string): { line: string; letter: string | null } {
   return { line: clean(line), letter };
 }
 
-function isTfTokens(raw: string): boolean {
-  const parts = raw
-    .split(/[,;/]/)
+/** Token Đúng/Sai: "Đúng, Sai, Đúng" hoặc ngắn "Đ – S – Đ – S" (đề 2025). */
+function tfTokenList(raw: string): (boolean | null)[] {
+  return raw
+    .split(/[,;/–—\-]|\s{1,}|\s*\.\s*/)
     .map((p) => p.trim().toLowerCase())
-    .filter(Boolean);
-  return parts.length >= 2 && parts.every((p) => p === "đúng" || p === "sai" || p === "dung");
+    .filter(Boolean)
+    .map((p) => {
+      if (p === "đúng" || p === "dung" || p === "đ" || p === "t" || p === "true") return true;
+      if (p === "sai" || p === "s" || p === "f" || p === "false") return false;
+      return null;
+    });
+}
+
+function isTfTokens(raw: string): boolean {
+  const parts = tfTokenList(raw);
+  return parts.length >= 2 && parts.every((p) => p !== null);
 }
 
 function tfTokens(raw: string): boolean[] {
-  return raw.split(/[,;/]/).map((p) => ["đúng", "dung"].includes(p.trim().toLowerCase()));
+  return tfTokenList(raw).map((p) => p === true);
 }
 
 type Seg = {
@@ -86,6 +101,8 @@ type Seg = {
   answerSeen: boolean;
   explanation: string[];
   points: number | null;
+  /** Mệnh đề Đúng/Sai dạng a) b) c) d) (đề 2025) — song song với answerRaw. */
+  statements: string[];
 };
 
 const newSeg = (number: number | null): Seg => ({
@@ -97,6 +114,7 @@ const newSeg = (number: number | null): Seg => ({
   answerSeen: false,
   explanation: [],
   points: null,
+  statements: [],
 });
 
 /** Gộp 1 dòng lựa chọn vào seg (hỗ trợ nhiều đáp án chung dòng). */
@@ -118,11 +136,12 @@ function finalize(seg: Seg, issues: ParseIssue[]): SmartQuestion | null {
     issues.push({ question: seg.number, message: `${label}: có các lựa chọn nhưng thiếu nội dung câu hỏi` });
   }
 
-  const numStatements = seg.stem.filter((l) => BARENUM_RE.test(l)).length;
+  const numStatements = seg.statements.length || seg.stem.filter((l) => BARENUM_RE.test(l)).length;
   let type: string;
   if (seg.options.length >= 2) type = "mcq";
-  else if (seg.answerRaw && isTfTokens(seg.answerRaw) && numStatements >= 2) type = "true_false";
+  else if (isTfTokens(seg.answerRaw ?? "") && numStatements >= 2) type = "true_false";
   else if (seg.answerRaw) type = "short_answer";
+  else if (numStatements >= 2) type = "true_false";
   else type = "essay";
 
   if (seg.options.length > 4) {
@@ -154,14 +173,18 @@ function finalize(seg: Seg, issues: ParseIssue[]): SmartQuestion | null {
   } else {
     answer = clean(seg.answerRaw ?? "");
     if (answer) answerSource = "document";
-    if (type === "true_false" && seg.answerRaw) {
-      const tokens = tfTokens(seg.answerRaw);
-      const statements = seg.stem
-        .filter((l) => BARENUM_RE.test(l))
-        .map((l) => clean(l.replace(BARENUM_RE, "$2")));
-      if (tokens.length === statements.length) {
+    if (type === "true_false") {
+      // Mệnh đề ưu tiên từ statements "a) b) c) d)" (đề 2025); nếu không có thì
+      // lấy từ stem đánh số "1. 2. 3.".
+      const statements = seg.statements.length
+        ? seg.statements.map((s) => clean(s))
+        : seg.stem
+            .filter((l) => BARENUM_RE.test(l))
+            .map((l) => clean(l.replace(BARENUM_RE, "$2")));
+      const tokens = tfTokens(seg.answerRaw ?? "");
+      if (tokens.length === statements.length && statements.length >= 2) {
         grading = { statements: statements.map((text, i) => ({ text, answer: tokens[i] })) };
-      } else {
+      } else if (statements.length >= 2) {
         issues.push({ question: seg.number, message: `${label}: số mệnh đề không khớp danh sách Đúng/Sai — kiểm tra tay` });
       }
     }
@@ -193,6 +216,29 @@ function finalize(seg: Seg, issues: ParseIssue[]): SmartQuestion | null {
 }
 
 /**
+ * Đọc "Bảng đáp án" cuối bài dạng lưới "| Câu | Đáp án | Câu | Đáp án |" (đề
+ * 2025). Trả về map số-câu → đáp án. Bỏ qua ô không phải số câu.
+ */
+function parseAnswerTable(lines: string[]): Record<string, string> | null {
+  const start = lines.findIndex((l) => /^bảng\s*đáp\s*án\b/i.test(l));
+  if (start < 0) return null;
+  const out: Record<string, string> = {};
+  const rows = lines.slice(start).filter((l) => /^\|.*\|$/.test(l.trim()));
+  for (const row of rows) {
+    const cells = row.replace(/^\|/, "").replace(/\|$/, "").split("|").map((c) => c.trim());
+    // header "Câu | Đáp án | Câu | Đáp án" → bỏ.
+    if (cells.some((c) => /^câu$/i.test(c) || /^đáp\s*án$/i.test(c))) continue;
+    // Ghép cặp (số câu, đáp án): cột 0↔1, cột 2↔3…
+    for (let i = 0; i + 1 < cells.length; i += 2) {
+      const n = cells[i];
+      const a = cells[i + 1];
+      if (/^\d{1,3}$/.test(n) && a) out[n] = a;
+    }
+  }
+  return Object.keys(out).length ? out : null;
+}
+
+/**
  * Đọc đề từ chữ đã bóc (DOCX/PDF text/dán) thành payload đúng khung SmartPayload
  * để màn review dùng lại y hệt. Ném lỗi khi không nhận diện được câu nào.
  */
@@ -206,26 +252,49 @@ export function parseExamText(
   //    đáp án (GV hay kẻ bảng cho các lựa chọn).
   //  - Nếu là bảng số liệu thuần (Năm/Sản lượng…) → GIỮ NGUYÊN dạng "| a | b |"
   //    để vẫn hiện trong câu hỏi và gắn ghi chú "dòng bảng số liệu".
-  const lines = raw
-    .split(/\r?\n/)
-    .flatMap((l) => {
-      const t = l.trim();
-      if (/^\|.*\|$/.test(t) && t.includes("|")) {
-        const cells = t.replace(/^\|/, "").replace(/\|$/, "").split("|").map((c) => c.trim());
-        const nonEmpty = cells.filter(Boolean);
-        const hasOption = nonEmpty.some((c) => /(?<=[\s.,;:()"']|^)[A-D][\.\)\:](?=[\sA-Za-zÀ-ỹ]|$)/.test(c));
-        if (hasOption) return nonEmpty;
-        // Ô đơn chứa đầu câu hỏi ("Câu 2: …") → bỏ dấu "|" để nhận diện câu.
-        if (nonEmpty.length === 1 && /^\s*(?:câu|bài)\s*\d/i.test(nonEmpty[0])) return nonEmpty;
-        return [t];
-      }
+  const expand = (l: string): string[] => {
+    const t = l.trim();
+    if (/^\|.*\|$/.test(t) && t.includes("|")) {
+      const cells = t.replace(/^\|/, "").replace(/\|$/, "").split("|").map((c) => c.trim());
+      const nonEmpty = cells.filter(Boolean);
+      const hasOption = nonEmpty.some((c) => /(?<=[\s.,;:()"']|^)[A-D][\.\)\:](?=[\sA-Za-zÀ-ỹ]|$)/.test(c));
+      if (hasOption) return nonEmpty;
+      // Ô đơn chứa đầu câu hỏi ("Câu 2: …") → bỏ dấu "|" để nhận diện câu.
+      if (nonEmpty.length === 1 && /^\s*(?:câu|bài)\s*\d/i.test(nonEmpty[0])) return nonEmpty;
       return [t];
-    })
-    .filter(Boolean);
+    }
+    return [t];
+  };
+  // Giữ thông tin "dòng này có dòng trống ngay trước không" — dùng để phân
+  // biệt câu mới (đánh số trần, cách bởi dòng trống) với mệnh đề / lời giải
+  // nằm liền trong cùng khối (tránh tách dư câu).
+  const rawLines = raw.split(/\r?\n/);
+  const lines: string[] = [];
+  const blankBefore: boolean[] = [];
+  let pendingBlank = false;
+  for (const rl of rawLines) {
+    if (!rl.trim()) {
+      pendingBlank = true;
+      continue;
+    }
+    for (const e of expand(rl)) {
+      const v = e.trim();
+      if (!v) continue;
+      lines.push(v);
+      blankBefore.push(pendingBlank);
+      pendingBlank = false;
+    }
+  }
 
   const segs: Seg[] = [];
   const preamble: string[] = [];
   let cur: Seg | null = null;
+  // Đề Thông tư 2025: Phần 1/2/3. Phần 1 đánh số "Câu N." trong text; Phần 2/3
+  // đánh số bằng numbering tự động — exam-docx đã sinh tiền tố "Câu N." nên vẫn
+  // chảy qua vòng lặp chính. `sectionRaw` giữ nguyên văn Phần 2/3 để đọc "Bảng
+  // đáp án" cuối bài (đáp án trả lời ngắn).
+  let section = 1;
+  const sectionRaw: string[] = [];
   const push = () => {
     if (cur) {
       segs.push(cur);
@@ -235,6 +304,16 @@ export function parseExamText(
 
   for (let i = 0; i < lines.length; i++) {
     const { line: marked, letter } = extractMarker(lines[i]);
+
+    // Chuyển phần thi: "Phần 2." / "Phần 3." — chốt câu đang dở (Phần 1).
+    const pm = /^phần\s*([123])\b/i.exec(marked);
+    if (pm) {
+      push();
+      section = Number(pm[1]);
+      continue;
+    }
+    if (section >= 2) sectionRaw.push(marked);
+
     let rest = marked;
     const qm = QNUM_RE.exec(marked);
     if (qm) {
@@ -244,9 +323,15 @@ export function parseExamText(
       rest = qm[3];
     } else {
       const bm = BARENUM_RE.exec(marked);
-      // Dòng số trần chỉ mở câu mới khi đang ở đầu khối hoặc khối đã có
-      // lựa chọn/đáp án. Mệnh đề Đúng/Sai đánh số trong câu KHÔNG mở câu mới.
-      if (bm && (!cur || cur.options.length > 0 || cur.answerSeen)) {
+      // Dòng số trần mở câu mới khi:
+      //  - đang ở đầu khối (!cur), HOẶC
+      //  - cách dòng trước một DÒNG TRỐNG (blankBefore) → chắc chắn là câu mới
+      //    (lời giải/bảng đáp án không có dòng trống ngay trước), HOẶC
+      //  - khối đang có lựa chọn nhưng CHƯA thấy đáp án.
+      // Sau khi đã có đáp án mà KHÔNG có dòng trống → là lời giải / bảng đáp án
+      // ("1. …", "2. …") nên không mở câu mới (tránh tách dư câu).
+      const canOpen = !cur || blankBefore[i] || (cur.options.length > 0 && !cur.answerSeen);
+      if (bm && canOpen) {
         const next = (lines[i + 1] ?? "").trim();
         const looksLikeQuestion = /[?？]\s*$/.test(bm[2]) || isOptionLine(next) || splitOptionLine(next).length > 1;
         if (looksLikeQuestion) {
@@ -266,6 +351,20 @@ export function parseExamText(
     if (ans) {
       cur.answerSeen = true;
       cur.answerRaw = ans[1].trim();
+      continue;
+    }
+    // Đề 2025: đáp án MCQ ghi kiểu "Chọn D" trên dòng riêng.
+    const chosen = CHOSEN_RE.exec(rest);
+    if (chosen) {
+      cur.answerSeen = true;
+      cur.answerRaw = chosen[1].toUpperCase();
+      continue;
+    }
+    // Mệnh đề Đúng/Sai 2025: "a) …" "b) …" "c) …" "d) …". CHỈ nhận ở phần thân
+    // câu (trước Lời giải / đáp án) — lời giải cũng có a) b) nhưng là diễn giải.
+    const st = STATEMENT_RE.exec(rest);
+    if (st && cur.options.length === 0 && !cur.answerSeen && cur.explanation.length === 0) {
+      cur.statements.push(st[2].trim());
       continue;
     }
     const expl = EXPL_RE.exec(rest);
@@ -318,6 +417,11 @@ export function parseExamText(
     const q = finalize(seg, issues);
     if (q) parsed.push({ q, number: seg.number });
   }
+
+  // Đề Thông tư 2025 (Phần 2 Đúng/Sai, Phần 3 trả lời ngắn) đánh số bằng
+  // numbering tự động của Word → exam-docx sinh sẵn tiền tố "Câu N." nên các
+  // câu này đã vào `segs` như bình thường. Đáp án Phần 2 nằm ngay trong câu;
+  // Phần 3 lấy từ "Bảng đáp án" cuối bài (theo thứ tự 1..n của phần).
 
   // Fallback: đề không đánh số → cắt theo dãy lựa chọn (exam-segment).
   // Lưu ý: segmentQuestions nuốt dòng "Đáp án: X" vào stem của câu KẾ TIẾP —
@@ -394,6 +498,24 @@ export function parseExamText(
   }
 
   let questions = parsed.map((p, i) => ({ ...p.q, index: i }));
+
+  // "Bảng đáp án" cuối bài (đề 2025): { "1": "34", "2": "170", … } cho Phần 3
+  // (trả lời ngắn). Áp theo THỨ TỰ cho các câu trả lời ngắn còn thiếu đáp án.
+  const p3Table = parseAnswerTable(sectionRaw);
+  if (p3Table) {
+    const ordered = Object.keys(p3Table)
+      .sort((a, b) => Number(a) - Number(b))
+      .map((k) => p3Table[k]);
+    let t = 0;
+    for (const q of questions) {
+      if (q.answer || (q.type !== "short_answer" && q.type !== "essay")) continue;
+      if (t >= ordered.length) break;
+      q.answer = ordered[t++];
+      q.type = "short_answer";
+      q.answerSource = "document";
+      q.needsReview = false;
+    }
+  }
 
   // Bảng đáp án cuối bài — điền cho câu còn trống (theo số câu; nếu số câu
   // khớp đúng số dòng key thì áp dụng theo thứ tự cho câu không đánh số).
