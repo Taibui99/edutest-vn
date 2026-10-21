@@ -279,6 +279,10 @@ Tất cả L1–L4 trong commit `6e0ad48` — verified live: robots.txt/sitemap.
 - [x] PARSE-1c Nút riêng + AI giải giúp — `mode=parse` trong route (KHÔNG gọi AI, log `rule:PARSE-1`); modal 3 tab "Đọc đề (chuẩn)" (mặc định) / "AI đọc tài liệu" / "AI soạn mới"; parse fail → nút "Đọc bằng AI"; box ghi chú `parseIssues` + engine "Quy tắc đọc đề". Tách solve ra `lib/ai-solve.ts` + `POST /api/ai-solve` (GV-only, ≤20 câu, 2 lượt độc lập + phá thế hoản) cho nút "AI giải giúp" từng câu thiếu đáp án.
 - [x] PARSE-1d Bảng số liệu + hình ảnh — `<w:tbl>` DOCX serialize thành lưới `| cột |` (bảng dính vào stem câu hỏi); đếm ảnh `word/media/*`; parser flag câu tham chiếu "hình N / hình vẽ / hình dưới đây / biểu đồ / sơ đồ / đồ thị" → `needsReview` + ghi chú (KHÔNG flag "hình tam giác" — hình học thuần túy); note khi phát hiện dòng bảng.
 - [ ] PARSE-1e (feature riêng, chưa làm) — dựng lưới bảng PDF từ toạ độ X; lưu ảnh thật vào câu hỏi (migration schema Question + upload + render khi thi).
+- [x] PARSE-4 Sửa "đọc đề thiếu câu / hên xui" (`0ac645a`, 2026-10-21) — hai lỗi tách câu:
+  - **Lựa chọn cùng dòng với câu hỏi** (GV dùng tab trong Word: `Câu 1:\t…gì?\tA. …\tB. …`): `exam-parse.ts` cắt phần `A./B./C./D.` ở GIỮA dòng ra khỏi stem → nhận đủ 4 đáp án (trước đây nuốt hết vào câu hỏi, 0 lựa chọn).
+  - **Câu hỏi/lựa chọn trong bảng** (`<w:tbl>`): `serializeTable` trước gộp phẳng mọi run trong ô → dính liền `A. JunB. Oát`; nay nối các `<w:p>` trong ô bằng ` ; ` giữ cả hàng 1 dòng. Parser tách hàng `| … |`: nếu ô có lựa chọn → tách mỗi ô 1 dòng; nếu ô đơn là đầu câu (`Câu N`) → bỏ `|` để nhận diện câu; hàng số liệu thuần (Năm/Sản lượng) → giữ nguyên lưới (không phá note "dòng bảng số liệu"). Bỏ dấu phân cách `;`/`,` cuối mỗi lựa chọn.
+  - QA `scripts/qa-omml.mjs` **7/7** (thêm 2 test docx end-to-end); `qa-exam-parse.mjs` **15/15**, `qa-pdf-layout.mjs` **4/4**, `qa-ai-judge.mjs` **6/6**, `qa-ai-exam-build.mjs` **16/16**; tsc/eslint/build xanh.
 
 ## 🔴 Đọc đáp án tô màu + công thức Word (AI-9, 2026-10-13)
 
