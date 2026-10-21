@@ -7,6 +7,7 @@ import assert from "node:assert/strict";
 import AdmZip from "adm-zip";
 import { injectOmmlText, countLegacyMathOle, FORMULA_NOTE } from "../lib/omml-text.ts";
 import { extractDocxText } from "../lib/exam-docx.ts";
+import { parseExamText } from "../lib/exam-parse.ts";
 
 let passed = 0;
 const t = (name, fn) => {
@@ -71,5 +72,42 @@ t("tích hợp: docx có công thức → text có ghi chú, đếm equations + 
   assert.ok(out.text.includes("Giải phương trình"));
 });
 
+t("docx: lựa chọn nằm cùng dòng câu hỏi (tab) → tách đủ 4 đáp án", () => {
+  const P = (s) => `<w:p><w:r><w:t xml:space="preserve">${s}</w:t></w:r></w:p>`;
+  const docXml =
+    `<?xml version="1.0"?><w:document xmlns:w="x"><w:body>` +
+    P("ĐỀ THI") +
+    P("Câu 1:\tĐộng năng là gì?\tA. mv\tB. 1/2mv2\tC. mgh\tD. mv/2") +
+    P("Đáp án: B") +
+    `</w:body></w:document>`;
+  const zip = new AdmZip();
+  zip.addFile("word/document.xml", Buffer.from(docXml, "utf8"));
+  const out = extractDocxText(zip.toBuffer());
+  const r = parseExamText(out.text, { docKey: out.key });
+  assert.equal(r.payload.questions.length, 1);
+  assert.equal(r.payload.questions[0].options.length, 4, JSON.stringify(r.payload.questions[0].options));
+  assert.equal(r.payload.questions[0].answer, "B");
+});
+
+t("docx: câu hỏi + lựa chọn trong bảng → đọc đúng 2 câu, đủ đáp án", () => {
+  const P = (s) => `<w:p><w:r><w:t xml:space="preserve">${s}</w:t></w:r></w:p>`;
+  const tbl =
+    `<w:tbl><w:tr><w:tc>${P("Câu 2: Đơn vị công suất?")}</w:tc></w:tr>` +
+    `<w:tr><w:tc>${P("A. Jun")}${P("B. Oát")}</w:tc><w:tc>${P("C. Niuton")}${P("D. Mét")}</w:tc></w:tr></w:tbl>`;
+  const docXml =
+    `<?xml version="1.0"?><w:document xmlns:w="x"><w:body>` +
+    P("Câu 1: Động năng là gì?") +
+    P("A. a") + P("B. b") + P("C. c") + P("D. d") + P("Đáp án: B") +
+    tbl + P("Đáp án: B") +
+    `</w:body></w:document>`;
+  const zip = new AdmZip();
+  zip.addFile("word/document.xml", Buffer.from(docXml, "utf8"));
+  const out = extractDocxText(zip.toBuffer());
+  const r = parseExamText(out.text, { docKey: out.key });
+  assert.equal(r.payload.questions.length, 2, JSON.stringify(r.payload.questions.map((q) => q.question)));
+  assert.equal(r.payload.questions[1].options.length, 4, JSON.stringify(r.payload.questions[1].options));
+  assert.equal(r.payload.questions[1].answer, "B");
+});
+
 process.exitCode = process.exitCode || 0;
-console.log(`\n${passed}/5 QA-OMML xanh`);
+console.log(`\n${passed}/7 QA-OMML xanh`);

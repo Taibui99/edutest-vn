@@ -103,7 +103,9 @@ const newSeg = (number: number | null): Seg => ({
 function pushOptionLine(seg: Seg, line: string) {
   for (const p of splitOptionLine(line)) {
     const om = /^([A-Da-d])[.)]\s*(.*)$/.exec(p);
-    seg.options.push({ text: (om ? om[2] : p).trim() });
+    // Bỏ dấu phân cách cuối (từ ô bảng nối "A. Jun ; B. Oát").
+    const text = (om ? om[2] : p).trim().replace(/[\s;,]+$/, "").trim();
+    seg.options.push({ text });
   }
 }
 
@@ -199,9 +201,26 @@ export function parseExamText(
   opts: { docKey?: DocxKey[]; images?: number; equations?: number; legacyEquations?: number } = {},
 ): ParseExamResult {
   const issues: ParseIssue[] = [];
+  // Dòng bảng "| ô | ô |" (từ DOCX):
+  //  - Nếu ô chứa lựa chọn ("A. …"/"B. …") → tách mỗi ô 1 dòng để nhận diện
+  //    đáp án (GV hay kẻ bảng cho các lựa chọn).
+  //  - Nếu là bảng số liệu thuần (Năm/Sản lượng…) → GIỮ NGUYÊN dạng "| a | b |"
+  //    để vẫn hiện trong câu hỏi và gắn ghi chú "dòng bảng số liệu".
   const lines = raw
     .split(/\r?\n/)
-    .map((l) => l.trim())
+    .flatMap((l) => {
+      const t = l.trim();
+      if (/^\|.*\|$/.test(t) && t.includes("|")) {
+        const cells = t.replace(/^\|/, "").replace(/\|$/, "").split("|").map((c) => c.trim());
+        const nonEmpty = cells.filter(Boolean);
+        const hasOption = nonEmpty.some((c) => /(?<=[\s.,;:()"']|^)[A-D][\.\)\:](?=[\sA-Za-zÀ-ỹ]|$)/.test(c));
+        if (hasOption) return nonEmpty;
+        // Ô đơn chứa đầu câu hỏi ("Câu 2: …") → bỏ dấu "|" để nhận diện câu.
+        if (nonEmpty.length === 1 && /^\s*(?:câu|bài)\s*\d/i.test(nonEmpty[0])) return nonEmpty;
+        return [t];
+      }
+      return [t];
+    })
     .filter(Boolean);
 
   const segs: Seg[] = [];
@@ -262,6 +281,21 @@ export function parseExamText(
     if (rest && isOptionLine(rest)) {
       pushOptionLine(cur, rest);
       continue;
+    }
+    // Dòng gộp "câu hỏi ... A. .. B. .. C. .. D. .." (GV hay dùng tab trong
+    // Word): cắt phần lựa chọn ra khỏi câu hỏi để không nuốt hết vào stem.
+    if (rest) {
+      const inlineRe = /(?<=[\s.,;:()"']|^)([A-D])[\.\)\:](?=[\sA-Za-zÀ-ỹ]|$)/g;
+      const marks: number[] = [];
+      let im: RegExpExecArray | null;
+      while ((im = inlineRe.exec(rest)) !== null) marks.push(im.index);
+      // Cần ít nhất 2 lựa chọn VÀ phần lựa chọn đầu không nằm ở đầu dòng.
+      if (marks.length >= 2 && marks[0] > 0) {
+        const stemPart = rest.slice(0, marks[0]).trim();
+        if (stemPart) cur.stem.push(stemPart);
+        pushOptionLine(cur, rest.slice(marks[0]));
+        continue;
+      }
     }
     let s = rest;
     if (s && cur.points === null) {

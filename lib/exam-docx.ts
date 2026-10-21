@@ -220,12 +220,20 @@ function serializeTable(tblXml: string): string[] {
     const cellRe = /<w:tc(?:\s[^>]*)?>([\s\S]*?)<\/w:tc>/g;
     let cm: RegExpExecArray | null;
     while ((cm = cellRe.exec(rm[1])) !== null) {
-      const runs: Run[] = [];
+      // Mỗi <w:p> trong ô là 1 dòng logic — nối các paragraph bằng xuống dòng
+      // để lựa chọn "A. …" / "B. …" nằm riêng dòng (trước đây dính liền
+      // "A. JunB. Oát" vì gộp phẳng mọi run của ô).
+      const paras: string[] = [];
+      const paraRed: boolean[] = [];
       const pRe = /<w:p(?:\s[^>]*)?>([\s\S]*?)<\/w:p>/g;
       let pm: RegExpExecArray | null;
-      while ((pm = pRe.exec(cm[1])) !== null) runs.push(...parseRuns(pm[1]));
-      const text = runs.map((r) => r.text).join("").replace(/[ \t]+/g, " ").trim() || " ";
-      const red = runs.some((r) => r.color !== null && ANSWER_RED.test(r.color as string));
+      while ((pm = pRe.exec(cm[1])) !== null) {
+        const runs = parseRuns(pm[1]);
+        paras.push(runs.map((r) => r.text).join("").replace(/[ \t]+/g, " ").trim());
+        paraRed.push(runs.some((r) => r.color !== null && ANSWER_RED.test(r.color as string)));
+      }
+      const text = paras.filter(Boolean).join(" ; ").trim() || " ";
+      const red = paraRed.some(Boolean);
       cells.push(red ? `${text} ${ANSWER_MARK}` : text);
     }
     if (cells.length) rows.push(`| ${cells.join(" | ")} |`);
