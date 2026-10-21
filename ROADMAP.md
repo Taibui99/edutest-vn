@@ -290,7 +290,13 @@ Tất cả L1–L4 trong commit `6e0ad48` — verified live: robots.txt/sitemap.
   - **Sửa "tách dư câu"** (mở từ PARSE-4): dòng số trần mở câu mới khi ở đầu khối, HOẶC **cách dòng trước một dòng trống** (`blankBefore[i]`), HOẶC khối đang có lựa chọn nhưng chưa thấy đáp án — sau đáp án mà không có dòng trống thì là lời giải/bảng đáp án → không tách.
   - **Kết quả file thật:** 28 câu; Phần 1 đủ 4 lựa chọn + đáp án `Chọn X`; Phần 2 statements 4/4 + `ĐĐĐĐ / ĐĐĐS / SĐSS / ĐSĐĐ`; Phần 3 `34, 170, 3, 78, 5,8, 70`.
   - QA `scripts/qa-omml.mjs` **8/8** (thêm 1 test đề 2025 end-to-end; 3 test cũ đổi kỳ vọng sang LaTeX); `qa-exam-parse.mjs` **15/15**, `qa-pdf-layout.mjs` **4/4**, `qa-ai-judge.mjs` **6/6**, `qa-ai-exam-build.mjs` **16/16**; tsc/eslint/build xanh.
-  - [ ] Còn lại: **render LaTeX trong modal/editor** (KaTeX/MathJax) để công thức hiển thị đẹp khi GV xem/sửa (bước khó nhất theo user); Equation Editor 3.0 cũ (.bin OLE) chưa decode (thuộc PARSE-3 V2).
+  - [ ] Còn lại: Equation Editor 3.0 / MathType 7 (.bin OLE, `Equation Native` MTEF v5) chưa decode — 9 công thức trong file mẫu vẫn ra chữ thường; chờ `lib/mtef-latex.ts` (WIP) hoặc AI vision.
+- [x] PARSE-7 Hiển thị LaTeX trên web bằng KaTeX (`8878c19`, 2026-10-21) — user: *"giúp trang web hiển thị latex mà không bị lỗi trước đi đã, phải đảm bảo mọi thiết bị phải xem được latex"*:
+  - `lib/latex.ts`: tách `$…$` (inline), `$$…$$`, `\(…\)`, `\[…\]` (khối); render bằng **KaTeX** (`output:"htmlAndMathml"`, `throwOnError:false`, `trust:false`) → HTML + MathML + font tự host, **không cần JS client** nên chạy trên iOS 15 / Android cũ và không lỗi hydration. Chữ thường escape HTML thủ công; công thức sai cú pháp hiện đỏ chứ không vỡ trang. `MathText` (`components/ui/math-text.tsx`) render được cả server lẫn client.
+  - CSS `katex/dist/katex.min.css` import 1 lần ở `app/layout.tsx`; build gộp 125KB CSS + 60 file font self-host (không phụ thuộc CDN).
+  - Nối vào **9 màn hình**: làm bài (`exam-taking-client-v2` cả câu + lựa chọn + mệnh đề + giải thích), modal đọc đề (xem trước câu + từng lựa chọn), editor GV (xem trước dưới textarea + khung xem đề), kết quả HS (`ket-qua`), chi tiết đề (`de-thi/[id]`), panel bài nộp, ngân hàng câu hỏi, màn chữa đề trực tiếp (`submission-view`).
+  - QA `scripts/qa-latex.mjs` **12/12** (escape XSS, `$` không đóng, sai cú pháp, 3 công thức/câu, MathML cho trình đọc màn hình); tsc/eslint/build xanh.
+  - Bug bắt được nhờ QA: `body = token.slice(2,-2)` dùng chung cho cả inline → **mọi công thức `$x$` bị rỗng**; nay inline `slice(1,-1)`, khối `slice(2,-2)`.
 
 ## 🔴 Đọc đáp án tô màu + công thức Word (AI-9, 2026-10-13)
 
