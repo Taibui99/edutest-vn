@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Spinner } from "@/components/ui/spinner";
 import { getSubjectColor, SUBJECTS } from "@/lib/subject";
+import { MathText } from "@/components/ui/math-text";
 
 type QuestionType = "mcq" | "true_false" | "short_answer" | "essay";
 type Statement = { text: string; answer: boolean };
@@ -292,7 +293,7 @@ export default function QuestionBankPage() {
                               return (
                                 <div key={letter} className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs ${isCorrect ? "bg-[var(--success-light)] text-[var(--success-dark)] font-semibold" : "bg-[var(--gray-100)] text-[var(--text-secondary)]"}`}>
                                   <span className={`w-4 h-4 rounded-full text-[10px] font-black flex items-center justify-center shrink-0 ${isCorrect ? "bg-[var(--success)] text-white" : "bg-[var(--gray-200)] text-[var(--text-muted)]"}`}>{letter}</span>
-                                  {opt}
+                                  <span className="min-w-0"><MathText text={opt} /></span>
                                 </div>
                               );
                             })}
@@ -302,7 +303,7 @@ export default function QuestionBankPage() {
                           <div className="flex flex-wrap gap-1.5 mt-2.5">
                             {(item.grading?.statements || []).map((s, i) => (
                               <span key={i} className={`rounded-md px-2 py-0.5 text-xs ${s.answer ? "bg-[var(--success-light)] text-[var(--success-dark)]" : "bg-[var(--danger-light)] text-[var(--danger-dark)]"}`}>
-                                {String.fromCharCode(97 + i)}) {s.text} — {s.answer ? "Đúng" : "Sai"}
+                                {String.fromCharCode(97 + i)}) <MathText text={s.text} /> — {s.answer ? "Đúng" : "Sai"}
                               </span>
                             ))}
                           </div>
@@ -361,7 +362,7 @@ export default function QuestionBankPage() {
                           <div className="flex items-start gap-3">
                             <span className="shrink-0 w-6 h-6 rounded-lg text-xs font-black flex items-center justify-center mt-0.5" style={{ background: c.bg, color: c.text }}><FileText size={12} /></span>
                             <div className="flex-1 min-w-0">
-                              <p className="text-sm font-semibold text-[var(--text-primary)] leading-relaxed">{q.text}</p>
+                              <p className="text-sm font-semibold text-[var(--text-primary)] leading-relaxed"><MathText text={q.text} /></p>
                               <div className="mt-1.5 flex items-center gap-1.5">
                                 <FileText size={11} className="text-[var(--text-muted)]" />
                                 <span className="text-xs text-[var(--text-muted)]">Từ đề: <span className="font-semibold">{q.exam.title}</span></span>

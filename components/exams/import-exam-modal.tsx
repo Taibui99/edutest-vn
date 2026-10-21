@@ -18,6 +18,7 @@ import {
 import { importExamFile, type GenerateOptions, type ImportMode, type ImportStage } from "@/lib/import-exam";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { MathText, hasMath } from "@/components/ui/math-text";
 
 type View = "select" | "processing" | "review" | "error";
 
@@ -819,6 +820,12 @@ D. 4
                           placeholder="Nhập nội dung câu hỏi"
                           className={`mt-1 w-full resize-y rounded-xl border bg-[var(--surface-card)] p-2.5 text-sm leading-relaxed outline-none focus:border-[var(--primary)] ${q.question ? "border-[var(--surface-border)] text-[var(--text-primary)]" : "border-[var(--danger)] text-[var(--danger)]"}`}
                         />
+                        {hasMath(q.question) && (
+                          <div className="mt-1 rounded-lg border border-dashed border-[var(--surface-border)] bg-[var(--surface-bg)] px-2.5 py-2 text-sm text-[var(--text-primary)]">
+                            <span className="mr-1 text-[10px] font-bold uppercase text-[var(--text-muted)]">Xem trước</span>
+                            <MathText text={q.question} />
+                          </div>
+                        )}
                       </label>
 
                       {q.type === "mcq" ? (
@@ -827,29 +834,35 @@ D. 4
                             const letter = LETTERS[oi];
                             const selected = q.answer === letter;
                             return (
-                              <label
-                                key={letter}
-                                className={`flex cursor-pointer items-center gap-2 rounded-xl border p-2.5 ${selected ? "border-[var(--success)] bg-[var(--success-light)]" : "border-[var(--surface-border)] bg-[var(--surface-card)]"}`}
-                              >
-                                <input
-                                  type="radio"
-                                  name={`answer-${i}`}
-                                  checked={selected}
-                                  onChange={() => patchQuestion(i, { answer: letter, needsReview: false })}
-                                  className="sr-only"
-                                />
-                                <span
-                                  className={`grid h-7 w-7 shrink-0 place-items-center rounded-full text-xs font-black ${selected ? "bg-[var(--success)] text-white" : "bg-[var(--gray-100)] text-[var(--text-secondary)]"}`}
+                              <div key={letter}>
+                                <label
+                                  className={`flex cursor-pointer items-center gap-2 rounded-xl border p-2.5 ${selected ? "border-[var(--success)] bg-[var(--success-light)]" : "border-[var(--surface-border)] bg-[var(--surface-card)]"}`}
                                 >
-                                  {letter}
-                                </span>
-                                <input
-                                  value={opt}
-                                  onChange={(e) => setOption(i, oi, e.target.value)}
-                                  placeholder={`Nội dung đáp án ${letter}`}
-                                  className="min-w-0 flex-1 bg-transparent text-sm outline-none"
-                                />
-                              </label>
+                                  <input
+                                    type="radio"
+                                    name={`answer-${i}`}
+                                    checked={selected}
+                                    onChange={() => patchQuestion(i, { answer: letter, needsReview: false })}
+                                    className="sr-only"
+                                  />
+                                  <span
+                                    className={`grid h-7 w-7 shrink-0 place-items-center rounded-full text-xs font-black ${selected ? "bg-[var(--success)] text-white" : "bg-[var(--gray-100)] text-[var(--text-secondary)]"}`}
+                                  >
+                                    {letter}
+                                  </span>
+                                  <input
+                                    value={opt}
+                                    onChange={(e) => setOption(i, oi, e.target.value)}
+                                    placeholder={`Nội dung đáp án ${letter}`}
+                                    className="min-w-0 flex-1 bg-transparent text-sm outline-none"
+                                  />
+                                </label>
+                                {hasMath(opt) && (
+                                  <div className="mt-1 rounded-lg border border-dashed border-[var(--surface-border)] bg-[var(--surface-bg)] px-2.5 py-1.5 text-sm text-[var(--text-primary)]">
+                                    <MathText text={opt} />
+                                  </div>
+                                )}
+                              </div>
                             );
                           })}
                         </div>

@@ -18,6 +18,7 @@ import { groupLatestByParticipant } from "@/lib/live-board";
 import { SubmissionsPanel, type SubRow, type SubQuestion } from "./submissions-panel";
 import { RegradeButton } from "./regrade-button";
 import { LiveBoardButton } from "./live-board-button";
+import { MathText } from "@/components/ui/math-text";
 
 export const metadata: Metadata = { title: "Chi tiết đề thi — A6Class Edu" };
 
@@ -254,7 +255,7 @@ export default async function ExamDetailPage({ params }: { params: Promise<{ id:
                       <div className="flex items-center justify-between gap-2 mb-1.5">
                         <p className="text-xs text-[var(--text-secondary)] line-clamp-2">
                           <span className="font-black text-[var(--text-muted)] mr-1">Câu {question.order + 1}.</span>
-                          {question.text}
+                          <MathText text={question.text} />
                         </p>
                         {pct !== null && (
                           <span className={`shrink-0 text-xs font-black ${pct >= 70 ? "text-[var(--success)]" : pct >= 40 ? "text-[var(--warning)]" : "text-[var(--danger)]"}`}>

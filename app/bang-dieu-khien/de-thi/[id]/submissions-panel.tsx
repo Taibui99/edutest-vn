@@ -10,6 +10,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Users } from "lucide-react";
 import { isQuestionCorrect, isAutoGraded, type AnswerValue } from "@/lib/grading";
 import { labelOf, MAX_VIOLATIONS } from "@/lib/integrity";
+import { MathText } from "@/components/ui/math-text";
 
 export type SubRow = {
   id: string;
@@ -453,7 +454,7 @@ export function SubmissionsPanel({ subs, questions }: { subs: SubRow[]; question
                             <Icon size={15} style={{ color: iconColor }} className="shrink-0 mt-0.5" />
                             <div className="flex-1 min-w-0">
                               <p className="text-xs font-semibold text-[var(--text-primary)] leading-relaxed">
-                                Câu {q.order + 1}. {q.text}
+                                Câu {q.order + 1}. <MathText text={q.text} />
                               </p>
                               <div className="mt-1.5 text-xs text-[var(--text-secondary)]">
                                 {answered ? (

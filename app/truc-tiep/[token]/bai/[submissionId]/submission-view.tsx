@@ -9,6 +9,7 @@ import {
 import type { LiveQuestionView, LiveSubmissionDetail } from "@/lib/live-board";
 import { livePath, liveSubmissionApiPath } from "@/lib/live-paths";
 import { vnClock, vnDateTime } from "@/lib/time";
+import { MathText } from "@/components/ui/math-text";
 
 /* LIVE-1b — màn chi tiết 1 bài làm mở từ bảng điểm (bấm tên học sinh).
  * Chữ to để giáo viên đọc khi chữa đề miệng. Tự poll như bảng; CHỈ XEM.
@@ -122,7 +123,7 @@ function McqOptions({ q }: { q: LiveQuestionView }) {
             >
               {letter}
             </span>
-            <span className="min-w-0 flex-1 text-lg font-semibold">{opt}</span>
+            <span className="min-w-0 flex-1 text-lg font-semibold"><MathText text={opt} /></span>
             {badge && (
               <span
                 className="shrink-0 rounded-lg px-2 py-1 text-xs font-black"
@@ -161,7 +162,7 @@ function Statements({ q }: { q: LiveQuestionView }) {
             style={{ background: tone.bg, border: `1px solid ${tone.line}` }}
           >
             <span className="text-lg font-semibold sm:text-xl">
-              {String.fromCharCode(97 + i)}. {s.text}
+              {String.fromCharCode(97 + i)}. <MathText text={s.text} />
             </span>
             <span className="shrink-0 text-base font-bold text-white/75">
               Bạn làm: {pick === undefined ? "—" : pick ? "Đúng" : "Sai"}
@@ -233,7 +234,7 @@ function QuestionCard({ q, showKey }: { q: LiveQuestionView; showKey: boolean })
       </div>
 
       <p className="mt-3 text-xl font-bold leading-snug text-white sm:text-2xl">
-        {q.text || "(Câu hỏi trống)"}
+        <MathText text={q.text || "(Câu hỏi trống)"} />
       </p>
 
       {q.image && (

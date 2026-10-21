@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { getSubjectColor } from "@/lib/subject";
 import { isQuestionCorrect, type AnswerValue } from "@/lib/grading";
+import { MathText } from "@/components/ui/math-text";
 
 interface Question {
   id: string;
@@ -285,7 +286,7 @@ export default function ResultPage({ params }: { params: Promise<{ id: string }>
                       </span>
                       <p className="text-sm font-semibold text-[var(--text-primary)]">
                         <span className="text-[var(--text-muted)] font-normal mr-1">Câu {q.order}.</span>
-                        {q.text}
+                        <MathText text={q.text} />
                       </p>
                     </div>
 
@@ -311,7 +312,7 @@ export default function ResultPage({ params }: { params: Promise<{ id: string }>
                             }`}>
                               {letter}
                             </span>
-                            {opt}
+                            <span className="min-w-0"><MathText text={opt} /></span>
                             {isCorrectAnswer && <CheckCircle2 size={13} className="ml-auto text-[var(--success)]" />}
                           </div>
                         );
@@ -337,7 +338,7 @@ export default function ResultPage({ params }: { params: Promise<{ id: string }>
                               "bg-[var(--danger-light)] text-[var(--danger-dark)]"
                             }`}
                           >
-                            <span className="font-medium">{String.fromCharCode(97 + si)}. {s.text}</span>
+                            <span className="font-medium">{String.fromCharCode(97 + si)}. <MathText text={s.text} /></span>
                             <span className="shrink-0 text-xs font-black">
                               {ok && s.points ? `+${s.points}đ · ` : ""}Bạn làm: {pick === true ? "Đúng" : pick === false ? "Sai" : "—"} · Đáp án đúng: {s.answer ? "Đúng" : "Sai"}
                             </span>

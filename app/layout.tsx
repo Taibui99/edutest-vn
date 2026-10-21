@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Be_Vietnam_Pro, Inter } from "next/font/google";
 import { ViewTransition } from "react";
 import "./globals.css";
+import "katex/dist/katex.min.css";
 import { getSession } from "@/lib/session";
 import { getSetting } from "@/lib/settings";
 import { MaintenanceGate } from "@/components/maintenance-gate";

@@ -15,6 +15,7 @@ import { cn } from "@/lib/cn";
 import { SUBJECTS } from "@/lib/subject";
 import { PROCTOR_MODES, PROCTOR_MODE_DESCRIPTIONS, proctorModeLabel, type ProctorMode } from "@/lib/integrity";
 import { ImportExamModal } from "@/components/exams/import-exam-modal";
+import { MathText, hasMath } from "@/components/ui/math-text";
 
 type QuestionType = "mcq" | "true_false" | "short_answer" | "essay";
 type Statement = { text: string; answer: boolean; points?: number };
@@ -466,6 +467,12 @@ export function TaoDeThiEditor({ editId, initialExam }: { editId: string | null;
                 >
                   <div className="mb-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-2"><div className="flex items-center gap-2"><span className="grid h-7 w-7 place-items-center rounded-lg bg-[var(--primary-light)] text-xs font-black text-[var(--primary)]">{i+1}</span><Select value={q.type} onChange={(v) => changeType(i, v as QuestionType)} options={TYPE_OPTIONS} ariaLabel="Loại câu hỏi"/></div><div className="flex shrink-0 items-center gap-2"><span className="text-[11px] font-bold text-[var(--text-muted)]">Điểm</span>{q.type === "true_false" ? <span title="Tổng điểm các mệnh đề — sửa điểm ở từng mệnh đề bên dưới" className="grid h-10 w-40 place-items-center rounded-xl border border-[var(--surface-border)] bg-[var(--gray-100)] text-sm font-bold text-[var(--text-primary)]">{tfStatementsTotal(q.grading?.statements, q.points)}</span> : <NumberInput value={q.points} onChange={(v)=>updateQuestion(i,{points:v})} min={0.25} max={20} step={0.25} className="w-40"/>}<button title="Xóa câu" onClick={() => removeQuestion(i)} className="grid h-10 sm:h-8 w-10 sm:w-8 place-items-center rounded-lg text-[var(--text-muted)] hover:bg-[var(--danger-light)] hover:text-[var(--danger)]"><Trash2 size={15}/></button></div></div>
                   <textarea value={q.question} onChange={(e) => updateQuestion(i,{question:e.target.value})} rows={3} placeholder="Nhập nội dung câu hỏi..." className="w-full rounded-xl border border-[var(--surface-border)] bg-[var(--surface-card)] p-3 text-sm outline-none"/>
+                  {hasMath(q.question) && (
+                    <div className="mt-1.5 rounded-xl border border-dashed border-[var(--surface-border)] bg-[var(--surface-card)] px-3 py-2 text-sm text-[var(--text-primary)]">
+                      <span className="mr-1.5 text-[10px] font-bold uppercase tracking-wide text-[var(--text-muted)]">Xem trước</span>
+                      <MathText text={q.question} />
+                    </div>
+                  )}
 
                   <div className="mt-3">
                     {q.grading?.image ? (
@@ -520,7 +527,7 @@ export function TaoDeThiEditor({ editId, initialExam }: { editId: string | null;
       {preview && <div className="fixed inset-0 z-[100] overflow-y-auto bg-black/50 p-4 backdrop-blur-sm"><div className="mx-auto max-w-4xl rounded-2xl bg-[var(--surface-card)] p-6 shadow-2xl"><div className="mb-5 flex items-center justify-between"><div><p className="text-xs text-[var(--text-secondary)]">Xem trước</p><h2 className="text-xl font-black">{title || "Đề thi mới"}</h2></div><button onClick={()=>setPreview(false)} className="grid h-10 sm:h-9 w-10 sm:w-9 place-items-center rounded-lg bg-[var(--gray-100)]"><X size={17}/></button></div><div className="flex flex-col gap-4">{questions.map((q,i)=><div key={i} className="rounded-xl border p-4">{q.grading?.image&&(<>
 {/* eslint-disable-next-line @next/next/no-img-element */}
 <img src={q.grading.image} alt="Ảnh minh hoạ" className="mb-3 max-h-64 rounded-lg border border-[var(--surface-border)]"/>
-</>)}<p className="mb-3 font-semibold">Câu {i+1}. {q.question}</p>{q.type==="mcq"&&q.options.map((o,oi)=><div key={oi} className="mb-1 rounded-lg border p-2 text-sm">{String.fromCharCode(65+oi)}. {o}</div>)}{q.type==="true_false"&&(q.grading?.statements||[]).map((s,si)=><div key={si} className="mb-1 flex justify-between rounded-lg border p-2 text-sm"><span>{String.fromCharCode(97+si)}) {s.text}</span><strong>{s.answer?"Đúng":"Sai"}</strong></div>)}{q.type==="short_answer"&&<div className="rounded-lg border bg-[var(--gray-100)] p-3 text-sm">Ô trả lời ngắn</div>}{q.type==="essay"&&<div className="min-h-28 rounded-lg border bg-[var(--gray-100)] p-3 text-sm">Ô trả lời tự luận</div>}</div>)}</div></div></div>}
+</>)}<p className="mb-3 font-semibold">Câu {i+1}. <MathText text={q.question} /></p>{q.type==="mcq"&&q.options.map((o,oi)=><div key={oi} className="mb-1 rounded-lg border p-2 text-sm">{String.fromCharCode(65+oi)}. <MathText text={o} /></div>)}{q.type==="true_false"&&(q.grading?.statements||[]).map((s,si)=><div key={si} className="mb-1 flex justify-between rounded-lg border p-2 text-sm"><span>{String.fromCharCode(97+si)}) <MathText text={s.text} /></span><strong>{s.answer?"Đúng":"Sai"}</strong></div>)}{q.type==="short_answer"&&<div className="rounded-lg border bg-[var(--gray-100)] p-3 text-sm">Ô trả lời ngắn</div>}{q.type==="essay"&&<div className="min-h-28 rounded-lg border bg-[var(--gray-100)] p-3 text-sm">Ô trả lời tự luận</div>}</div>)}</div></div></div>}
     </div>
   );
 }

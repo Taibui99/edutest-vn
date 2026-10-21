@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AlertTriangle, ArrowLeft, ArrowRight, BookOpen, CheckCircle2, ChevronDown, ChevronUp, Clock, Eye, Flag, Hourglass, Menu, MinusCircle, RotateCcw, Send, TimerOff, Trophy, X, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { MathText } from "@/components/ui/math-text";
 import { useToast } from "@/components/ui/toast";
 import { TransitionOverlay } from "@/app/components/transition-overlay";
 import { cn } from "@/lib/cn";
@@ -155,7 +156,7 @@ function GuestReview({ items }: { items: ReviewItem[] }) {
                   {q.correct === null ? <MinusCircle size={13} className="text-[var(--text-muted)]" /> : q.correct ? <CheckCircle2 size={13} className="text-[var(--success)]" /> : <XCircle size={13} className="text-[var(--danger)]" />}
                 </span>
                 <p className="text-sm font-semibold text-[var(--text-primary)]">
-                  <span className="text-[var(--text-muted)] font-normal mr-1">Câu {q.order}.</span>{q.text}
+                  <span className="text-[var(--text-muted)] font-normal mr-1">Câu {q.order}.</span><MathText text={q.text} />
                 </p>
               </div>
 
@@ -168,7 +169,7 @@ function GuestReview({ items }: { items: ReviewItem[] }) {
                     return (
                       <div key={letter} className={cn("flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm", isCorrectAnswer ? "bg-[var(--success-light)] text-[var(--success-dark)] font-semibold" : isUserPick ? "bg-[var(--danger-light)] text-[var(--danger-dark)]" : "text-[var(--text-secondary)]")}>
                         <span className="w-5 h-5 rounded-full text-xs font-black flex items-center justify-center shrink-0 bg-[var(--gray-100)] text-[var(--text-muted)]">{letter}</span>
-                        {opt}
+                        <span className="min-w-0"><MathText text={opt} /></span>
                         {isUserPick && <span className="ml-auto text-[10px] font-bold shrink-0">{isCorrectAnswer ? "Bạn chọn ✓" : "Bạn chọn"}</span>}
                       </div>
                     );
@@ -187,7 +188,7 @@ function GuestReview({ items }: { items: ReviewItem[] }) {
                     const ok = pick === s.answer;
                     return (
                       <div key={si} className={cn("flex items-center justify-between gap-2 px-3 py-1.5 rounded-lg text-sm", ok ? "bg-[var(--success-light)] text-[var(--success-dark)]" : pick === undefined ? "text-[var(--text-secondary)]" : "bg-[var(--danger-light)] text-[var(--danger-dark)]")}>
-                        <span className="font-medium">{String.fromCharCode(97 + si)}. {s.text}</span>
+                        <span className="font-medium">{String.fromCharCode(97 + si)}. <MathText text={s.text} /></span>
                         <span className="shrink-0 text-xs font-bold">{ok && s.points ? `+${s.points}đ · ` : ""}Bạn làm: {pick === true ? "Đúng" : pick === false ? "Sai" : "—"} · Đáp án đúng: {s.answer ? "Đúng" : "Sai"}</span>
                       </div>
                     );
@@ -213,7 +214,7 @@ function GuestReview({ items }: { items: ReviewItem[] }) {
               )}
 
               {q.explanation && (
-                <p className="mt-2 pl-7 text-xs text-[var(--text-muted)]">Giải thích: {q.explanation}</p>
+                  <p className="mt-2 pl-7 text-xs text-[var(--text-muted)]">Giải thích: <MathText text={q.explanation} /></p>
               )}
             </div>
           ))}
@@ -852,12 +853,12 @@ export function ExamTakingClientV2({ exam, attempt, preview = false, backHref }:
               // eslint-disable-next-line @next/next/no-img-element
               <img src={question.grading.image} alt="Hình minh hoạ câu hỏi" className="mb-4 max-h-80 w-auto rounded-xl border border-[var(--surface-border)] bg-white" />
             )}
-            <p className="text-base font-medium leading-relaxed text-[var(--text-primary)] mb-5">{question?.text}</p>
+            <p className="text-base font-medium leading-relaxed text-[var(--text-primary)] mb-5"><MathText text={question?.text} /></p>
 
             {question?.type === "mcq" && <div className="flex flex-col gap-2">{(() => { const perm = optionShuffleRef.current[question.id] || Array.from({ length: question.options.length }, (_, i) => i); // eslint-disable-line react-hooks/refs
- return question.options.map((_, displayIndex) => { const origIndex = perm[displayIndex]; const letter = String.fromCharCode(65 + displayIndex); const selected = typeof currentAnswer === "string" && (currentAnswer.charCodeAt(0) - 65) === origIndex; return <button key={displayIndex} onClick={() => setMcqAnswer(String.fromCharCode(65 + origIndex))} className={cn("flex items-center gap-3 rounded-xl border p-4 text-left text-sm transition", selected ? "border-[var(--primary)] bg-[var(--primary-light)] text-[var(--primary)] font-semibold" : "border-[var(--surface-border)] hover:bg-[var(--gray-100)]")}><span className={cn("w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0", selected ? "bg-[var(--primary)] text-white" : "bg-[var(--gray-100)] text-[var(--text-secondary)]")}>{letter}</span>{question.options[origIndex]}</button>; }); })()}</div>}
+ return question.options.map((_, displayIndex) => { const origIndex = perm[displayIndex]; const letter = String.fromCharCode(65 + displayIndex); const selected = typeof currentAnswer === "string" && (currentAnswer.charCodeAt(0) - 65) === origIndex; return <button key={displayIndex} onClick={() => setMcqAnswer(String.fromCharCode(65 + origIndex))} className={cn("flex items-center gap-3 rounded-xl border p-4 text-left text-sm transition", selected ? "border-[var(--primary)] bg-[var(--primary-light)] text-[var(--primary)] font-semibold" : "border-[var(--surface-border)] hover:bg-[var(--gray-100)]")}><span className={cn("w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0", selected ? "bg-[var(--primary)] text-white" : "bg-[var(--gray-100)] text-[var(--text-secondary)]")}>{letter}</span><span className="min-w-0"><MathText text={question.options[origIndex]} /></span></button>; }); })()}</div>}
 
-            {question?.type === "true_false" && <div className="flex flex-col gap-3">{(question.grading?.statements || []).map((statement, index) => { const values = (typeof currentAnswer === "object" ? currentAnswer : {}) as Record<string, boolean>; const selected = values[String(index)]; return <div key={index} className="rounded-xl border border-[var(--surface-border)] p-4"><p className="text-sm text-[var(--text-primary)] mb-3"><span className="font-bold mr-2">{String.fromCharCode(97 + index)}.</span>{statement.text}</p><div className="flex gap-2"><button onClick={() => setTrueFalse(index, true)} className={cn("flex-1 rounded-lg border py-2 text-sm font-semibold", selected === true ? "border-[var(--success)] bg-[var(--success-light)] text-[var(--success)]" : "border-[var(--surface-border)]")}>Đúng</button><button onClick={() => setTrueFalse(index, false)} className={cn("flex-1 rounded-lg border py-2 text-sm font-semibold", selected === false ? "border-[var(--danger)] bg-[var(--danger-light)] text-[var(--danger)]" : "border-[var(--surface-border)]")}>Sai</button></div></div>;})}</div>}
+            {question?.type === "true_false" && <div className="flex flex-col gap-3">{(question.grading?.statements || []).map((statement, index) => { const values = (typeof currentAnswer === "object" ? currentAnswer : {}) as Record<string, boolean>; const selected = values[String(index)]; return <div key={index} className="rounded-xl border border-[var(--surface-border)] p-4"><p className="text-sm text-[var(--text-primary)] mb-3"><span className="font-bold mr-2">{String.fromCharCode(97 + index)}.</span><MathText text={statement.text} /></p><div className="flex gap-2"><button onClick={() => setTrueFalse(index, true)} className={cn("flex-1 rounded-lg border py-2 text-sm font-semibold", selected === true ? "border-[var(--success)] bg-[var(--success-light)] text-[var(--success)]" : "border-[var(--surface-border)]")}>Đúng</button><button onClick={() => setTrueFalse(index, false)} className={cn("flex-1 rounded-lg border py-2 text-sm font-semibold", selected === false ? "border-[var(--danger)] bg-[var(--danger-light)] text-[var(--danger)]" : "border-[var(--surface-border)]")}>Sai</button></div></div>;})}</div>}
 
             {question?.type === "short_answer" && <div><input value={typeof currentAnswer === "string" ? currentAnswer : ""} onChange={(e) => setShortAnswer(e.target.value)} placeholder="Nhập câu trả lời..." className="w-full rounded-xl border border-[var(--surface-border)] p-4 text-sm outline-none focus:border-[var(--primary)]"/><p className="mt-2 text-xs text-[var(--text-muted)]">Hãy nhập câu trả lời ngắn gọn.</p></div>}
 
