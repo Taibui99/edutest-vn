@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Eye, FileText, Image as ImageIcon, Plus, Save, Send, Trash2, X } from "lucide-react";
@@ -169,6 +169,56 @@ function dbToQuestion(raw: DbQuestion): Question {
   return withAiMetadata({ type, question: raw.text, options: Array.isArray(raw.options) && raw.options.length ? raw.options : ["","","",""], answer: (raw.answer || "A").charAt(0).toUpperCase() || "A", points: raw.points }, { grading: raw.grading as Grading | null });
 }
 
+/** DRAFT-1 — bản nháp tự lưu vào localStorage của trình duyệt.
+ *  Soạn đề chỉ nằm trong React state: tắt máy / hết pin / mất mạng là mất
+ *  sạch. Đây là "lưới an toàn" — lưu liên tục khi soạn (debounce) và khôi
+ *  phục khi mở lại editor. Không thay thế việc bấm Lưu (vẫn nên lưu DB). */
+type ExamDraft = {
+  v: 1;
+  savedAt: number;
+  title: string;
+  subject: string;
+  description: string;
+  duration: string;
+  shuffleQuestions: boolean;
+  shuffleAnswers: boolean;
+  allowGuest: boolean;
+  maxAttempts: number;
+  showAnswers: boolean;
+  showScore: boolean;
+  proctorMode: ProctorMode;
+  openAt: string;
+  closeAt: string;
+  questions: Question[];
+};
+
+const DRAFT_PREFIX = "edutest:draft:";
+/** editId của đề đang sửa, hoặc "new" cho đề mới. Mỗi đề 1 khoá riêng để
+ *  không đè nháp của nhau khi GV mở nhiều tab. */
+function draftKey(editId: string | null): string {
+  return DRAFT_PREFIX + (editId ?? "new");
+}
+
+function readDraft(editId: string | null): ExamDraft | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(draftKey(editId));
+    if (!raw) return null;
+    const d = JSON.parse(raw) as ExamDraft;
+    if (!d || d.v !== 1 || !Array.isArray(d.questions)) return null;
+    return d;
+  } catch {
+    return null;
+  }
+}
+
+function clearDraft(editId: string | null): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.removeItem(draftKey(editId));
+  } catch {}
+}
+
 export interface InitialExam {
   title: string;
   subject: string;
@@ -186,24 +236,26 @@ export interface InitialExam {
   status: string;
   questions: DbQuestion[];
 }
-
 export function TaoDeThiEditor({ editId, initialExam }: { editId: string | null; initialExam: InitialExam | null }) {
   const router = useRouter();
-  const [title, setTitle] = useState(initialExam?.title ?? "");
-  const [subject, setSubject] = useState(initialExam?.subject ?? "");
-  const [description, setDescription] = useState(initialExam?.description ?? "");
-  const [duration, setDuration] = useState(String(initialExam?.durationMinutes ?? 45));
-  const [shuffleQuestions, setShuffleQuestions] = useState(initialExam?.shuffleQuestions ?? false);
-  const [shuffleAnswers, setShuffleAnswers] = useState(initialExam?.shuffleAnswers ?? false);
-  const [allowGuest, setAllowGuest] = useState(initialExam?.allowGuestAttempts ?? true);
-  const [maxAttempts, setMaxAttempts] = useState(initialExam?.maxAttempts ?? 1);
+  // DRAFT-1 — đọc nháp tự lưu MỘT lần lúc mount (client-only, ssr:false nên
+  // an toàn). Có nháp thì ưu tiên nháp, không thì lấy đề gốc trong DB.
+  const [draft] = useState<ExamDraft | null>(() => readDraft(editId));
+  const [title, setTitle] = useState(draft?.title ?? initialExam?.title ?? "");
+  const [subject, setSubject] = useState(draft?.subject ?? initialExam?.subject ?? "");
+  const [description, setDescription] = useState(draft?.description ?? initialExam?.description ?? "");
+  const [duration, setDuration] = useState(draft?.duration ?? String(initialExam?.durationMinutes ?? 45));
+  const [shuffleQuestions, setShuffleQuestions] = useState(draft?.shuffleQuestions ?? initialExam?.shuffleQuestions ?? false);
+  const [shuffleAnswers, setShuffleAnswers] = useState(draft?.shuffleAnswers ?? initialExam?.shuffleAnswers ?? false);
+  const [allowGuest, setAllowGuest] = useState(draft?.allowGuest ?? initialExam?.allowGuestAttempts ?? true);
+  const [maxAttempts, setMaxAttempts] = useState(draft?.maxAttempts ?? initialExam?.maxAttempts ?? 1);
   // EXAM-1b — nhớ giá trị hữu hạn gần nhất để bật/tắt "vô hạn" không mất số cũ.
   const lastFiniteAttempts = useRef(maxAttempts > 0 ? maxAttempts : 1);
   const handleMaxAttempts = (v: number) => { if (v > 0) lastFiniteAttempts.current = v; setMaxAttempts(v); };
-  const [showAnswers, setShowAnswers] = useState(initialExam?.showAnswers ?? true);
-  const [showScore, setShowScore] = useState(initialExam?.showScoreImmediately ?? true);
+  const [showAnswers, setShowAnswers] = useState(draft?.showAnswers ?? initialExam?.showAnswers ?? true);
+  const [showScore, setShowScore] = useState(draft?.showScore ?? initialExam?.showScoreImmediately ?? true);
   const [proctorMode, setProctorMode] = useState<ProctorMode>(() => {
-    const m = initialExam?.proctorMode ?? "";
+    const m = draft?.proctorMode ?? initialExam?.proctorMode ?? "";
     return (PROCTOR_MODES as readonly string[]).includes(m) ? (m as ProctorMode) : "off";
   });
   // ISO (UTC) -> giá trị `datetime-local` theo GIỜ ĐỊA PHƯƠNG của máy.
@@ -216,9 +268,15 @@ export function TaoDeThiEditor({ editId, initialExam }: { editId: string | null;
     const p = (n: number) => String(n).padStart(2, "0");
     return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
   };
-  const [openAt, setOpenAt] = useState(toInput(initialExam?.openAt ?? null));
-  const [closeAt, setCloseAt] = useState(toInput(initialExam?.closeAt ?? null));
-  const [questions, setQuestions] = useState<Question[]>(() => (initialExam?.questions.length ? initialExam.questions.map(dbToQuestion) : [blankQuestion()]));
+  const [openAt, setOpenAt] = useState(draft?.openAt ?? toInput(initialExam?.openAt ?? null));
+  const [closeAt, setCloseAt] = useState(draft?.closeAt ?? toInput(initialExam?.closeAt ?? null));
+  const [questions, setQuestions] = useState<Question[]>(() =>
+    draft?.questions.length
+      ? draft.questions
+      : initialExam?.questions.length
+        ? initialExam.questions.map(dbToQuestion)
+        : [blankQuestion()],
+  );
   const [importOpen, setImportOpen] = useState(false);
   const [preview, setPreview] = useState(false);
   const [publishing, setPublishing] = useState(false);
@@ -227,6 +285,54 @@ export function TaoDeThiEditor({ editId, initialExam }: { editId: string | null;
   const [uploadingImg, setUploadingImg] = useState<number | null>(null);
   const currentStatus = initialExam?.status === "draft" ? "draft" : "published";
   const backHref = editId ? `/bang-dieu-khien/de-thi/${editId}` : "/bang-dieu-khien/de-thi";
+  const draftBanner = draft ? new Date(draft.savedAt).toLocaleString("vi-VN") : null;
+  // DRAFT-1 — sau khi lưu DB xong thì ngừng cảnh báo rời trang.
+  const savedRef = useRef(false);
+
+  // DRAFT-1 — tự lưu khi có thay đổi (debounce 600ms).
+  useEffect(() => {
+    const id = window.setTimeout(() => {
+      try {
+        const payload: ExamDraft = {
+          v: 1,
+          savedAt: Date.now(),
+          title,
+          subject,
+          description,
+          duration,
+          shuffleQuestions,
+          shuffleAnswers,
+          allowGuest,
+          maxAttempts,
+          showAnswers,
+          showScore,
+          proctorMode,
+          openAt,
+          closeAt,
+          questions,
+        };
+        window.localStorage.setItem(draftKey(editId), JSON.stringify(payload));
+      } catch {}
+    }, 600);
+    return () => window.clearTimeout(id);
+  }, [editId, title, subject, description, duration, shuffleQuestions, shuffleAnswers, allowGuest, maxAttempts, showAnswers, showScore, proctorMode, openAt, closeAt, questions]);
+
+  // DRAFT-1 — cảnh báo trước khi đóng tab / tải lại nếu chưa lưu DB.
+  useEffect(() => {
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (savedRef.current) return;
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, []);
+
+  const discardDraft = () => {
+    clearDraft(editId);
+    savedRef.current = true;
+    window.location.reload();
+  };
 
   const stats = useMemo(() => {
     const errors = questions.filter((q) => {
@@ -318,6 +424,9 @@ export function TaoDeThiEditor({ editId, initialExam }: { editId: string | null;
         : await fetch("/api/exams", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Không thể lưu đề");
+      // DRAFT-1 — lưu DB thành công thì xoá nháp (không còn gì để khôi phục).
+      clearDraft(editId);
+      savedRef.current = true;
       if (editId) {
         router.push(status === "draft" ? "/bang-dieu-khien/de-thi" : `/bang-dieu-khien/de-thi/${editId}`);
       } else {
@@ -334,6 +443,16 @@ export function TaoDeThiEditor({ editId, initialExam }: { editId: string | null;
           <div className="flex flex-wrap gap-2"><Button variant="outline" onClick={() => setImportOpen(true)}>Import PDF/Word</Button><Button variant="outline" onClick={() => setQuestions([blankQuestion()])}>Đề mới</Button><Button variant="outline" onClick={() => setPreview(true)} icon={<Eye size={15}/>}>Xem trước</Button>{editId ? <Button onClick={() => saveExam()} loading={publishing} disabled={!stats.valid} icon={<Save size={15}/>}>Lưu thay đổi</Button> : <><Button variant="outline" onClick={() => saveExam("draft")} loading={publishing} disabled={!stats.valid} icon={<Save size={15}/>}>Lưu nháp</Button><Button onClick={() => saveExam("published")} loading={publishing} disabled={!stats.valid} icon={<Send size={15}/>}>Xuất bản</Button></>}</div>
         </div>
         {error && <div className="mb-5 rounded-xl border border-[var(--danger-light)] bg-[var(--danger-light)] p-3 text-sm text-[var(--danger)]">{error}</div>}
+        {draftBanner && (
+          <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--warning-light)] bg-[var(--warning-light)] p-3 text-sm text-[var(--warning)]">
+            <span>
+              <strong>Đã khôi phục bản nháp tự lưu</strong> lúc {draftBanner}. Nhớ bấm Lưu/Xuất bản để lưu chính thức.
+            </span>
+            <button type="button" onClick={discardDraft} className="rounded-lg border border-[var(--warning)] px-3 py-1.5 text-xs font-semibold hover:bg-[var(--warning)] hover:text-white">
+              Bỏ nháp, tải lại
+            </button>
+          </div>
+        )}
 
         <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
           <section className="rounded-2xl border border-[var(--surface-border)] bg-[var(--surface-card)] shadow-sm">
