@@ -282,8 +282,28 @@ C. 0,5 atm
 D. 1,5 atm
 Đáp án: A`;
   const { issues } = parseExamText(text, { equations: 5, legacyEquations: 2 });
-  assert.ok(issues.some((i) => /chuyển 5 công thức Word/.test(i.message)));
+  assert.ok(issues.some((i) => /đánh dấu 5 chỗ có công thức/.test(i.message)));
   assert.ok(issues.some((i) => /2 công thức Equation Editor 3.0/.test(i.message)));
+});
+
+t("chỗ có [CÔNG THỨC — nhập tay] → needsReview + issue theo câu", () => {
+  const text = `Câu 1: Giải phương trình [CÔNG THỨC — nhập tay] = 0?
+A. 1
+B. 2
+C. 3
+D. 4
+Đáp án: B
+
+Câu 2: Nước sôi ở bao nhiêu độ?
+A. 50
+B. 100
+C. 150
+D. 200
+Đáp án: B`;
+  const { payload, issues } = parseExamText(text);
+  assert.equal(payload.questions[0].needsReview, true);
+  assert.ok(issues.some((i) => i.question === 1 && /có công thức/.test(i.message)));
+  assert.equal(payload.questions[1].needsReview, false);
 });
 
 console.log(`\n${passed} test pass`);

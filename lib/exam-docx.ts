@@ -254,8 +254,8 @@ export function extractDocxText(docxBuffer: Buffer): DocxExtract {
       .getEntries()
       .filter((e) => e.entryName.startsWith("word/media/") && !e.entryName.endsWith("/")).length;
 
-    // PARSE-3: render công thức OMML thành chữ + chèn lại vào XML dưới dạng
-    // <w:r><w:t> để parseRuns (chỉ đọc w:t) thấy công thức ở đúng vị trí.
+    // PARSE-3: công thức Word (OMML) → thay bằng ghi chú "[CÔNG THỨC — nhập tay]"
+    // để giáo viên gõ lại (KHÔNG tự render — dễ hỏng/sai). OLE cũ chỉ đếm.
     const legacyEquations = countLegacyMathOle(rawXml);
     const injected = injectOmmlText(rawXml);
     const xml = injected.xml;

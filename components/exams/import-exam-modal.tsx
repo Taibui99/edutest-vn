@@ -500,6 +500,7 @@ export function ImportExamModal({
                       <li>Bóc đúng thứ tự câu, lựa chọn A/B/C/D và phần đáp án ghi trong tài liệu.</li>
                       <li>Nhận diện cả Đúng/Sai, trả lời ngắn và điểm số từng câu.</li>
                       <li>Xong rồi AI đối chiếu tự động với nguyên văn và đánh dấu câu lệch — không tự sửa đáp án.</li>
+                      <li>Chỗ nào có công thức (Toán/Lý/Hóa) sẽ hiện &ldquo;[CÔNG THỨC — nhập tay]&rdquo; — bạn gõ lại công thức khi duyệt.</li>
                       <li>PDF cần có lớp chữ (bản scan ảnh thì dùng tab &ldquo;AI đọc tài liệu&rdquo;).</li>
                     </ul>
                     <pre className="mt-2.5 overflow-x-auto rounded-xl bg-[var(--surface-card)] p-3 text-xs leading-relaxed text-[var(--text-muted)] ring-1 ring-[var(--surface-border)]">

@@ -390,6 +390,19 @@ export function parseExamText(
     }
   }
 
+  // PARSE-3 — câu/chỗ có công thức Word: ghi chú "nhập tay" + bật needsReview.
+  const FORMULA_NOTE_RE = /\[CÔNG THỨC[^\]]*\]/;
+  questions.forEach((q, qi) => {
+    const parts = [q.question, ...(Array.isArray(q.options) ? q.options : [])];
+    if (parts.some((t) => FORMULA_NOTE_RE.test(String(t ?? "")))) {
+      q.needsReview = true;
+      issues.push({
+        question: qi + 1,
+        message: `Câu ${qi + 1} có công thức — chỗ ghi "[CÔNG THỨC — nhập tay]" cần giáo viên gõ lại`,
+      });
+    }
+  });
+
   // Ghi chú phần mềm (question: null) — dữ liệu bảng/hình ảnh trong tài liệu.
   const tableLines = raw.split("\n").filter((l) => /^\s*\|[^|].*\|\s*$/.test(l)).length;
   if (tableLines > 0) {
@@ -409,7 +422,7 @@ export function parseExamText(
   if (equationCount > 0) {
     issues.push({
       question: null,
-      message: `Đã chuyển ${equationCount} công thức Word sang chữ (phân số/căn/lũy thừa) — kiểm tra lại các công thức phức tạp`,
+      message: `Đã đánh dấu ${equationCount} chỗ có công thức — chỗ đó ghi "[CÔNG THỨC — nhập tay]", giáo viên gõ lại công thức khi duyệt`,
     });
   }
   const legacyCount = opts.legacyEquations ?? 0;
