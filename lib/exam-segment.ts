@@ -32,7 +32,9 @@ const OPT_START = /^[A-D][\.\)\:]/;
  */
 export function splitOptionLine(line: string): string[] {
   const marks: number[] = [];
-  const re = /(?<=[\s.,;:()"']|^)([A-D])[\.\)\:](?=[\sA-Za-zÀ-ỹ]|$)/g;
+  // `$` trong lookbehind: đề chèn công thức LaTeX dính liền lựa chọn
+  // ("$T(K)=…$B. $t(…)=…$") — không có khoảng trắng trước "B.".
+  const re = /(?<=[\s.,;:()"'$]|^)([A-D])[\.\)\:](?=[\sA-Za-zÀ-ỹ]|$)/g;
   let m: RegExpExecArray | null;
   while ((m = re.exec(line)) !== null) marks.push(m.index);
   if (!marks.length || marks[0] !== 0) return [line];

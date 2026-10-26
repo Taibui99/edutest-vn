@@ -261,7 +261,7 @@ export function parseExamText(
     if (/^\|.*\|$/.test(t) && t.includes("|")) {
       const cells = t.replace(/^\|/, "").replace(/\|$/, "").split("|").map((c) => c.trim());
       const nonEmpty = cells.filter(Boolean);
-      const hasOption = nonEmpty.some((c) => /(?<=[\s.,;:()"']|^)[A-D][\.\)\:](?=[\sA-Za-zÀ-ỹ]|$)/.test(c));
+      const hasOption = nonEmpty.some((c) => /(?<=[\s.,;:()"'$]|^)[A-D][\.\)\:](?=[\sA-Za-zÀ-ỹ]|$)/.test(c));
       if (hasOption) return nonEmpty;
       // Ô đơn chứa đầu câu hỏi ("Câu 2: …") → bỏ dấu "|" để nhận diện câu.
       if (nonEmpty.length === 1 && /^\s*(?:câu|bài)\s*\d/i.test(nonEmpty[0])) return nonEmpty;
@@ -381,6 +381,13 @@ export function parseExamText(
       cur.explanation.push(rest);
       continue;
     }
+    // Mệnh đề Đúng/Sai có công thức nằm ở đoạn riêng ngay sau câu dẫn
+    // ("c) Công thức … là:" rồi đoạn "$T_F=…$") — nối vào mệnh đề cuối thay vì
+    // đẩy vào thân câu (trước đây công thức bị dính vào câu hỏi).
+    if (cur.statements.length && cur.options.length === 0 && !cur.answerSeen && rest) {
+      cur.statements[cur.statements.length - 1] = `${cur.statements[cur.statements.length - 1]} ${rest}`.trim();
+      continue;
+    }
     const pl = POINTS_LINE_RE.exec(rest);
     if (pl) {
       cur.points = toPoints(pl[1]);
@@ -393,7 +400,7 @@ export function parseExamText(
     // Dòng gộp "câu hỏi ... A. .. B. .. C. .. D. .." (GV hay dùng tab trong
     // Word): cắt phần lựa chọn ra khỏi câu hỏi để không nuốt hết vào stem.
     if (rest) {
-      const inlineRe = /(?<=[\s.,;:()"']|^)([A-D])[\.\)\:](?=[\sA-Za-zÀ-ỹ]|$)/g;
+      const inlineRe = /(?<=[\s.,;:()"'$]|^)([A-D])[\.\)\:](?=[\sA-Za-zÀ-ỹ]|$)/g;
       const marks: number[] = [];
       let im: RegExpExecArray | null;
       while ((im = inlineRe.exec(rest)) !== null) marks.push(im.index);

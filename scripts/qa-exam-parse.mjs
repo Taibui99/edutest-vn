@@ -306,4 +306,41 @@ D. 200
   assert.equal(payload.questions[1].needsReview, false);
 });
 
+t("lựa chọn dính sau công thức LaTeX ($…$B.) → vẫn tách đủ 4 đáp án", () => {
+  const text = `Câu 1: Mối liên hệ giữa nhiệt độ Celsius và Kelvin là?
+A. $T(K)=t(^{o}C)/273,15.$B. $t(^{o}C)=T(K)−273,15.$
+C. $t(^{o}C)=T(K)/273,15.$D. $t(^{o}C)=273,15−T(K).$
+Đáp án: B`;
+  const { payload } = parseExamText(text);
+  const q = payload.questions[0];
+  assert.equal(q.options.length, 4);
+  assert.equal(q.options[0], "$T(K)=t(^{o}C)/273,15.$");
+  assert.equal(q.options[1], "$t(^{o}C)=T(K)−273,15.$");
+  assert.equal(q.options[2], "$t(^{o}C)=T(K)/273,15.$");
+  assert.equal(q.answer, "B");
+});
+
+t("mệnh đề Đúng/Sai có công thức ở đoạn riêng → nối vào mệnh đề, không lọt stem", () => {
+  const text = `Câu 2: Một học sinh đo nhiệt độ của mẫu chất lỏng được $50^{∘}C.$
+
+a) Nhiệt độ $50^{∘}C$ tương đương với $323,15K.$
+
+b) Nhiệt độ $50^{∘}C$ tương đương với $122^{∘}F.$
+
+c) Công thức chuyển đổi từ Kelvin sang Fahrenheit là:
+
+$T_{F}=\\frac{9}{5}\\left(T_{K}−273,15\\right)+32$
+
+d) Nếu nhiệt độ giảm xuống 25°C thì $T_{K}=248,15K.$
+
+Đáp án: Đ – Đ – Đ – S`;
+  const { payload } = parseExamText(text);
+  const q = payload.questions[0];
+  assert.equal(q.type, "true_false");
+  assert.doesNotMatch(q.question, /T_\{F\}/);
+  assert.equal(q.grading.statements.length, 4);
+  assert.match(q.grading.statements[2].text, /T_\{F\}/);
+  assert.equal(q.grading.statements[3].answer, false);
+});
+
 console.log(`\n${passed} test pass`);
