@@ -100,6 +100,9 @@ type Seg = {
   answerRaw: string | null;
   answerSeen: boolean;
   explanation: string[];
+  /** Đã gặp mốc "Lời giải"/"Giải thích" → các dòng sau thuộc lời giải, không
+   *  được gộp vào thân câu (nếu không câu hỏi bị lặp nội dung lời giải). */
+  inExplanation: boolean;
   points: number | null;
   /** Mệnh đề Đúng/Sai dạng a) b) c) d) (đề 2025) — song song với answerRaw. */
   statements: string[];
@@ -113,6 +116,7 @@ const newSeg = (number: number | null): Seg => ({
   answerRaw: null,
   answerSeen: false,
   explanation: [],
+  inExplanation: false,
   points: null,
   statements: [],
 });
@@ -369,7 +373,12 @@ export function parseExamText(
     }
     const expl = EXPL_RE.exec(rest);
     if (expl) {
-      cur.explanation.push(expl[1].trim());
+      cur.inExplanation = true;
+      if (expl[1].trim()) cur.explanation.push(expl[1].trim());
+      continue;
+    }
+    if (cur.inExplanation && rest) {
+      cur.explanation.push(rest);
       continue;
     }
     const pl = POINTS_LINE_RE.exec(rest);
@@ -578,14 +587,14 @@ export function parseExamText(
   if (equationCount > 0) {
     issues.push({
       question: null,
-      message: `Đã đánh dấu ${equationCount} chỗ có công thức — chỗ đó ghi "[CÔNG THỨC — nhập tay]", giáo viên gõ lại công thức khi duyệt`,
+      message: `Đã đọc ${equationCount} công thức trong tài liệu thành LaTeX — hiển thị trực tiếp trên web, kiểm tra lại khi duyệt`,
     });
   }
   const legacyCount = opts.legacyEquations ?? 0;
   if (legacyCount > 0) {
     issues.push({
       question: null,
-      message: `Tài liệu có ${legacyCount} công thức Equation Editor 3.0 (đời cũ, dạng nhị phân) — mở bằng Word 2016 trở lên rồi lưu lại để Word tự chuyển sang công thức mới, sau đó import lại`,
+      message: `Còn ${legacyCount} công thức MathType chưa giải mã được — đã chèn "[CÔNG THỨC — nhập tay]", giáo viên bổ sung khi duyệt`,
     });
   }
 

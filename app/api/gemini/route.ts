@@ -898,7 +898,7 @@ export async function POST(request: NextRequest) {
               content = rich.text.trim() || (await mammoth.extractRawText({ buffer })).value.trim();
               docKey = rich.key;
               docxImages = rich.images;
-              docxEquations = rich.equations;
+              docxEquations = rich.equations + rich.mtefEquations;
               docxLegacyEquations = rich.legacyEquations;
             } else if (lowerName.endsWith(".pdf")) {
               const pdf = await extractPdfLayoutText(Buffer.from(await file.arrayBuffer()));

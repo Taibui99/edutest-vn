@@ -8,16 +8,17 @@
  *  2. SỐ MŨ/CHỈ SỐ DƯỚI (w:vertAlign): raw text bẹp "10⁶"→"106", "25⁰C"→"250C".
  *     Giữ lại dạng ^{...}/_{...} để AI đọc đúng công thức text.
  *
- * KHÔNG xử lý được: phương trình OLE cũ (Equation Editor 3.0, .bin + preview
- * WMF — nhị phân đóng, không parse được server-side) và ảnh WMF/EMF. Gặp thì
- * câu đó thiếu công thức, AI phải đánh needsReview — nói rõ với user.
+ * KHÔNG xử lý được: ảnh WMF/EMF và công thức MathType mà bộ giải mã MTEF không
+ * đọc nổi (hiếm) — gặp thì chèn ghi chú "[CÔNG THỨC — nhập tay]" để giáo viên
+ * biết chỗ cần bổ sung, không âm thầm mất công thức.
  *
  * Bung zip bằng adm-zip (pure JS) + regex trên document.xml. Hỏng/thiếu gì thì
  * trả text gần đúng nhất chứ KHÔNG ném lỗi (import vẫn chạy).
  */
 
 import AdmZip from "adm-zip";
-import { injectOmmlText, countLegacyMathOle } from "./omml-text.ts";
+import { injectOmmlText, FORMULA_NOTE } from "./omml-text.ts";
+import { mtefToLatex } from "./mtef-latex.ts";
 
 const ANSWER_MARK = "[ĐÁP ÁN ĐÚNG THEO TÀI LIỆU]";
 
@@ -112,7 +113,9 @@ export interface DocxExtract {
   images: number;
   /** PARSE-3: số công thức Word (OMML) đã render thành chữ dễ đọc. */
   equations: number;
-  /** PARSE-3: số công thức Equation Editor 3.0 cũ (nhị phân, không đọc được). */
+  /** PARSE-6: số công thức MathType (OLE) đã giải mã thành LaTeX. */
+  mtefEquations: number;
+  /** PARSE-6: số công thức OLE còn lại KHÔNG giải mã được (đã ghi chú). */
   legacyEquations: number;
 }
 
@@ -275,6 +278,57 @@ export function parseNumbering(numberingXml: string): Map<string, NumberingDef> 
   return out;
 }
 
+/** Escape text để nhét vào <w:t> (giữ nguyên $…$ cho tầng hiển thị). */
+function escapeXmlText(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+/**
+ * PARSE-6: thay các object MathType (OLE `Equation.DSMT4`) bằng LaTeX `$…$`.
+ * Mỗi object nằm ở `<w:object>…<o:OLEObject r:id="rIdN"/>…</w:object>`; file
+ * nhị phân tương ứng là `word/embeddings/oleObjectN.bin` (tra qua
+ * `word/_rels/document.xml.rels`). Decode thất bại → giữ ghi chú nhập tay để
+ * KHÔNG âm thầm mất công thức.
+ */
+function injectOleMathText(
+  xml: string,
+  zip: AdmZip,
+): { xml: string; decoded: number; failed: number } {
+  const relXml = zip.getEntry("word/_rels/document.xml.rels")?.getData().toString("utf8") ?? "";
+  const relMap = new Map<string, string>();
+  const relRe = /<Relationship\b[^>]*>/g;
+  let rm: RegExpExecArray | null;
+  while ((rm = relRe.exec(relXml)) !== null) {
+    const id = /\bId="([^"]+)"/.exec(rm[0])?.[1];
+    const target = /\bTarget="([^"]+)"/.exec(rm[0])?.[1];
+    if (id && target) relMap.set(id, target);
+  }
+
+  let decoded = 0;
+  let failed = 0;
+  const out = xml.replace(/<w:object\b[\s\S]*?<\/w:object>/g, (block) => {
+    const ole = /<o:OLEObject\b[^>]*>/.exec(block)?.[0];
+    if (!ole) return block;
+    const progId = /ProgID="([^"]+)"/.exec(ole)?.[1] ?? "";
+    if (!/^(Equation\.|MathType)/i.test(progId)) return block;
+
+    const rid = /\br:id="([^"]+)"/.exec(ole)?.[1];
+    const target = rid ? relMap.get(rid) : undefined;
+    const path = target
+      ? `word/${target.replace(/^\.?\//, "").replace(/^word\//, "")}`
+      : "";
+    const entry = path ? zip.getEntry(path) : null;
+    const tex = entry ? mtefToLatex(entry.getData()) : "";
+    if (!tex) {
+      failed++;
+      return `<w:t xml:space="preserve">${FORMULA_NOTE}</w:t>`;
+    }
+    decoded++;
+    return `<w:t xml:space="preserve">${escapeXmlText(`$${tex}$`)}</w:t>`;
+  });
+  return { xml: out, decoded, failed };
+}
+
 export function extractDocxText(docxBuffer: Buffer): DocxExtract {
   const empty: DocxExtract = {
     text: "",
@@ -283,6 +337,7 @@ export function extractDocxText(docxBuffer: Buffer): DocxExtract {
     key: [],
     images: 0,
     equations: 0,
+    mtefEquations: 0,
     legacyEquations: 0,
   };
   try {
@@ -292,15 +347,23 @@ export function extractDocxText(docxBuffer: Buffer): DocxExtract {
     if (!entry) return empty;
     const rawXml = entry.getData().toString("utf8");
     if (!rawXml.includes("<w:document")) return empty;
-    const images = zip
-      .getEntries()
-      .filter((e) => e.entryName.startsWith("word/media/") && !e.entryName.endsWith("/")).length;
+    // Ảnh THẬT của đề: chỉ đếm ảnh được tham chiếu ngoài <w:object>. Bên trong
+    // <w:object> là ảnh preview WMF/EMF của công thức MathType — không phải hình
+    // minh hoạ, đếm vào sẽ báo sai "tài liệu có 122 ảnh".
+    const withoutObjects = rawXml.replace(/<w:object\b[\s\S]*?<\/w:object>/g, "");
+    const imageRefs = new Set<string>();
+    const imgRe = /<a:blip\b[^>]*r:embed="([^"]+)"|<v:imagedata\b[^>]*r:id="([^"]+)"/g;
+    let im: RegExpExecArray | null;
+    while ((im = imgRe.exec(withoutObjects)) !== null) imageRefs.add(im[1] ?? im[2]);
+    const images = imageRefs.size;
 
-    // PARSE-3: công thức Word (OMML) → thay bằng ghi chú "[CÔNG THỨC — nhập tay]"
-    // để giáo viên gõ lại (KHÔNG tự render — dễ hỏng/sai). OLE cũ chỉ đếm.
-    const legacyEquations = countLegacyMathOle(rawXml);
+    // PARSE-3: công thức Word (OMML) → LaTeX. PARSE-6: object MathType (OLE
+    // Equation.DSMT4) → LaTeX; chỉ còn lại những object decode lỗi mới tính là
+    // "công thức cũ chưa đọc được".
     const injected = injectOmmlText(rawXml);
-    const xml = injected.xml;
+    const ole = injectOleMathText(injected.xml, zip);
+    const xml = ole.xml;
+    const mtefEquations = ole.decoded;
 
     // PARSE-5: đề 2025 đánh số câu bằng numbering tự động của Word — chữ "Câu N."
     // KHÔNG nằm trong <w:t> mà ở word/numbering.xml (lvlText "Câu %1.") + <w:numPr>.
@@ -375,7 +438,8 @@ export function extractDocxText(docxBuffer: Buffer): DocxExtract {
       key,
       images,
       equations: injected.equations,
-      legacyEquations,
+      mtefEquations,
+      legacyEquations: ole.failed,
     };
   } catch {
     return empty;

@@ -282,8 +282,8 @@ C. 0,5 atm
 D. 1,5 atm
 Đáp án: A`;
   const { issues } = parseExamText(text, { equations: 5, legacyEquations: 2 });
-  assert.ok(issues.some((i) => /đánh dấu 5 chỗ có công thức/.test(i.message)));
-  assert.ok(issues.some((i) => /2 công thức Equation Editor 3.0/.test(i.message)));
+  assert.ok(issues.some((i) => /Đã đọc 5 công thức/.test(i.message)));
+  assert.ok(issues.some((i) => /Còn 2 công thức MathType chưa giải mã được/.test(i.message)));
 });
 
 t("chỗ có [CÔNG THỨC — nhập tay] → needsReview + issue theo câu", () => {
