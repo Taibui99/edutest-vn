@@ -321,11 +321,19 @@ export function ExamTakingClientV2({ exam, attempt, preview = false, backHref }:
     setSubmitting(true);
     setShowConfirm(false);
     try {
+      // Lưới an toàn: lưu đáp án theo thứ tự câu (order) phòng khi đề bị sửa đổi ID trong lúc thi
+      const answersByOrder: Record<number, AnswerValue> = {};
+      exam.questions.forEach((q) => {
+        if (answers[q.id] !== undefined) {
+          answersByOrder[q.order] = answers[q.id];
+        }
+      });
+
       const res = await fetch("/api/submissions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         // GĐ1: KHÔNG gửi `durationSeconds` — server tự chốt từ `Attempt`.
-        body: JSON.stringify({ examId: exam.id, attemptId: attempt.id, answers }),
+        body: JSON.stringify({ examId: exam.id, attemptId: attempt.id, answers, answersByOrder }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -355,7 +363,7 @@ export function ExamTakingClientV2({ exam, attempt, preview = false, backHref }:
       toast("error", "Không thể nộp bài", err instanceof Error ? err.message : "Vui lòng kiểm tra mạng rồi thử lại.");
       setSubmitting(false);
     }
-  }, [answers, attempt, answeredCount, clearDraft, exam.id, preview, result, router, showConfirm, submitting, toast, totalQuestions]);
+  }, [answers, attempt, answeredCount, clearDraft, exam.id, exam.questions, preview, result, router, showConfirm, submitting, toast, totalQuestions]);
 
   /* KQ-1 (khách) — nút "Làm lại": xoá phiên khách rồi quay lại form (điền sẵn
    * tên/lớp) để tạo người tham gia mới. Học sinh chỉ cần vào lại đề, server tự

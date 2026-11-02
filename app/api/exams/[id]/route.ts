@@ -93,7 +93,74 @@ export async function PUT(
   if (invalid) return NextResponse.json({ error: invalid }, { status: 400 });
 
   const updated = await prisma.$transaction(async (tx) => {
-    await tx.question.deleteMany({ where: { examId: id } });
+    // EXAM-PRESERVE-ID: Giữ nguyên ID câu hỏi cũ để học sinh đang thi không bao giờ bị mất đáp án!
+    const existing = await tx.question.findMany({
+      where: { examId: id },
+      orderBy: { order: "asc" },
+    });
+    const existingById = new Map(existing.map((q) => [q.id, q]));
+
+    const keptIds = new Set<string>();
+    const toUpdate: Array<{ id: string; data: (typeof questions)[number] }> = [];
+    const toCreate: Array<(typeof questions)[number]> = [];
+
+    questions.forEach((q, idx) => {
+      let targetId: string | undefined = undefined;
+      if (q.id && existingById.has(q.id) && !keptIds.has(q.id)) {
+        targetId = q.id;
+      } else if (idx < existing.length && !keptIds.has(existing[idx].id)) {
+        // Tái sử dụng ID câu hỏi cũ theo vị trí nếu client không truyền id
+        targetId = existing[idx].id;
+      }
+
+      if (targetId) {
+        keptIds.add(targetId);
+        toUpdate.push({ id: targetId, data: q });
+      } else {
+        toCreate.push(q);
+      }
+    });
+
+    // Chỉ xoá những câu thật sự bị giáo viên xoá khỏi đề
+    const idsToDelete = existing.filter((eq) => !keptIds.has(eq.id)).map((eq) => eq.id);
+    if (idsToDelete.length > 0) {
+      await tx.question.deleteMany({
+        where: { id: { in: idsToDelete } },
+      });
+    }
+
+    // Cập nhật các câu hỏi giữ lại (nội dung, đáp án, điểm, options, order...)
+    for (const item of toUpdate) {
+      await tx.question.update({
+        where: { id: item.id },
+        data: {
+          type: item.data.type,
+          text: item.data.text,
+          options: item.data.options,
+          answer: item.data.answer,
+          grading: item.data.grading,
+          points: item.data.points,
+          order: item.data.order,
+        },
+      });
+    }
+
+    // Tạo mới các câu hỏi được thêm vào đề
+    if (toCreate.length > 0) {
+      await tx.question.createMany({
+        data: toCreate.map((q) => ({
+          examId: id,
+          type: q.type,
+          text: q.text,
+          options: q.options,
+          answer: q.answer,
+          grading: q.grading,
+          points: q.points,
+          order: q.order,
+        })),
+      });
+    }
+
     return tx.exam.update({
       where: { id },
       data: {
@@ -111,7 +178,6 @@ export async function PUT(
         status,
         openAt,
         closeAt,
-        questions: { create: questions },
       },
       include: { _count: { select: { questions: true, submissions: true } } },
     });
@@ -146,24 +212,47 @@ export async function PATCH(
   }
 
   const body = await request.json();
-  const status = String(body.status || "");
+  const dataToUpdate: Record<string, unknown> = {};
 
-  if (!["published", "draft"].includes(status)) {
-    return NextResponse.json({ error: "Trạng thái không hợp lệ" }, { status: 400 });
+  if (body.status !== undefined) {
+    const status = String(body.status || "");
+    if (!["published", "draft"].includes(status)) {
+      return NextResponse.json({ error: "Trạng thái không hợp lệ" }, { status: 400 });
+    }
+    dataToUpdate.status = status;
+  }
+
+  if (body.shuffleQuestions !== undefined) dataToUpdate.shuffleQuestions = Boolean(body.shuffleQuestions);
+  if (body.shuffleAnswers !== undefined) dataToUpdate.shuffleAnswers = Boolean(body.shuffleAnswers);
+  if (body.showAnswers !== undefined) dataToUpdate.showAnswers = Boolean(body.showAnswers);
+  if (body.showScoreImmediately !== undefined) dataToUpdate.showScoreImmediately = Boolean(body.showScoreImmediately);
+  if (body.allowGuestAttempts !== undefined) dataToUpdate.allowGuestAttempts = Boolean(body.allowGuestAttempts);
+  if (body.maxAttempts !== undefined) {
+    const max = Number(body.maxAttempts);
+    if (Number.isInteger(max) && max >= 0) dataToUpdate.maxAttempts = max;
+  }
+  if (body.proctorMode !== undefined && isProctorMode(body.proctorMode)) {
+    dataToUpdate.proctorMode = body.proctorMode;
+  }
+
+  if (Object.keys(dataToUpdate).length === 0) {
+    return NextResponse.json({ error: "Không có dữ liệu cập nhật hợp lệ" }, { status: 400 });
   }
 
   const updated = await prisma.exam.update({
     where: { id },
-    data: { status },
+    data: dataToUpdate,
   });
 
-  await logAudit({
-    actorId: session.user.id,
-    type: "exam.publish",
-    message: `GV chuyển đề "${exam.title}" sang trạng thái ${status === "published" ? "mở" : "nháp"}`,
-  });
+  if (dataToUpdate.status) {
+    await logAudit({
+      actorId: session.user.id,
+      type: "exam.publish",
+      message: `GV chuyển đề "${exam.title}" sang trạng thái ${dataToUpdate.status === "published" ? "mở" : "nháp"}`,
+    });
+  }
 
-  if (status === "published") {
+  if (dataToUpdate.status === "published") {
     try {
       const assignments = await prisma.examAssignment.findMany({
         where: { examId: id },

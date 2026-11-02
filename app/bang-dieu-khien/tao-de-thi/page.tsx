@@ -36,7 +36,7 @@ export default async function TaoDeThiPage({ searchParams }: { searchParams: Pro
           status: true,
           questions: {
             orderBy: { order: "asc" },
-            select: { type: true, text: true, options: true, answer: true, grading: true, points: true },
+            select: { id: true, type: true, text: true, options: true, answer: true, grading: true, points: true },
           },
         },
       });

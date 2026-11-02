@@ -616,3 +616,13 @@ GĐ3 **luôn bypass được** (trình duyệt khác, VM, điện thoại). Ch�
   - `lib/latex.ts` + `components/ui/math-text.tsx` + `app/globals.css`: dòng bảng `| ô | ô |` → `<table class="mt-table">` thật (thead + zebra, cuộn ngang trên mobile, ô có `$…$` vẫn render KaTeX) — **không cần chèn ảnh bảng**, hiện trong đề khi làm bài/duyệt/chữa.
   - **Kết quả file thật:** **88 câu** = 71 MCQ (đủ 4 lựa chọn + đáp án highlight) + 5 Đúng/Sai (4 mệnh đề, đáp án suy từ gạch chân) + 9 trả lời ngắn (3 câu có đáp án số + biến thể `61,8/61.8`) + 3 tự luận (dàn ý vào explanation); 4 bảng số liệu giữ nguyên hàng; 9 câu thiếu đáp án đều được gắn `needsReview` + ghi chú. Lưu ý dữ liệu gốc: đề bắt đầu từ "Câu 3", thiếu Câu 17/19/29, phần III thiếu "Câu 7" (gõ thành "C.") — đã cứu được; câu 4/5/6/8/9 chưa có đáp án trong file (GV nhập tay).
   - QA `scripts/qa-exam-parse.mjs` **21/21** (thêm 4 test: highlight → đáp án, gạch chân → Đ/S, tiêu đề phần + short_answer/essay, bảng giữ xuống dòng); `qa-latex.mjs` **14/14** (2 test bảng → `<table>`); mtef 12/12, omml 8/8, pdf-layout 4/4, ai-judge 6/6, ai-build 16/16; tsc/eslint/`next build` xanh.
+
+## 🛡️ Bảo toàn bài làm học sinh khi sửa đề thi (EXAM-PRESERVE-ID, 2026-11-02)
+
+**Vấn đề phát hiện:** GV đang sửa đề thi (sửa câu hỏi hoặc bật trộn câu/đáp án) rồi bấm Lưu thì học sinh đang làm bài khi bấm nộp bị mất toàn bộ đáp án (0 điểm) do `PUT /api/exams/[id]` trước đây chạy `deleteMany` xoá hết câu hỏi cũ và cấp CUID mới, khiến `answers` của học sinh (lưu theo ID cũ) không khớp với ID mới trong DB.
+
+- [x] **Giữ nguyên 100% ID câu hỏi cũ khi sửa đề (`app/api/exams/[id]/route.ts` & `exam-helpers.ts`)** — Thay `deleteMany` + `create` bằng cơ chế Upsert thông minh: câu hỏi có ID hoặc vị trí tương ứng trong đề cũ được giữ nguyên `id` (chỉ cập nhật nội dung/đáp án/điểm); chỉ xoá câu thật sự bị xoá; chỉ cấp ID mới cho câu mới thêm.
+- [x] **Bảo toàn ID từ editor (`app/bang-dieu-khien/tao-de-thi/page.tsx` & `editor.tsx`)** — Lấy `id: true` khi tải đề sửa và gửi lại `id` về API khi lưu.
+- [x] **Lưới an toàn khi nộp bài (`app/api/submissions/route.ts` & `exam-taking-client-v2.tsx`)** — Client gửi kèm `answersByOrder` (đáp án theo số thứ tự câu). Nếu học sinh nộp bài với đề vừa bị đổi ID: server tự động kích hoạt Fallback đối chiếu theo `answersByOrder`, `attempt.optionOrder` hoặc thứ tự câu để nhận diện đủ 100% đáp án và chấm điểm chính xác.
+- [x] **Hỗ trợ cập nhật nhanh cấu hình đề qua `PATCH /api/exams/[id]`** — GV có thể bật/tắt `shuffleQuestions`, `shuffleAnswers`, `showAnswers`... độc lập mà không cần lưu lại danh sách câu hỏi.
+- [x] **Build & Verify** — `tsc --noEmit` pass, `eslint` pass (0 errors), `next build` pass (66 routes xanh).

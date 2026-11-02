@@ -31,9 +31,10 @@ type Grading = {
   /** IMG-1 — URL ảnh minh hoạ cho câu hỏi (Supabase Storage công khai). */
   image?: string;
 };
-interface Question { type: QuestionType; question: string; options: string[]; answer: string; grading?: Grading; points: number }
+interface Question { id?: string; type: QuestionType; question: string; options: string[]; answer: string; grading?: Grading; points: number }
 
 type ImportedQuestion = {
+  id?: string;
   type?: QuestionType;
   question?: unknown;
   questionText?: unknown;
@@ -44,7 +45,7 @@ type ImportedQuestion = {
   rubricPoints?: unknown;
   points?: unknown;
 };
-type DbQuestion = { type: string; text: string; options: string[]; answer: string; grading: unknown; points: number };
+type DbQuestion = { id?: string; type: string; text: string; options: string[]; answer: string; grading: unknown; points: number };
 
 function normalizeDifficulty(value: unknown): Difficulty | null {
   const s = String(value ?? "").trim().toLowerCase();
@@ -158,16 +159,16 @@ function dbToQuestion(raw: DbQuestion): Question {
     const statements = (raw.grading as { statements?: Statement[] } | null | undefined)?.statements;
     const base = Number(raw.points) > 0 ? Number(raw.points) : 1;
     const list = withStatementPoints(Array.isArray(statements) && statements.length ? statements : [{ text: "", answer: true }], base);
-    return withAiMetadata({ type, question: raw.text, options: [], answer: raw.answer || "", grading: { statements: list }, points: tfStatementsTotal(list, base) }, { grading: raw.grading as Grading | null });
+    return withAiMetadata({ id: raw.id, type, question: raw.text, options: [], answer: raw.answer || "", grading: { statements: list }, points: tfStatementsTotal(list, base) }, { grading: raw.grading as Grading | null });
   }
   if (type === "short_answer") {
     const acceptedAnswers = (raw.grading as { acceptedAnswers?: string[] } | null | undefined)?.acceptedAnswers;
-    return withAiMetadata({ type, question: raw.text, options: [], answer: raw.answer || "", grading: { acceptedAnswers: Array.isArray(acceptedAnswers) && acceptedAnswers.length ? acceptedAnswers.map(String) : [raw.answer || ""] }, points: raw.points }, { grading: raw.grading as Grading | null });
+    return withAiMetadata({ id: raw.id, type, question: raw.text, options: [], answer: raw.answer || "", grading: { acceptedAnswers: Array.isArray(acceptedAnswers) && acceptedAnswers.length ? acceptedAnswers.map(String) : [raw.answer || ""] }, points: raw.points }, { grading: raw.grading as Grading | null });
   }
   if (type === "essay") {
-    return withAiMetadata({ type, question: raw.text, options: [], answer: raw.answer || "", points: raw.points }, { grading: raw.grading as Grading | null });
+    return withAiMetadata({ id: raw.id, type, question: raw.text, options: [], answer: raw.answer || "", points: raw.points }, { grading: raw.grading as Grading | null });
   }
-  return withAiMetadata({ type, question: raw.text, options: Array.isArray(raw.options) && raw.options.length ? raw.options : ["","","",""], answer: (raw.answer || "A").charAt(0).toUpperCase() || "A", points: raw.points }, { grading: raw.grading as Grading | null });
+  return withAiMetadata({ id: raw.id, type, question: raw.text, options: Array.isArray(raw.options) && raw.options.length ? raw.options : ["","","",""], answer: (raw.answer || "A").charAt(0).toUpperCase() || "A", points: raw.points }, { grading: raw.grading as Grading | null });
 }
 
 /** DRAFT-1 — bản nháp tự lưu vào localStorage của trình duyệt.

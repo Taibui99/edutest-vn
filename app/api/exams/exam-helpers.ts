@@ -20,6 +20,7 @@ export async function createUniqueJoinCode() {
 export type QuestionType = "mcq" | "true_false" | "short_answer" | "essay";
 
 export type IncomingQuestion = {
+  id?: string;
   type?: QuestionType;
   question?: string;
   text?: string;
@@ -30,6 +31,7 @@ export type IncomingQuestion = {
 };
 
 export type NormalizedQuestion = {
+  id?: string;
   type: QuestionType;
   text: string;
   options: string[];
@@ -52,6 +54,7 @@ export function normalizeGrading(value: unknown): Prisma.InputJsonValue | undefi
 
 export function normalizeQuestions(questions: IncomingQuestion[]): NormalizedQuestion[] {
   return questions.map((item, index) => {
+    const id = typeof item.id === "string" && item.id.trim() ? item.id.trim() : undefined;
     const type: QuestionType = ["mcq", "true_false", "short_answer", "essay"].includes(item.type || "")
       ? (item.type as QuestionType)
       : "mcq";
@@ -61,6 +64,7 @@ export function normalizeQuestions(questions: IncomingQuestion[]): NormalizedQue
     const points = Number.isFinite(Number(item.points)) && Number(item.points) > 0 ? Number(item.points) : 1;
 
     return {
+      ...(id ? { id } : {}),
       type,
       text,
       options,

@@ -21,10 +21,16 @@ export async function POST(request: NextRequest) {
   if (!ipRl.ok) return NextResponse.json({ error: "Bạn nộp bài quá nhanh. Thử lại sau 1 phút." }, { status: 429 });
 
   const session = await auth();
-  const body = await request.json() as { examId?: unknown; attemptId?: unknown; answers?: unknown };
+  const body = (await request.json()) as {
+    examId?: unknown;
+    attemptId?: unknown;
+    answers?: unknown;
+    answersByOrder?: unknown;
+  };
   const examId = typeof body.examId === "string" ? body.examId : "";
   const attemptId = typeof body.attemptId === "string" ? body.attemptId : "";
-  const answers = (body.answers && typeof body.answers === "object" ? body.answers : {}) as AnswerMap;
+  const rawAnswers = (body.answers && typeof body.answers === "object" ? body.answers : {}) as AnswerMap;
+  const answersByOrder = (body.answersByOrder && typeof body.answersByOrder === "object" ? body.answersByOrder : {}) as Record<string, AnswerValue>;
 
   /* Giới hạn theo từng bài: 10 lượt/phút đủ cho vài lần thử lại của MỘT bài
    * (bấm đúp, mạng chập chờn) mà không đếm chung với các bạn khác trong lớp. */
@@ -128,6 +134,54 @@ export async function POST(request: NextRequest) {
   const [risk, ipHash] = await Promise.all([riskPromise ?? riskOfAttempt(attempt.id), ipHashPromise]);
 
   const totalQuestions = exam.questions.length;
+
+  // EXAM-FALLBACK-1: Lưới cứu hộ khi đề bị sửa đổi ID câu hỏi trong lúc học sinh đang thi
+  let finalAnswers = { ...rawAnswers };
+  let matchCount = 0;
+  for (const q of exam.questions) {
+    if (finalAnswers[q.id] !== undefined) matchCount++;
+  }
+
+  // Nếu không có câu nào khớp ID hiện tại (ví dụ: đề vừa được sửa lưu lại tạo ID mới):
+  if (matchCount === 0 && Object.keys(rawAnswers).length > 0) {
+    const remapped: AnswerMap = {};
+
+    // 1. Khớp qua answersByOrder (do client gửi kèm theo số thứ tự câu)
+    if (Object.keys(answersByOrder).length > 0) {
+      for (const q of exam.questions) {
+        const val = answersByOrder[q.order] ?? answersByOrder[String(q.order)];
+        if (val !== undefined) remapped[q.id] = val;
+      }
+    }
+
+    // 2. Khớp qua attempt.optionOrder (nếu có, keys trong optionOrder chính là ID câu hỏi lúc tạo attempt)
+    if (Object.keys(remapped).length === 0 && attempt.optionOrder && typeof attempt.optionOrder === "object") {
+      const optionKeys = Object.keys(attempt.optionOrder as Record<string, unknown>);
+      optionKeys.forEach((oldId, idx) => {
+        if (idx < exam.questions.length && rawAnswers[oldId] !== undefined) {
+          remapped[exam.questions[idx].id] = rawAnswers[oldId];
+        }
+      });
+    }
+
+    // 3. Khớp 1-1 theo thứ tự CUID (thứ tự tạo ban đầu) và thứ tự câu trong đề
+    if (Object.keys(remapped).length === 0) {
+      const oldKeys = Object.keys(rawAnswers).sort();
+      const sortedQuestions = [...exam.questions].sort((a, b) => a.order - b.order);
+      oldKeys.forEach((oldKey, idx) => {
+        if (idx < sortedQuestions.length) {
+          remapped[sortedQuestions[idx].id] = rawAnswers[oldKey];
+        }
+      });
+    }
+
+    if (Object.keys(remapped).length > 0) {
+      finalAnswers = remapped;
+    }
+  }
+
+  const answers = finalAnswers;
+
   // GRADE-1: điểm có TRỌNG SỐ theo `points` từng câu (trước đây mọi câu bằng
   // nhau dù GV đã cấu hình điểm — đúng lỗi user báo "setting điểm không ăn").
   const { score, correctCount } = scoreSubmission(exam.questions, answers);
