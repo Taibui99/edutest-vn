@@ -92,46 +92,54 @@ export async function PUT(
   const invalid = questions.map(validateQuestion).find(Boolean);
   if (invalid) return NextResponse.json({ error: invalid }, { status: 400 });
 
-  const updated = await prisma.$transaction(async (tx) => {
-    // EXAM-PRESERVE-ID: Giữ nguyên ID câu hỏi cũ để học sinh đang thi không bao giờ bị mất đáp án!
-    const existing = await tx.question.findMany({
-      where: { examId: id },
-      orderBy: { order: "asc" },
-    });
-    const existingById = new Map(existing.map((q) => [q.id, q]));
+  // EXAM-PRESERVE-ID: Giữ nguyên ID câu hỏi cũ để học sinh đang thi không bao giờ bị mất đáp án!
+  // Đọc danh sách câu hỏi hiện tại trước khi thực hiện cập nhật
+  const existing = await prisma.question.findMany({
+    where: { examId: id },
+    orderBy: { order: "asc" },
+  });
+  const existingById = new Map(existing.map((q) => [q.id, q]));
 
-    const keptIds = new Set<string>();
-    const toUpdate: Array<{ id: string; data: (typeof questions)[number] }> = [];
-    const toCreate: Array<(typeof questions)[number]> = [];
+  const keptIds = new Set<string>();
+  const toUpdate: Array<{ id: string; data: (typeof questions)[number] }> = [];
+  const toCreate: Array<(typeof questions)[number]> = [];
 
-    questions.forEach((q, idx) => {
-      let targetId: string | undefined = undefined;
-      if (q.id && existingById.has(q.id) && !keptIds.has(q.id)) {
-        targetId = q.id;
-      } else if (idx < existing.length && !keptIds.has(existing[idx].id)) {
-        // Tái sử dụng ID câu hỏi cũ theo vị trí nếu client không truyền id
-        targetId = existing[idx].id;
-      }
-
-      if (targetId) {
-        keptIds.add(targetId);
-        toUpdate.push({ id: targetId, data: q });
-      } else {
-        toCreate.push(q);
-      }
-    });
-
-    // Chỉ xoá những câu thật sự bị giáo viên xoá khỏi đề
-    const idsToDelete = existing.filter((eq) => !keptIds.has(eq.id)).map((eq) => eq.id);
-    if (idsToDelete.length > 0) {
-      await tx.question.deleteMany({
-        where: { id: { in: idsToDelete } },
-      });
+  questions.forEach((q, idx) => {
+    let targetId: string | undefined = undefined;
+    if (q.id && existingById.has(q.id) && !keptIds.has(q.id)) {
+      targetId = q.id;
+    } else if (idx < existing.length && !keptIds.has(existing[idx].id)) {
+      // Tái sử dụng ID câu hỏi cũ theo vị trí nếu client không truyền id
+      targetId = existing[idx].id;
     }
 
-    // Cập nhật các câu hỏi giữ lại (nội dung, đáp án, điểm, options, order...)
-    for (const item of toUpdate) {
-      await tx.question.update({
+    if (targetId) {
+      keptIds.add(targetId);
+      toUpdate.push({ id: targetId, data: q });
+    } else {
+      toCreate.push(q);
+    }
+  });
+
+  // Chỉ xoá những câu thật sự bị giáo viên xoá khỏi đề
+  const idsToDelete = existing.filter((eq) => !keptIds.has(eq.id)).map((eq) => eq.id);
+
+  // Dạng mảng batch: Gom toàn bộ câu lệnh vào một batch gửi 1 lần tới DB.
+  // Tuyệt đối KHÔNG dùng interactive transaction `async (tx) => ...` lặp tuần tự
+  // từng câu hỏi qua mạng Supabase vì sẽ chạm giới hạn 5s gây lỗi P2028 (Transaction closed).
+  const ops = [];
+
+  if (idsToDelete.length > 0) {
+    ops.push(
+      prisma.question.deleteMany({
+        where: { id: { in: idsToDelete } },
+      }),
+    );
+  }
+
+  for (const item of toUpdate) {
+    ops.push(
+      prisma.question.update({
         where: { id: item.id },
         data: {
           type: item.data.type,
@@ -142,12 +150,13 @@ export async function PUT(
           points: item.data.points,
           order: item.data.order,
         },
-      });
-    }
+      }),
+    );
+  }
 
-    // Tạo mới các câu hỏi được thêm vào đề
-    if (toCreate.length > 0) {
-      await tx.question.createMany({
+  if (toCreate.length > 0) {
+    ops.push(
+      prisma.question.createMany({
         data: toCreate.map((q) => ({
           examId: id,
           type: q.type,
@@ -158,10 +167,12 @@ export async function PUT(
           points: q.points,
           order: q.order,
         })),
-      });
-    }
+      }),
+    );
+  }
 
-    return tx.exam.update({
+  ops.push(
+    prisma.exam.update({
       where: { id },
       data: {
         title,
@@ -180,8 +191,11 @@ export async function PUT(
         closeAt,
       },
       include: { _count: { select: { questions: true, submissions: true } } },
-    });
-  });
+    }),
+  );
+
+  const results = await prisma.$transaction(ops);
+  const updated = results[results.length - 1];
 
   return NextResponse.json({ exam: updated });
 }
