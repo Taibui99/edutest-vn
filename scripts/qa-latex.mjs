@@ -94,4 +94,19 @@ t("$ không đóng: không treo, trả về chữ đã escape", () => {
   assert.ok(html.includes("100$"));
 });
 
-console.log(`\n${passed}/12 QA-LATEX xanh`);
+
+
+t("bảng số liệu '| … |' → <table> thật, giữ công thức trong ô", () => {
+  const html = mathToHtml("Cho bảng:\n| Tháng | 1 | 2 |\n| Mưa | 10,5 | 20,1 |\nNhận xét?");
+  assert.match(html, /<table class="mt-table">/);
+  assert.match(html, /<th>Tháng<\/th>/);
+  assert.match(html, /<td>20,1<\/td>/);
+  assert.match(html, /<\/table><\/div>Nhận xét\?/);
+});
+
+t("ô bảng có công thức $…$ vẫn render KaTeX", () => {
+  const html = mathToHtml("| Đại lượng | Giá trị |\n| Diện tích | $14,9$ triệu ha |");
+  assert.match(html, /<td><span class="katex">/);
+});
+
+console.log(`\n${passed}/14 QA-LATEX xanh`);

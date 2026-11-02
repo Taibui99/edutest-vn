@@ -57,17 +57,36 @@ function toPoints(raw: string): number | null {
 
 const clean = (s: string) => s.split(ANSWER_MARK).join(" ").replace(/\s{2,}/g, " ").trim();
 
-/** Gỡ marker tô màu; phát hiện chữ cái của lựa chọn mang marker. */
-function extractMarker(line: string): { line: string; letter: string | null } {
-  if (!line.includes(ANSWER_MARK)) return { line, letter: null };
+/** Ghép các dòng thân câu: hàng bảng "| … |" giữ XUỐNG DÒNG để UI render
+ *  thành bảng thật (không cần ảnh); chữ thường vẫn ghép bằng khoảng trắng. */
+function joinStemLines(lines: string[]): string {
+  let out = "";
+  for (const line of lines) {
+    if (!out) {
+      out = line;
+      continue;
+    }
+    const tableRow = /^\|.*\|$/.test(line.trim());
+    const prevTableRow = /\|\s*$/.test(out);
+    out += tableRow || prevTableRow ? `\n${line}` : ` ${line}`;
+  }
+  return out;
+}
+
+/** Gỡ marker tô màu/highlight/gạch chân; phát hiện chữ cái lựa chọn mang
+ *  marker (`marked` = dòng có đánh dấu đáp án, kể cả mệnh đề Đúng/Sai). */
+function extractMarker(line: string): { line: string; letter: string | null; marked: boolean } {
+  const marked = line.includes(ANSWER_MARK);
+  if (!marked) return { line, letter: null, marked: false };
   let letter: string | null = null;
   for (const seg of splitOptionLine(line)) {
     if (!seg.includes(ANSWER_MARK)) continue;
-    const m = /^([A-Da-d])[.)]/.exec(seg);
-    letter = m ? m[1].toUpperCase() : null;
+    // CHỈ chữ hoa A–D: "a)" là mệnh đề Đúng/Sai, không phải lựa chọn MCQ.
+    const m = /^([A-D])[.)]/.exec(seg);
+    letter = m ? m[1] : null;
     break;
   }
-  return { line: clean(line), letter };
+  return { line: clean(line), letter, marked };
 }
 
 /** Token Đúng/Sai: "Đúng, Sai, Đúng" hoặc ngắn "Đ – S – Đ – S" (đề 2025). */
@@ -88,8 +107,20 @@ function isTfTokens(raw: string): boolean {
   return parts.length >= 2 && parts.every((p) => p !== null);
 }
 
-function tfTokens(raw: string): boolean[] {
-  return tfTokenList(raw).map((p) => p === true);
+/** Các biến thể đáp án trả lời ngắn được chấp nhận (số có/không đơn vị, dấu
+ *  thập phân kiểu Việt Nam và quốc tế). Server bắt buộc short_answer phải có
+ *  `grading.acceptedAnswers` thì mới lưu đề được. */
+function shortAnswerVariants(raw: string): string[] {
+  const base = raw.replace(/\s+/g, " ").trim();
+  if (!base) return [];
+  const set = new Set<string>([base]);
+  const num = /^([−-]?\d[\d.,]*)/.exec(base)?.[1];
+  if (num) {
+    set.add(num);
+    if (num.includes(",")) set.add(num.replace(/,/g, "."));
+  }
+  set.add(base.replace(/%/g, "").trim());
+  return [...set].filter(Boolean);
 }
 
 type Seg = {
@@ -106,9 +137,13 @@ type Seg = {
   points: number | null;
   /** Mệnh đề Đúng/Sai dạng a) b) c) d) (đề 2025) — song song với answerRaw. */
   statements: string[];
+  /** Đáp án từng mệnh đề suy ra từ gạch chân (đề chỉ gạch chân mệnh đề ĐÚNG). */
+  statementAnswers: boolean[];
+  /** Phần của đề (1 = trắc nghiệm, 2 = đúng/sai, 3 = trả lời ngắn, 4 = tự luận). */
+  section: number;
 };
 
-const newSeg = (number: number | null): Seg => ({
+const newSeg = (number: number | null, section = 1): Seg => ({
   number,
   stem: [],
   options: [],
@@ -119,6 +154,8 @@ const newSeg = (number: number | null): Seg => ({
   inExplanation: false,
   points: null,
   statements: [],
+  statementAnswers: [],
+  section,
 });
 
 /** Gộp 1 dòng lựa chọn vào seg (hỗ trợ nhiều đáp án chung dòng). */
@@ -132,7 +169,7 @@ function pushOptionLine(seg: Seg, line: string) {
 }
 
 function finalize(seg: Seg, issues: ParseIssue[]): SmartQuestion | null {
-  const stem = clean(seg.stem.join(" "));
+  const stem = clean(joinStemLines(seg.stem));
   if (!stem && seg.options.length === 0) return null;
 
   const label = seg.number != null ? `Câu ${seg.number}` : "Một khối";
@@ -144,6 +181,8 @@ function finalize(seg: Seg, issues: ParseIssue[]): SmartQuestion | null {
   let type: string;
   if (seg.options.length >= 2) type = "mcq";
   else if (isTfTokens(seg.answerRaw ?? "") && numStatements >= 2) type = "true_false";
+  else if (seg.section >= 4) type = "essay";
+  else if (seg.section >= 3) type = "short_answer";
   else if (seg.answerRaw) type = "short_answer";
   else if (numStatements >= 2) type = "true_false";
   else type = "essay";
@@ -185,11 +224,31 @@ function finalize(seg: Seg, issues: ParseIssue[]): SmartQuestion | null {
         : seg.stem
             .filter((l) => BARENUM_RE.test(l))
             .map((l) => clean(l.replace(BARENUM_RE, "$2")));
-      const tokens = tfTokens(seg.answerRaw ?? "");
+      const tokens = tfTokenList(seg.answerRaw ?? "").filter((x): x is boolean => x !== null);
+      // Đề chỉ GẠCH CHÂN mệnh đề đúng (không ghi dòng "Đáp án") → suy ra Đ/S
+      // từ vị trí gạch chân của từng mệnh đề.
+      const fromUnderline =
+        seg.statements.length >= 2 &&
+        seg.statementAnswers.length === seg.statements.length &&
+        seg.statementAnswers.some(Boolean);
       if (tokens.length === statements.length && statements.length >= 2) {
         grading = { statements: statements.map((text, i) => ({ text, answer: tokens[i] })) };
+      } else if (fromUnderline) {
+        grading = { statements: statements.map((text, i) => ({ text, answer: seg.statementAnswers[i] })) };
+        answer = seg.statementAnswers.map((v) => (v ? "Đ" : "S")).join(" – ");
+        answerSource = "document";
       } else if (statements.length >= 2) {
         issues.push({ question: seg.number, message: `${label}: số mệnh đề không khớp danh sách Đúng/Sai — kiểm tra tay` });
+      }
+    } else if (type === "short_answer") {
+      if (answer) {
+        grading = { acceptedAnswers: shortAnswerVariants(answer) };
+      } else {
+        needsReview = true;
+        issues.push({
+          question: seg.number,
+          message: `${label}: chưa có đáp án trả lời ngắn trong tài liệu — nhập tay khi tạo đề`,
+        });
       }
     }
   }
@@ -307,49 +366,101 @@ export function parseExamText(
   };
 
   for (let i = 0; i < lines.length; i++) {
-    const { line: marked, letter } = extractMarker(lines[i]);
+    const { line: lineText, letter: rawLetter, marked: markedLine } = extractMarker(lines[i]);
+    let letter = rawLetter;
 
-    // Chuyển phần thi: "Phần 2." / "Phần 3." — chốt câu đang dở (Phần 1).
-    const pm = /^phần\s*([123])\b/i.exec(marked);
-    if (pm) {
+    // Chuyển phần thi: "Phần 2." / "Phần 3." / "II. TRẮC NGHIỆM ĐÚNG - SAI" —
+    // chốt câu đang dở (dòng tiêu đề KHÔNG được dính vào câu trước).
+    const pm = /^phần\s*([123])\b/i.exec(lineText);
+    const rm = pm ? null : /^([IVX]+)\s*[.)]\s*(?:phần|trắc\s*nghiệm|tự\s*luận|trả\s*lời\s*ngắn)\b/i.exec(lineText);
+    if (pm || rm) {
       push();
-      section = Number(pm[1]);
+      if (pm) section = Number(pm[1]);
+      else if (rm?.[1] === "II") section = 2;
+      else if (rm?.[1] === "III") section = 3;
+      else if (rm?.[1] === "IV") section = 4;
       continue;
     }
-    if (section >= 2) sectionRaw.push(marked);
+    if (section >= 2) sectionRaw.push(lineText);
 
-    let rest = marked;
-    const qm = QNUM_RE.exec(marked);
+    let rest = lineText;
+    let opened = false;
+    const qm = QNUM_RE.exec(lineText);
     if (qm) {
       push();
-      cur = newSeg(Number(qm[1]));
+      cur = newSeg(Number(qm[1]), section);
       if (qm[2]) cur.points = toPoints(qm[2]);
       rest = qm[3];
+      opened = true;
     } else {
-      const bm = BARENUM_RE.exec(marked);
-      // Dòng số trần mở câu mới khi:
-      //  - đang ở đầu khối (!cur), HOẶC
-      //  - cách dòng trước một DÒNG TRỐNG (blankBefore) → chắc chắn là câu mới
-      //    (lời giải/bảng đáp án không có dòng trống ngay trước), HOẶC
-      //  - khối đang có lựa chọn nhưng CHƯA thấy đáp án.
-      // Sau khi đã có đáp án mà KHÔNG có dòng trống → là lời giải / bảng đáp án
-      // ("1. …", "2. …") nên không mở câu mới (tránh tách dư câu).
-      const canOpen = !cur || blankBefore[i] || (cur.options.length > 0 && !cur.answerSeen);
-      if (bm && canOpen) {
-        const next = (lines[i + 1] ?? "").trim();
-        const looksLikeQuestion = /[?？]\s*$/.test(bm[2]) || isOptionLine(next) || splitOptionLine(next).length > 1;
-        if (looksLikeQuestion) {
-          push();
-          cur = newSeg(Number(bm[1]));
-          rest = bm[2];
+      const bm = BARENUM_RE.exec(lineText);
+      // Câu bị mất tiền tố trong đề thật (gõ "C." thay vì "Câu 7:") — dòng dài
+      // có dấu hỏi ở phần trả lời ngắn vẫn phải mở câu mới, không được dính vào
+      // lựa chọn của câu trước.
+      const typo =
+        section >= 3 && /^([A-D])[.)]\s+\S/.test(lineText) && /[?？]\s*$/.test(lineText) && lineText.length > 40;
+      if (typo) {
+        push();
+        cur = newSeg(null, section);
+        rest = lineText.replace(/^[A-D][.)]\s*/, "");
+        opened = true;
+        letter = null;
+      } else if (bm) {
+        // Dòng số trần mở câu mới khi:
+        //  - đang ở đầu khối (!cur), HOẶC
+        //  - cách dòng trước một DÒNG TRỐNG (blankBefore) → chắc chắn là câu mới
+        //    (lời giải/bảng đáp án không có dòng trống ngay trước), HOẶC
+        //  - khối đang có lựa chọn nhưng CHƯA thấy đáp án.
+        // Sau khi đã có đáp án mà KHÔNG có dòng trống → là lời giải / bảng đáp án
+        // ("1. …", "2. …") nên không mở câu mới (tránh tách dư câu).
+        const canOpen = !cur || blankBefore[i] || (cur.options.length > 0 && !cur.answerSeen);
+        if (canOpen) {
+          const next = (lines[i + 1] ?? "").trim();
+          // Phần tự luận: mỗi mục "1. Nêu …" là một câu, không cần dấu hỏi.
+          const looksLikeQuestion =
+            section >= 4 || /[?？]\s*$/.test(bm[2]) || isOptionLine(next) || splitOptionLine(next).length > 1;
+          if (looksLikeQuestion) {
+            push();
+            cur = newSeg(Number(bm[1]), section);
+            rest = bm[2];
+            opened = true;
+          }
         }
       }
     }
     if (!cur) {
-      preamble.push(marked);
+      preamble.push(lineText);
       continue;
     }
     if (letter) cur.markerLetter = letter;
+    // Mảnh "C)" / "C." rơi rớt trong đề (lỗi gõ) — bỏ qua, không đưa vào câu hỏi.
+    if (/^[A-Da-d][.)]$/.test(rest)) continue;
+
+    // Tự luận: dòng đầu là đề bài, các dòng sau là dàn ý/lời giải → explanation
+    // (không hiển thị cho học sinh khi làm bài).
+    if (cur.section >= 4 && !opened && rest) {
+      cur.explanation.push(rest);
+      continue;
+    }
+
+    // Trả lời ngắn: đề thật ghi phép tính/lời giải ngay dưới câu ("= 61,8 %").
+    // Tách khỏi thân câu và lấy giá trị cuối cùng làm đáp án.
+    if (cur.section === 3 && !opened && rest) {
+      const asked = cur.stem.some((l) => /[?？]|bao nhiêu|hãy cho biết|tính/i.test(l));
+      const isCalc = rest.includes("=") || (asked && (/^\(/.test(rest) || (/[/×]/.test(rest) && rest.length < 80)));
+      if (asked && isCalc) {
+        cur.explanation.push(rest);
+        const value = /=\s*([−-]?\d[\d.,]*)/g;
+        let last: string | null = null;
+        let vm: RegExpExecArray | null;
+        while ((vm = value.exec(rest)) !== null) last = vm[1];
+        if (last && !cur.answerSeen) {
+          cur.answerSeen = true;
+          cur.answerRaw = last;
+        }
+        continue;
+      }
+    }
 
     const ans = ANSWER_RE.exec(rest);
     if (ans) {
@@ -369,6 +480,7 @@ export function parseExamText(
     const st = STATEMENT_RE.exec(rest);
     if (st && cur.options.length === 0 && !cur.answerSeen && cur.explanation.length === 0) {
       cur.statements.push(st[2].trim());
+      cur.statementAnswers.push(markedLine);
       continue;
     }
     const expl = EXPL_RE.exec(rest);
@@ -561,6 +673,17 @@ export function parseExamText(
       issues.push({ question: null, message: `${rec.overridden} đáp án lấy từ chữ tô màu trong Word` });
     }
   }
+
+  // Server bắt buộc short_answer có `grading.acceptedAnswers` (đáp án điền từ
+  // bảng đáp án / phép tính trên đề chưa có) — bổ sung sau khi đã ghép hết key.
+  questions.forEach((q) => {
+    if (q.type !== "short_answer" || !q.answer) return;
+    const grading = (q.grading ?? {}) as { acceptedAnswers?: unknown };
+    const accepted = Array.isArray(grading.acceptedAnswers) ? grading.acceptedAnswers : [];
+    if (!accepted.length) {
+      q.grading = { ...grading, acceptedAnswers: shortAnswerVariants(q.answer) };
+    }
+  });
 
   // PARSE-3 — câu/chỗ có công thức Word: ghi chú "nhập tay" + bật needsReview.
   const FORMULA_NOTE_RE = /\[CÔNG THỨC[^\]]*\]/;

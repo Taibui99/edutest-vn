@@ -765,3 +765,41 @@ html.a6-perf-low ::view-transition-old(*),
 html.a6-perf-low ::view-transition-new(*) {
   animation: none !important;
 }
+/* ══════════════════════════════════════════════════════════════════════
+   PARSE-8 · Bảng số liệu trong đề (không dùng ảnh)
+   Bộ đọc DOCX xuất bảng thành các dòng "| ô | ô |"; MathText render thành
+   <table> thật để học sinh xem được trên mọi màn hình, không phải ảnh.
+   ══════════════════════════════════════════════════════════════════════ */
+.mt-table-wrap {
+  max-width: 100%;
+  overflow-x: auto;
+  margin: 0.5rem 0;
+  -webkit-overflow-scrolling: touch;
+}
+.mt-table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 0.875em;
+  line-height: 1.45;
+}
+.mt-table th,
+.mt-table td {
+  border: 1px solid var(--surface-border, #E2E8F0);
+  padding: 0.3rem 0.55rem;
+  text-align: center;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+.mt-table thead th {
+  background: var(--primary-light, #E6EFF7);
+  color: var(--text-primary, #0F172A);
+  font-weight: 600;
+}
+.mt-table tbody tr:nth-child(even) td {
+  background: var(--gray-50, #F7F9FC);
+}
+.mt-table th:first-child,
+.mt-table td:first-child {
+  text-align: left;
+  font-weight: 500;
+}

@@ -29,6 +29,11 @@ const ANSWER_RED = /^(FF0000|C00000|E53935|D32F2F|B71C1C|FF5252|FF1744|F44336)$/
 interface Run {
   text: string;
   color: string | null;
+  /** Nền highlight (yellow/green/…) — giáo viên thứ hai dùng highlight tô đáp
+   *  án đúng thay vì đổi màu chữ. `null` = không highlight. */
+  highlight: string | null;
+  /** Gạch chân — đề Đúng/Sai dùng gạch chân các mệnh đề ĐÚNG. */
+  underline: boolean;
 }
 
 /** Tách các run trong 1 đoạn, kèm màu chữ (null = mặc định/đen). */
@@ -42,6 +47,13 @@ function parseRuns(paraXml: string): Run[] {
     const head = rprEnd >= 0 ? inner.slice(0, rprEnd) : "";
     const colorMatch = /<w:color\s+w:val="([^"]+)"/.exec(head);
     const color = colorMatch ? colorMatch[1].toUpperCase() : null;
+    // w:highlight w:val="yellow|green|cyan|…"; val="none" = bỏ highlight.
+    const hlMatch = /<w:highlight\s+w:val="([^"]+)"/.exec(head);
+    const hl = hlMatch ? hlMatch[1].toLowerCase() : null;
+    const highlight = hl && hl !== "none" ? hl : null;
+    // w:u w:val="single|double|thick|…"; val="none" = tắt gạch chân.
+    const uMatch = /<w:u\s+w:val="([^"]+)"/.exec(head);
+    const underline = !!uMatch && uMatch[1].toLowerCase() !== "none";
     const vAlignMatch = /<w:vertAlign\s+w:val="([^"]+)"/.exec(head);
     const vAlign = vAlignMatch ? vAlignMatch[1] : null;
     let text = "";
@@ -60,7 +72,7 @@ function parseRuns(paraXml: string): Run[] {
     text = parts.join("");
     if (vAlign === "superscript" && text.trim()) text = `^{${text}}`;
     else if (vAlign === "subscript" && text.trim()) text = `_{${text}}`;
-    if (text) runs.push({ text, color });
+    if (text) runs.push({ text, color, highlight, underline });
   }
   return runs;
 }
@@ -68,7 +80,7 @@ function parseRuns(paraXml: string): Run[] {
 interface OptionSeg {
   letter: string;
   text: string;
-  hasRed: boolean;
+  marked: boolean;
 }
 
 /** Cắt 1 đoạn văn thành các lựa chọn A/B/C/D (nhiều đáp án hay nằm chung
@@ -85,7 +97,7 @@ function splitOptions(runs: Run[]): OptionSeg[] {
       segs.push({
         letter: lm[1],
         text,
-        hasRed: cur.some((r) => r.color !== null && ANSWER_RED.test(r.color as string)),
+        marked: cur.some((r) => (r.color !== null && ANSWER_RED.test(r.color)) || r.highlight !== null),
       });
     }
     cur = [];
@@ -202,7 +214,9 @@ export function reconcileDocKey<
         overridden++;
       }
     } else if (letters.size > 1) {
-      q.needsReview = true;
+      // Đáp án đã lấy trực tiếp từ highlight của chính lựa chọn trong câu
+      // (marker inline) thì key cuối bài khớp mơ hồ không được ghi đè/đánh dấu.
+      if (q.answerSource !== "document" || !q.answer) q.needsReview = true;
     }
   }
   return { questions, overridden };
@@ -362,7 +376,11 @@ export function extractDocxText(docxBuffer: Buffer): DocxExtract {
     // "công thức cũ chưa đọc được".
     const injected = injectOmmlText(rawXml);
     const ole = injectOleMathText(injected.xml, zip);
-    const xml = ole.xml;
+    // Chữ trong hộp vẽ WordArt/watermark (vd "NDL" trắng cỡ 1pt) không phải nội
+    // dung đề — bỏ để không dính vào câu hỏi.
+    const xml = ole.xml
+      .replace(/<w:txbxContent>[\s\S]*?<\/w:txbxContent>/g, "")
+      .replace(/<mc:AlternateContent\b[\s\S]*?<\/mc:AlternateContent>/g, "");
     const mtefEquations = ole.decoded;
 
     // PARSE-5: đề 2025 đánh số câu bằng numbering tự động của Word — chữ "Câu N."
@@ -371,7 +389,7 @@ export function extractDocxText(docxBuffer: Buffer): DocxExtract {
     const numbering = parseNumbering(zip.getEntry("word/numbering.xml")?.getData().toString("utf8") ?? "");
     const numCounters = new Map<string, number>();
 
-    const lines: { text: string; red: boolean; segs: OptionSeg[] }[] = [];
+    const lines: { text: string; marked: boolean; segs: OptionSeg[] }[] = [];
     const allSegs: OptionSeg[] = [];
     let paraCount = 0;
     // Duyệt theo thứ tự tài liệu: gặp <w:tbl> thì serialize thành lưới
@@ -383,7 +401,7 @@ export function extractDocxText(docxBuffer: Buffer): DocxExtract {
         const rows = serializeTable(pm[1]);
         if (rows.length) {
           paraCount++;
-          lines.push({ text: rows.join("\n"), red: false, segs: [] });
+          lines.push({ text: rows.join("\n"), marked: false, segs: [] });
         }
         continue;
       }
@@ -401,33 +419,38 @@ export function extractDocxText(docxBuffer: Buffer): DocxExtract {
       }
       if (!text) continue;
       paraCount++;
+      // Đề Đúng/Sai: giáo viên gạch chân các mệnh đề ĐÚNG (không highlight) —
+      // gắn marker vào dòng mệnh đề để parser suy ra đáp án Đ/S.
+      const underlined = runs.some((r) => r.underline && r.text.trim().length > 0);
       const segs = splitOptions(runs);
       if (segs.length > 0) {
         allSegs.push(...segs);
-        lines.push({ text: segs.map((s) => s.text).join("  "), red: segs.some((s) => s.hasRed), segs });
+        lines.push({ text: segs.map((s) => s.text).join("  "), marked: segs.some((s) => s.marked), segs });
+      } else if (underlined && /^[a-d]\s*[.)]/.test(text)) {
+        lines.push({ text: `${text} ${ANSWER_MARK}`, marked: true, segs: [] });
       } else {
-        lines.push({ text, red: false, segs: [] });
+        lines.push({ text, marked: false, segs: [] });
       }
     }
 
     // Chỉ đánh dấu khi đáp án đỏ là thiểu số rõ rệt (tránh tài liệu tô đỏ
     // toàn bộ): cần ít nhất 4 lựa chọn và số dòng đỏ < 50%.
-    const redSegs = allSegs.filter((s) => s.hasRed).length;
-    const useMarks = allSegs.length >= 4 && redSegs > 0 && redSegs < allSegs.length / 2;
+    const markedSegs = allSegs.filter((s) => s.marked).length;
+    const useMarks = allSegs.length >= 4 && markedSegs > 0 && markedSegs < allSegs.length / 2;
 
     let marked = 0;
     // Key độc lập cho đối chiếu: chữ cái + nội dung đáp án đỏ.
     const key: DocxKey[] = useMarks
-      ? allSegs.filter((s) => s.hasRed).map((s) => ({ letter: s.letter, text: s.text }))
+      ? allSegs.filter((s) => s.marked).map((s) => ({ letter: s.letter, text: s.text }))
       : [];
     const out = lines.map((line) => {
-      if (!useMarks || !line.red) return line.text;
+      if (!useMarks || !line.marked) return line.text;
       // Marker gắn NGAY SAU đáp án đỏ (không để cuối dòng — dòng có thể chứa
       // nhiều đáp án, model không biết marker của ai).
       const parts = line.segs.length
-        ? line.segs.map((s) => (s.hasRed ? `${s.text} ${ANSWER_MARK}` : s.text)).join("  ")
+        ? line.segs.map((s) => (s.marked ? `${s.text} ${ANSWER_MARK}` : s.text)).join("  ")
         : line.text;
-      marked += line.segs.filter((s) => s.hasRed).length || 1;
+      marked += line.segs.filter((s) => s.marked).length || 1;
       return parts;
     });
 

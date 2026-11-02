@@ -1,6 +1,6 @@
-import { mathToHtml, hasMath } from "@/lib/latex";
+import { mathToHtml, hasMath, hasTable } from "@/lib/latex";
 
-export { hasMath, mathToHtml };
+export { hasMath, hasTable, mathToHtml };
 
 interface MathTextProps {
   /** Nội dung có thể chứa `$…$` / `$$…$$`. */
@@ -17,7 +17,7 @@ interface MathTextProps {
 export function MathText({ text, className, as = "span" }: MathTextProps) {
   const value = text ?? "";
   const Tag = as;
-  if (!hasMath(value)) {
+  if (!hasMath(value) && !hasTable(value)) {
     return <Tag className={className}>{value}</Tag>;
   }
   return (

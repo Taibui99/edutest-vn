@@ -4,7 +4,7 @@
  */
 import assert from "node:assert/strict";
 import AdmZip from "adm-zip";
-import { parseExamText } from "../lib/exam-parse.ts";
+import { ANSWER_MARK, parseExamText } from "../lib/exam-parse.ts";
 import { extractDocxText } from "../lib/exam-docx.ts";
 
 let passed = 0;
@@ -341,6 +341,79 @@ d) Nếu nhiệt độ giảm xuống 25°C thì $T_{K}=248,15K.$
   assert.equal(q.grading.statements.length, 4);
   assert.match(q.grading.statements[2].text, /T_\{F\}/);
   assert.equal(q.grading.statements[3].answer, false);
+});
+
+
+
+t("đáp án tô màu/highlight trong lựa chọn → nhận đúng câu trả lời", () => {
+  const text = `Câu 1: Thủ đô của Việt Nam là?
+A. Huế
+B. Hà Nội ${ANSWER_MARK}
+C. Đà Nẵng
+D. Cần Thơ`;
+  const { payload } = parseExamText(text);
+  const q = payload.questions[0];
+  assert.equal(q.type, "mcq");
+  assert.equal(q.answer, "B");
+  assert.equal(q.answerSource, "document");
+});
+
+t("mệnh đề gạch chân (chỉ đánh dấu mệnh đề đúng) → suy ra Đ/S và acceptedAnswers", () => {
+  const text = `II. TRẮC NGHIỆM ĐÚNG - SAI
+Câu 1: Cho thông tin sau: Nước ta nằm trong vùng nội chí tuyến.
+
+a) Có hai lần Mặt Trời lên thiên đỉnh. ${ANSWER_MARK}
+b) Khí hậu phân mùa.
+c) Chịu ảnh hưởng của gió mùa. ${ANSWER_MARK}
+d) Không có bão.`;
+  const { payload } = parseExamText(text);
+  const q = payload.questions[0];
+  assert.equal(q.type, "true_false");
+  assert.equal(q.answer, "Đ – S – Đ – S");
+  assert.deepEqual(q.grading.statements.map((s) => s.answer), [true, false, true, false]);
+  assert.equal(q.answerSource, "document");
+});
+
+t("tiêu đề II./III./IV. không dính vào stem và đổi đúng loại câu", () => {
+  const text = `Câu 1: Câu trắc nghiệm?
+A. Một
+B. Hai
+C. Ba
+D. Bốn
+A ${ANSWER_MARK}
+II. TRẮC NGHIỆM ĐÚNG - SAI
+Câu 2: Cho thông tin sau.
+a) Đúng. ${ANSWER_MARK}
+b) Sai.
+III.Trả lời ngắn
+Câu 3: 21/34 là bao nhiêu phần trăm?
+Tp/tổng x 100 = (21 / 34) x 100 = 61,8 %
+IV.TỰ LUẬN
+1. Nêu biện pháp bảo vệ môi trường.
+- Tiết kiệm điện, nước.`;
+  const { payload } = parseExamText(text);
+  const [q1, q2, q3, q4] = payload.questions;
+  assert.equal(q1.type, "mcq");
+  assert.doesNotMatch(q1.question, /TRẮC NGHIỆM ĐÚNG/);
+  assert.equal(q2.type, "true_false");
+  assert.equal(q2.answer, "Đ – S");
+  assert.equal(q3.type, "short_answer");
+  assert.equal(q3.answer, "61,8");
+  assert.deepEqual(q3.grading.acceptedAnswers, ["61,8", "61.8"]);
+  assert.doesNotMatch(q3.question, /61,8 %/);
+  assert.equal(q4.type, "essay");
+  assert.match(q4.explanation, /Tiết kiệm điện/);
+  assert.doesNotMatch(q4.question, /Tiết kiệm điện/);
+});
+
+t("bảng số liệu giữ xuống dòng giữa các hàng", () => {
+  const text = `Câu 2: Cho bảng số liệu:
+| Tháng | 1 | 2 |
+| Lượng mưa | 10,5 | 20,1 |
+Căn cứ vào bảng, tháng nào mưa nhiều hơn?`;
+  const { payload } = parseExamText(text);
+  const q = payload.questions[0];
+  assert.match(q.question, /\| Tháng \| 1 \| 2 \|\n\| Lượng mưa \| 10,5 \| 20,1 \|/);
 });
 
 console.log(`\n${passed} test pass`);
