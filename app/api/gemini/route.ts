@@ -514,9 +514,9 @@ const retryOpts = { attempts: 2 };
 
 async function extractPdfText(buffer: Buffer) {
   try {
-    const parsed = await pdfParse(buffer);
-    const text = parsed.text.trim();
-    return text.length >= 300 ? text.slice(0, MAX_TEXT_CHARS) : "";
+    const layout = await extractPdfLayoutText(buffer);
+    const text = layout.text.trim();
+    return text.length >= 20 ? text.slice(0, MAX_TEXT_CHARS) : "";
   } catch {
     return "";
   }

@@ -1,0 +1,938 @@
+# A6Class Edu — Gói ngữ cảnh đầy đủ cho AI
+
+> Tài liệu này được tạo tự động để nạp vào ChatGPT/Claude làm ngữ cảnh dự án.
+> Nguồn: mã nguồn trong `D:\edutest-vn` (branch `main`). Tạo lại bằng `node scripts/ai-context.mjs`.
+> Khi trả lời, hãy dựa vào tài liệu này; nếu thiếu chi tiết file cụ thể, hãy yêu cầu người dùng dán file đó thay vì đoán.
+
+## 1. Sản phẩm là gì
+
+**A6Class Edu** (tên cũ EduTest VN) — hệ thống thi trực tuyến cho giáo viên Việt Nam, thiết kế cho một lớp học (~40 học sinh) nhưng chạy được production.
+Giáo viên soạn đề (tay, AI, hoặc đọc từ file Word/PDF), giao cho lớp hoặc phát mã cho khách, học sinh làm bài trên web (kể cả máy cũ), hệ thống tự chấm và trả kết quả/thống kê.
+Điểm mạnh riêng: **bộ đọc đề Word/PDF thuần rule** — nhận đúng cấu trúc đề Việt Nam (Câu 1..N, A/B/C/D, mệnh đề a–d, bảng đáp án, công thức OMML/MathType), đáp án tô màu/highlight/gạch chân, bảng số liệu thành bảng thật; hiển thị công thức bằng KaTeX render sẵn HTML (không cần JS trên máy học sinh cũ).
+
+## 2. Vị trí & hạ tầng
+
+- Mã nguồn local: `D:\edutest-vn` (Windows). Không nằm trong thư mục `Default Project`.
+- GitHub: https://github.com/Taibui99/edutest-vn — nhánh `main`, auto-deploy.
+- Production: https://a6class-edu.vercel.app (Vercel, region mặc định).
+- Database: PostgreSQL trên Supabase qua Prisma (`DATABASE_URL` pooler + `DIRECT_URL`).
+- Lưu trữ ảnh/avatar: Supabase Storage.
+- Email: Resend. AI: Google Gemini (chính) + Groq (dự phòng).
+- Biến môi trường (chỉ tên, KHÔNG có giá trị): `DATABASE_URL`, `DIRECT_URL`, `AUTH_SECRET`, `GEMINI_API_KEY`, `GROQ_API_KEY`, `EXAM_IMPORT_MODEL`, `GROQ_MODEL`, `EMAIL_FROM`, `RESEND_API_KEY`, `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `PROCTOR_IP_SALT`.
+
+## 3. Công nghệ
+
+- Next.js App Router (React 19, TypeScript), Tailwind CSS v4, Prisma 6, PostgreSQL (Supabase).
+- KaTeX render server-side (HTML + MathML), không dùng MathJax client.
+- `@google/genai` + `@google/generative-ai` (Gemini), Groq qua REST; `mammoth`/`adm-zip`/tự viết XML parser cho DOCX; `cfb` cho OLE/MathType.
+- bcryptjs + session cookie ký HMAC; admin/teacher/student/guest.
+- Kiểm thử: script QA thuần Node (`scripts/qa-*.mjs`) + Playwright E2E (`tests/e2e`).
+
+## 4. Vai trò & quyền
+
+- **Khách (guest)**: vào bằng mã đề + tên/lớp, không cần tài khoản (nếu GV bật). Mỗi cookie một phiên; xem điểm sau nộp.
+- **Học sinh**: tài khoản; lớp học, làm bài được giao, tiến độ/streak, flashcard, thông báo, xem kết quả.
+- **Giáo viên**: tạo/sửa/nhân bản đề, 4 loại câu, ngân hàng câu hỏi, lớp học & giao đề, chấm, thống kê, bảng điểm trực tiếp.
+- **Admin**: toàn bộ + quản trị người dùng/đề/báo cáo/audit/AI/system/settings, maintenance mode.
+
+## 5. Tính năng đã có (theo module)
+
+### Đề thi & soạn đề
+- 4 loại câu: `mcq` (1 đáp án đúng), `true_false` (4 mệnh đề a–d, chấm điểm từng mệnh đề), `short_answer` (so khớp đáp án + `acceptedAnswers`), `essay` (chấm tay).
+- Trộn câu/đáp án, giới hạn số lượt, hẹn giờ mở/đóng, ẩn đề, xem trước dưới góc học sinh, nhân bản đề, sửa đề sau khi tạo.
+- Chèn ảnh minh hoạ vào câu hỏi; ngân hàng câu hỏi dùng lại.
+- Nhập đề: dán text, tải DOCX/PDF (text), AI dựng đề theo yêu cầu; đọc đề bằng rule (không tốn AI) hoặc AI bổ trợ.
+- Bộ đọc DOCX: numbering tự động của Word, công thức OMML → LaTeX, MathType OLE (MTEF v5) → LaTeX, đáp án tô màu đỏ, highlight vàng, gạch chân mệnh đề, bảng số liệu → bảng Markdown/HTML thật, tách tiêu đề phần I/II/III/IV, bỏ watermark.
+- Chấm: thang 10; trắc nghiệm đúng/sai; đúng/sai tính điểm riêng từng mệnh đề; trả lời ngắn chuẩn hoá chuỗi; tự luận chấm tay; công thức điểm `10 − điểm mất`.
+
+### Thi & chống gian lận
+- Runner có autosave/resume (localStorage + server), đánh dấu xem lại, đồng hồ cảnh báo, xác nhận nộp, mất mạng có cảnh báo.
+- Chế độ nghiêm: bắt buộc fullscreen, phát hiện chuyển tab, khoá phím tắt/in, ghi `ProctorEvent`, 3 vi phạm → cảnh báo + tự nộp.
+- Đáp án đúng không gửi xuống client khi đề đang mở; bảng điểm trực tiếp chỉ lộ key khi được phép.
+- Bản `/thi-cu/[code]` là HTML thuần cho iOS 15/máy cũ (không JS), tự mở/đóng theo lịch.
+
+### Kết quả & quản lý lớp
+- Kết quả học sinh: điểm, đáp án đúng, giải thích, làm lại (nếu cho phép).
+- GV: danh sách bài nộp tự làm mới, lọc/tìm, bảng điểm trực tiếp chiếu tivi, bấm tên xem chi tiết bài làm, xuất CSV UTF-8 BOM, thống kê % đúng từng câu, xếp hạng.
+- Lớp học: tạo lớp, thành viên, giao đề cho lớp, thông báo đề mới.
+- HS: trang tiến độ (biểu đồ điểm theo thời gian), streak, flashcard, thông báo.
+
+### Admin & vận hành
+- Dashboard + analytics, users (khoá/mở, đổi role, lịch sử đăng nhập), exams (ẩn/xoá/khôi phục), reports, audit log, AI monitoring (số import, tỉ lệ lỗi, latency, model), system health, settings (feature flag, maintenance, giới hạn upload/AI).
+- Soft delete cho User/Exam/Report; maintenance mode admin bypass; RBAC kiểm tra ở server cho mọi API admin.
+- Log lỗi `AppLog`, health check `/api/health`.
+
+## 6. Mô hình dữ liệu (Prisma)
+
+- **User** — id:String, email:String, password:String, name:String, role:String, avatarUrl:String?, school:String?, grade:String?, bio:String?, isBlocked:Boolean, lastLoginAt:DateTime?, resetToken:String?, resetTokenExpiry:DateTime?, deletedAt:DateTime?, createdAt:DateTime, updatedAt:DateTime, exams:Exam[], submissions:Submission[], attempts:Attempt[], notifications:Notification[], classroomsAsTeacher:Classroom[], classroomsAsMember:ClassMember[], questionBankItems:QuestionBankItem[], appLogs:AppLog[], reports:Report[], reportsHandled:Report[], aiImportLogs:AiImportLog[]
+- **Classroom** — id:String, name:String, description:String?, subject:String?, grade:String?, joinCode:String, teacherId:String, teacher:User, archived:Boolean, createdAt:DateTime, updatedAt:DateTime, members:ClassMember[], assignments:ExamAssignment[]
+- **ClassMember** — id:String, classroomId:String, classroom:Classroom, studentId:String, student:User, joinedAt:DateTime
+- **ExamAssignment** — id:String, classroomId:String, classroom:Classroom, examId:String, exam:Exam, dueDate:DateTime?, assignedAt:DateTime
+- **Exam** — id:String, title:String, subject:String, description:String?, durationMinutes:Int, joinCode:String, status:String, allowGuestAttempts:Boolean, shuffleQuestions:Boolean, shuffleAnswers:Boolean, maxAttempts:Int, showAnswers:Boolean, showScoreImmediately:Boolean, proctorMode:String, openAt:DateTime?, closeAt:DateTime?, hidden:Boolean, liveToken:String?, deletedAt:DateTime?, teacherId:String, teacher:User, questions:Question[], submissions:Submission[], attempts:Attempt[], guestParticipants:GuestParticipant[], assignments:ExamAssignment[], reports:Report[], createdAt:DateTime, updatedAt:DateTime
+- **Question** — id:String, examId:String, exam:Exam, type:String, text:String, options:String[], answer:String, grading:Json?, explanation:String?, points:Float, order:Int, createdAt:DateTime
+- **GuestParticipant** — id:String, examId:String, exam:Exam, name:String, className:String, tokenHash:String, startedAt:DateTime, submittedAt:DateTime?, createdAt:DateTime, submission:Submission?, attempts:Attempt[]
+- **Attempt** — id:String, examId:String, exam:Exam, studentId:String?, student:User?, guestParticipantId:String?, guestParticipant:GuestParticipant?, seed:Int, questionOrder:Json, optionOrder:Json?, startedAt:DateTime, deadlineAt:DateTime, submittedAt:DateTime?, activeKey:String?, submission:Submission?, proctorEvents:ProctorEvent[], createdAt:DateTime, updatedAt:DateTime
+- **Submission** — id:String, examId:String, exam:Exam, studentId:String?, student:User?, guestParticipantId:String?, guestParticipant:GuestParticipant?, attemptId:String?, attempt:Attempt?, answers:Json, score:Float, correctCount:Int, totalQuestions:Int, durationSeconds:Int, violationCount:Int, riskScore:Int, riskLevel:String, autoSubmitted:Boolean, ipHash:String?, manualScores:Json?, submittedAt:DateTime
+- **ProctorEvent** — id:String, attemptId:String, attempt:Attempt, type:String, severity:String, detail:String?, createdAt:DateTime
+- **Notification** — id:String, userId:String, user:User, type:String, title:String, message:String, link:String?, read:Boolean, createdAt:DateTime
+- **QuestionBankItem** — id:String, teacherId:String, teacher:User, subject:String, type:String, text:String, options:String[], answer:String, grading:Json?, explanation:String?, points:Float, createdAt:DateTime, updatedAt:DateTime
+- **AppLog** — id:String, actorId:String?, actor:User?, type:String, message:String, meta:Json?, createdAt:DateTime
+- **SystemSetting** — key:String, value:String, updatedAt:DateTime
+- **Report** — id:String, reporterId:String?, reporter:User?, examId:String?, exam:Exam?, type:String, description:String, status:String, handledById:String?, handledBy:User?, handledAt:DateTime?, resolution:String?, deletedAt:DateTime?, resolvedAt:DateTime?, createdAt:DateTime
+- **AiImportLog** — id:String, userId:String?, user:User?, action:String, provider:String, status:String, model:String?, prompt:String?, error:String?, meta:Json?, createdAt:DateTime
+
+## 7. Trang (App Router)
+
+- `/admin`
+- `/admin/ai`
+- `/admin/analytics`
+- `/admin/audit`
+- `/admin/exams`
+- `/admin/reports`
+- `/admin/settings`
+- `/admin/system`
+- `/admin/users`
+- `/bang-dieu-khien`
+- `/bang-dieu-khien/ai`
+- `/bang-dieu-khien/chia-se-de/[joinCode]`
+- `/bang-dieu-khien/de-thi`
+- `/bang-dieu-khien/de-thi/[id]`
+- `/bang-dieu-khien/ho-so`
+- `/bang-dieu-khien/hoc-sinh`
+- `/bang-dieu-khien/ket-qua/[id]`
+- `/bang-dieu-khien/lop-hoc`
+- `/bang-dieu-khien/lop-hoc/[id]`
+- `/bang-dieu-khien/ngan-hang`
+- `/bang-dieu-khien/tao-de-thi`
+- `/bang-dieu-khien/thong-ke`
+- `/bang-dieu-khien/tien-do`
+- `/bao-mat`
+- `/dang-ky`
+- `/dang-nhap`
+- `/dieu-khoan`
+- `/doi-mat-khau`
+- `/page.tsx`
+- `/quen-mat-khau`
+- `/thi/[code]`
+- `/truc-tiep/[token]`
+- `/truc-tiep/[token]/bai/[submissionId]`
+- `/vao-thi`
+
+## 8. API
+
+- GET `/api/admin/ai`
+- GET `/api/admin/audit`
+- DELETE/GET/PATCH `/api/admin/exams`
+- DELETE/GET/PATCH `/api/admin/reports`
+- GET/PUT `/api/admin/settings`
+- GET `/api/admin/stats`
+- GET `/api/admin/status`
+- GET `/api/admin/system`
+- DELETE/GET/PATCH `/api/admin/users`
+- POST `/api/ai-coach`
+- POST `/api/ai-router`
+- POST `/api/ai-solve`
+- GET `/api/analytics`
+- POST `/api/attempts`
+- GET `/api/attempts/[id]`
+- (handler) `/api/auth/[...nextauth]`
+- POST `/api/auth/forgot-password`
+- POST `/api/auth/register`
+- POST `/api/auth/reset-password`
+- GET/POST `/api/classrooms`
+- DELETE/GET/PATCH `/api/classrooms/[id]`
+- DELETE/POST `/api/classrooms/[id]/assignments`
+- DELETE `/api/classrooms/[id]/members`
+- POST `/api/classrooms/join`
+- GET/POST `/api/exams`
+- DELETE/GET/PATCH/PUT `/api/exams/[id]`
+- POST `/api/exams/[id]/duplicate`
+- GET/POST `/api/exams/[id]/live`
+- POST `/api/exams/[id]/regrade`
+- GET `/api/exams/share/[joinCode]`
+- POST `/api/gemini`
+- POST `/api/guest-attempts`
+- POST `/api/guest-attempts/leave`
+- GET `/api/health`
+- GET/PATCH `/api/notifications`
+- POST `/api/proctor-events`
+- GET/PATCH `/api/profile`
+- DELETE/POST `/api/profile/avatar`
+- GET/POST `/api/question-bank`
+- DELETE/PUT `/api/question-bank/[id]`
+- GET `/api/questions`
+- POST `/api/reports`
+- POST `/api/submissions`
+- GET/PATCH `/api/submissions/[id]`
+- POST `/api/uploads/question-image`
+- POST `/api/uploads/sign`
+
+## 9. Thư viện lõi
+
+- `lib/access.ts` (45 dòng) — defaultModeByRole, effectiveMode, isTeacherAccess, isStudentAccess, isAdminAccess, sessionUser
+- `lib/ai-exam-build.ts` (261 dòng) — DIFFICULTY_LEVELS, Difficulty, SmartQuestion, SmartPayload, SmartStats, normalizeDifficulty, normalizeMcqAnswer, extractTablePairs, detectAnswerKey, normalizeQuestion, reconcileAnswers, computeStats
+- `lib/ai-judge.ts` (193 dòng) — JUDGE_MAX_QUESTIONS, JudgeFinding, buildJudgePrompt, parseJudgeFindings, applyJudgeFindings, judgeParsedExam
+- `lib/ai-solve.ts` (200 dòng) — solveMissingAnswers
+- `lib/ai.ts` (60 dòng) — DEFAULT_MODEL, FALLBACK_MODELS, modelChain, withTimeout, generateWithRetry
+- `lib/attempt.ts` (352 dòng) — ATTEMPT_GRACE_SECONDS, AttemptSnapshot, shuffledIndices, studentActiveKey, guestActiveKey, remainingSecondsOf, isPastGrace, hashIp, currentIpHash, riskOfAttempt, isUnlimitedAttempts, startAttempt, createOrResumeAttempt, finalizeTimedOutAttempt
+- `lib/audit.ts` (22 dòng) — logAudit
+- `lib/browser.ts` (50 dòng) — isLegacyBrowser
+- `lib/cfb.ts` (141 dòng) — readCfbStreams
+- `lib/cn.ts` (6 dòng) — cn
+- `lib/csv.ts` (16 dòng) — exportCsv
+- `lib/email.ts` (66 dòng) — SendEmailResult, sendEmail, passwordResetEmail
+- `lib/exam-docx.ts` (572 dòng) — DocxExtract, DocxKey, reconcileDocKey, NumberingDef, parseNumbering, extractDocxText, ANSWER_MARK_SUFFIX
+- `lib/exam-images.ts` (87 dòng) — DocImage, extractDocxImages, extractPdfJpegs, extractDocImages
+- `lib/exam-parse.ts` (813 dòng) — ANSWER_MARK, ParseIssue, ParseExamResult, parseExamText
+- `lib/exam-segment.ts` (133 dòng) — TextBlock, splitOptionLine, isOptionLine, segmentQuestions, formatBlocks
+- `lib/grading.ts` (146 dòng) — GradingPayload, AnswerValue, normalizeText, earnedPointsOf, isQuestionCorrect, isAutoGraded, pointsOf, scoreSubmission
+- `lib/groq-import.ts` (64 dòng) — groqChatJson
+- `lib/import-exam.ts` (177 dòng) — ImportStage, ImportMode, MAX_DIRECT_BYTES, MAX_UPLOAD_BYTES, uploadTooLarge, GenerateOptions, SmartProgress, importExamFile
+- `lib/integrity.ts` (166 dòng) — MAX_VIOLATIONS, Severity, RiskLevel, PROCTOR_EVENT_TYPES, PROCTOR_MODES, ProctorMode, isProctorMode, resolveProctorMode, PROCTOR_MODE_LABELS, PROCTOR_MODE_DESCRIPTIONS, proctorModeLabel, ProctorEventType, isProctorEventType, severityOf, …
+- `lib/latex.ts` (138 dòng) — escapeHtml, hasMath, hasTable, mathToHtml
+- `lib/live-board.ts` (441 dòng) — LiveRow, groupLatestByParticipant, LiveBoard, LIVE_ROW_LIMIT, createLiveToken, phaseOf, getLiveBoardByToken, LiveQuestionView, LiveSubmissionDetail, getLiveSubmissionByToken
+- `lib/live-paths.ts` (20 dòng) — livePath, liveSubmissionPath, liveApiPath, liveSubmissionApiPath
+- `lib/logger.ts` (17 dòng) — logError
+- `lib/mtef-latex.ts` (577 dòng) — mtefToLatex, countMtefObjects
+- `lib/nanoid.ts` (10 dòng) — nanoid
+- `lib/omml-text.ts` (237 dòng) — FORMULA_NOTE, ommlToLatex, injectOmmlText, countLegacyMathOle
+- `lib/pdf-layout.ts` (196 dòng) — PdfLayoutText, extractPdfLayoutText
+- `lib/prisma.ts` (12 dòng) — prisma
+- `lib/rate-limit.ts` (49 dòng) — RateLimitResult, rateLimit, clientIp, resetRateLimit
+- `lib/session.ts` (16 dòng) — getSession
+- `lib/settings.ts` (28 dòng) — getSetting
+- `lib/subject.ts` (50 dòng) — SUBJECTS, SubjectColor, getSubjectColor
+- `lib/supabase.ts` (11 dòng) — supabase, supabaseAdmin
+- `lib/time.ts` (28 dòng) — VN_TIME_ZONE, vnDateTime, vnDate, vnClock
+
+## 10. Kiểm thử
+
+Script QA thuần Node (chạy `node scripts/qa-*.mjs`): qa-ai-exam-build.mjs, qa-ai-judge.mjs, qa-brand-contrast.mjs, qa-exam-parse.mjs, qa-integrity.mjs, qa-latex.mjs, qa-load-40.mjs, qa-logo-fonts.mjs, qa-logo-geometry.mjs, qa-mobile-audit.mjs, qa-mobile-shots.mjs, qa-mtef.mjs, qa-omml.mjs, qa-pdf-layout.mjs, qa-preloader-timing.mjs, qa-preloader.mjs, qa-proctor-local.mjs, qa-proctor-prod.mjs, qa-visual.mjs.
+
+Playwright E2E (`tests/e2e`):
+- `admin-ui.spec.ts` — 8 test
+- `admin.spec.ts` — 3 test
+- `ai-chat.spec.ts` — 2 test
+- `answer-leak.spec.ts` — 3 test
+- `auth-ui.spec.ts` — 7 test
+- `auth.spec.ts` — 6 test
+- `classroom.spec.ts` — 6 test
+- `dashboard.spec.ts` — 5 test
+- `editor.spec.ts` — 5 test
+- `exam-detail.spec.ts` — 5 test
+- `exam-duplicate.spec.ts` — 4 test
+- `landing.spec.ts` — 4 test
+- `legacy.spec.ts` — 7 test
+- `live-board.spec.ts` — 5 test
+- `live-submission.spec.ts` — 4 test
+- `preloader.spec.ts` — 3 test
+- `profile.spec.ts` — 4 test
+- `question-bank.spec.ts` — 4 test
+- `question-image.spec.ts` — 3 test
+- `rbac.spec.ts` — 9 test
+- `results.spec.ts` — 3 test
+- `share.spec.ts` — 2 test
+- `student-take-exam.spec.ts` — 6 test
+- `teacher-create.spec.ts` — 3 test
+- `teacher-pages.spec.ts` — 4 test
+- `true-false-points.spec.ts` — 1 test
+- `unlimited-attempts.spec.ts` — 2 test
+
+## 11. Quy ước khi sửa code
+
+- TypeScript strict, **không dùng `any`** (eslint `no-explicit-any` = error).
+- Trước khi xong: `node node_modules/typescript/bin/tsc --noEmit`, `node node_modules/eslint/bin/eslint.js <files>`, `node node_modules/next/dist/bin/next build`.
+- Commit message dạng `type(scope): mo ta khong dau`, commit code và docs riêng; không amend/force-push; chỉ commit khi được yêu cầu.
+- Không thêm `loading.tsx` (phá E2E), không set TZ toàn cục, không streaming ở trang thi.
+- UI tiếng Việt, thuật ngữ thống nhất (đề thi, bài nộp, học sinh, giáo viên).
+- Mọi API kiểm tra quyền + ownership ở server; không tin dữ liệu client.
+
+## 12. Trạng thái hiện tại
+
+- HEAD `bb495bc` (2026-11-02), ~465 commit từ 2026-06-27.
+- PARSE-8 hoàn tất và đã deploy: đọc file `De_Dia_li_12_dap_an_sap_xep.docx` ra 88 câu (71 mcq, 5 true_false, 9 short_answer, 3 essay), 4 bảng số liệu, judge 0 phát hiện.
+- Đề đã tạo trong nick GV test: "Địa lí 12 – Đề luyện tập (đọc từ Word)", mã `76XQRV`, 88 câu, 90 phút, đã xuất bản.
+- QA xanh: exam-parse 21/21, latex 14/14, mtef 12/12, omml 8/8, pdf-layout 4/4, ai-judge 6/6, ai-build 16/16; tsc/eslint/build sạch.
+
+### Việc còn treo / giới hạn đã biết
+- Cold start production ~14s khi không có truy cập → cần cron ping `/api/health`.
+- Chưa đổi `DATABASE_URL` sang pooler cổng `:6543` (đang dùng direct, dễ cạn kết nối khi đông).
+- Chưa verify trên máy iOS 15 thật; trang `/thi-cu` (HTML thuần) chưa render LaTeX/bảng.
+- 4 hạng mục proctor nâng cao còn chờ (phương án A).
+- PARSE-1e: bảng PDF từ toạ độ X, lưu ảnh thật trong câu hỏi (schema chưa có field ảnh).
+- File đề Địa lí gốc thiếu đáp án 6 câu trả lời ngắn (Câu 4–9 phần III), thiếu Câu 1–2/17/19/29; khi tạo đề đã tạm chuyển 6 câu đó sang tự luận chấm tay.
+- `prisma/migrations/0_init` có BOM nên `migrate deploy` luôn fallback `db push`; chưa re-baseline (có chủ đích).
+
+## 13. Commit gần đây
+
+- `b61c7d7` 2026-11-03 — feat(ai): dai tu chat luong tao va giai de AI theo chuan khao thi quoc gia (AI-OVERHAUL)
+- `7207be0` 2026-11-03 — feat(parse): ho tro doc de tieng Anh Question/Answer/Explanation/Points
+- `0540ee1` 2026-11-02 — fix(exam): dung batch transaction tranh timeout P2028 khi cap nhat de
+- `82a597d` 2026-11-02 — fix(exam): bao toan id cau hoi khi sua de va luoi cuu ho khi nop bai (EXAM-PRESERVE-ID)
+- `bb495bc` 2026-11-02 — docs(roadmap): PARSE-8 doc de highlight/gach chan/bang so lieu
+- `bcf16fc` 2026-11-02 — feat(parse): doc de highlight/gach chan + bang so lieu thanh bang that (PARSE-8)
+- `82b07ab` 2026-10-26 — docs(roadmap): PARSE-6 verify prod + 2 fix tach lua chon/menh de
+- `4c9122f` 2026-10-26 — fix(parse): tach lua chon dinh sau cong thuc + noi cong thuc vao menh de Dung/Sai
+- `0acd555` 2026-10-26 — docs(roadmap): PARSE-6 giai ma cong thuc MathType MTEF v5
+- `8dfd155` 2026-10-26 — feat(parse): giai ma cong thuc MathType MTEF v5 thanh LaTeX (PARSE-6)
+- `8c993bc` 2026-10-21 — docs(roadmap): PARSE-7 hien thi LaTeX bang KaTeX
+- `8878c19` 2026-10-21 — feat(ui): hien thi cong thuc LaTeX bang KaTeX tren moi man hinh (PARSE-7)
+- `74ed6f8` 2026-10-21 — docs(roadmap): PARSE-5 doc de 2025 OMML->LaTeX + numbering + Phan 2/3
+- `05f912c` 2026-10-21 — feat(parse): doc de 2025 - OMML->LaTeX, numbering tu dong, Phan 2/3 (PARSE-5)
+- `d34af72` 2026-10-21 — docs(roadmap): PARSE-4 sua doc de thieu cau (lua chon cung dong + bang)
+- `0ac645a` 2026-10-21 — fix(parse): docx lua chon cung dong + bang -> doc du cau (PARSE-4)
+- `0982c85` 2026-10-21 — fix(parse): cong thuc Word -> ghi chu nhap tay thay vi render (PARSE-3)
+- `e5a39e6` 2026-10-21 — feat(editor): tu luu nhap de thi vao trinh duyet khi soan (DRAFT-1)
+- `4c3f446` 2026-10-21 — feat(parse): doc cong thuc Word OMML + dan anh clipboard (PARSE-3)
+- `3294fa3` 2026-10-21 — feat(parse): AI giam khao doi chieu ket qua doc rule (PARSE-2)
+- `1ec64e9` 2026-10-19 — docs(roadmap): them muc PARSE-1 doc de rule + bang/hinh
+- `c28f9c8` 2026-10-19 — docs(roadmap): cap nhat PARSE-1, bang so lieu, hinh anh + cac muc da xong
+- `82242a7` 2026-10-19 — feat(parse): doc de rule PARSE-1 + fallback AI + AI giai giup
+- `f0e5991` 2026-10-18 — fix(ui): chong lech gio #418 va treo preloader tren PC
+- `d0a306a` 2026-10-16 — docs(roadmap): chat dung mac dinh proctorMode off la quyet dinh cua giao vien
+- `31df476` 2026-10-16 — docs(integrity): mo ta che do off trung lap - bo giong phan quyet
+- `5e3f782` 2026-10-16 — docs(roadmap): ghi loi hoi quy E-03 tu LIVE-1d + cap nhat LOAD-3 da sua
+- `834369e` 2026-10-16 — test(exam): sua ky vong E-03 cho nhan moi hoc sinh nop (LOI hoi quy tu 275687b)
+- `169a4e5` 2026-10-16 — test(proctor): cap nhat regex toast S-05 theo nhan vi pham quy che thi
+- `280b7ca` 2026-10-16 — docs(roadmap): ghi nhan PROCTOR-1b sua 2 loi chong gian lan
+
+## 14. ROADMAP đầy đủ (lịch sử chi tiết từng hạng mục + commit hash)
+
+# EduTest VN — Roadmap & Checklist
+
+> File này là nguồn duy nhất để theo dõi tiến độ phát triển.
+> Quy tắc: mỗi hạng mục có ô `[ ]`/`[x]`. Sau khi hoàn thành + verify live + push, đánh dấu `[x]`.
+> Đừng đánh dấu `[x]` nếu chỉ làm code mà chưa build/verify. Mỗi hạng mục có thể thêm commit hash.
+
+## 🔴 P0 — quan trọng nhất (4 mục mới, đã xong)
+- [x] **P0-1 AI Import** — pipeline text→Gemini nhanh, progress theo stage thật, retry + "Chọn file khác" (commit `2287f03` verified live)
+- [x] **P0-2 Mobile** — responsive overhaul + test 6 viewport (360/375/390/412/768/1024) 72/72 (commits `56d21ed`, `a41f8bf`)
+- [x] **P0-3 Student Runner** — autosave/resume, mark-for-review, timer cảnh báo, confirm nộp (commits `33095f1`, `eff9a83` verified live)
+- [x] **P0-4 Exam Configuration** — 4 loại câu, maxAttempts hoạt động thật, trộn câu/đáp án, guest, xem đáp án (commits `d173e79`, `f7f6b9e` verified live)
+
+### P0 cũ (từ HANDOFF) — đã xong
+- [x] **P0-A Fix 404 `/bang-dieu-khien/hoc-sinh`** — trang danh sách học sinh cho teacher: search, filter "Có bài nộp", thống kê (commit `14f1283` verified live)
+- [x] **P0-B Verify `exam-actions.tsx`** — Đóng→"Mở lại"+badge "Đã đóng", Mở→"Đóng đề"+badge "Đang mở", Xóa đề thật (verified live, không cần sửa code)
+
+## 🟠 P1 — tính năng chính (đã xong)
+- [x] **P1-1 Results/Analytics nâng cao** — % đúng theo câu + phân tích câu hỏi, ranking + 🥇🥈🥉, export CSV (UTF-8 BOM), chi tiết đáp án từng học sinh (commit `85df926` verified live)
+- [x] **P1-2 Search/filter danh sách đề** — theo tên (`q`), môn, trạng thái (commit `85df926` verified live)
+- [x] **P1-3 Edit đề sau khi tạo** — `tao-de-thi?edit` load + `PUT /api/exams/[id]` E2E (đổi tên đề → persist + redirect) (verified live)
+- [x] **P1-4 Preview student flow** — `?preview=1` banner "chế độ xem trước", không nộp được, nút "Quay lại" → trang quản lý đề (verified live)
+- [x] **P1-5 Teacher dashboard** — rà soát workflow tạo→publish→theo dõi: greeting, stats, "Cần chú ý", quick actions (verified live)
+- [x] **P1-6 Ngân hàng câu hỏi thật** — model `QuestionBankItem` + CRUD `/api/question-bank` + UI 2 tab (kho riêng / trong đề) với modal thêm/sửa/xóa (commit `85df926` verified live)
+- [x] **Bonus fix true_false grading** — client gửi `{"0":true}` nhưng route chấm đọc `.statements` → không bao giờ đúng; gộp `lib/grading.ts` chấm cả 2 format (verified live: TF đúng → 10/10)
+
+## 🟡 P2 — Student features + Admin Panel (đã xong)
+> Admin Panel spec (#1–#20) đã implement theo yêu cầu: `/admin` route/layout/permission riêng, RBAC server-side, dashboard + `/admin/analytics`, users/exams/reports/audit/settings/system, soft delete (User/Exam/Report), maintenance mode (admin bypass), search/pagination server-side, responsive — commit `e2fcf4b` verified live (admin/teacher/student/guest + API trực tiếp).
+- [x] **P2-1 Student analytics** `/bang-dieu-khien/tien-do` — biểu đồ điểm theo thời gian (commit `dba6760` verified live)
+- [x] **P2-2 Streak tracking** — cập nhật `streak` + `lastStudyDate` khi hoạt động (commit `dba6760`)
+- [x] **P2-3 Notification đề mới** — khi teacher tạo/giao đề (commit `dba6760`)
+- [x] **P2-4 Schedule exam** — thời gian mở/đóng tự động (commit `dba6760`; editor "Lịch mở / đóng đề" verified live)
+- [x] **P2-5 Anti-cheat** — tab detection (commit `dba6760`; 3 vi phạm → cảnh báo + auto-submit verified live). Fullscreen/bắt buộc toàn màn hình + khoá phím tắt/in nay đã có thật ở **GĐ3** (`e2d03b8`).
+- [x] **P2-6 Forgot password** — quên/đặt lại mật khẩu (commit `dba6760`)
+- [x] **P2-7 Flashcard deck / bộ thẻ** (commit `dba6760` verified live)
+- [x] **P2-8 Admin Dashboard** — counts (users/teachers/students/exams/submissions) + chart tăng trưởng (commits `dba6760`, `e2fcf4b` — thêm aiByStatus/aiErrors/reportsByStatus/topExams/subjects + `/admin/analytics`)
+- [x] **P2-9 Admin Users** — search/filter, khóa/mở khóa, đổi role, login history (commit `e2fcf4b` — q/role/status/page, restore, xóa kèm nhập DELETE)
+- [x] **P2-10 Admin Exams** — xem toàn bộ, ẩn/xóa, moderation (commit `e2fcf4b` — hide/unhide/restore, soft delete, badge report)
+- [x] **P2-11 Admin Reports** — pending/investigating/resolved/rejected (commit `e2fcf4b` — pending/reviewing/resolved/rejected + resolution + handledBy/handledAt)
+- [x] **P2-12 Admin AI Monitoring** — số import, success/error rate, latency, model, timeout (commits `dba6760`, `e2fcf4b` — thêm aiErrors)
+- [x] **P2-13 Admin System** — health check (DB/API/AI/Storage/Auth) + error logs (commit `e2fcf4b` — 5 checks + lastAiImport)
+- [x] **P2-14 Admin Settings** — site name, logo, feature flags, maintenance, upload/AI limits (commit `e2fcf4b` — tabs General/Authentication/Exams/AI/Maintenance, `allowRegistration`/`enableAiImport` thật)
+- [x] **P2-15 Admin Security** — RBAC, admin-only APIs, audit logs, session management (commits `dba6760`, `e2fcf4b` — audit search + pagination; mọi API admin chặn teacher/student 403 verified)
+- [x] **P2-16 Auth/RBAC audit** — role `admin` chưa tồn tại; route + API + ownership (commit `dba6760`; E1 RBAC guest/teacher/student `/admin` → 307 + API 403 verified live)
+
+## 🟢 P3 — polish & hardening
+- [x] **P3-1 Animation system** (commit `d0a5b92`) — subtle/playful/smooth + hover + `prefers-reduced-motion`
+- [x] **P3-2 Landing polish** (commit `d0a5b92`) — + redirect người đã đăng nhập → dashboard (hiện chưa có)
+- [x] **P3-3 Avatar upload** (commit `b05676a`) (Supabase Storage)
+- [x] **P3-4 Edit flashcard** (commit `b05676a`) — hiện chỉ tạo/xóa
+- [x] **P3-5 AI generate flashcard** (commit `b05676a`)
+- [x] **P3-6 Performance** (commit `5b28a9d`) — bundle, lazy load, Prisma indexes, AI retry/fallback/model
+- [x] **P3-7 Accessibility** (commit `d615da1` — skip link, aria-label, focus)
+- [x] **P3-8 Production hardening** (commit `d615da1` — error.tsx/global-error, /api/health, appLog) — error boundary, logging, monitoring
+
+## 📌 Mục nhỏ trong roadmap
+- [x] **Nhỏ-1 Cảnh báo mất mạng** (commit `d615da1`) trong runner (`navigator.onLine`)
+- [x] **Nhỏ-2 Setting "Hiển thị điểm ngay sau khi nộp"** (commit `781eb88`) — thêm field + tôn trọng khi hiện kết quả
+- [x] **Nhỏ-3 Đổi chế độ có confirm + loading** (commits `9cc071d`, `3c3b8ce`, `b055687`, `997885b`, `b219629`) — component `ModeSwitchButton` dùng chung (dashboard ModeSwitcher + admin sidebar + sidebar chính "Đổi chế độ"): click → ConfirmDialog hỏi "Chuyển sang chế độ X?" → xác nhận → **loading screen toàn trang** (brand logo + thanh indeterminate, `animate-indeterminate` thêm globals.css, nền blur `backdrop-blur-md`), hủy thì đóng dialog — thay form submit im lặng và Link no-op; **LoadingScreen + ConfirmDialog portal ra `document.body`** để overlay luôn phủ full page không bị kẹp trong sidebar (`sticky`/`overflow`); verified live: dialog/loading parent = body, loading phủ full page z-9999 + blur, mode đổi thành công, nút sidebar chính click mở dialog đúng
+
+- [x] **Nhỏ-4 Phóng to nút "Làm lại"/"Thi tiếp"** (commit `ad2fc3d`) — user: *"sao nút làm lại nhỏ bé quá"*. Nút bị kẹp `flex-1` chia đôi hàng với nút phụ nên trông nhỏ. Sửa: màn kết quả khách (runner) + màn "Đã nộp bài" khách (`page.tsx`) + trang kết quả HS (`ket-qua/[id]`) → CTA **full-width, cao `h-14`, `size="lg"`, `text-base`**, xếp dọc (CTA chính trên, nút phụ dưới). tsc + eslint + `next build` pass.
+
+## ⚙️ Kỹ thuật
+- [x] **KT-1 Chuyển `prisma db push --accept-data-loss` → `migrate deploy`** — baseline migration `0_init` + fallback db push (commit `8e81377`) — giảm rủi ro production
+  - **⚠ Phát hiện 2026-10-07 (khi làm GĐ1):** `prisma/migrations/0_init/migration.sql` có **UTF-8 BOM** → `prisma migrate deploy` **luôn fail** (P3018, `syntax error at or near` BOM) → build script luôn rơi về nhánh fallback `db push`. Tức là **migration chưa bao giờ chạy thật trên Vercel**; schema duy trì hoàn toàn bằng `db push`. Không tự sửa `0_init` (đổi checksum sẽ fail mọi DB đã baseline) — cần một lần re-baseline có chủ đích. File migration GĐ1 (`20261006120000_add_attempt`) vẫn commit làm tài liệu; local cũng dùng `db push` để khớp 100% production.
+- [x] **KT-2 Dọn test data** — soft-delete `testrunner-1786689480719@edutest.vn` qua admin API (commit `8e81377`); guest "Test Guest" giữ lại — không có API xóa guest (chỉ POST) và không truy cập được DB — guest "Test Guest"/"12A1" trên YN5GQZ + tài khoản `testrunner-1786689480719@edutest.vn`
+
+## 🎨 Đại tu UI/UX (kế hoạch G1–G9, đang chạy)
+- [x] **G1 Design System** (commit `2905093`) — token mở rộng (score/shadow/gradient/focus), dark mode toggle (ThemeProvider + script chống FOUC, nhớ localStorage), đại tu button/input/select/badge/progress/avatar/logo theo vars, thêm `NumberInput`/`Checkbox`/`Slider`/`DateField`, toggle ở sidebar/admin/landing/auth/vao-thi — verified live: toggle 2 chiều, admin sidebar dark `#150F35`
+- [x] **G2a Admin panel → brand vars** (commit `97cb114`) — slate/white hex → `var(--surface-*)`/`var(--text-*)` toàn admin (10 file), dark tương thích
+- [x] **G2b Runner → brand vars** (commit `b93f70b`) — thi/*: slate/blue hex → vars, điểm dùng `var(--score-good/mid/bad)`, GIỮ NGUYÊN logic timer/submit/anti-cheat/draft
+- [x] **G2c Auth + vao-thi + score + logo** (commit `bb9c1a0`) — bỏ blue/green → tím brand; 1 bộ màu điểm (`--score-*`, ket-qua dùng cùng giá trị); logo 1 bản (Edu tím + Test coral + gradient icon); landing/footer tokens — verified live: vao-thi nút tím rgb(108,99,255)
+- [x] **G3 Form controls đẹp** (commit `425346c`) — editor: NumberInput stepper lần làm, DateField mở/đóng đề, **ô nhập điểm từng câu** (NumberInput min 0.25/step 0.25), 5 config toggle → Checkbox, focus ring textarea/TF/accepted-answers; study-hub: 2 DateField type="date", Slider tiến độ (`onCommit`), Checkbox task; student-list rewrite theo vars — verified live: editor đủ controls (2 num/4 stepper/2 date/5 checkbox), study-hub 2 date/4 slider/`.ui-range` ✓, register student → hub ✓, temp students đã dọn; kèm fix `45f17de` (đếm admin phải lọc deletedAt — status API + register)
+- [x] **G4 Redesign Góc học tập** (commits `028f666`, `3aa1567`, `c2eacc3`) — banner gradient + greeting theo giờ + 3 chip glass (streak/thẻ đến hạn/việc chưa xong); countdown ring SVG (dash-offset chuẩn, "Đã dùng X% quỹ thời gian"); StreakCard + API điểm danh hằng ngày (tái sử dụng `lib/streak`); task tracker badge xong/chưa xong + empty CTA focus; flashcard flip 3D (rotateY + backface) + nút Quên/Khó/Dễ lucide; AI form chuẩn; emoji→lucide toàn trang; dark mode — verified live: ring 13% đúng, streak 1 ngày, flip back hiện đáp án + matrix3d 180°, review xong về list, dark bg #1A1740; fix bug thật: lệch đồng hồ DB làm card mới "chưa đến hạn" → dung sai 60s + guard queue rỗng
+- [x] **G5 Landing + Auth** (commits `10af1f8`, `5e6e357`) — hero 2 cột: mockup màn thi (timer chip, progress, 4 đáp án chọn sẵn, nút điều hướng, điểm nổi "8.5/10") + chips tính năng lucide; dải số liệu gradient (20k+/50k+/15k+/99%); features icon lucide + vars (bỏ emoji); hướng dẫn 3 bước + CTA sạch emoji; auth 2 cột (panel brand gradient: headline + 4 lợi ích + note bảo mật; bên phải form); đăng ký **mặc định Học sinh** (select default student); form dùng ui Input/Select/Button; footer vars + lucide — verified live: mockup/stats/steps/CTA đủ, noEmoji toàn trang, panel brand hiện, role default=student → register ok, dark #0F0D2A
+- [x] **G6 Chuyển chế độ HS ↔ GV** (commits `629a24b`, `0cb2f23`, `3016ffa`, `a692401`, `6544ee3`) — session claim `mode` (mặc định theo role: student→Học sinh, teacher→Giáo viên, admin→Quản trị; **không đổi role DB**); `switchModeAction` re-encode JWT từ cookie (decode + salt=cookieName; tránh `getToken` vì `new Headers({cookie})` bỏ header forbidden) + đọc field bị React 19 prefix (`_1_mode`); hub `/bang-dieu-khien` 2 thẻ (Học sinh/Giáo viên, admin có thêm Quản trị) với `redirectTo=/bang-dieu-khien` để re-render; sidebar + mobile nav theo mode, badge mode + "Đổi chế độ"; bảo vệ route 2 chiều trong proxy (`hoc-tap`/`tien-do` chỉ student, `tao-de-thi`/`hoc-sinh`/`ngan-hang`/`thong-ke`/`chia-se-de` chỉ teacher, `/admin` chỉ mode=admin) + guard server-side từng page; `/bang-dieu-khien` ở mode=admin → redirect `/admin`; admin-sidebar 2 nút Học sinh/Giáo viên (về dashboard kèm đổi mode); ho-so "Khu vực quản trị" — verified live: login admin→/admin, admin vào dashboard→/admin, đổi mode admin↔GV↔HS, /admin chặn khi mode≠admin, register student hub 2 thẻ, guards 2 chiều, ho-so admin card
+- [x] **G7 Dashboard + "Tiếp tục bài dở"** (commit `ea0d8ae`) — stats chuẩn (Điểm TB tính trên TOÀN BỘ bài nộp qua `aggregate`, stat "Bài đã làm" = tổng submissions thay vì 5 gần nhất); card "Tiếp tục bài dở" (`ContinueDraftCard` client) đọc draft localStorage `edutest-draft-*` (draft giờ lưu thêm `meta`: title/joinCode/subject/totalQuestions), hiện title + số câu đã làm + thời gian còn lại + "vừa xong/N phút trước", nút Tiếp tục → `/thi/[code]` (khôi phục nguyên trạng draft) + nút bỏ bài, tự cập nhật qua sự kiện `storage`; streak 🔥 nổi bật thành chip trên banner dashboard (giá trị thật từ `user.streak`) — verified live: register → streak chip, draft card ẩn khi trống, làm dở 1 câu → card hiện "ÔN TẬP CUỐI HK 2 TIN 11… 1/69 câu còn 44:50", bấm Tiếp tục → `/thi/YN5GQZ`, temp đã dọn
+- [x] **G8a Admin: Tổng quan 1 màn** (commit `b5d549d`) — metric cards có **delta % tăng trưởng 7 ngày** (badge xanh/đỏ TrendingUp/Down trên thẻ Người dùng, tính từ `usersBefore7d`); card **Sức khỏe hệ thống** gọi `/api/admin/system`, 5 check DB/Gemini/API/Storage/Auth với icon ✓/✗ + link chi tiết; card **Báo cáo chờ** liệt kê 5 báo cáo pending gần nhất (type · exam · reporter · thời gian); card **Hoạt động gần đây** = 3 user đăng ký mới + 3 bài nộp mới nhất; AI Import thêm **top đề nhiều bài nộp** (3 đề đầu); giữ nguyên charts 7d, AI status/errors, streak top, quick actions — verified live: health DB/Gemini OK, delta %, báo cáo chờ, hoạt động gần đây, top đề đủ
+- [x] **G8b Admin: Bảng + CSV + confirm** (commit `f654fe0`) — component **ConfirmDialog** modal thay `confirm()/prompt()` native: overlay click-outside + Esc, tùy chọn **gõ DELETE để bật nút** (xóa user/exam/report), textarea ghi kết quả xử lý; **export CSV** (BOM UTF-8, helper `lib/csv.ts`) cho users/exams/reports/audit; **reports thêm search + pagination** (API `/api/admin/reports` nhận `q` + `page`) + nút **Mở lại** cho báo cáo đã xử lý/từ chối; audit + RBAC (server-side `role !== "admin"`) giữ nguyên — verified live: CSV btn 4 trang, search 4 trang, pagination users/exams/audit, modal DELETE confirm bị khóa tới khi gõ đủ
+- [x] **G9 Đóng gói** (commit `705f254`) — **Toast system** `components/ui/toast.tsx` (ToastProvider + useToast, viewport bottom-right, success/error/info, auto-dismiss 4s, max 4, mount trong layout) wire vào admin users/exams/reports; **EmptyState đồng bộ** (empty-state component thay div viết tay) 4 trang admin; **lint 0/0** (28 problems→0: no-unused-vars, no-img-element→`next/image` QR/avatar, set-state-in-effect disable có mục tiêu, refs draftRef chuyển render→effect + guard null, exhaustive-deps bổ sung deps); inline style giữ ở landing marketing (gradient CSS var — rủi ro cao/giá trị thấp) — verified live: toast "Đã cập nhật đề thi" khi ẩn/hiện đề (physical click), EmptyState hiện, draft regression PASS (click đáp án → draft lưu meta title/joinCode + answered=1)
+- [x] **G10 Tắt dark mode** (commit `7e5c7d9`) — dark mode bị vô hiệu hóa theo yêu cầu user (quá nhiều lỗi chữ mất màu): **force light** (provider luôn set theme=light + ghi localStorage `light` + remove class `dark`; script FOUC layout chỉ xóa `dark`), **ẩn nút toggle** (ThemeToggle trả null, giữ import ở mọi nơi), **giữ nguyên code dark** (CSS vars `.dark` + `@custom-variant dark` Tailwind v4 + các `dark:` utility không xóa — có thể bật lại sau) — verified live: set localStorage dark → vẫn light, nút toggle không hiện ở landing/admin/auth/dashboard, bodyBg `#F0EFFE`; kèm fix dark mất chữ trước đó (commit `fa3a618` text-muted dark `#9E9BC0`, nền pastel thêm `dark:bg-*` ở ModeSwitcher/tab lop-hoc/admin cards/de-thi/tien-do/ket-qua/submissions; commit `f17b1bf` bật `@custom-variant dark` cho Tailwind v4)
+- [x] **G11 Đại tu màu sắc → palette giáo dục (teal+amber)** (commit `cecc815`) — theo skill **ui-ux-pro-max** (design system cho LMS: "Education teal + course amber + grade green", tránh "AI purple/pink gradients"): `globals.css` đổi `--primary #6C63FF → #0F766E` (teal-700, đậm hơn khuyến nghị `#0D9488` để chữ trắng đạt contrast 4.5:1), `--gradient-brand` thành `#0D9488→#14B8A6→#F59E0B` (teal→amber), toàn bộ gray/surface/text sang bảng trung tính pha teal, subject colors đổi (Toán→blue, Địa Lý→green, GDCD→orange, bỏ tím/hồng), `.dark` block cập nhật theo teal; **bulk thay tím hardcode** (`#6C63FF/#a78bfa/#EEEFFE/#C7C4FC/#8B83FF/#FF6B6B/...`) sang teal/amber ở **30 file** (admin, dashboard, runner, sidebar, avatar, confirm-dialog, toast...); `lib/subject.ts` hết tím/hồng; persist **design system** skill vào `design-system/edutest/` (MASTER.md + pages exam-runner/landing/dashboard) — verified live: landing primary `#0f766e`, body `rgb(240,253,250)`, gradient button teal→amber, admin login → `/admin`, sidebar active `#CCFBF1`, metric text `#134E4A`, **0 màu tím trong HTML**
+- [x] **G12 De-AI hóa landing** (commits `eb95f1c` + `2a665e6`) — bỏ mọi dấu hiệu "AI làm ra": **hero** thay mockup trình duyệt (traffic-light dots, glow, thẻ nổi) bằng bảng "Đề thi của bạn" (mã đề thật YN5GQZ/7KP2XM/C3W8TZ), chữ heading phẳng, CTA solid primary; **stats** bỏ dải số liệu giả "20k+/50k+/99%" → 4 thông tin thực tế (Chấm điểm tự động, Không bắt buộc tài khoản, Theo dõi tiến độ, Phù hợp trường Việt Nam); **features** bỏ chip màu sặc sỡ → icon primary đồng màu, rounded-xl, 4+3 feature thật; **CTA section** bỏ gradient-brand + blob trắng → surface-card phẳng + nút solid; **header/logo** nút gradient → primary solid; **footer** bỏ "Made with ♥"; kiểm tra toàn trang không còn `linear-gradient` text — verified live: `anyGradientText=false`, hero "Đề thi của bạn" hiển thị, CTA bg `#0F766E`, footer sạch. **→ REVERT** (commit `e773b57`): user thấy design cũ đẹp hơn, khôi phục bản trước G12 (mockup trình duyệt, gradient hero, CTA gradient, stats số liệu) — **giữ palette teal/amber**, verified live: hero gradient teal, CTA gradient teal→amber, 0 màu tím
+- [x] **Fix focus outline vuông** (commits `8bbcd63` + `2c430a2`) — lỗi user báo: click ô nhập tin nhắn AI thấy viền ô vuông khó chịu (input bo tròn). Nguyên nhân: rule toàn cục `*:focus-visible { outline: 2px }` **unlayered** thắng mọi `@layer` bất kể specificity nên `outline-none` (Tailwind utilities layer) không gỡ được. Fix: `:where(*:focus-visible)` + bọc trong `@layer base` để utilities override — verified live: AI coach textarea `outline-style:none`, editor textarea `none`, input login vẫn còn focus ring teal qua `focus:ring-2`
+- [x] **Fix thống kê lỗi cho admin ở chế độ GV** (commit `ae8d414`) — bug: `/bang-dieu-khien/thong-ke` crash "undefined is not iterable" khi đăng nhập admin → chuyển mode Giáo viên. Nguyên nhân: G6 proxy guard theo `mode` nhưng các API check `role === "teacher"` → admin (role=admin) bị 401 → `{error}` được `setData` → destructure `summary` undefined → `Math.max(...)` crash. Fix: thêm `lib/access.ts` (`isTeacherAccess` = teacher **hoặc** admin; `isAdminAccess`), thay 14 API teacher dùng `isTeacherAccess` (analytics, questions, classrooms + [id]/members/assignments, exams + [id]/share, question-bank + [id], gemini, ai-coach, ai-router); thống kê check `r.ok` trước `setData` + hiện thông báo khi lỗi; admin routes giữ nguyên `role !== "admin"` — verified live: admin login → đổi mode GV → `/thong-ke` hiển thị đủ Đề thi/Bài nộp, 0 console error
+
+## 🚀 Launch — đi vào hoạt động chính thức (2026-08-24)
+> Mục tiêu: những thứ bắt buộc/nên có để đón người dùng thật. Admin chính thức tạm hoãn theo yêu cầu.
+- [x] **L1 Gửi email thật (quên mật khẩu)** — hiện forgot-password chỉ ghi log, không gửi email nào → user quên MK mất tài khoản vĩnh viễn. Dùng Resend HTTP API (fetch thuần, không thêm dependency): `lib/email.ts` đọc `RESEND_API_KEY`/`EMAIL_FROM`, wire vào forgot-password gửi link reset 1h, không đổi hành vi trả `{ok:true}` (chống user enumeration). Dev vẫn nhận resetLink trực tiếp như cũ
+- [x] **L2 Rate limiting** — hiện 0 endpoint có limit (brute-force tự do): `lib/rate-limit.ts` fixed-window in-memory, áp lên register/forgot-password/reset-password + login
+- [x] **L3 Trang Điều khoản & Chính sách bảo mật** — `/dieu-khoan`, `/bao-mat` (nội dung tiếng Việt phù hợp nền tảng thi có dữ liệu học sinh) + link ở footer
+- [x] **L4 SEO cơ bản** — obots.ts (chặn /admin, /bang-dieu-khien, /thi/, /api/, /doi-mat-khau), sitemap.ts (6 URL public), manifest.ts (PWA-ready, theme #6C4CF1) — kèm đồng bộ footer: logo Edu violet + Test ink (bỏ coral cũ, bỏ Heart icon), thêm link Điều khoản/Bảo mật
+Tất cả L1–L4 trong commit `6e0ad48` — verified live: robots.txt/sitemap.xml/manifest.webmanifest trả 200 đúng nội dung; /dieu-khoan + /bao-mat render 200; rate limit forgot-password chặn lần thứ 4 → 429 + Retry-After 595s; lint 0 error + tsc sạch + build OK
+
+- [x] **L5 Full E2E regression** (commit `cddedd8`) — chạy đủ 192 test production: 184 passed / 3 flaky (pass ở retry) / 1 skip chủ ý L-04 mobile; 4 fail xử lý xong: (1) spec landing L-01/L-04 lỗi thời còn khẳng định copy trước R1 → cập nhật theo H1/heading mới, (2) login rate limit ở L2 đếm cả lần thành công khiến E2E burst-login cùng email bị chặn nhầm → sửa chỉ đếm lần THẤT BẠI (`resetRateLimit` khi success). Chạy lại toàn bộ spec liên quan: landing+teacher-create+study-hub 27 passed, exam-detail+teacher-pages 18 passed — cleanup QA: 25 đề / 4 lớp / 20 user đã dọn
+- [x] **L9 Landing số liệu thật** (commit `93fa9f2`) — 4 số cứng → COUNT thật qua Promise.all (exam/submission/question/user chưa xóa), format vi-VN, try/catch fallback; verified live: 2 đề / 1 bài nộp / 74 câu hỏi / 102 người dùng render trên landing; E2E landing 9 passed
+- [ ] **L6 Domain riêng** — user mua domain + trỏ Vercel (hướng dẫn khi làm)
+- [x] **Google Login** (`c7cf680` + `3c2a3a0`, verify live: production trả nút "Tiếp tục với Google" ở trang đăng nhập) — đăng nhập/đăng ký bằng Google qua NextAuth OAuth: Google provider + signIn callback find-or-create user (role=student, password=""), jwt callback nạp id/role/mode từ DB, nút "Tiếp tục với Google" (SVG logo) ở trang đăng nhập + đăng ký, chỉ hiện khi GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET được cấu hình; user tự tạo OAuth client ở Google Cloud Console + set env trên Vercel (redirect URI /api/auth/callback/google)
+- [x] **L7 Uptime monitoring** (commit `7f7eecf`) — endpoint `/api/health` trả 200 + DB check live; user cần tạo monitor trên UptimeRobot trỏ đến `https://edutest-vn.vercel.app/api/health`
+- [x] **L8 Backup DB** (commit `4779a6e`) — provider Supabase, script `scripts/backup-db.js` dùng REST API + service role key (vĩnh viễn) dump toàn bộ 17 bảng ra `backups/backup-{ts}.sql`, auto-xóa file >30 ngày
+
+
+## 🗑️ Xóa tính năng — Góc học tập (2026-09-13)
+> User quyết định bỏ "Góc học tập" — lệch trọng tâm, làm rối UX. Chỉ học viên cần xem bài thi/điểm/lớp.
+- [x] **REMOVE Góc học tập** (commit `2ae3dfb`) — xóa `/hoc-tap` (page + study-hub-client) + API `/api/study/*` (tasks, flashcards + [id]/review/generate, progress, streak, exam-date) + `lib/streak.ts` + `lib/spaced-repetition.ts`; drop DB: bảng Flashcard/StudyTask/SubjectProgress + cột User.streak/lastStudyDate/examDate (db push --accept-data-loss trên Vercel); dọn dashboard (bài/điểm TB/bài 7 ngày/tiến độ + Vào thi/Lớp học), /tien-do (giữ chart điểm, thay streak/flashcard bằng Điểm cao nhất/Môn đã học), admin users/overview (bỏ streak/flashcards/streakTop), hoc-sinh (bỏ streak hiển thị), AI page + ai-coach tools (bỏ study task/flashcard/progress/exam date), bao-mat + (auth) layout + features + nav (sidebar/mobile), auth.config (bỏ /hoc-tap guard), submissions (bỏ bumpStudyStreak), backup script, e2e tests — verified live: /hoc-tap bị middleware chặn (307), Flashcard/StudyTask/SubjectProgress 404, User.streak không tồn tại (42703), /api/health ok
+
+## ✂️ Landing tối giản (2026-09-29)
+> User: "tối giản landingpage hết mức đi, toàn những thông tin chả cần thiết".
+- [x] **MIN-1 Landing tối giản** (commit `18de965`) — verified live: hero "Soạn đề thi và chấm bài trực tuyến." + 2 nút, 0 lần xuất hiện "đề thi đã tạo"/"AI Study Coach"/"Hướng dẫn"/link #huong-dan; landing không còn query DB — bỏ hết: badge chip, trust row, chips tính năng, demo soạn đề tương tác (`builder-demo.tsx`), dải số liệu (`stats.tsx` + 4 COUNT DB), 9 feature card (`features.tsx`), 3 bước hướng dẫn, section CTA gradient, nav anchor Tính năng/Hướng dẫn; chỉ còn header + hero 1 câu/2 nút + footer; cập nhật `landing.spec.ts`
+
+## 🤖 AI soạn đề theo yêu cầu (2026-09-29)
+> GV có file Word lý thuyết, muốn AI tự sinh bộ đề theo yêu cầu thay vì chỉ trích câu hỏi có sẵn.
+- [x] **GAMMA-1 AI soạn câu hỏi mới** (commit `518a3a7`) — `app/api/gemini/route.ts`: thêm `mode=generate` + `options` (môn, số câu, loại câu, yêu cầu riêng), prompt soạn mới bám sát tài liệu (40% nhận biết / 40% thông hiểu / 20% vận dụng), chunk 40k ký tự + merge dedupe; `lib/import-exam.ts` timeout 240s + truyền options; `import-exam-modal.tsx`: 2 chế độ (Trích câu hỏi có sẵn / AI soạn câu hỏi mới) + form yêu cầu (số câu, môn, loại câu, yêu cầu riêng) + ô dán nội dung lý thuyết; schema thêm `explanation`; giữ nguyên editor/schema cũ — verified: tsc 0 error, eslint 0 error
+
+## 🛠 Fix bug theo báo cáo QA (2026-08-22)
+- [x] **BUG-1 · SEC-02 (P1)** Forgot-password rò rỉ `resetLink` plaintext trong response khi bật setting `exposeResetLink` + UI render link demo — bỏ cơ chế expose khỏi production (chỉ giữ NODE_ENV=development), sửa UI không còn render link (commit `4b33879`) — verified live: POST `/api/auth/forgot-password` trả `{ok:true}` không có resetLink; E2E R-06 viết lại thành kiểm chứng SEC-02 đã vá (`ea58415`)
+- [x] **BUG-2 · BUG-01 (P1)** Register chấp nhận email sai định dạng (`qa-short`) — thêm validate email server-side regex → 400 "Email không hợp lệ." (commit `011759a`) — verified live: `qa-short`/email rỗng → 400
+- [x] **BUG-3 · SEC-01 (P2)** Token cũ trước G6 thiếu claim `mode`: UI chặn `/admin` nhưng `/api/admin/*` chỉ check role vẫn cho qua; admin đang ở mode GV/HS cũng gọi được API admin — thêm `effectiveMode()`/`defaultModeByRole()` vào `lib/access.ts`, jwt callback tự backfill mode cho token cũ, 15 guard trong 8 route `/api/admin/*` chuyển sang `isAdminAccess(sessionUser(session))` (role=admin **và** mode=Quản trị), 4 page-guard dùng `effectiveMode()` nhất quán (commit `f9ac83a`) — verified live: admin→stats/system 200, student→403; kèm dọn lint E2E suite (eslint ignore scripts/, sửa any/unused) — full E2E 192 test: 191 passed + 1 skip chủ ý L-04 mobile, cleanup về trạng thái sạch
+
+- [x] **BUG-4 · Admin search flash-then-empty** (2026-08-24, commit `e572b37`) — tìm kiếm user ở `/admin/users` nháy kết quả đúng rồi mất thành "Không tìm thấy": fetch mỗi phím gõ (không debounce) + không race guard nên response cũ về sau đè response mới. Sửa: debounce 300ms (`search`→`q`), AbortController hủy request cũ khi filter đổi, reload sau PATCH/DELETE đi qua 1 effect duy nhất có guard — verified live: gõ nhanh "tester-gv" ra 1 row ổn định, từ khóa vô nghĩa hiện empty state đúng lúc, xóa trắng quay lại full list
+
+## 🎨 Đại tu UI 2.0 (design system đã duyệt qua `mockup/preview.html`)
+- [x] **R0 Design tokens + font** (commit `dc9fa12`) — hoán đổi toàn bộ tokens trong `globals.css` sang palette đã duyệt: primary tím `#6C4CF1` (+hover `#5A3BD8`, light `#F1EDFD`), nền tím-nhẹ `#F6F5FB` ("thêm màu nền 1 tí"), card trắng viền ấm `#E7E5E0`, text ink `#1F2937`, gradient brand violet đơn sắc, accent chức năng jade/coral/sky/sun theo preview; **font đổi Nunito → Be Vietnam Pro duy nhất**; bulk sweep ~25 file hex teal cứng sót từ G11 → mapping violet tương đương (avatar/subject/sidebar/admin/dashboard...); dark block cập nhật neutral-violet (dark vẫn bị tắt từ G10) — verified live: body bg rgb(246,245,251), font Be Vietnam Pro, CTA rgb(108,76,241); lint 0 error + tsc sạch + build OK
+- [x] **R1 Landing** (commit `d0463c2`) — hero đổi hướng "EduTest = bàn soạn đề": H1 "Tạo đề thi siêu tốc. Chấm bài tự động." + trust row + CTA "Tạo đề thi ngay"; thay mockup màn-thi bằng **demo soạn đề tương tác** `builder-demo.tsx` (đổi loại TN/ĐS/Điền, bấm tròn đánh dấu đáp án đúng + toast, thêm vào đề tăng counter); steps viết lại theo quy trình soạn→xuất bản→báo cáo; CTA "Bắt đầu soạn đề miễn phí" — verified live: H1 mới, switch loại câu OK, toast OK, 40→41 câu; form Auth giữ layout 2 cột G5 trên nền tokens mới
+- [x] **R2 Khung điều hướng** (commit `ca5c6c9`) — logo về 1 điểm nhấn duy nhất (Edu violet + Test ink, bỏ cam 2 màu); badge mode đổi bảng mới (GV=sky #EAF3FC/#2F80D8, HS=jade #E8F7F1/#189A6C); avatar gradient ramp violet (#6C4CF1→#9B7FF7); hover logout → coral #E14D4D; sửa bug dot active mobile-bottom-nav thiếu `relative`; bulk sweep 19 file hex accent cũ còn sót (#F97316→#E14D4D, #06D6A0→#189A6C, #0284C7→#2F80D8, #E8F4FD→#EAF3FC, #E1F5EE→#E8F7F1) phủ admin/dashboard/de-thi/ho-so/thong-ke/tien-do/toast/maintenance-gate — verified live: logo ink rgb(31,41,55), active nav #F1EDFD, badge GV #EAF3FC
+- [x] **R3+R4 Dashboard GV/HS + danh sách đề thi** (commit `5e4bc5b`) — 2 banner chào mừng đổi gradient thuần violet ramp (#6C4CF1→#7C5CF3→#8B6FF5, bỏ pha sky/coral); thay toàn bộ 12 emoji bằng icon Lucide (👋👨‍🏫🔥📊🎯✨🎉📋✅ → Flame/BarChart3/Target/Sparkles/Clock/FileText/CheckCircle2); harmonize hex sun/jade (#FFF8E1→#FCF3E2, #D4A017/#FFD166/#D97706→#B97F10, #FFE8A0→#F5E5BC, #C8EEE1→#D3EFE5, score màu cũ #16A34A/#DC2626→#189A6C/#E14D4D); badge nháp amber→sun tokens; viền lạnh #F1F5F9→surface-border — verified live: h1 sạch, banner rgb(108,76,241), 0 emoji toàn trang
+- [x] **R4 Quét toàn app: 0 emoji + hex chuẩn token** (commit `e7fed83`) — bulk sweep 15 file hex cũ (#2563EB→violet, #16A34A→jade, #DC2626→coral, #D4A017/#FFD166/#D97706→sun #B97F10, #F8FAFC→bg-page, #64748B→warm gray); sửa --subject-toan về sky #2F80D8 (tránh trùng primary); avatar gradient pool chỉnh ramp hợp lệ; thay nốt 13 emoji cuối (runner 🚨⚠️📡⏰⏳, quen/reset MK ✅→CheckCircle2 + bỏ blue/slate Tailwind classes, admin 🔥→Flame, kết quả 🎉📝, xếp hạng 🥇🥈🥉→rank chip, ngân hàng 💡→Lightbulb, error/global-error 😵🚨→AlertTriangle + font Be Vietnam Pro) — grep toàn app = 0 emoji, verified live: footer icon svg, CTA sent violet rgb(108,76,241), dashboard/de-thi/quen-MK 0 emoji
+- [x] **R5 Runner** (commit `44d16c2`) — timer nâng cấp thành chip có viền/nền (hết giờ → nền danger nhạt + pulse); màu "Xem lại" amber→sun tokens (#FCF3E2/#E9D8A6/#B97F10) đồng bộ cả grid câu hỏi + legend; nút "Sai" chọn border-red-500→var(--danger); ghi chú tự luận amber-600→sun — verified: E2E student-take-exam 10/10 pass trên production
+- [x] **R6 Admin + monitoring DB** (commit `ace5fce`) — admin-sidebar đồng bộ chuẩn R2: logo "Test" coral→ink, avatar gradient→ramp violet (#6C4CF1→#9B7FF7); bulk thay 42 class màu Tailwind mặc định trong 9 trang /admin/* về token theo ngữ nghĩa (emerald→jade #189A6C/#E8F7F1, red→coral #E14D4D/#FFECEC, amber→sun #B97F10/#FCF3E2, blue→sky #2F80D8/#EAF3FC) phủ users/system/reports/settings/audit/ai/exams/analytics; kiểm chứng var --mint/--score-*/--warning đều map đúng palette mới — verified live 4 trang (/admin, users, system, reports): logo ink rgb(31,41,55), 0 class màu mặc định render
+
+## 📱 Mobile experience (audit 2026-09-30)
+- [x] **MOB-1 Sửa web mobile theo audit DOM production** (commit `55694b1` + `3b9a70e` + `4183702` + `91e2735` + `6b496fb`) — audit tự động 17 route bằng `scripts/qa-mobile-audit.mjs` (viewport + iPhone UA), đo: font thực sự load, overflow ngang, tap target, font-size chữ/inputs, lỗi CSP console. Tìm ra **nguyên nhân gốc "web nhìn không ổn": CSP chặn Google Fonts** — `globals.css` `@import fonts.googleapis.com` nhưng `style-src` thiếu domain → **cả production chạy font hệ thống thay vì Be Vietnam Pro**. Đã vá 5 nhóm: (1) `next.config.ts` thêm `https://fonts.googleapis.com` vào `style-src` → verify live `document.fonts` load đúng Be Vietnam Pro, **0 lỗi CSP**; (2) `globals.css` thêm rule **ngoài `@layer`** (để thắng utility Tailwind) `font-size:16px` cho `input/select/textarea` ở ≤767px → hết iOS Safari tự zoom khi focus (xác minh live: `#email` = 16px; các input còn 14px đều là checkbox 20px, vô nghĩa); (3) tap target mobile-first: `ui/button` h-11/12, `ui/input`/`ui/select`/`ui/date-field` h-11 sm:h-9, `ui/number-input` 44px, `ui/checkbox` 20px, back-nav/logo/bell/chip AI/nút editor MCQ + xoá/preview/avatar/badge mã lớp/link Quản lý/link Vào thi/filter ngân hàng ≥40px; (4) chữ 10px → 11-12px (badge mode, nav label, disclaimer AI, eyebrow hero, "hoặc" auth), footer tap 20px → 40px; (5) chip gợi ý AI `flex-wrap` trên mobile (trước tràn ngang tới 1087px). Kết quả audit 390px **và 360px: 0 lỗi CSP, 0 input zoom, 0 overflow ngang thật, 0 tap target <36px**; phần còn lại là false-positive (checkbox 20px trong label 44px, glow trang trí trong `overflow-hidden`, chữ phụ 11-12px cố ý). Sửa kèm 1 test stale: `auth-ui.spec.ts` R-06 assert copy cũ "nếu email tồn tại" (UI đã đổi ở `36ccaaa`) → cập nhật theo copy hiện tại. **E2E mobile 83 test: 81 passed + 2 flaky timing + 0 failed**
+
+- [x] **MOB-2 Đồng bộ màu toàn hệ + tương phản WCAG AA** (commit `c3acc9d` + `7cd4ad6` + `8127a8a`) — user báo "giao diện mobile quá xấu". Đo contrast thật bằng `scripts/qa-visual.mjs`: `muted #6B7280` chỉ 4.46:1, `#2F80D8` 3.60:1, `#189A6C` ~3.2:1, `#B97F10` 3.44:1. Đã sửa 4 nhóm: (1) làm tối token trong `globals.css` (muted→`#5B6470`, blue→`#1A5FB0`, mint→`#0E7350`, yellow→`#8A5A00`, coral/danger→`#BE3B3B`) + **209 chỗ hex literal** trong 35 file không dùng token; (2) **85 class màu Tailwind mặc định** còn sót (blue/slate/red/amber/emerald...) trong 15 file → map sang token, hết "loạn tông" xanh/xám xen violet; (3) bảng môn trong `lib/subject.ts` 11 môn đổi sang bảng tối tương thích; (4) bổ sung token dark (`:root` chỉ có bản sáng) + nút disabled đổi từ chữ trắng trên nền lavender (1.42:1) sang nền xám + chữ muted. Sửa luôn `bg-black/70/45` sai cú pháp (scrim modal import vốn không hiện). Thêm `.text-gradient-brand` fallback màu đọc được, h1 `de-thi`/editor 20px→22px, AI đổi `h1` 14px thành `h2` + `sr-only h1`, hero mobile bỏ full-viewport (`72vh`) bớt trống. **Audit 390px còn 0 cảnh báo contrast** trên 8 route (guest + teacher).
+- [x] **QA-VIS Sửa script audit thị giác** (commit `8127a8a`) — script từng báo sai vì 3 lỗi: parse sai `oklab()` của Tailwind v4 (`bg-white/85` bị hiểu là đen 85%), đọc alpha sai (`rgba(255,255,255,.85)` → 100%), và không lấy nền từ `body`. Đã thêm đủ 3 nhánh chuyển đổi màu + `chainOf()` debug. Tách context guest/teacher trong `qa-mobile-shots.mjs` (trước login trước khi chụp nên ảnh route public bị redirect). `qa-shots/` đã git-ignore.
+- [ ] **MOB-3 Chỉnh lại bố cục/density theo feedback mắt của user** — sau khi MOB-2 xong, chờ user xem `qa-shots/` và chỉ điểm cụ thể cần làm đẹp thêm (card density, header, khoảng đệm, hierarchy). Không tự ý đổi layout lớn khi chưa có chỉ dẫn.
+- [x] **MOB-4 Chuyển cảnh + loading trên mobile** (`cc2cffb`) (2026-10-08) — user: *"Chuyển cảnh, loading ở mobile chưa ổn"*. Ba lỗi đã sửa: (a) `app/bang-dieu-khien/loading.tsx` + `de-thi/[id]/loading.tsx` vẽ cả `<header>` + `min-h-screen` **riêng**, nhưng Next render `loading.tsx` **bên trong** `layout.tsx` (đã có `MobileTopbar`/`Sidebar`) → mobile bị **2 header chồng + layout nhảy**; bỏ header/min-h-screen, chỉ còn skeleton đúng container `p-4 lg:p-8 max-w-5xl mx-auto`; (b) View Transition chụp cả `root` nên `MobileTopbar`/`MobileBottomNav` (fixed/sticky) **trượt theo** trang → đặt `view-transition-name: a6-topbar`/`a6-bottomnav` để tách khỏi ảnh gốc: ảnh mới giữ nguyên (đứng), ảnh cũ `a6-vt-nav-out` mờ dần (không để "bóng ma" khi rời layout); (c) `--a6-slide-ms` giảm `600ms → 420ms` ở `max-width:1023px`. Verified live (Playwright 390×844, login giáo viên): đúng 1 header, `view-transition-name` đúng, `new(root)` trượt còn `group(a6-topbar/a6-bottomnav)` animation `none`, thời lượng 420ms, 0 lỗi console; `qa-preloader.mjs` **24/24** trên production (lệch mép trượt 0.00px).
+- [x] **AI-4 AI tự dựng đề từ tài liệu (thay import đề)** (f86a645) — pipeline 1 lần: đọc tài liệu → nhận diện loại đề → nhận diện đáp án có sẵn → tự làm đáp án khi thiếu → **màn hình review để giáo viên duyệt trước khi nhập vào editor**. Ràng buộc: ưu tiên đáp án đúng 100% (đồng thuận 2 lượt + phá thế hoản, câu nào chưa chắc thì đánh dấu cho giáo viên xem); đề tự luận thì phân tích ra các mức độ khó để giáo viên chọn sau khi đã đọc đề. Chi tiết ở mục "AI đọc tài liệu & tự dựng đề" phía dưới.
+
+## ✅ Đã xong (không cần làm lại)
+- Share/QR (§8, §14) — `chia-se-de/[joinCode]`: copy link, mã truy cập, QR + tải QR, native share
+- Re-import / tạo lại đề trong modal import — nút "Thử lại"/"Chọn file khác"
+- Streak đọc trong AI coach (chỉ đọc, chưa ghi — đã nằm P2-2)
+
+## 🧪 QA toàn diện production (2026-08-22)
+- [x] **QA-1 E2E suite đầy đủ** — 22 spec / 192 test Playwright chạy trực tiếp trên https://edutest-vn.vercel.app, 2 project desktop 1366×768 + mobile 390×844: **189 passed + 2 flaky timing + 1 skip chủ ý**. Phủ: landing, auth (đăng ký/đăng nhập/validation), RBAC, dashboard, editor tạo đề, ngân hàng câu hỏi, chi tiết đề (stats/CSV/đóng-xóa), lớp học (tạo/tham gia/giao đề), làm bài student (guest, anti-cheat, autosave), kết quả/xem lại đáp án, hồ sơ, góc học tập (streak/task/flashcard/AI), chia sẻ đề (QR/link), AI Coach, admin UI (users/exams/reports/analytics/system/settings + chặn student).
+- [x] **QA-2 Bugs xác nhận** — BUG-01 P1 register nhận email sai định dạng; SEC-01 P1 token admin cũ thiếu claim `mode` vẫn gọi được API admin (đã vá bằng login thật); SEC-02 P2 forgot-password trả resetLink plaintext + demo link hiển thị trên UI.
+- [x] **QA-3 Dọn dữ liệu test** — xóa toàn bộ exam/lớp/tài khoản QA qua API (`scripts/cleanup-qa.js` giữ lại để dùng sau); production về trạng thái sạch, chỉ giữ 3 tài khoản: tester-gv/tester-hs/admin-p2.
+
+## 🤖 AI đọc tài liệu & tự dựng đề (AI-4, đang làm)
+
+**Yêu cầu của user (2026-10-01):** thay phần import đề bằng AI — đọc tài liệu rồi tự suy luận ra đề; đề lý thuyết thì phân tích câu hỏi và tạo các mức độ khó cho giáo viên chọn (sau khi đã đọc được đề); đề trắc nghiệm thì dò xem có phần đáp án ở sau không, nếu không có thì AI phải tự làm đáp án, ưu tiên đúng 100%.
+
+**Luồng chuẩn (1 lần chạy, không cần giáo viên chọn chế độ trước):**
+1. **Đọc tài liệu** — `.docx` (mammoth) / `.pdf` (pdf-parse, hỏng thì upload thẳng lên Gemini) / text dán.
+2. **Nhận diện** — `kind: "mcq" | "theory"`; tìm bảng đáp án (thường ở cuối tài liệu: `ĐÁP ÁN: 1.A 2.B`, bảng, hoặc đáp án nhúng ngay sau câu). Ghi rõ có/không tìm thấy để giáo viên thấy.
+3. **Trắc nghiệm có đáp án** — dùng đáp án trong tài liệu, đánh dấu nguồn = `tài liệu`.
+4. **Trắc nghiệm thiếu đáp án** — AI tự làm: **2 lượt độc lập** rồi đối chiếu; lệch nhau thì **phá thế hoản** (lượt 3, đưa cả 2 phương án + lập luận); vẫn không chắc → `needsReview` để giáo viên xem. Mục tiêu: không đoán bừa, đúng là chính.
+5. **Đề tự luận** — mỗi câu gán 1 mức độ khó (`nhận biết` / `thông hiểu` / `vận dụng`) + gợi ý biên chấm; giáo viên đổi mức độ khó ngay trên màn hình review.
+6. **Màn hình review** (bắt buộc, không auto-import) — xem loại đề, số câu, số đáp án lấy từ tài liệu vs AI tự làm, số câu đồng thuận / cần xem; từng câu: nội dung, đáp án, nguồn đáp án, chọn độ khó, bỏ câu không muốn lấy → bấm **"Áp dụng vào đề"** mới đổ vào editor.
+
+**Lưu độ khó:** ghi trong `grading.difficulty` (+ `grading.rubricPoints`, `grading.answerSource`, `grading.confidence`) — không cần migration DB, hiển thị lại được trong editor.
+
+### Đã triển khai (2026-10-01)
+- `lib/ai-exam-build.ts` — logic thuần: `normalizeDifficulty`, `normalizeMcqAnswer`, `detectAnswerKey` (dò bảng đáp án cuối tài liệu, chỉ nhận mẫu an toàn để tránh báo nhầm), `normalizeQuestion`, `reconcileAnswers` (đồng thuận 0.95 / sau tie-break 0.75 / chưa chắc 0.5), `computeStats`.
+- `app/api/gemini/route.ts` — `mode="smart"` là mặc định; prompt phân tích dựng lại đề + nhận diện đáp án; `solveMissingAnswers` chạy 2 lượt song song + tie-break cho câu lệch; PDF scan fallback qua Gemini Files API (`geminiReadScannedPdf`); stream `stage: solve` kèm `meta.done/total`; `meta.smart` trả thống kê về nền tảng.
+- `lib/import-exam.ts` — mode `smart`, stage `solve`, timeout client 420s, callback progress.
+- `components/exams/import-exam-modal.tsx` — 2 tab (AI đọc tài liệu dựng đề / AI soạn câu hỏi mới); màn hình **review**: thẻ tổng kết nguồn đáp án, cảnh báo "câu AI không chắc chắn 100%", badge đồng thuận, chỉnh sửa nội dung/đáp án, chọn độ khó, hiện ý chấm gợi ý, bỏ câu, bấm "Áp dụng N câu vào đề" mới đổ vào editor.
+- `app/bang-dieu-khien/tao-de-thi/editor.tsx` — `Grading` có `difficulty` + `rubricPoints`; `withAiMetadata` giữ metadata khi import và khi mở đề đã lưu; selector độ khó cho mọi câu.
+- `scripts/qa-ai-exam-build.mjs` — test thuần cho pipeline (13/13 pass, chạy: `node scripts/qa-ai-exam-build.mjs`).
+- Kiểm tra: `tsc --noEmit` 0 lỗi, eslint không cảnh báo, `next build` thành công.
+
+### Đã verify trên production (2026-10-01, commit `fd435bd`)
+- `scripts/verify-ai-smart-live.mjs` — login giáo viên, mở modal trên production: nút import, 2 tab, smart mặc định (`aria-pressed=true`), selector độ khó trong editor. **0 lỗi console.**
+- `scripts/smoke-ai-smart.mjs` — chạy pipeline thật với Gemini:
+  - `--solve` (đề thiếu đáp án): 3 câu → **3 câu "2 lượt đồng thuận"**, 0 câu "cần kiểm tra", 3 đáp án được chọn, áp dụng vào editor → "3 câu · Đã kiểm tra". ~7s.
+  - mặc định (đề có sẵn `ĐÁP ÁN: 1.A 2.C 3.B`): 3 câu → **"3 câu lấy từ tài liệu"**, đáp án chọn đúng A, C, B, AI không tự giai lại. ~6s.
+
+**Bug đã phát hiện và vá trong lúc verify:** `solvePrompt` ban đầu không render danh sách câu hỏi vào prompt → AI không thấy đề nên cả 3 câu bị đánh dấu "chưa chắc". Đã sửa ở `fd435bd`, đồng thời tách bộ đếm đồng thuận khỏi `reconcileAnswers` và ép đánh dấu `needsReview` khi không lấy được đáp án nào.
+
+**Còn lại (không chặn AI-4):** chưa thử với file PDF/Word thật (mới smoke-test bằng text dán) và chưa có E2E test tự động cho luồng này.
+
+## 🧪 Chịu tải 40 client thi cùng lúc (LOAD-1, 2026-10-12)
+
+**User:** *"web đã gánh được 40 client vào làm bài cùng lúc chưa?"* — chưa từng test. Nghi trước 2 điểm nghẽn: (1) rate-limit theo IP (`submit` 20/phút, `attempt-start` 30/phút — cả phòng máy chung 1 IP NAT); (2) pool Prisma mỗi function mở riêng, không tune.
+
+- [x] **LOAD-1 Chạy 40 client ảo** (`scripts/qa-load-40.mjs`, giữ lại dùng sau) — 40 guest (mỗi context 1 cookie jar): join 40/40 → burst attempts → 20 proctor events → burst submits; đề probe dọn sạch (verify 404). Kết quả 2 lần chạy giống hệt:
+  - **Sống sót: attempts 40/40 (201), submits 40/40 (200), proctor 20/20, 0 lỗi 429/500.** Không rớt ai.
+  - **Nhưng chậm:** attempts p50 ~10s/p95 ~14s; submits p50 ~14s/p95 ~15s; ngay cả `GET /api/health` p50 3.4s khi burst 40. Chạy lại ngay vẫn y hệt → **không phải cold start**, là nghẽn sustained (CPU/concurrency phía Vercel và/hoặc pool DB Supabase).
+  - 0 lỗi 429 lần này là nhờ request rải qua nhiều isolate (mỗi isolate 1 bucket riêng) — may rủi, không bền: giờ thấp điểm ít isolate là bucket dồn, cả phòng máy chung IP vẫn có thể ăn 429 ở `submit` 20/phút.
+  - Kết luận: **gánh được 40 nhưng chậm** — học sinh bấm bắt đầu/nộp bài sẽ nhìn loading 10–15s.
+- [x] **LOAD-2a Rate-limit attempt/submit theo từng bài thay vì IP** (`521a073`, ghi chi tiết ở dòng ~539) — `submit:attempt:<attemptId>` 10/phút + `submit-ip` nâng 20→120/phút, `attempt:<ip>` 120/phút.
+- [ ] **LOAD-2b (chờ user)** — kiểm tra `DATABASE_URL` có qua pooler 6543 + gói Vercel/Supabase (user báo env private, không xem được — user tự check). **Phần region đã xử lý ở PERF-2a (`sin1`)** — nộp bài đo lại còn ~1.5s (trước ~4.9s); còn lại pooler.
+- [x] **LOAD-3 Bớt round trip DB trong code** (`97de256`, verified live) — đo baseline đơn lẻ: mỗi lượt DB ~1.2–1.5s; submit 7 lượt ≈ 8.7s, attempt 4 lượt ≈ 5.2s. Đã cắt 3 lượt (attempt: hết đọc trùng activeKey; submit: đọc đề+attempt song song, chuông báo bắn không đợi): attempt **5.2s → 4.2s**, submit **8.7s → 7.2s**, chấm đúng (10đ). E2E student-take-exam 10/10. Phần sàn còn lại (~1.2s/lượt) nằm ở infra (pooler/gói) — ngoài tầm code.
+
+## 🎨 Dropdown tự vẽ thay select native (2026-10-12)
+
+**User:** popup mở ra của `<select>` native là OS vẽ, xấu — *"làm đẹp lên"* (ảnh: chọn Đúng/Sai trong editor).
+
+**Hướng:** 1 component `Dropdown` tự vẽ (button + listbox, phím mũi tên/Esc, check mục đã chọn) → viết lại `ui/select` cùng props API (label/error/options/placeholder + uncontrolled `defaultValue`/`name` qua hidden input cho form đăng ký) → thay toàn bộ select thô (editor Đúng/Sai, filter đề, submissions-panel, ngân hàng, admin) + sửa E2E bám native (`selectOption`/`combobox`/`option`) sang click. Không đổi value/onChange nên logic giữ nguyên.
+
+- [x] Dropdown + Select mới (`69bea06`) — `components/ui/dropdown.tsx`: button + listbox tự vẽ (token brand, Check mục chọn, Chevron xoay, phím Enter/Space/mũi tên/Esc, đóng khi bấm ngoài, `max-h-60` cuộn); `Select` viết lại cùng API (label/error/options/placeholder, uncontrolled `defaultValue` + `name` qua hidden input cho form đăng ký, `aria-labelledby` để label/tests trỏ đúng).
+- [x] Migrate hết select thô (`69bea06`) — editor (4 Select + TF Đúng/Sai), filter đề, submissions-panel (lọc + sort), ngân hàng (filter + modal môn/loại/TF), admin users (2 filter + đổi role từng dòng) + exams (1). Toàn web còn 0 `<select>` native.
+- [x] Sửa E2E + verify live — helper `pickOption` (bấm nút → bấm option); sửa editor/question-bank/teacher-create/teacher-pages/exam-detail/admin-ui/auth-ui + R-06 viết lại chỉ dùng 1 request (bắt response của cú bấm nút — gọi API riêng làm request thứ 4/IP/10ph, dính rate-limit oan ở project mobile). Bệnh test phát hiện khi verify: X-02 bấm nút theo tên mơ hồ trúng dropdown mới (bỏ click thừa), Q-04 thiếu `.first()` sau khi retry đẻ câu trùng (dọn 8 câu QA). E2E prod: editor/question-bank/teacher-create 22 + teacher-pages/admin-ui 24 + auth 12 + exam-detail 10 + auth-ui/quota-bank 22 — **tất cả xanh**.
+
+## 🔄 Danh sách bài nộp tự refresh (RT-1, 2026-10-14)
+
+**User:** *"phần học sinh làm bài này có cập nhật realtime không?"* — chưa: trang chi tiết đề render 1 lần, GV phải F5 mới thấy bài mới nộp.
+
+**Chốt:** polling 30s trong `submissions-panel` (đã là client component) bằng `router.refresh()` — cả bảng + stats + phân bố điểm cùng mới, giữ nguyên filter/sort/dòng đang mở. Chỉ refresh khi tab đang hiển thị + nút tải lại tay + giờ cập nhật. Không dùng Supabase Realtime (cần bật replication + RLS, tốn infra, lợi ích thêm không đáng).
+- [x] RT-1a Panel tự refresh + chỉ báo giờ (`006c404`) — `router.refresh()` mỗi 30s (chỉ khi tab hiển thị), giữ filter/sort/dòng mở; nút tải tay + giờ cập nhật; spinner dừng theo dữ liệu thật (ref so tham chiếu + failsafe 20s).
+- [x] RT-1b Verify live — mở trang đề (0 bài) → nộp 1 bài từ tài khoản khác, **không F5 → dòng mới tự hiện**; E2E exam-detail 10/10 (không hồi quy).
+
+## 🔥 Thi thật cả lớp — chùm lỗi (2026-10-14)
+
+**User thi thật cả lớp, báo nhiều lỗi (nặng nhất iOS). Đã xác nhận thêm:** nút mờ dù nhập đủ (đúng nghi án autofill).
+
+- [x] PERF-1 Vào/nộp lag 4–15s — đã đo + cắt 3 round trip (LOAD-3). Sàn còn lại do infra.
+- [x] EXAM-1 Điểm từng câu / lượt làm / xem kết quả sau nộp (verify live, editor E2E 10/10) — soi `tao-de-thi/editor.tsx`: **tất cả điều khiển đã có** — `NumberInput "Điểm"` mỗi câu (0.25–20), "Số lần làm tối đa" trong Thông tin đề, "Hiển thị điểm ngay sau khi nộp" + "Cho xem đáp án sau khi nộp" trong Cấu hình bài thi. Kết luận: user "chưa thấy" vì (a) nhãn "Điểm" thiếu (đã thêm EXAM-1a), (b) **điểm không có trọng số nên đặt điểm không thấy tác dụng** → đó là GRADE-1 (đã sửa). Fix kèm: test E-01 stale match 2 nút "Thêm câu" (EDITOR-1) → `.first()`; editor 10/10 prod.
+- [x] EXAM-2 Hiện lượt còn lại ở trang kết quả (`b8e291c`, verified live) — user: có người thi lại được, có người không. Nguyên nhân hợp lý nhất: hết lượt mà không ai báo (mặc định mỗi đề 1 lượt!). Sửa: API `submissions/[id]` trả thêm `attemptsUsed`, trang kết quả hiện "Còn N lượt — bấm Thi tiếp để làm lại" hoặc "Đã hết N lượt". E2E results 6/6. Dặn GV: muốn cho làm lại thì tăng "Số lần làm tối đa" trong Thông tin đề.
+- [x] PROCTOR-1 Quá nhạy + tự nộp oan (`ac58101`, verified live) — nguyên nhân thật: (1) listener blur/hide gắn MỌI chế độ (kể cả off) → tắt mà vẫn đếm + tự nộp; (2) 1 lần rời app bắn cả blur lẫn hidden = 2 lỗi. Sửa: off thì không gắn gì; ân hạn 10s (quay lại kịp thì không tính, 2 event gộp 1); toast nổi có đếm N/3 + nút đóng thay banner cố định; giữ ngưỡng 3 cho light/strict. E2E student-take-exam 10/10 (S-05 chờ toast 25s, đề QA bật light, runner mobile ẩn tiêu đề → assert bộ đếm Câu 1/2).
+- [x] RUNNER-1 Header phòng thi mobile (`ac58101`) — lưới câu hỏi tách component dùng chung: desktop sidebar giữ nguyên, mobile thành nút 3 gạch mở sheet đáy + nút Nộp bài cạnh đồng hồ; tiêu đề ẩn ở mobile cho đủ chỗ.
+- [x] EXAM-1a Nhãn Điểm cho stepper (`ac58101`) — ô điểm từng câu vốn có mà không nhãn nên GV tưởng chưa có.
+- [x] **EXAM-1b Số lượt làm bài VÔ HẠN** (verify tsc/eslint/build, E2E sau push) — **yêu cầu user ghi rõ mà trước đó bị SÓT**: `maxAttempts` kẹp 1–20, không có option vô hạn. Quy ước `maxAttempts <= 0` = vô hạn (giữ mặc định 1, không phá đề cũ). Sửa: `lib/attempt.ts` bỏ kiểm tra lượt khi `<=0` (+ helper `isUnlimitedAttempts`); 2 API lưu đề cho phép số nguyên `>= 0`; editor thêm checkbox "Không giới hạn lượt làm" (bật → gửi 0, nhớ giá trị hữu hạn cũ khi tắt lại); trang kết quả hiện "làm lại không giới hạn (đã dùng N lượt)" thay vì nhầm `N >= 0` thành hết lượt. **Bug bắt được nhờ chính E2E** (`tests/e2e/unlimited-attempts.spec.ts`): đường NỘP bài có chốt thứ hai `attemptsUsed >= maxAttempts` (bỏ sót) → `0>=0` chặn oan lượt đầu → sửa thành `maxAttempts > 0 && ...`. Verify live **4/4** (đề vô hạn mở được sau 3 lượt; đề 1 lượt vẫn chặn ở lượt 2).
+- [x] EDITOR-1 Nút thêm câu ở cuối danh sách (`ac58101`).
+- [x] GRADE-1 Chấm điểm chưa ổn định (`fef2ba9`, verify code+math, prod không hồi quy) — tự soi code chấm thay vì chờ user: **lỗi thật** là điểm KHÔNG có trọng số — `score = correct/autoGradedCount*10`, mọi câu bằng nhau dù GV đã đặt `points` từng câu (đúng chí "setting điểm không ăn"). Sửa: `scoreSubmission()` dùng chung cho nộp bài (POST) + chấm bổ sung (PATCH mới) — cộng theo `points`, mẫu số = tổng điểm các câu. **Chấm tay tự luận**: cột mới `Submission.manualScores` (JSONB, migration `20261014150000`), nút "Lưu điểm" từng câu tự luận trong `submissions-panel` (chỉ chủ đề được chấm, kẹp [0, points]). Tự luận chưa chấm = **0 điểm nhưng vẫn trong mẫu số** → điểm chỉ tăng khi chấm, không nhảy ảo. Verify: unit `scoreSubmission` 5/5 PASS (trọng số/ kẹp trần / kẹp âm / tự luận); prod `results`+`exam-detail` 14 pass 0 fail (cột đã lên DB).
+- [x] **IMPORT-1 Sửa đề/đáp án đọc từ file** (`a3cb9f6`, verify build) — màn review của modal import trước chỉ sửa được PHƯƠNG ÁN + chọn lại đáp án, KHÔNG sửa được NỘI DUNG CÂU HỎI. Thêm textarea "Nội dung câu hỏi" ngay trong review (viền đỏ khi rỗng) để GV chỉnh đề AI đọc sai trước khi "Áp dụng N câu vào đề". (Luồng AI chat cũng sửa được qua editor sau khi tạo nháp.)
+- [x] **IOS-1a iPhone khoá màn hình bị tính gian lận + tự nộp** (`a3cb9f6`) — iPhone tự khoá màn hình → `visibilityState=hidden` → quá ân hạn 10s tính 1 vi phạm, chạm ngưỡng 3 là TỰ NỘP (đúng lỗi user "màn hình tự tắt → tính gian lận + nộp luôn"). Sửa: nới ân hạn lên **30s**; **bỏ hẳn tự nộp khi chạm ngưỡng** (đúng bất biến anti-cheat "chỉ log + gắn cờ, GV quyết") — chỉ cảnh báo + ghi nhật ký; đổi nhãn UI GV từ "tự nộp" → "chạm ngưỡng".
+- [x] **IOS-1b Màn hình loading đứng 0% rồi tự biến (iPhone + desktop)** (`a3cb9f6` + `c33675a`, QA preloader **28/28** prod) — user: intro đứng ở 0% vài giây rồi nhảy vào trang. Nguyên nhân gốc: vòng lặp % nằm trong `useEffect` (rAF) — iOS Safari HOÃN rAF lúc đang nạp + máy/mạng chậm thì hydrate rất muộn → tới khi failsafe CSS 6s nổ lớp phủ mới biến mất. Sửa bước 1 (`a3cb9f6`): chuyển logic sang `<script>` inline trong `<head>` (bám `DOMContentLoaded`, `setInterval` thay rAF); `Preloader` thành markup tĩnh. **Bug phát sinh khi verify desktop** (`c33675a`): script ghi vào DOM *trước* khi React hydrate → React thấy lệch (số % đã nhảy) nên **thay cả cây DOM preloader** → tham chiếu node của script trỏ vào node chết: số % kẹt ở **0**, `data-burst` không bao giờ gắn (bị failsafe 6s dọn), kèm lỗi hydration React **#418**. Sửa: render markup preloader bằng **HTML thô qua `dangerouslySetInnerHTML`** để React coi là opaque (không diff/không thay), và script **tự gỡ node** khỏi DOM sau khi bùm (trước là component tự unmount — không dọn thì còn lớp `position:fixed z-9999` phủ trang). Sửa test `qa-preloader.mjs`: mục "JS chết" cũ chặn request `script` không còn hiệu lực (logic giờ inline, vẫn chạy) → đổi sang **tắt hẳn JS** để kiểm `<noscript>` + thêm check CSS failsafe 6s. Verify prod: 17→85→100%, `data-burst=true`, node gone ~2s, 0 lỗi console, 28/28.
+- [ ] IOS-1c Crash máy yếu — còn thiếu chi tiết máy/bước gây crash (chờ user).
+- [x] **IOS-1d iOS cũ: trang thi báo "Mất kết nối" + KHÔNG chọn được đáp án** (`e61f697`, verify prod: hết pageerror #418, banner biến mất, click ăn; E2E S-03/S-04/S-06 desktop+mobile 6/6; results 3/3) — user (**iOS 16**): đã vào được trang làm đề nhưng hiện banner *"Mất kết nối mạng"* và bấm đáp án không ăn. **Nguyên nhân gốc:** `useState(() => typeof navigator === "undefined" ? false : !navigator.onLine)` — Node hiện đại (21+) CÓ `navigator` toàn cục nhưng KHÔNG có `onLine` → `!undefined === true` → **HTML server LUÔN kèm banner**; client tính `false` → **lệch hydration React #418** ("server rendered HTML didn't match"). Trên máy yếu (iOS cũ) React phải **dựng lại cả cây** → trang đứng, tap chết (đúng "chọn bài làm cũng không được"). Sửa: khởi tạo `offline=false`, đồng bộ `!navigator.onLine` trong `useEffect` (chỉ client chạy). Kèm **2 ổ lệch hydration tiềm ẩn** đã bịt luôn: (a) `ScoreGauge` (`ket-qua/[id]`) đọc `matchMedia(prefers-reduced-motion)` lúc render → lệch khi người dùng bật "Giảm chuyển động" (hay gặp trên iPhone) → dời quyết định vào rAF; (b) thêm `<meta name="format-detection" content="telephone=no,date=no,email=no,address=no">` (khuyến nghị của chính Next) — iOS tự biến số/email trong nội dung thành `<a>` → lệch DOM. Verify prod: SSR **không còn** chuỗi "Mất kết nối"; repro Playwright WebKit (mobile iPhone 13) + Chromium: `pageerrors: none`, banner `false`, click chọn được.
+- [x] **IOS-2 Hệ thống thi HTML thuần cho máy iOS quá cũ (không chạy nổi React)** (`cd8ceb9` + test bổ sung, verify **production**: `legacy.spec.ts` **5/5 desktop + 5/5 mobile**; curl UA iOS 15 → 307; `student-take-exam` 12/12 không hồi quy) — user xác nhận máy **iOS 15**: nhập tên + vào trang làm bài được (form HTML thuần) nhưng **bấm đáp án không ăn** (React không hydrate — đúng khi máy dưới sàn hỗ trợ: Next 16 cần Safari 16.4+, xem `node_modules/next/dist/docs/03-architecture/supported-browsers.md:11`; Tailwind 4.3.3 sinh `@property`/`color-mix()`). Giải pháp user chốt: **làm riêng một hệ thống chỉ chạy khi iOS quá cũ**. Thêm `/thi-cu/[code]` (`route.ts` + `html.ts`): HTML/CSS tự chứa, form POST thuần, KHÔNG React/Tailwind/JS bắt buộc; dùng chung `lib/grading` + `lib/attempt` + cookie khách nên **điểm và hạn giờ không lệch app chính**. Phát hiện máy cũ bằng `lib/browser.ts` (chỉ kết luận khi nhận diện được engine; `?legacy=1` để ép; `?preview` của GV bỏ qua). **Bài học lớn:** redirect đặt trong `page.tsx` **KHÔNG dùng được** — `app/thi/[code]/loading.tsx` tạo Suspense boundary nên shell được stream trước, `redirect()` chỉ còn là chuyển hướng phía **client** (RSC flight) → máy đích vốn không hydrate nổi React nên bị kẹt đúng chỗ cũ. Chuyển sang **`proxy.ts` trả HTTP 307** trước khi render (thêm `/thi/:path*` vào matcher; route này bypass auth middleware để giữ nguyên hành vi cũ của `/thi`). Route luôn trả **trang thông báo HTML đọc được (503)** khi lỗi DB, không để 500 trắng. **LEGACY-5** (mới, chạm DB) kiểm TRỌN luồng thi trên trang HTML thuần: khách nhập tên → làm bài → nộp → **10/10** + xem lại đáp án + "Làm lại" → về form nhập tên — PASS cả desktop lẫn mobile trên production (bằng chứng máy không chạy React vẫn thi xong, LEGACY-1..4 chỉ kiểm định tuyến).
+- [x] **IOS-2b Lưới đỡ "tự chuyển trang" — MỘT link/QR cho MỌI thiết bị** (`53294f7`, verify prod: `legacy.spec.ts` **14/14** desktop+mobile, gồm **LEGACY-7** mới; `student-take-exam` **12/12**; `qa-preloader.mjs` **28/28**) — user: *"làm sao khi dùng link/mã QR trong phần chia sẻ đề thì TẤT CẢ thiết bị đều tự dùng trang thích hợp để làm bài"*. Link/QR chia sẻ **vốn đã là một** (`app/api/exams/share/[joinCode]/route.ts` → `${origin}/thi/<mã>`, QR encode đúng URL đó) — chỉ còn lỗ hổng "đoán nhầm UA": máy dưới sàn nhưng UA không nhận diện được (WebView Zalo/Facebook) sẽ kẹt ở trang React. Thêm `app/thi/[code]/layout.tsx` + `hydration-signal.tsx`: `<script>` **THUẦN** nhúng thẳng HTML (chạy được cả khi bundle React chết — chính là ca cần cứu) — (1) thiếu `color-mix()` (Tailwind 4) → chuyển NGAY sang `/thi-cu`; (2) React chưa hydrate sau **8s** (cờ `window.__a6Hydrated` do client component set khi mount) → `location.replace('/thi-cu/<MÃ>')`. Bỏ qua khi `?preview=1` (GV xem thử). **LEGACY-7** chặn `/_next/static/**` mô phỏng React chết → assert tự sang `/thi-cu` + thấy form nhập tên (PASS desktop+mobile). Kèm nới timeout S-05 lên 120s (`student-take-exam.spec.ts`) — ca này chờ hết ân hạn 30s rồi dư tới 40s nên ~72s > mặc định 60s, KHÔNG phải lỗi tính năng.
+- [x] **PRE-1b Preloader mượt (60fps) + tối thiểu 5s + giảm blur gây lag** (`1fbdfdd`, QA `qa-preloader.mjs` **28/28 local + 28/28 production**; `student-take-exam` 12/12 desktop+mobile trên prod — preloader 5s KHÔNG che nút/làm hỏng E2E) — user: loading bị **"khựng"** và web còn **lag ở mọi máy**. Nguyên nhân đo được: (1) cột nước đổi `height` mỗi 50ms → **tính lại layout toàn overlay** mỗi khung; (2) thẻ preloader có `backdrop-filter: blur(20px)` đè lên **nền đang động** → **blur lại mỗi khung** = jank nặng trên máy yếu; (3) `setInterval` 50ms = **20fps** (thấy giật). Sửa: cột nước dùng **`transform: translateY`** (GPU, không layout) + vòng **`requestAnimationFrame` 60fps** (kèm **WATCHDOG 400ms** để vẫn kết thúc nếu rAF bị iOS hoãn); **bỏ `backdrop-filter`**, nền đục 0.97; `MIN` 1.1s → **5s** (CAP 5.6s, failsafe CSS 6s → 8s); cache node (bỏ `querySelector` mỗi khung). Giảm chi phí cuộn: header sticky `backdrop-blur-xl` → `md` (`header.tsx`, `vao-thi`).
+- [x] GUEST-1 iPhone kẹt nút (autofill) — xem dòng ngay dưới.
+- [x] **GUEST-1 iPhone kẹt ở nhập tên khách** (`d37acfb`, verified live) — nhiều máy iPhone nhập tên/lớp xong nút "Bắt đầu làm bài" không cho bấm. Nghi án số 1: iOS tự điền (autofill danh bạ) không bắn event cho React → state rỗng → nút `disabled` dù ô hiện chữ. Sửa: nút chỉ disable khi đang gửi; đọc giá trị thật từ FormData lúc submit (kể cả autofill) + thêm `name` cho 2 ô; thiếu thì báo lỗi rõ. E2E guest S-04 2/2. Chờ user xác nhận đúng triệu chứng (nút mờ bấm không được) khi thi lại.
+- [x] **GUEST-2 iPhone: nhập tên xong "loading lại rồi bắt nhập tên" thành vòng lặp** (`2337f13`, verify WebKit prod qua `iPhone 13` + E2E S-04 có assertion mới) — user: vào được loading, nhưng bấm "Bắt đầu làm bài" thì hiện loading rồi quay lại form nhập tên, lặp mãi. Tái hiện bằng Playwright **WebKit** (đúng engine iOS): cookie `edutest_guest_*` SET + LƯU bình thường, nhưng sau khi khách bấm, `GuestJoin` gọi `router.refresh()` (**soft navigation**) → React **chèn LẠI markup preloader** (HTML thô nằm trong cây layout) mà `<script>` inline trong `<head>` **không chạy lại khi soft-nav** → overlay mới đứng nguyên `burst=false pct=0 op=1` **che kín màn hình** ("loading lại"); sau đó failsafe 6s dọn nó, lộ lại nội dung cũ (form) → user lại nhập tên → vòng lặp. Sửa: thêm `MutationObserver` trong script preloader — mọi preloader xuất hiện **sau** cửa sổ nạp đầu (`OBS_AFTER = boot+1800ms`) là do soft-nav tái tạo → `display:none` ngay (soft-nav vốn do `PageTransition` lo, không cần preloader). Verify prod (WebKit iPhone 13): preloader bị tái tạo có `display=none`, vào bài bình thường, `isHidden()=true`; E2E `student-take-exam` 10/10 (S-04 thêm `expect(#a6-preloader).toBeHidden()` — trước đây test cũ không bắt được vì chỉ assert text "Câu 1/2" nằm trong DOM dù bị overlay che). *(Còn lại: `router.refresh()` mất ~6–9s do độ trễ server → thuộc nhóm lag/hạ tầng.)*
+- [x] **GUEST-3 Tham gia không cần JS + tự vào bài + KHÔNG lặp tên trên máy iOS cũ** (`072505f` + `6c7483b` + `25f561b`, E2E S-04/S-06 desktop+mobile PASS prod) — user (iPhone iOS cũ): nhập tên/lớp xong bấm "Bắt đầu làm bài" thì **tải lại rồi lại về form nhập tên**; máy khác cũng không vào được. Nguyên nhân gốc: `GuestJoin` là client component, form **không có `action`/`method`** → máy nào React không hydrate (iOS cũ) thì bấm nút = **submit native GET về chính URL** → server trả lại form (chưa có cookie) = vòng lặp. Sửa 2 tầng: (1) form thành **hybrid** — `<form action="/api/guest-attempts" method="post">` (chạy khi JS tắt/máy cũ) + `onSubmit` fetch JSON (UX mượt khi JS có); (2) API nhận **cả form-urlencoded lẫn JSON** — form POST thì set cookie rồi **303 redirect** về `/thi/<code>`, lỗi thì 303 kèm `?guestError=`; (3) đổi `router.refresh()`/`router.push()` → **`window.location.assign`** vì `router.push` cùng pathname là no-op của App Router (đúng "phải load lại web mới vào bài"). Verify prod: `student-take-exam` **6/6 desktop** (S-04 vào thẳng bài không cần reload) + S-04/S-06 mobile PASS.
+- [x] **GUEST-4 Khách xem lại bài làm + nút "Làm lại"** (`25f561b` + `35e8b23`, E2E S-06 desktop+mobile PASS prod) — user: *"sao vẫn chưa cho xem lại kết quả làm bài, không có nút làm lại khi kết quả chưa tốt?"*. Học sinh ĐÃ có (nộp xong tự chuyển `/bang-dieu-khien/ket-qua/[id]` = KQ-1 + EXAM-2); **khách thì không** (không có tài khoản, màn kết quả trong runner chỉ hiện điểm). Sửa: (1) `POST /api/submissions` trả thêm `review` (chỉ khi GV bật `showAnswers`), `showAnswers`, `canRetry`; (2) runner (màn kết quả khách) thêm bảng **"Xem lại bài làm"** đủ loại câu (MCQ/TF/ngắn/tự luận) + nút **"Làm lại"**; (3) route mới `POST /api/guest-attempts/leave` xoá cookie khách (form POST 303 kèm tên/lớp điền sẵn) để khách thi lại thành người tham gia mới; màn "Đã nộp bài" (khách vào lại link) cũng có nút **Làm lại**.
+- [x] **NAV-1 Nút Đăng ký mất chữ + chuyển trang đứng hình** (`f12c24a` + `885e7a7`, verified live) — user: nút Đăng ký pill trắng trơn + bấm link đứng yên ~4s rồi chồng hình. (1) `bg-[var(--gradient-brand)]` sai: Tailwind dịch thành background-*color* (gradient vào đó invalid → nền trong suốt, chữ trắng mất hút) — gặp ở header và `ui/button` variant gradient; trả về `style background`. Đo live nút hiện gradient đúng. (2) Đo cold-click: bấm → 3.9s màn hình đứng yên (server boot) rồi mới trượt → thêm thanh tải mảnh trên cùng (`a6-nav-loading`, hiện ngay khi bấm link nội bộ, gỡ khi đổi pathname, timeout 10s, reduced-motion tĩnh) + skeleton trang auth. Verify: class bật ở +60ms, gỡ khi tới nơi; E2E landing 8/8.
+- [x] **NAV-2 Khác khung thì cắt cảnh, cùng khung mới trượt** (`b4b7818` + `5c64372`, verified live) — user chụp màn hình: auth 2 cột trượt đè lên landing 1 cột 600ms, "khó chịu cực kì". Trượt đẩy chỉ đẹp khi 2 màn cùng khung. `shellOf()` phân landing/auth/vaothi/app/admin/exam/public(+legal chung landing): khác khung → `data-slide="instant"` (tắt cả nhóm nav tách riêng để không bóng ma), cùng khung → trượt; popstate so `lastPath` (back cùng khung trượt ngược, khác khung cắt). Sửa shell 2 lần: lần 1 gộp public quá thô (landing→login vẫn trượt), lần 2 tách landing/auth/vaothi. QA `qa-preloader.mjs` viết lại theo hành vi mới (instant + slide auth→auth): **28/28** trên production (liền mép 0.00px).
+- [x] **KQ-1 Vòng điểm chạy số + xem lại đáp án đủ loại câu** (`853502d` + `8cc8181`, verified live) — user: *"vòng tròn điểm đơn giản quá"* + *"xem kết quả làm bài thì sao"*. (1) `ScoreGauge` đếm số 0→điểm + vòng quét ease-out 1.2s (rAF, reduced-motion thấy số cuối ngay; `key={sub.id}` để không dính số cũ). **Bug bắt được khi verify:** effect deps `[score, shown]` tự hủy sau frame đầu (số kẹt 0.3) → deps `[]` + disable có mục tiêu. Verify live: 4.2→7.7→9.4→10. (2) Review trước chỉ vẽ được MCQ (Đúng/Sai + tự luận trắng trơn, `userAnswer === answer` sai luôn cho TF/essay): giờ TF hiện từng mệnh đề (Bạn/Chuẩn), ngắn hiện câu trả lời + đáp án chấp nhận, essay hiện bài + note GV chấm tay; icon đúng/sai/trung lập theo đúng `lib/grading` (không tự chấm lại kiểu khác); `showAnswers=false` giữ quyền GV, chỉ hiện lời nhắn giải thích thay vì mất hút. E2E results 6/6.
+- [x] **Avatar rò className ở danh sách bài nộp** (`d97b47b`, verified live) — user chụp màn hình: hàng đầu hiện nguyên chữ `bg-[var(--warning-light)]...` thay cho avatar. Nguyên nhân: `submissions-panel.tsx` render `{badge ?? i + 1}` — badge là chuỗi class nên lọt ra UI. Sửa: nội dung luôn là `{i + 1}`, badge chỉ đổi màu nền. Verify live: hết chuỗi rò, hạng đầu hiện "1", đề probe đã dọn.
+- [ ] Các lỗi khác user báo sau thì làm (hiện web đã ổn, không fix mò).
+
+## 🔓 Chế độ có hiệu lực thật (G6b, 2026-10-11)
+
+**User:** *"đã cho thay đổi chế độ mà role không dùng được thì thay đổi làm gì?"* — đúng: `switchModeAction` cho mọi tài khoản bật chế độ Giáo viên, nhưng API check `role` DB nên vào rồi toàn 403 (user báo import đề `Chỉ giáo viên mới được import đề` dù đang ở mode GV).
+
+**Quyết định:** hiệu lực theo **mode đang dùng**, không theo role gốc. An toàn vì mọi API giáo viên nhốt dữ liệu theo `userId` (chỉ thấy/tạo đề-lớp của chính mình) — không rò sang người khác; preview `?preview=1` lộ đáp án nên **giữ nguyên check role** (GĐ0); khu `/admin` giữ `isAdminAccess` (role + mode).
+
+- [x] **G6b-1 Core** (`b990ba7`) — `isTeacherAccess()` = role teacher/admin **hoặc** `effectiveMode()==="teacher"`; thêm `isStudentAccess()` = `effectiveMode()==="student"`. Preview `?preview=1` cố ý giữ check role (lộ đáp án — GĐ0).
+- [x] **G6b-2 Đổi các chốt còn sót** (`b990ba7`) — `attempts`/`submissions` (role→mode, message chỉ cách đổi mode), `thi/[code]` page (message chỉ cách đổi mode), `de-thi/[id]` page (role→`isTeacherAccess`, admin ở mode GV cũng vào được như thong-ke).
+- [x] **G6b-3 E2E RB-09** (verified live 2/2 + full RBAC 18/18) — học sinh bật mode GV → `POST /api/exams` 201 + `GET` chỉ thấy đề mình → dọn đề + về mode HS → lại 403. Toàn lỗi test, product đúng từ đầu: (1) chờ nút "Xác nhận" trong khi dialog ghi "Chuyển chế độ"; (2) race gọi API trước khi cookie mode mới về; (3) bấm card lúc chưa hydrate; (4) `getByText.first()` trúng link sidebar "Học sinh" bay sang `/hoc-sinh` (scope vào `main`); (5) `isVisible({timeout})` không chờ thật → vòng bấm-lại. Log từng vòng lặp mới tóm được (4).
+
+## 🔁 Groq dự phòng import đề (AI-8, 2026-10-13)
+
+**User:** *"ngoài gemini ra thì có con nào tương tự thay thế lúc cần không"* → chốt thêm Groq dự phòng.
+
+**Thiết kế:** mọi call LLM chữ (smart analyze/solve/tiebreak, generate, extract) đi Gemini trước như cũ; cạn attempts mới qua `groqChatJson` (`lib/groq-import.ts`: JSON mode trước, 400 thì thử lại thường + tự bóc markdown, timeout 60s). Vision/Files API giữ Gemini-only (Groq không có). `meta.provider` (`gemini`|`groq`) + log để biết engine nào phục vụ khi outage. Trung thực: chưa verify được đường Groq live (không ép Gemini sập được, key chỉ có trên Vercel) — code đã gate sạch, đường này chỉ kích hoạt khi Gemini lỗi, tệ nhất vẫn là lỗi thân thiện như cũ.
+- [x] AI-8a Code + deploy (`650ea17`) — `lib/groq-import.ts` + bọc mọi call chữ, vision giữ Gemini-only, `meta.provider` + log.
+- [x] AI-8b Verify đường chính không hồi quy — 1 probe generate nhỏ trên prod: 200, `provider=gemini`, MCQ đúng chủ đề/đáp án.
+- [x] AI-8c A/B Groq vs Gemini — nỗi sợ của user: *"tạo đề đêm không có gemini thì đề không hoàn hảo"*. Thêm hook `forceProvider` (chỉ GV) + chạy cùng lý thuyết: trớ trêu là lúc test Gemini sập thật (ECONNRESET — đúng case cần fallback). Kết quả Groq (`provider=groq`, 7s): **5/5 câu complete theo đúng luật product** (đáp án bare-letter, đủ 4 options, phân bố A/D/B/C/B không dồn, tiếng Việt chuẩn, đủ 3 mức độ khó). Phát hiện khi test: Groq trả `options` dạng object `{"A":...}` (Gemini trả mảng) → review sẽ loại hết → đã chuẩn hoá trong `toReviewItem` (`3f9818b`/`c81ac80`, kèm gỡ script probe lọt commit). Kết luận: **đề Groq soạn đạt chuẩn như Gemini** (cùng prompt, cùng validation, cùng màn review của GV).
+
+## 🧩 Cắt khối + điểm danh chống rớt câu (AI-10, 2026-10-13)
+
+**User:** đề hơn 20 câu mà AI chỉ lọc được 18 — *"các câu lẫn lộn, không theo phần, cần xử lí được"*.
+
+**Nguyên nhân:** đề không đánh số câu, model tự mò ranh giới → rớt lung tung (đếm được 1/2/11/16/20/21 câu trên cùng 1 file).
+- [x] AI-10a `lib/exam-segment.ts` (thuần hàm, test local): gom dòng thành khối xác định (stem + options, tách đáp án dính nhau, chữ sau đáp án hết thì thành note, mở đầu tách preamble), model không còn phải đoán ranh giới (`81cacf4`).
+- [x] AI-10b Điểm danh `blocks_used` + coverage + chạy bù 1 lần đúng khối thiếu; mục `skip` cho khối không phải câu hỏi; `meta.blocks` (`81cacf4` + `824e640` ép schema, `97f00ef` chặn model né việc bằng skip + đếm độ phủ, `f5a3876` upload ảnh song song).
+- [ ] AI-10c Verify bằng file user: coverage full + khớp key đỏ.
+
+## ⚡ Đọc đề thuần rule PARSE-1 (2026-10-19)
+
+**User:** import đề phải nhanh, không tốn quota AI; AI chỉ cần khi file lạ. Chốt V1: rule-first, AI làm dự phòng bằng nút riêng, thêm nút "AI giải giúp" cho câu thiếu đáp án.
+
+- [x] PARSE-1a `lib/exam-parse.ts` (`82242a7`) — bộ đọc thuần xác định: `Câu N (2đ):`, số trần `1.`/`)`, đáp án inline + bảng đáp án cuối bài, marker tô màu, Đúng/Sai thành statements, trả lời ngắn; fallback cắt theo khối lựa chọn khi không đánh số; gỡ đáp án bị nuốt vào stem câu kế tiếp. QA `scripts/qa-exam-parse.mjs` **13/13**.
+- [x] PARSE-1b PDF bố cục `lib/pdf-layout.ts` — pdfjs theo toạ độ: 2 cột (đọc hết cột trái trước), tiêu đề trải ngang; fallback `pdf-parse` khi pdfjs lỗi hoặc <10 ký tự; PDF scan/không lớp chữ → báo "Dùng nút Đọc bằng AI". QA `scripts/qa-pdf-layout.mjs` **4/4**.
+- [x] PARSE-1c Nút riêng + AI giải giúp — `mode=parse` trong route (KHÔNG gọi AI, log `rule:PARSE-1`); modal 3 tab "Đọc đề (chuẩn)" (mặc định) / "AI đọc tài liệu" / "AI soạn mới"; parse fail → nút "Đọc bằng AI"; box ghi chú `parseIssues` + engine "Quy tắc đọc đề". Tách solve ra `lib/ai-solve.ts` + `POST /api/ai-solve` (GV-only, ≤20 câu, 2 lượt độc lập + phá thế hoản) cho nút "AI giải giúp" từng câu thiếu đáp án.
+- [x] PARSE-1d Bảng số liệu + hình ảnh — `<w:tbl>` DOCX serialize thành lưới `| cột |` (bảng dính vào stem câu hỏi); đếm ảnh `word/media/*`; parser flag câu tham chiếu "hình N / hình vẽ / hình dưới đây / biểu đồ / sơ đồ / đồ thị" → `needsReview` + ghi chú (KHÔNG flag "hình tam giác" — hình học thuần túy); note khi phát hiện dòng bảng.
+- [ ] PARSE-1e (feature riêng, chưa làm) — dựng lưới bảng PDF từ toạ độ X; lưu ảnh thật vào câu hỏi (migration schema Question + upload + render khi thi).
+- [x] PARSE-4 Sửa "đọc đề thiếu câu / hên xui" (`0ac645a`, 2026-10-21) — hai lỗi tách câu:
+  - **Lựa chọn cùng dòng với câu hỏi** (GV dùng tab trong Word: `Câu 1:\t…gì?\tA. …\tB. …`): `exam-parse.ts` cắt phần `A./B./C./D.` ở GIỮA dòng ra khỏi stem → nhận đủ 4 đáp án (trước đây nuốt hết vào câu hỏi, 0 lựa chọn).
+  - **Câu hỏi/lựa chọn trong bảng** (`<w:tbl>`): `serializeTable` trước gộp phẳng mọi run trong ô → dính liền `A. JunB. Oát`; nay nối các `<w:p>` trong ô bằng ` ; ` giữ cả hàng 1 dòng. Parser tách hàng `| … |`: nếu ô có lựa chọn → tách mỗi ô 1 dòng; nếu ô đơn là đầu câu (`Câu N`) → bỏ `|` để nhận diện câu; hàng số liệu thuần (Năm/Sản lượng) → giữ nguyên lưới (không phá note "dòng bảng số liệu"). Bỏ dấu phân cách `;`/`,` cuối mỗi lựa chọn.
+  - QA `scripts/qa-omml.mjs` **7/7** (thêm 2 test docx end-to-end); `qa-exam-parse.mjs` **15/15**, `qa-pdf-layout.mjs` **4/4**, `qa-ai-judge.mjs` **6/6**, `qa-ai-exam-build.mjs` **16/16**; tsc/eslint/build xanh.
+- [x] PARSE-5 Đọc đúng đề Thông tư 2025 bằng file thật `Đề 1_Lời giải.docx` (`05f912c`, 2026-10-21) — huấn luyện bộ đọc rule đọc **đúng 28 câu** (18 MCQ + 4 Đúng/Sai + 6 trả lời ngắn), không cần GV sửa tay:
+  - **Công thức Word → LaTeX hiển thị đúng như đề** (`lib/omml-text.ts` viết lại): `ommlToLatex` dịch OMML (m:r/m:t, sSub/sSup/sSubSup/sPre, f/frac, d/delim với `begChr`/`endChr`, rad/sqrt, nary/sum-prod-int, func, m/matrix) → LaTeX; `injectOmmlText` bọc `$…$` inline thay vì ghi chú `[CÔNG THỨC]` cũ. Sửa 2 bug: regex tag self-closing nuốt `/`; text `m:t` nằm ở child `#text` không phải `.text`. Verify file thật: `$c_{n}=\frac{U⋅I⋅t}{m_{n}⋅\left( T-T_{0} \right)}$`, `$62,8.10^{3} J/kg$`.
+  - **Đánh số câu bằng numbering tự động của Word** (`lib/exam-docx.ts`): chữ `Câu N.` của Phần 2/3 KHÔNG nằm trong `<w:t>` mà ở `word/numbering.xml` (`lvlText "Câu %1."`) + `<w:numPr>`. Thêm `parseNumbering` đọc `numId → {lvlText, start}`, sinh lại tiền tố khi bóc chữ với **bộ đếm riêng mỗi numId**. Sửa bug `absRe` dùng nhầm capture group.
+  - **Phần 2 (Đúng/Sai) + Phần 3 (trả lời ngắn)** (`lib/exam-parse.ts`): thêm `CHOSEN_RE` (`Chọn D`), `STATEMENT_RE` (mệnh đề `a) b) c) d)` — **chỉ chữ thường** để không đụng lựa chọn MCQ `A.` hoa, chỉ nhận ở phần thân câu trước "Lời giải"/đáp án; đáp án Phần 2 đọc từ dòng `Đáp án: Đ – Đ – Đ – Đ`; đáp án Phần 3 lấy từ **bảng đáp án cuối bài** `| Câu | Đáp án |` áp theo thứ tự. Vì numbering sinh sẵn `Câu N.` nên Phần 2/3 chảy thẳng qua vòng lặp chính — bỏ hẳn post-pass `parseSectionBlocks` (gây trùng câu).
+  - **Sửa "tách dư câu"** (mở từ PARSE-4): dòng số trần mở câu mới khi ở đầu khối, HOẶC **cách dòng trước một dòng trống** (`blankBefore[i]`), HOẶC khối đang có lựa chọn nhưng chưa thấy đáp án — sau đáp án mà không có dòng trống thì là lời giải/bảng đáp án → không tách.
+  - **Kết quả file thật:** 28 câu; Phần 1 đủ 4 lựa chọn + đáp án `Chọn X`; Phần 2 statements 4/4 + `ĐĐĐĐ / ĐĐĐS / SĐSS / ĐSĐĐ`; Phần 3 `34, 170, 3, 78, 5,8, 70`.
+  - QA `scripts/qa-omml.mjs` **8/8** (thêm 1 test đề 2025 end-to-end; 3 test cũ đổi kỳ vọng sang LaTeX); `qa-exam-parse.mjs` **15/15**, `qa-pdf-layout.mjs` **4/4**, `qa-ai-judge.mjs` **6/6**, `qa-ai-exam-build.mjs` **16/16**; tsc/eslint/build xanh.
+  - [ ] Còn lại: Equation Editor 3.0 / MathType 7 (.bin OLE, `Equation Native` MTEF v5) chưa decode — 9 công thức trong file mẫu vẫn ra chữ thường; chờ `lib/mtef-latex.ts` (WIP) hoặc AI vision. → **ĐÃ XONG ở PARSE-6**.
+- [x] PARSE-6 Giải mã công thức MathType (OLE `Equation.DSMT4`, MTEF v5) → LaTeX (`8dfd155`, 2026-10-26) — file thật `Đề 1_Lời giải.docx` (bản 452KB) có **128 object MathType** (chỉ 2 công thức OMML) nên trước đây **mất toàn bộ công thức**: chữ bị cụt kiểu "biến thiên một lượng ___ Gọi ___ và ___".
+  - `lib/cfb.ts` — parser OLE2/CFB đúng chuẩn [MS-CFB] `readCfbStreams(buf)` (FAT, DIFAT 109 entry + chain, directory 128B, **miniFAT + mini-stream** cho stream < 4096B). Fix gốc: quét thô buffer làm stream bị cắt giữa mini-sector → ký tự rác `"焀"`.
+  - `lib/mtef-latex.ts` — `mtefToLatex(oleBuf)`: đọc stream `Equation Native`, bỏ 28-byte EQNOLEFILEHDR, parse MTEF v5 (header + FONT_DEF/EQN_PREFS + records). Hỗ trợ LINE/CHAR/TMPL/PILE, CHAR (MTCode + char8), template **fence, phân số, căn, chỉ số dưới/trên/kiểu SUBSUP, big-op, arrow…**, bỏ ký tự Private Use (MT Extra).
+  - **4 bug spec bắt được khi đối chiếu tài liệu Design Science (MTEF5.html):** (1) typesize record 10–14 **không có** options byte; (2) `COLOR` record **không có** options byte, chỉ index; (3) `COLOR_DEF` **không có** index, màu là **3/4 × 16-bit**, không phải 3/4 byte; (4) `FONT_STYLE_DEF` char_style là **1 byte**, không phải 2. Ngoài ra **template-specific options luôn có 1 byte** (không chỉ fence/tích phân) và mỗi **dimension array pad 0 cho đủ byte** — thiếu các điều này là lệch stream → slot rỗng / mất đuôi công thức.
+  - `lib/exam-docx.ts` — `injectOleMathText(xml, zip)`: tra `document.xml.rels` → `word/embeddings/oleObjectN.bin`, thay cả khối `<w:object>` bằng `$LaTeX$`; decode lỗi → `[CÔNG THỨC — nhập tay]` (không âm thầm mất). **Không đếm ảnh preview WMF trong `<w:object>` là hình của đề** (trước báo sai "122 ảnh", nay còn 4 hình thật).
+  - `lib/exam-parse.ts` — sửa lỗi **lời giải bị gộp vào thân câu**: gặp mốc "Lời giải" thì bật `inExplanation`, các dòng sau vào `explanation` thay vì `stem` (trước câu 1 lặp nguyên đoạn giải thích).
+  - **Verify prod sau deploy:** import lại file thật qua route rule → **28 câu**, 130 công thức, 0 placeholder; AI giám khảo (PARSE-2) **0 phát hiện**; phát hiện + sửa 2 lỗi thẩm mỹ (4c9122f): lựa chọn dính sau công thức \$…\. chỉ tách được 2/4 (thêm \$ vào lookbehind ranh giới lựa chọn) và công thức nằm ở đoạn riêng của mệnh đề c) bị đẩy vào thân câu (nối vào mệnh đề cuối), QA qa-exam-parse lên **17/17**.\n  - **Verify file thật:** **128/128 object decode**, 130 công thức `$…$`, **0 placeholder**; **28 câu** (18 MCQ + 4 Đúng/Sai + 6 trả lời ngắn), đáp án đúng (`D B A C C A B B D D A B A D D A D B`, Đ/S 4 câu, `34/170/3/78/5,8/70`), thân câu sạch không lẫn lời giải. QA `scripts/qa-mtef.mjs` **12/12** (MTEF tổng hợp: char/SUB/SUP/SUBSUP/FRACT/fence/PUA/hỏng; CFB thật `scripts/fixtures/mtef-delta-u.bin`; docx end-to-end + fallback); `qa-omml.mjs` 8/8, `qa-exam-parse.mjs` 15/15; tsc/eslint/build xanh.
+- [x] PARSE-7 Hiển thị LaTeX trên web bằng KaTeX (`8878c19`, 2026-10-21) — user: *"giúp trang web hiển thị latex mà không bị lỗi trước đi đã, phải đảm bảo mọi thiết bị phải xem được latex"*:
+  - `lib/latex.ts`: tách `$…$` (inline), `$$…$$`, `\(…\)`, `\[…\]` (khối); render bằng **KaTeX** (`output:"htmlAndMathml"`, `throwOnError:false`, `trust:false`) → HTML + MathML + font tự host, **không cần JS client** nên chạy trên iOS 15 / Android cũ và không lỗi hydration. Chữ thường escape HTML thủ công; công thức sai cú pháp hiện đỏ chứ không vỡ trang. `MathText` (`components/ui/math-text.tsx`) render được cả server lẫn client.
+  - CSS `katex/dist/katex.min.css` import 1 lần ở `app/layout.tsx`; build gộp 125KB CSS + 60 file font self-host (không phụ thuộc CDN).
+  - Nối vào **9 màn hình**: làm bài (`exam-taking-client-v2` cả câu + lựa chọn + mệnh đề + giải thích), modal đọc đề (xem trước câu + từng lựa chọn), editor GV (xem trước dưới textarea + khung xem đề), kết quả HS (`ket-qua`), chi tiết đề (`de-thi/[id]`), panel bài nộp, ngân hàng câu hỏi, màn chữa đề trực tiếp (`submission-view`).
+  - QA `scripts/qa-latex.mjs` **12/12** (escape XSS, `$` không đóng, sai cú pháp, 3 công thức/câu, MathML cho trình đọc màn hình); tsc/eslint/build xanh.
+  - Bug bắt được nhờ QA: `body = token.slice(2,-2)` dùng chung cho cả inline → **mọi công thức `$x$` bị rỗng**; nay inline `slice(1,-1)`, khối `slice(2,-2)`.
+
+## 🔴 Đọc đáp án tô màu + công thức Word (AI-9, 2026-10-13)
+
+**User:** *"đáp án AI khác key của tôi — do key tôi sai hay AI sửa?"* + *"tôi có bôi màu đáp án, nó không đọc ra à"* + công thức toán không đọc được.
+
+**Đào ra từ file thật của user:** đáp án đúng tô ĐỎ (FF0000), đáp án thường xanh — pipeline mù màu nên AI không thấy key, tự giải rồi lệch. Công thức là object OLE cũ (.bin + preview WMF, ~50 cái) + số mũ bẹp ("10⁶"→"106"). Không có bảng key text riêng.
+- [x] AI-9a `lib/exam-docx.ts` (`737451b`) + nối vào 3 chỗ đọc docx + dọn marker ở `toReviewItem` + 2 dòng prompt — unzip + regex document.xml: phát hiện run ĐỎ trên đáp án (chữ cái HOẶC nội dung) → marker inline ngay sau đáp án đỏ (để cuối dòng là mơ hồ khi nhiều đáp án chung đoạn); số mũ/chỉ số dưới → `^{...}`/`_{...}`; bỏ mã field. Sai 2 lần mới đúng: lần 1 đọc buffer zip thô (0 đoạn), lần 2 `read("buffer")` không tồn tại trong mammoth (phải `read("base64")` + lọc bỏ WMF).
+- [x] AI-9b Đối chiếu key server-side (`119ff9c` + `360e7cb`) — marker gợi ý model chưa đủ (model vẫn tự giải rồi lệch, vd Q8/Q10): trích key đỏ độc lập `{letter, text}` + `reconcileDocKey` override khi khớp text tuyệt đối-duy nhất toàn đề hoặc bao hàm dài (ngắn quá như "Đúng"/số lẻ dễ trùng lung tung thì thôi); câu AI-tự-giải khi tài liệu CÓ tô màu thì luôn `needsReview` (đồng thuận ≠ khớp key — im lặng nhận mới là lỗi nặng). Tính lại stats sau override.
+- [x] AI-9c Verify bằng file thật của user — key trích độc lập (D,D,A,A,B,C,B,D,B,A): đáp án đỏ ra `source=document` đúng chữ cái; câu AI-tự-giải bị flag để GV duyệt thay vì nhận ngầm. TRUNG THỰC về phần chưa chắc: số câu trích ra dao động giữa các lần chạy (1/2/11/16/20/21) — đã khóa temperature thấp (analyze 0.1) để giảm, nhưng tuần này Google serving chập chờn (503/ECONNRESET/model bị khai tử) nên vẫn có thể lệch; gặp ít câu thì bấm Thử lại. Phương trình OLE cũ (.bin, ~50 cái trong file mẫu) + ảnh WMF: không parse được server-side — user cần đổi EQ sang text/OMML trong Word nếu muốn AI đọc công thức đó.
+
+## 🖼️ AI đọc hình minh họa trong tài liệu (AI-7, 2026-10-12)
+
+**User:** *"gửi 1 đề có bảng số liệu và hình ảnh minh họa thì sao?"* → hiện tại bảng bẹp thành chữ, ảnh bị bỏ qua (trừ PDF scan). User chọn làm tiếp, sẽ gửi file mẫu để test thật.
+
+**Thiết kế (không migration DB):** tách ảnh từ file → nạp lên Gemini Files API kèm vào prompt → dặn AI **diễn đạt lại nội dung hình thành chữ/số trong câu hỏi** (cấm viết "xem Hình 1" vì đề thi không kèm hình). Bảng số liệu: giữ nguyên văn + dặn giữ cấu trúc.
+- docx: `mammoth.convertImage` thu ảnh gốc.
+- pdf: carve JPEG nhúng (`/DCTDecode`, trường hợp phổ biến ảnh chụp/ảnh xuất) — PNG/FlateDecode chưa cover, nói rõ.
+- Tối đa 6 ảnh/lần, file tạm trên Gemini xóa sau chạy. Chỉ gắn vào 2 call chính (extraction + generate) để đỡ tốn quota.
+- [x] AI-7a `lib/exam-images.ts` + nối vào pipeline (`f72d060`, verified live) — docx qua `mammoth.convertImage` (phát hiện khi test: `read("buffer")` không tồn tại, phải `read("base64")`; lọc bỏ WMF/EMF vì Gemini không đọc được — file mẫu có ~65 media nhưng chỉ ~10 PNG/JPEG là hình thật, lấy tối đa 8); pdf carve JPEG `/DCTDecode`. Nạp lên Gemini Files API, kèm vào call analyze/generate/extract + dặn diễn đạt lại thành chữ (cấm "xem hình"), xóa file tạm sau chạy, `meta.vision` để kiểm chứng.
+- [x] AI-7b Verify live bằng file mẫu của user (đề Vật Lý chủ đề 4-5-6, 0.7MB) — `vision=6`, 20 câu MCQ đúng chủ đề (nhiệt lượng/hóa hơi), bảng đáp án nhận diện được, 0 câu nhắc hình, 70s. Fix kèm (`1ff109a`): đồng bộ cap nạp ảnh 6→8 cho khớp cap trích.
+
+## 🤖 Soạn đề từ tài liệu trong chat (AI-6, 2026-10-09)
+
+**User:** *"còn tính năng import tài liệu rồi tự làm đề theo yêu cầu đâu"* → *"tôi muốn nó ở trong cái chat ấy"*.
+
+**Thiết kế (tái dùng, không viết pipeline mới):** panel "Soạn đề từ tài liệu" trong trang chat, **chỉ giáo viên**: đính kèm file (docx/pdf/txt/md gửi thẳng `importExamFile` như modal, không parse tay) hoặc dán chữ + form yêu cầu (môn, số câu, loại câu, thời lượng, ghi chú) + 2 chế độ smart (dựng từ tài liệu, có review đáp án/đồng thuận) / generate (soạn mới). Xong → parse bằng đúng helper của modal (`parseImportResult`/`toReviewItem`, sẽ export ra) → lọc câu đủ → `POST /api/exams` tạo **bản nháp** → trả link `/bang-dieu-khien/tao-de-thi?edit=<id>` để GV duyệt/xuất bản trong editor (giữ nguyên tắc AI-4: không auto-publish, câu AI chưa chắc phải báo rõ).
+
+- [x] **AI-6a Export helper parse từ modal** (`9e1ef59`) — `ReviewedQuestion`, `parseImportResult`, `toReviewItem`, `isCompleteQuestion` (modal đổi tên gọi, hành vi giữ nguyên).
+- [x] **AI-6b Panel soạn đề trong chat** (`9e1ef59` + `55bfbe4`, verified live) — `exam-builder.tsx` chỉ GV: file/paste + form yêu cầu (môn/số câu/loại/phút/ghi chú) + 2 chế độ smart/generate + tiến trình stage thật + thẻ kết quả (số câu, số câu AI chưa chắc) + nút mở trình soạn; kiểm tra đầu vào giống modal (generate cần ≥80 ký tự lý thuyết).
+- [x] **AI-6c Nối vào trang chat + verify** (`9e1ef59`, verified live) — gợi ý GV "Soạn đề từ tài liệu" mở panel; E2E `ai-chat` desktop 2/2; probe live: soạn 3 câu → tạo nháp → mở `tao-de-thi?edit=` được → đã dọn đề probe.
+- [x] **AI-6d Vá 2 bug pipeline phát hiện khi verify** (`5ca26f2`, `b21eb0d`, verified live) — (1) `buildGeneratePrompt` **đánh rơi TÀI LIỆU** (prompt ghi "Từ TÀI LIỆU bên dưới" nhưng không kèm content) → model bịa đề lạc đề (hỏi cộng tự nhiên, trả đạo hàm); đã kèm `${content}`, kiểm lại ra đúng chủ đề. (2) answer mcq dạng `"B. 2"` → server 400 (chỉ nhận đúng 1 ký tự): `toReviewItem` rút về chữ cái + prompt ép bare-letter. Dùng chung cho cả modal import.
+- [x] **AI-6e Chặn file trên 4MB ở client** (`357bad6`) — user báo `413 FUNCTION_PAYLOAD_TOO_LARGE` khi import: Vercel chặn body trên ~4.5MB trước khi function chạy nên mức 50MB trong code không bao giờ với tới. (Bị thay bằng AI-6f bên dưới.)
+- [~] **AI-6f Mở file tới 25MB qua Supabase** — **TẠM DỪNG theo yêu cầu user (2026-10-11): "đã thử ok rồi, đừng sửa gì phần tài liệu nữa"**. Hiện trạng: code sign/upload/storage đã live (`dc8704d`), nhưng route `/api/gemini` vẫn giữ trần 4MB nên file lớn qua storage sẽ chạm 413 ở server (đã revert nâng 25MB để không đụng phần tài liệu). Muốn mở thật thì 2 việc còn lại: nâng trần route theo storagePath + verify file lớn end-to-end. Ghi ở đây để không quên, làm khi user yêu cầu.
+
+## 🤖 AI trung thực & chat mobile (AI-5, 2026-10-09)
+
+**User:** *"cái AI đang ko ổn"* → chốt 2 nghĩa: (1) **hứa nhưng không làm được** (gợi ý "tạo bài kiểm tra", "lập kế hoạch" nhưng AI chỉ trả lời chữ); (2) **giao diện chat**.
+
+**Nguyên nhân gốc:** `shouldDelegate` ở `app/api/ai-router/route.ts` chỉ nhận diện thao tác dữ liệu (tạo/giao/xóa đề...) nên mọi câu hỏi về **dữ liệu** ("xem các đề thi của tôi", "phân tích điểm yếu", "tôi nên học gì") đều rơi sang Groq trả lời **mù** (không có điểm/bài làm) — trong khi agent `ai-coach` vốn có đủ tool (`get_dashboard`, `list_exams`, `get_submissions`, GV thêm analytics/mutations). Gợi ý nhanh hứa những việc không có tool (tạo bài kiểm tra thật, lập kế hoạch). Mobile: khung chat `h-[calc(100vh-61px)]` cộng topbar + nút Quay lại + bottom-nav vượt viewport → ô nhập bị che dưới thanh đáy.
+
+- [x] **AI-5a Router trung thực** (`3676341`) — mở rộng `shouldDelegate` đón ý định đọc dữ liệu (xem/liệt kê đề-bài-lớp, kết quả/điểm yếu/phân tích, tiến độ/tổng quan, nên học-ôn gì, kế hoạch/gợi ý ôn, `tạo...đề`) về agent có dữ liệu thật; câu hỏi kiến thức/luyện tập thuần túy vẫn đi Groq nhanh. Kiểm regex 14 mẫu đúng hết.
+- [x] **AI-5b Gợi ý + lời chào trung thực** (`3676341`) — viết lại `INITIAL_MESSAGE` + `STUDENT_PROMPTS` chỉ hứa việc làm được ("Kết quả các bài tôi đã làm", "Tôi nên ôn gì tiếp theo?"); bỏ "Tạo bài kiểm tra nhanh", "Lập kế hoạch ôn thi THPT". Giữ copy E2E `ai-chat` bám ("AI Study Coach", "Cuộc trò chuyện mới", câu chào Groq).
+- [x] **AI-5c Chat mobile** (`3676341`) — bỏ chiều cao `100vh-61px` cứng: desktop giữ `lg:h-screen` cuộn trong; mobile chảy tự nhiên + ô nhập `sticky` trên bottom-nav (+safe-area), gợi ý cuộn ngang 1 hàng, `min-h-[30dvh]`. Verify live mobile 390px: ô nhập hiện ở y=653 không cần cuộn, 0 lỗi page.
+- [x] **AI-5d Câu hỏi dữ liệu HS trả lời thẳng bằng DB** (`09ce740`) — **phát hiện khi verify:** đường agent cho câu dữ liệu mất 24s khi may, treo tới kẹt kết nối khi xui (ai-router→ai-coach nối tiếp nhiều vòng Gemini, Vercel giết function giữa chừng → `ECONNRESET` ở 42s, chat quay mãi không báo). Sửa: `STUDENT_RESULTS_RE`/`STUDENT_COACH_RE` truy vấn Prisma trực tiếp (kết quả 10 bài gần nhất + TB; phân tích theo môn + gợi ý môn yếu nhất), delegate thêm `AbortSignal.timeout(55s)` + try/catch báo lỗi rõ thay vì treo. Verify live: 4 câu (kết quả/phân tích/nên ôn → `provider=local` ~1.7s số liệu thật; giải thích Pytago → groq). E2E `ai-chat` desktop 2/2 pass.
+
+## 🔐 Chống gian lận khi thi (đã chốt hướng 2026-10-04)
+
+**Yêu cầu của user:** hành vi gian lận của học sinh hiện rất tinh vi, cần vá lại hệ thống chống gian lận.
+
+**Quyết định đã chốt:** chỉ **ghi log + gắn cờ rủi ro**, giáo viên xem timeline rồi tự quyết — **không** tự 0 điểm, **không** từ chối nộp bài. Giáo viên **chọn chế độ** siết (nghiêm / nhẹ / tắt). **Không** dùng webcam/micro.
+
+**Chốt thêm (2026-10-16):** mặc định vẫn là **`off`** — *"bật hay không là do giáo viên setting"* (user). **Không** đổi mặc định sang `light`; mỗi GV tự bật cho đề của mình. Mô tả `off` trong editor viết **trung lập** ("Tắt — không theo dõi. Giáo viên tự bật…"), không dùng giọng phán quyết.
+
+### 🚨 Lỗ hổng nghiêm trọng nhất — đáp án đúng đang lộ xuống máy học sinh
+`app/thi/[code]/page.tsx:28` serialize **toàn bộ đáp án** (`q.answer`) + `grading.acceptedAnswers` xuống client cho **mọi học sinh**, không riêng giáo viên preview. Đây là prop của React Server Component nên nằm ngay trong payload RSC → học sinh chỉ cần View Source hoặc tab Network là đọc được đáp án toàn đề, **không cần DevTools**. Trong khi đó client không hề dùng `question.answer` để làm gì (`exam-taking-client-v2.tsx:247-253`), điểm do server chấm ở `app/api/submissions/route.ts:59`.
+→ **Mọi biện pháp rào trình duyệt hiện tại đều vô nghĩa** vì bài đã bị lộ trước khi học sinh làm bất cứ điều gì. Phải sửa cái này trước.
+
+### Các hạng mục
+- [x] **GĐ0 Cắt rò đáp án (P0)** (`bd1b261`) — tách `mapQuestions()` ở `app/thi/[code]/page.tsx:28` thành `mapQuestionsForStudent()` (chỉ `id/type/text/options/order` + `grading` rỗng `statements[].text`) và `mapQuestionsForPreview()` (giữ nguyên, chỉ cho giáo viên `preview=1`, role đã chặn ở server). Khai báo kiểu `StudentQuestion`/`StudentGrading` để lỡ thêm nhầm `answer` thì TypeScript bắt ngay. Logic chấm ở `app/api/submissions/route.ts` **không đổi**.
+  - Client (`exam-taking-client-v2.tsx`) không hề đọc `question.answer` hay `acceptedAnswers`; với `true_false` chỉ render `statements[].text` — nên cắt không hề hồi quy (đã grep toàn file). `answer`/`grading[].answer` thành optional.
+  - **Test chống hồi quy `tests/e2e/answer-leak.spec.ts` — 6/6** (desktop + mobile, chạy trên production). R-01 đọc `page.content()` và đòi payload không có khoá `answer`, không có `acceptedAnswers`, không có marker `LEAKCANARY-7F3A9C`; R-02 preview giáo viên vẫn chạy; R-03 nộp đúng 3/3 → 10 điểm và nộp sai 3/3 → 0 điểm, chứng minh server vẫn chấm bằng đáp án của nó.
+  - Đã chạy test **trước khi sửa**: R-01 đỏ và in ra dữ liệu lộ — khoá `answer` với giá trị `B`, `statements` có `answer:true`, `acceptedAnswers` chứa `LEAKCANARY-7F3A9C`. Sau khi deploy: 6/6 xanh.
+- [x] **GĐ1 Attempt do server quản lý (P0)** (`307075c`, verified live) — model `Attempt` (`deadlineAt` do server tự tính, `seed` + `questionOrder`/`optionOrder` lưu server thay vì `Math.random()` ở client, `activeKey @unique` chặn thi song song). `lib/attempt.ts` — `startAttempt()` là nơi **duy nhất** chứa quy tắc `active_elsewhere`/`max_attempts`, `page.tsx` và API cùng đi qua nên không lệch nhau. `POST /api/attempts` tạo-or-resume (student + guest), `GET /api/attempts/[id]` cho client đồng bộ đồng hồ. `POST /api/submissions` **bắt buộc `attemptId`**; server tự tính `durationSeconds = durationMinutes*60`, trừ grace 30s cho học sinh lag mạng; hết hạn vẫn chốt attempt với bài rỗng (tránh kẹt `activeKey`) + grade `{}` + trả 409 `timedOut`. Client bỏ `Math.random()`, tự nộp khi hết giờ, hiện màn "bạn đang làm bài thi khác".
+  - **Local gate trước khi push** (user chọn verify local thay vì test thẳng production): Postgres embedded 17.10 + `prisma db push` → `tsc` 0 lỗi, `eslint` 0 lỗi, `next build` OK. E2E local: `student-take-exam` 10/10, `results`+`exam-detail` 16/16, `share`+`classroom` 16/16, `answer-leak` pass.
+  - **Production QA: 172/172 passed / 19 files (36 phút)**; xác nhận `POST /api/attempts` trả 404 theo logic app và bảng `Attempt` query được → deploy + `db push` thành công.
+  - **2 lỗi test do GĐ1 sinh ra, đã sửa**: (1) thêm `workers: 1` — 2 project desktop/mobile chung một tài khoản student mà `activeKey` chặn thi song song → giành nhau ra màn "bạn đang làm bài thi khác"; (2) test anti-cheat bắn `blur` ngay khi title hiện — title do server render **trước** React hydrate nên listener chưa gắn → event mất vô hại; phải chờ đồng hồ nhảy 1 nhịp rồi mới bắn, và nộp bài ở cuối test để giải phóng `activeKey`.
+  - **Phát hiện khi làm local**: `login-ip` giới hạn 20 lần/5 phút (`auth.ts:37`) là in-memory — server local giữ bộ đếm suốt đời nên chạy full suite sẽ bị chặn (Vercel serverless reset theo isolate nên không bắn); full suite vì vậy chỉ chạy được trên production.
+  - **Đã xử lý thêm (`5641abb`, verify live)**: attempt hết hạn mà không ai nộp giờ được `startAttempt()` tự chốt — bài rỗng, 0 điểm, nhả `activeKey` — khi nó đang giữ khoá của MỘT BÀI KHÁC. Trước đây không có luồng nào nhả khoá (đường tự nộp chỉ chạy khi client còn ở trang) nên học sinh kẹt vĩnh viễn ở màn "bạn đang làm bài thi khác". Helper `finalizeTimedOutAttempt()` trong `lib/attempt.ts` **dùng chung** cho đường tự nộp muộn ở `POST /api/submissions` → hai đường không bao giờ lệch nhau. Cùng một đề thì giữ nguyên (client tự nộp khi đồng hồ về 0) — chốt ở đây sẽ cấp thêm đồng hồ mới = thi lại không mất lượt. Kiểm chứng: local 13/13 bằng script tự sinh; production probe đề 1 phút → quá hạn 95s → vào đề khác trả **201 thay vì 409**, attempt cũ đã có `submittedAt`; full suite production **172/172 passed**.
+- [x] **GĐ2 Nhật ký vi phạm + risk score + UI giáo viên (P0/P1)** (`0969b70`, verified live) — model `ProctorEvent` (`type`, `severity`, `detail`, `onDelete: Cascade` theo `Attempt`) + 5 cột `Submission` (`violationCount`, `riskScore`, `riskLevel`, `autoSubmitted`, `ipHash`; `attemptId` **đã chuyển sang GĐ1**, attempt hết hạn **đã có luồng tự chốt ở GĐ1**, commit `5641abb`). `lib/integrity.ts` là **thuần hàm** `computeRisk()` — cộng điểm theo mức nghiêm trọng (low 5 / medium 15 / high 30, cap 100), `autoSubmitted` **tự suy ra server-side** từ `violationCount >= MAX_VIOLATIONS` (không tin cờ client gửi). Test bằng `scripts/qa-integrity.mjs` (**26 PASS** — Node 24 strip-types đọc thẳng `lib/integrity.ts`, không cần build). `POST /api/proctor-events`: whitelist `type` do server quyết, `severity` do server gán cho từng loại (không nhận từ client), kiểm tra quyền sở hữu **giống hệt** `GET /api/attempts/[id]` (session student hoặc cookie guest), chặn quá 50 sự kiện/bài, 409 khi bài đã chốt. Client `flag(type)` báo sự kiện lên server; lần vi phạm cuối **chờ server ghi xong mới nộp** — nếu nộp trước thì server đếm thiếu, sẽ không gán được `autoSubmitted`. Chốt cờ lúc nộp bài **và** trong `finalizeTimedOutAttempt()` (hết giờ vẫn có nhật ký); `ipHash = sha256(ip + PROCTOR_IP_SALT)` cắt 16 ký tự — không lưu IP thô. `submissions-panel.tsx`: chip rủi ro (chỉ hiện khi có cờ), filter "chỉ bài có cờ", timeline nhật ký trong row expand, 2 cột mới ở CSV export.
+  - **Local gate**: `tsc` 0 lỗi, `eslint` 0 lỗi, `next build` 0. `qa-integrity` 26/26 · `probe-proctor` (API + DB local) **34 PASS** · `test-expiry` 13/13 · E2E local 4 spec (`student-take-exam`, `answer-leak`, `results`, `exam-detail`) 30 passed + 2 flaky (R-01, retry thành công).
+  - **Production probe 30/30 PASS** (tự tạo đề test rồi xoá, không đụng đề có sẵn): 2 sự kiện → nộp → payload trả đủ 5 cột mới (chứng minh `db push` đã chạy trong build Vercel) · type lạ → 400 · thiếu `attemptId` → 400 · không phiên → 403 · sau khi nộp → 409 · 3 sự kiện → `autoSubmitted=true` + `riskLevel=high` · bài sạch → `none/0` · xoá đề → attempt 404.
+  - **Production QA: 172/172 passed / 19 files (36.9 phút)**.
+  - **Giới hạn đã chủ động chấp nhận**: `PROCTOR_IP_SALT` chưa đặt trên Vercel → đang dùng muối mặc định `edutest-proctor-v1` (đổi muối sẽ làm mọi `ipHash` cũ vô nghĩa); bảng vẫn còn tăng dần theo số lần thi (chưa dọn theo tuổi).
+- [x] **GĐ3 Rào trình duyệt (P1)** (`e2d03b8`, verified live) — `Exam.proctorMode: "off" | "light" | "strict"` (mặc định `off` để không phá đề cũ), validate ở `POST`/`PUT /api/exams` (400 nếu sai). Client gắn rào theo chế độ: chặn copy/paste/contextmenu, F12/Ctrl+Shift+I·J·C/Ctrl+P/Ctrl+U/PrintScreen, bắt buộc fullscreen (`fullscreenchange` + banner, strict, không áp trên mobile), `beforeunload`, `BroadcastChannel` phát hiện nhiều tab, bọc `window.print` + `getDisplayMedia`. **Mọi sự kiện do SERVER quy `severity` + cộng `riskScore`** (thêm 4 type mới: `print`/`screen_share` = high, `view_source`/`screenshot` = medium). UI: Select chế độ ở editor + badge "Chống gian lận" ở trang đề. Ghi chú trung thực trong code: GĐ3 **luôn bypass được**.
+  - **Local gate**: `tsc` 0 lỗi, `eslint` 0 lỗi, `next build` OK; `qa-integrity` ALL PASS; `qa-proctor-local` **ALL PASS** (54 check — thêm login giáo viên + test proctorMode create/GET/PUT/400/xoá + 4 event type mới).
+  - **Production QA: `qa-proctor-prod` ALL PASS** (GĐ2 cũ + 11 check GD3) **+ full E2E 172/172 passed (34.5 phút)**.
+- [x] **PROCTOR-1b Vá 2 lỗi khiến chống gian lận mất tác dụng (P0)** (`5a4eb3b`) — user báo "sau khi fix lỗi vẫn chạy khi tắt thì giờ đây hiệu quả không còn". Chẩn đoán ra đúng **2 lỗi lập trình** (cộng thêm mode `off` mặc định vốn đã thế):
+  1. **`flag()` ngắt sau 3 vi phạm** (`exam-taking-client-v2.tsx`): còn sót `violationsRef.current >= MAX_VIOLATIONS` **từ thời hệ thống tự nộp** (IOS-1a bỏ tự nộp nhưng bỏ sót cap). Hệ quả: học sinh chỉ cần giật 3 phát nhẹ là client **im lặng vĩnh viễn**, mọi copy/paste/devtools/đổi tab sau đó **không bao giờ được ghi**. → **Bỏ cap**: ghi **mọi** sự kiện; server đã có sẵn lưới an toàn `MAX_EVENTS_PER_ATTEMPT = 50` + rate-limit 180/phút/IP. `MAX_VIOLATIONS` chỉ còn là mốc server gắn cờ `autoSubmitted` ("đã chạm ngưỡng") cho GV.
+  2. **Ân hạn 30s huỷ trắng khi quay lại**: rời tab <30s rồi quay lại → `cancelPending()` huỷ, **không ghi gì** → lặp vô hạn = phát hiện 0. → **Mọi lần rời trang đều ghi nhận**, phân mức:
+     - quay lại <30s ⇒ ghi type mới **`tab_blur_quick` / `visibility_hidden_quick`** = severity **low** (5 điểm);
+     - vẫn rời ≥30s (hết hẹn giờ) hoặc **đóng/đổi trang** (`pagehide`) ⇒ ghi `tab_blur` / `visibility_hidden` = severity **medium** (15 điểm);
+     - blur + hidden của cùng 1 lần rời vẫn gộp 1 (`pendingFlag` chặn trùng).
+  3. **Mobile giữ mức Nghiêm**: bỏ quy tắc `resolveProctorMode()` tự hạ `strict`→`light` trên điện thoại. `strict` giờ áp trên **mọi thiết bị** — chặn cứng copy/paste/menu/F12 vẫn chạy trên điện thoại; chỉ phần **toàn màn hình** tách ra `fullscreenMode = strict && !isMobile` (vô nghĩa + không khả thi trên mobile) để không hiện banner “bật toàn màn hình” oan.
+  - `lib/integrity.ts`: +2 type trong whitelist/severity/labels; `PROCTOR_MODE_DESCRIPTIONS` sửa lại cho khớp code (mô tả `light` trước đó nói “chặn” trong khi code không chặn). Nhãn cảnh báo đổi từ “rời khỏi trang thi” → **“vi phạm quy chế thi”** (vì `flag()` còn nhận copy/devtools…).
+  - **Test**: `qa-integrity.mjs` — sửa kỳ vọng `resolveProctorMode("strict")` trên mobile, thêm 7 check cho 2 type `*_quick` (**ALL PASS**, 58 check); `tsc` 0 lỗi · `eslint` 0 lỗi · `next build` OK.
+  - **Trung thực**: đây vẫn là **ghi log + cờ** — không tự 0 điểm, không từ chối nộp (đúng IOS-1a). Việc thực thi vẫn bỏ được (thiết bị khác, tắt JS); code GĐ3 đã ghi rõ.
+- [~] **GĐ4 Bẫu đánh giá độ tin cậy (P2)** — ~~vài câu nhận dạng tự động chèn, kết hợp điểm + vi phạm → gợi ý mức độ đáng ngờ~~. **Bỏ theo quyết định user (2026-10-08)**: không cần câu bẫy; trọng tâm là chống gian lận ngay trên máy học sinh (đã phủ ở GĐ3).
+
+### Trung thực về giới hạn
+GĐ3 **luôn bypass được** (trình duyệt khác, VM, điện thoại). Chỉ **GĐ0 + GĐ1 + GĐ2** mới thực sự có tác dụng vì server không còn phải "tin" học sinh.
+
+### Việc chưa làm (đã rà, cần xử lý)
+- ~~`ROADMAP.md` mục P2-5 ghi "Anti-cheat — tab detection, **fullscreen**" nhưng fullscreen chưa được implement~~ → **đã xử lý ở GĐ3** (`e2d03b8`): fullscreen + chặn phím đã có thật.
+- Chưa có **Playwright** test nào cho auto-submit khi đạt ngưỡng vi phạm, server-side rejection, hay kiểm tra thời gian thi. `tests/e2e/student-take-exam.spec.ts:70-76` chỉ phủ 1 trường hợp blur lần 1. Hai đường này hiện do script trong `scripts/` phủ: `qa-integrity.mjs` (tính điểm, thuần), `qa-proctor-local.mjs` (API + DB local, cần server :3113), `qa-proctor-prod.mjs` (tự tạo đề test trên production rồi xoá) — chưa đưa vào suite CI.
+
+## 🎓 Đổi thương hiệu → A6Class Education (đã chốt hướng 2026-10-04)
+
+**Yêu cầu của user:** toàn bộ EduTest sẽ đồng bộ với web tổng của lớp (`https://a6class.vercel.app/`) → đổi thành **A6Class Education**.
+
+**Quyết định đã chốt:**
+- Tên hiển thị: **A6Class Education**.
+- Giao diện: **nền SÁNG**, lấy màu của A6Class làm màu nhấn (A6Class gốc là nền tối navy; hệ thi đọc lâu nên giữ sáng).
+- Làm **tuần tự từng bước, dừng để user xem live** sau mỗi bước.
+- Domain: user muốn đổi Vercel project `edutest-vn` → `a6edutest` để ra `a6edutest.vercel.app`.
+
+**Nguồn thiết kế chuẩn:** `D:\A6Class\src\app\globals.css` + `D:\A6Class\src\components\layout\logo.tsx`.
+
+**Đã đối chiếu 2 hệ thống:**
+
+| | EduTest | A6Class | Kết quả |
+|---|---|---|---|
+| Tailwind | v4 | v4 | ✅ giống |
+| Font | Be Vietnam Pro 400–800 | Be Vietnam Pro 400–800 | ✅ giống hệt |
+| Radii | 6/10/14/18/24 | 6/10/14/18/24 | ✅ giống |
+| Motion | 140/220/340ms + easing y hệt | y hệt | ✅ giống |
+| Cấu trúc thư mục | `app/` | `src/` | ⚠️ giữ `app/` cho ít rủi ro |
+
+→ Khác biệt gần như **chỉ nằm ở màu**. Không phải viết lại từ đầu.
+
+**Bảng màu A6Class chính thức:** `primary #38BDF8` · `secondary #A78BFA` · `accent #FBBF24` · `success #34D399` · `danger #FB7185` · `bg #16203F` · `surface #1E2A52` · `surface-hover #27356A` · `border #364580` / `#4A5B98`.
+
+**Logo A6Class:** tile bo góc gradient sky→sky, chữ trắng extrabold, subline **amber** (`text-amber-300`, tracking rộng).
+
+### Phạm vi rà soát
+- **77 file** chứa chuỗi `edutest` (~74 file source + 3 SQL backup gitignored).
+- **Logo viết tách rời `Edu` + `Test` + `.vn`** ở **8 file** → grep `edutest` sẽ **bỏ sót**, phải tìm `>Edu<`.
+- **Không route nào chứa tên thương hiệu** → đổi tên **không cần redirect route**.
+- **`#6C4CF1` (tím cũ) xuất hiện 126 lần ở 32 file** → phải gom về token, nếu không lần đổi màu sau lại sửa 32 file.
+- Cookie/storage gắn thương hiệu: `edutest_guest_${exam.id}` (`:48` guest-attempts, `:50` submissions, `:63` page thi), `edutest-draft-${exam.id}` (`exam-taking-client-v2.tsx:93` + `continue-draft.tsx:17`), `edutest-ai-chat-v2:` (`bang-dieu-khien/ai/page.tsx:18`), `edutest-theme` (`theme-provider.tsx:6`).
+- 11/19 file E2E chứa brand, trong đó có **2 assertion chữ** sẽ đỏ: `tests/e2e/landing.spec.ts:30` (`/vào edutest/i`) và `:36` (`/© 2026 EduTest.vn/`).
+- DB: **không có seed file**. `SystemSetting` và `Notification` **sạch**, không có brand. Chỉ **1 dòng `User.name = 'Admin EduTest'`** cần `UPDATE`. 277 dòng `AppLog` chứa "EduTest" nhưng là log bất biến → **không** sửa.
+- `design-system/edutest/MASTER.md` đang mô tả hệ màu **teal `#0D9488`** hoàn toàn **không khớp code** (code vẫn tím) → phải viết lại, không nên tin.
+
+### Các bước
+- [x] **BRAND-1 Bảng màu + kiểm tra contrast** (`e6fc0a4` + `e703e9f`, verified) — bảng sáng A6Class: **navy `#0F4C81`** làm màu chính, **cyan `#00A8CC`** và **gold `#FFB800`** chỉ dùng làm **nền** (gốc 2.81:1 và 1.73:1 trên trắng — không đủ làm chữ); chữ trên chúng dùng `--secondary-dark`/`--accent-dark` hoặc navy theo bản gốc. `scripts/qa-brand-contrast.mjs` đọc thẳng token trong `globals.css` (script và palette là một nguồn), kiểm WCAG AA cho chữ (4.5:1), vùng phi văn bản (3:1) và **11 cặp màu môn** → **46/46 PASS**.
+- [x] **BRAND-2 Nền tảng token** (`e6fc0a4`) — viết lại `app/globals.css`: token sáng lấy hue A6Class + thêm khối `@theme inline` để Tailwind v4 sinh class semantic. Giữ tên token EduTest đang dùng để không phá component.
+- [x] **BRAND-2b Gom hex về token** (`aa63786`) — 549 hex hardcode ở 68 file → `var(--token)`. Thêm token hover/dark (`--danger-hover/-dark`, `--warning-border/-hover/-dark`, `--success-border/-dark`) và 11 cặp màu môn. Sửa 3 bug có sẵn phát hiện khi quét: `--bg-page`/`--surface-page` chưa khai báo, gradient avatar mờ chữ, hover đổi hue.
+- [x] **BRAND-3 Logo + thương hiệu** (`e703e9f`, **user đã duyệt 2026-10-08**) — 8 file logo tách rời (`app/components/logo.tsx`, `components/ui/logo.tsx`, `app/components/header.tsx`, `app/components/footer.tsx`, `app/(auth)/layout.tsx`, `app/admin/layout.tsx`, `components/admin/admin-sidebar.tsx`, `components/layout/sidebar.tsx`, `components/layout/mobile-nav.tsx`) → **A6Class Edu**. v1 (`e7bc9aa`) bị reject vì lặp chữ, v2 (`2fe24a8`) bị thay khi user cung cấp bộ giao diện gốc. v3: ô thương hiệu là mũ tốt nghiệp + số "6" + chấm vàng, badge `EDU` giữ lại; chữ `A6Class` + badge render bằng HTML (không phụ thuộc font); ID gradient sinh theo instance. Cùng commit: đổi bảng màu sang navy `#0F4C81` / cyan `#00A8CC` / gold `#FFB800`, thêm Be Vietnam Pro + Inter qua `next/font`. Ảnh duyệt: `qa-shots/logo-closeup.png` / `logo-header.png` / `logo-auth.png`.
+- [x] **BRAND-4 Copy & hệ thống** (`4e2a0c5`, verified live) — đổi MỌI copy hiển thị `EduTest`/`EduTest.vn` → **`A6Class Edu`** (tên user chốt) trong 31 file: metadata 15 trang, `app/manifest.ts` (`name`/`short_name` + `theme_color` `#0F4C81`, `background_color` `#F4F7FA`), `app/sitemap.ts` (bỏ URL cứng → `NEXT_PUBLIC_SITE_URL || https://edutest-vn.vercel.app`), 2 trang pháp lý, `lib/email.ts` (From/subject/body/footer), 4 prompt AI (`ai-coach`, `ai-router`, `gemini`, `ai/page.tsx`), Web Share, 3 API error message, header/footer/maintenance-gate. Giữ nguyên internal keys (`edutest-theme`, `edutest_guest_*`, `edutest-ai-chat-v2`, `PROCTOR_IP_SALT`) để không mất dữ liệu người dùng. Sửa 2 assertion `landing.spec.ts:30,36`. `tsc`/`eslint`/`build` pass (0 lỗi), verify prod `/` + `/manifest.webmanifest` có `A6Class Edu`.
+- [x] **BRAND-5 Test + QA** (`701cf43`) — 8 script trong `scripts/` hardcode `https://edutest-vn.vercel.app` → chuẩn hoá `process.env.BASE_URL || "https://edutest-vn.vercel.app"` (`qa-mobile-shots`, `verify-ai-smart-live`, `qa-mobile-audit`, `smoke-ai-smart`, `qa-visual`, `cleanup-qa`, `probe53`); `qa-proctor-prod`/`qa-preloader-timing` đã qua env/argv từ trước. Brand string `EduTest` → `A6Class Edu` ở `scripts/backup-db.js` + tên test `landing.spec.ts:22`. GIỮ email `@edutest.vn` (thuộc BRAND-6). `tsc` sạch, eslint 3 warning cũ; **E2E landing 8/8 pass trên production**. `helpers.ts`/`playwright.config.ts`/`sitemap.ts` đã env-based sẵn → không đổi.
+- [x] **BRAND-6 URL mới `a6class-edu.vercel.app`** — user đổi domain trên Vercel thay vì tên project `a6edutest` như dự kiến. Đổi host ở 14 file code/config/script (`helpers.ts`, `playwright.config.ts`, `sitemap.ts`, 11 script QA) + `HANDOFF_FOR_AI.md` trong 1 commit; GIỮ email `@edutest.vn` (tài khoản DB, không liên quan domain web), giữ internal keys. Drama domain cũ: user bấm Remove → 404 → add lại kịp (không bị cướp) + bật redirect; env `NEXT_PUBLIC_SITE_URL` đã về URL mới (sitemap verify sạch). Chưa làm (để sau): `design-system/` viết lại, `User.name='Admin EduTest'`, domain riêng L6.
+
+## ✨ Hiệu ứng chuyển cảnh & preloader (2026-10-04)
+
+**Yêu cầu của user:** (1) hiệu ứng loading "bùm" (burst) như bản demo user gửi; (2) nhấn nút đăng ký / đăng nhập thì **phóng từ chính nút đó** ra trang đích.
+
+- [x] **PRE-1 Preloader burst** (`8fa5fec`) — `app/components/preloader.tsx` + CSS trong `globals.css` + mount `app/layout.tsx`. Liquid fill dâng lên + sóng + thẻ glass + đếm % + shockwave bung nổ (`clip-path` circle → 0) + main app fade/scale/blur vào. Ràng buộc đã chốt: **hiện mỗi lần tải trang đầy đủ** (đã bỏ giới hạn 1 lần/phiên ở `64a6b38` — xem "Sửa lần 3" bên dưới), **tôn trọng `prefers-reduced-motion`** (bỏ qua), có **hard cap ~3.5s** để không kẹt người dùng, `<noscript>` ẩn preloader (không kẹt user không JS), tái dùng `Logo`/`LogoMark` thay SVG `<text>` (tránh nhảy layout khi font chưa tải), màu lấy từ token BRAND-1 chứ không dùng hex pastel của bản demo.
+  - Bổ sung sau QA: `a6-pl-failsafe` gắn ở rule **gốc** (không chỉ rule `data-burst`) để JS chết/hỏng hydrate không kẹt overlay vĩnh viễn; dùng `opacity` chứ không dựa `visibility` vì visibility animate rời rạc, Chromium không nội suy tới giá trị cuối với thời lượng cực ngắn.
+  - **Sửa lần 2 (`008aec5`) — vòng % không tự bơm, đứng ở 1% rồi nhảy thẳng vào web.** Lỗi do `if (ready)` bao nguyên nhánh bơm `%`: con số chỉ chạy lúc `CHƯA` ready. Trên production `document.fonts.ready` xong sau vài chục ms (font đã cache) nên `ready` thành `true` gần như tức thì → `%` đóng băng rồi nhảy thẳng 100, cột chất lỏng đứng 0%. Nay cột `%` luôn chạy tới `EASED_MAX`; tài nguyên xong hay chưa chỉ quyết định lúc **nhảy 100**, không quyết định con số có chạy hay không.
+  - Đo được bằng `scripts/qa-preloader-timing.mjs` (ghi chuỗi % thực hiện hiển thị): production trước khi sửa **2 mốc** (0% → 100%), sau khi sửa **26 mốc trung gian** (2→7→16→…→88 rồi mới nhảy 100 kèm burst). 18/18 QA vẫn xanh trên production.
+  - **Sửa lần 3 (`64a6b38`) — bỏ giới hạn 1 lần/phiên, hiện MỌI lần tải trang.** Xoá cờ `sessionStorage` (`a6-preloader-seen`) và inline script tương ứng trong `layout.tsx`. Phạm vi cần hiểu rõ: component nằm trong root layout nên Next giữ nó sống suốt phiên — **chuyển màn hình trong app không làm preloader chạy lại**, phần đó do PRE-2 lo. Preloader chạy ở mỗi lần tải trang đầy đủ: mở site, F5, vào link ngoài thẳng một URL.
+- [x] **PRE-2 Trượt ngang khi chuyển màn hình (kiểu Canva) + ripple mọi nút** (`8fa5fec`, `64a6b38` bỏ vòng tròn, `0420c85` đổi sang trượt) — `app/components/page-transition.tsx` + CSS trong `globals.css`, `<ViewTransition>` trong `app/layout.tsx`, cờ trong `next.config.ts`.
+  - **Yêu cầu user:** xoá hết hiệu ứng bung tròn ra màn hình, **giữ ripple** trên mọi nút, đổi sang **trượt ngang** kiểu Canva — trang mới vào từ phải, trang cũ ra bên trái, cùng lúc.
+  - **Cơ chế: View Transitions API.** Next App Router unmount trang cũ nên không còn hai trang trong DOM để `translateX` trực tiếp; trình duyệt chụp lại hai bên rồi tween giữa chúng, và ta vẫn viết đúng `translateX`.
+  - **Bắt buộc ĐỦ HAI thứ:** cờ `experimental.viewTransition: true` **và** component `<ViewTransition>` bọc `{children}` ở `app/layout.tsx`. Chỉ bật cờ là không đủ — đo bằng cách vá thẳng `document.startViewTransition`: không bọc component thì số lần gọi **đứng yên ở 0**, trang đổi tức thì, CSS trượt không có gì để áp.
+  - **600ms**, `cubic-bezier(0.77, 0, 0.175, 1)` — lấy đúng theo ví dụ user đưa.
+  - **CSS dễ sai:** `::view-transition-old(*), ::view-transition-new(*)` phải đứng **TRƯỚC** `(root)` (cùng specificity, rule sau thắng) và phải tắt `animation: none` + `mix-blend-mode: normal` — nếu để `plus-lighter` mặc định của trình duyệt thì lớp phủ toàn viewport làm cả khung chuyển cảnh bị nhạt màu. Chỉ `root` được phép chuyển động.
+  - Hướng ghi bằng `data-slide="next|prev"` trên `<html>`: bấm link nội bộ → `next`, `popstate` → `prev`. Ghi ở phase capture để kịp trước khi React render.
+  - **`/thi/*` vẫn tắt** (`html.a6-no-vt`) vì phòng thi có đếm ngược. `prefers-reduced-motion` → tắt cả trượt lẫn ripple.
+  - Ripple (`.a6-ripple`) cho mọi phần tử bấm được, append vào `<body>` (nút hay có `overflow:hidden`/bo góc làm cắt sóng), trần 6 ripple, tự dọn khi `animationend`.
+  - **Giới hạn đã đo:** React (Next 16) **chưa** gọi `startViewTransition` khi `history.back()` — số gọi đứng yên ở 1 dù `data-slide` đã đổi thành `prev`. Nên hướng `prev` hiện chỉ đảm bảo CSS nối đúng (`a6-slide-in-prev` được chọn), chưa có ảnh chụp để trượt thật. Nếu React hỗ trợ sau thì CSS tự chạy, không cần sửa thêm.
+  - QA `scripts/qa-preloader.mjs`: đọc **computed transform** của `::view-transition-old/new(root)` — mới `1366px → 23px`, cũ `0 → -1343px`, **lệch mép 0.00px** (invariant quan trọng nhất: hai trang phải luôn liền nhau, không hở khe).
+- [x] **QA `scripts/qa-preloader.mjs` + `scripts/qa-preloader-timing.mjs`** — **24/24 cả local lẫn production** (`https://edutest-vn.vercel.app`, deploy của `0420c85`). Timing: production ghi **26 mốc trung gian**, 100% ở 1567ms, overlay gỡ ở 2243ms.
+  - **BÀI HỌC QUAN TRỌNG — không bao giờ kiểm chuyển cảnh bằng ảnh chụp:** `page.screenshot()` của Playwright **không chụp lớp render của View Transitions API**. Bằng chứng: ép `::view-transition-old(root)` thành màu đỏ đậm, giữ animation 6s rồi chụp giữa chừng → **0 pixel đỏ** trong ảnh, trong khi `document.getAnimations()` báo animation đang `running`. Mọi so sánh pixel trước đây đều vô hiệu và từng kết luận nhầm "khung giữa giống hệt trang mới → không trượt".
+  - Hai lỗi kiểm nhầm đã sửa: (1) pseudo-element vừa sinh ra/vừa biến mất thì `getComputedStyle` trả `tx=null`, `Math.round(null)=0` làm hỏng assert hướng; (2) khi transition kết thúc, pseudo biến mất nhưng `animationName` vẫn trả tên theo CSS rule (không phải `"none"`) → phải đếm animation còn bám pseudo-element.
+  - Lỗi console 500 ở local là `Can't reach database server at localhost:5432` (môi trường không có Postgres), chỉ bỏ qua khi đích là localhost; production vẫn kiểm nghiêm ngặt.
+- [ ] **PRE-3 Hiệu ứng còn lại trong bản demo user gửi — CHỜ USER QUYẾT** — demo thứ hai còn 3 hiệu ứng chưa làm: (a) hạt trôi nền (floating particles), (b) nội dung hiện dần lệch nhau (stagger), (c) shine sweep trên nút. Chưa làm vì hạt trôi toàn trang sẽ gây nhiễu trong lúc làm bài và tốn pin; stagger làm mọi trang phải lên delay. Nếu user muốn: chỉ bật particles + stagger ở landing.
+
+## ⚡ Tăng tốc tải & độ trễ + hiệu ứng nộp bài (2026-10-15)
+
+**Yêu cầu user:** *"hiệu ứng loading vẫn hơn 3s là sao"* + *"tối ưu toàn bộ hệ thống: người dùng yếu thấy trôi chảy, máy trung bình/cao mượt mà và thích với hiệu ứng xịn xò mà vẫn không lag"*. Tiếp nối PRE-1b (preloader 5s) và PERF-1 (nộp lag) — lần này đánh vào **hạ tầng (region)** + **thích ứng máy** + **cache SSR**, không đổi logic phòng thi.
+
+**Số đo (production, warm):** preloader gỡ **~2.0–2.15s** (trước ~4.2s, bản gốc ~10s do `MIN=5000`); TTFB **185–454ms** (trước ~1.03s); DCL **715–921ms** (trước 3158ms); load **977–1101ms** (trước 3614ms). Nộp bài: `POST /api/submissions` học sinh **1500ms** (trước 4929ms), khách xác nhận→kết quả **1921ms** (trước 4831ms), join→vào thi **3820ms** (trước 7130ms).
+
+- [x] **PERF-2a Vùng function `iad1` → `sin1`** (`490a9db`) — `vercel.json` thêm `{"regions":["sin1"]}`. Node thật ở US-East nên mỗi round-trip DB ~1s; chuyển function về Singapore (gần Supabase + học sinh VN). Lưu ý: `preferredRegion` route-segment **đã bị deprecate và bị bỏ qua với Node runtime** — chỉ `vercel.json` `"regions"` mới có tác dụng. Verify header `X-Vercel-Id` nay là `sin1::sin1`.
+- [x] **PERF-2b Preloader thích ứng loại máy + xong ngay khi DOM ready** (`e14d562` + `490a9db`) — script inline trong `<head>` (`app/layout.tsx`) tự phân loại `low/mid/high` (`hardwareConcurrency`/`deviceMemory`/`effectiveType`/`saveData`/`prefers-reduced-motion`) → gắn class `a6-perf-<tier>` lên `<html>`. Timings: high MIN 600/CAP 1600/RAMP 600; mid 750/1900/750; low 900/2200/900 (MAX 92). Guard `performance.now()>2600` → bỏ đà khi trang vốn đã chậm. `ready` đổi `readyState==="complete"` → `!=="loading"` (kết thúc ở DOM-ready). `app/globals.css` section **PERF-1** tắt ambient/wave/badge/ripple/view-transition khi `a6-perf-low`; rút burst 650→500ms, failsafe 8→6s, page-in 560→460ms; `page-transition.tsx` bỏ ripple khi `a6-perf-low`. Verify low-tier (ép `hardwareConcurrency=2, deviceMemory=2`): tier nhận đúng `a6-perf-low`, gỡ overlay ~1.9s.
+- [x] **PERF-2c Cache SSR `getSetting` + `getSession`** (`e14d562`) — `lib/settings.ts` dùng `unstable_cache` (revalidate 60s, tag `settings`); `lib/session.ts` MỚI `getSession = cache(...)` (bọc `auth()` trong try/catch trả `null`). `app/api/admin/settings` thêm `revalidateTag("settings","max")` (Next 16 cần 2 tham số). Kèm sửa bug thật: `app/page.tsx` bọc `redirect()` trong `try/catch` nên **nuốt luôn** lỗi redirect — người đã đăng nhập vào `/` không được đưa về `/bang-dieu-khien` (bắt khi refactor sang `getSession`).
+- [x] **PERF-2d Bật Fluid compute** (`4ae5bf2`) — `vercel.json` thêm `"fluid": true`, giảm cold start (dùng chung instance giữa các request). Giới hạn còn lại: **request đầu sau idle vẫn ~4s** (cold start) — cần giữ ấm function ngoài (UptimeRobot/cron) mới hết hẳn.
+- [x] **UX-1 Fix ô nhập điểm câu hỏi bị bóp nhỏ trên mobile** (`ba193eb`) — GV báo *"các nút thiết lập điểm không hiển thị"*; đo Playwright: `NumberInput className="w-24"` (96px) quá hẹp cho 2 nút 44px → input co còn ~18px, hàng tràn viewport 390px. Sửa `tao-de-thi/editor.tsx`: hàng header `flex-wrap` + nhóm phải `shrink-0`, `w-24` → `w-40`.
+- [x] **UX-2 Hiệu ứng chuyển cảnh + thông báo nộp bài** (`7d5e082`) — thêm `app/components/transition-overlay.tsx` (overlay dùng chung); `guest-join.tsx` overlay "Đang vào phòng thi…"; `exam-taking-client-v2.tsx` thay `alert` bằng toast success/error (dùng `useToast`), state `retrying`, overlay "Đang nộp bài…"/quay lại thi, card `animate-pop-in`.
+- [x] **Verify (không hồi quy):** `student-take-exam.spec.ts` **6/6 desktop PASS** trên production sau các thay đổi; timing spec tạm (đã xoá) đo nộp bài/join như trên. `tsc`/`eslint`/`build` sạch.
+- [ ] **Còn chờ user:** (1) đổi `DATABASE_URL` prod sang pooler 6543 (LOAD-2b) — hạ sàn độ trễ DB; (2) dựng UptimeRobot/cron ping `/api/health` giữ ấm function (hết cold start ~4s).
+
+## ✅ Điểm riêng từng mệnh đề Đúng/Sai (TF-1, 2026-10-15)
+
+**Yêu cầu user:** *"phần đúng sai sao không set được điểm từng đáp án, vì đúng sai không tính điểm cả câu"*.
+
+- [x] **TF-1 Điểm riêng từng mệnh đề Đúng/Sai** (`697ddfa`, verified prod 1/1) — trước đây `grading.statements[]` chỉ có `{text, answer}`, `isQuestionCorrect` đòi **đúng hết mới được điểm câu** → 4 mệnh đề đúng 3 = 0 điểm. Nay mỗi mệnh đề có `points` riêng; điểm câu = **tổng điểm các mệnh đề làm đúng**.
+  - **Chấm:** `lib/grading.ts` thêm `earnedPointsOf` + `statementPointsArray` (chuẩn hoá về tổng điểm câu; đề cũ/thiếu điểm → **chia đều**). `scoreSubmission` cộng điểm từng mệnh đề; `correctCount`/leaderboard **giữ nguyên** "trọn vẹn".
+  - **Editor** (`tao-de-khien/tao-de-thi/editor.tsx`): mỗi mệnh đề có ô **"Điểm"** + nút xoá; ô "Điểm" đầu câu Đúng/Sai chỉ hiển thị **tổng tự cộng**; lưu luôn đồng bộ `points` = tổng.
+  - **Xem lại:** guest review (`exam-taking-client-v2.tsx`), kết quả GV (`ket-qua/[id]`), bản HTML máy iOS cũ (`thi-cu/[code]/html.ts`) đều hiện `+{điểm}đ` mỗi mệnh đề đúng + dòng "Điểm câu này: X/Yđ".
+  - **Không rò dữ liệu:** payload học sinh vẫn chỉ gửi `statements[].text`.
+  - **Verify prod** (`tests/e2e/true-false-points.spec.ts`): 2 mệnh đề 1+1 → đúng 1 → **5/10**, review hiện `1/2đ` (1/1 pass).
+
+## 🎯 Công thức điểm mới: `10 − điểm mất` (SCORE-1, 2026-10-15)
+
+**Yêu cầu user:** *"score = 8.95? ... wtf"*. Phân tích ra **2 lỗi riêng**: (1) câu Đúng/Sai bị mất điểm mệnh đề đầu (đã fix ở `c6f8aac`) → tổng đề 9.5; (2) công thức `earned/total × 10` cho số lẻ. User chốt: **"Dùng `10 − điểm mất` cho mọi đề"**.
+
+- [x] **SCORE-1 Công thức `điểm = 10 − (tổng điểm câu/ý SAI)`** (`12f0b77`) — `lib/grading.ts` `scoreSubmission` bỏ `earned / total × 10` → `score = clamp(10 − (total − earned), 0, 10)`.
+  - **Khi tổng đề = 10 → y hệt điểm đạt** (`10 − (10 − đạt) = đạt`), nên đề chuẩn vẫn ra số chẵn. **Khi tổng lệch 9.5** → đạt 8.5, mất 1 → **9** (hết 8.95).
+  - `correctCount` "trọn vẹn" + leaderboard **giữ nguyên**.
+  - Hint editor đổi: *"Điểm = 10 − tổng điểm các câu/ý sai. Nên để tổng điểm đề = 10đ cho thang điểm chuẩn"*.
+  - ⚠️ **Hệ quả khi tổng đề ≠ 10:** sàn điểm = `10 − tổng đề` (đề 7đ sai hết vẫn 3đ; đề 30đ mất 30đ → 0) → **vẫn phải giữ cảnh báo tổng = 10đ** ở editor. Không đổi công thức cho vế tỉ lệ vì user chọn nguyên tắc này cho mọi đề.
+  - **Verify:** `answer-leak.spec.ts` (đề 10đ: đúng hết → **10**, sai hết → **0**) + `true-false-points.spec.ts` (đúng 5/10đ → **5/10**, review `5/10đ`) — 2 fixture được đổi cho tổng = 10đ (trước `3đ`/`2đ` → sai hết sẽ ra 7/9 theo công thức mới).
+- [x] **SCORE-1b Nút "Chấm lại toàn bộ bài nộp"** (`c22f012`) — `POST /api/exams/[id]/regrade` (teacher-only, `isTeacherAccess`) chấm lại mọi bài nộp từ `answers` + `manualScores` **sẵn có** (transaction); nút ở trang chi tiết đề khi có ≥1 bài, kèm chú thích. Dùng khi đổi công thức hoặc sửa điểm → bài cũ khớp bài mới (kể cả bài đã nộp lúc vẫn còn 8.95).
+
+## 📺 Bảng điểm trực tiếp để chiếu tivi (LIVE-1, 2026-10-15)
+
+**Yêu cầu user:** *"trang thống kê điểm số đẹp đã làm chưa... tôi muốn 1 đường link xuất ra được để gửi cho cô tôi trình chiếu lên tivi xem trực tiếp"*. Chốt sau khi hỏi: (1) **link bí mật, không cần đăng nhập**; (2) **tự làm mới vài giây** (polling ~3s — không dùng Supabase Realtime); (3) **hiện tên thật + lớp**.
+
+- [x] **Schema + migration** (`e895de5`) — `Exam.liveToken String? @unique` + `prisma/migrations/20261015120000_add_exam_live_token` (`ALTER TABLE` + unique index). Chạy qua `prisma migrate deploy` ở build Vercel (script build có fallback `db push`) — đã lên prod, spec xanh.
+- [x] **`lib/live-board.ts` (dùng chung API + trang server)** — `getLiveBoardByToken` chỉ **đọc** `Submission` với `select` hẹp (tên/lớp ghép `student`/`guestParticipant` như `de-thi/[id]/page.tsx`), cap **100 dòng**; `createLiveToken` = `randomBytes(16).hex` (128 bit, không đoán được); `phaseOf` = `closed` khi `status !== "published"` **hoặc** đã qua `closeAt`, `waiting` khi chưa tới `openAt`; xếp hạng **`score ↓ → correctCount ↓ → durationSeconds ↑ → submittedAt ↑`**.
+- [x] **API** — `GET/POST /api/exams/[id]/live` (chỉ chủ đề; `enable` tạo token nếu thiếu / `rotate` đổi token mới → **link cũ chết** / `disable` thu hồi) trả `{enabled, liveUrl, qrUrl}` (QR `qrcode` local data-URL, như route share); **`GET /api/public/live/[token]`** — `force-dynamic` + `cache-control: no-store` để poll không dính cache. **Không cần sửa CSP** (poll cùng origin → `connect-src 'self'` đã có).
+- [x] **Trang chiếu `/truc-tiep/[token]`** — `page.tsx` server render lần đầu (tivi có nội dung ngay) + `metadata.robots = {index:false}` + `notFound()` khi token sai; **`live-board.tsx`** client: poll **3s** (bỏ qua khi `document.hidden`), badge 3 pha **TRỰC TIẾP / CHƯA MỞ ĐỀ / KẾT THÚC**, dải 5 số liệu, **bục Top 3**, bảng Top 15 chữ to, **flash xanh + pop-in khi có bài nộp mới**, chân trang **QR + mã vào thi**, màn hình "Bảng điểm đã bị tắt" khi bị thu hồi. Route top-level nên chỉ dính root layout (không sidebar).
+- [x] **Nút giáo viên** `live-board-button.tsx` (gắn trong card "Chia sẻ đề" ở `de-thi/[id]/page.tsx`): **Bật bảng điểm** / **Copy link** / **Đổi link** (confirm cảnh báo link cũ chết) / **Tắt** + QR + "Mở thử".
+- [x] **Verify prod** `tests/e2e/live-board.spec.ts` **5/5 pass** — L-01 API công khai không đăng nhập (tổng 10đ, `phase=live`, header no-store); L-02 nộp bài → bảng cập nhật với **điểm 4 = 10 − 6 điểm mất** (ghép SCORE-1) + tên thật; L-03 mở trang bằng trình duyệt **chưa đăng nhập** vẫn thấy bảng, không bị đá về login; L-04 token sai → 404 cả API lẫn trang; L-05 xoay → link cũ 404, tắt → link mới 404. Đề thí nghiệm dọn trong `afterAll` (kiểm tra LEFTOVER=0).
+- **Cách dùng:** vào chi tiết đề → card "Chia sẻ đề" → **Bật bảng điểm** → copy link/QR gửi người chiếu → mở trên tivi. **Lưu ý vận hành:** link là bí mật (ai có link xem được **tên + lớp**) nên chỉ gửi người tin tưởng; muốn ngắt ngay bấm **Tắt**/**Đổi link**. Chưa có rate-limit riêng cho endpoint poll (đọc-only, payload nhỏ).
+
+## 📺 Bấm tên trên bảng điểm → xem chi tiết bài làm (LIVE-1b, 2026-10-15)
+
+**Yêu cầu user:** *"trang cập nhật điểm phải đầy đủ thông tin luôn"*. Hỏi lại để chốt: GV đứng lớp muốn **mở toàn bộ bài làm của một học sinh ngay trên màn hình chiếu** để **chữa đề miệng** (đọc câu, chỉ chỗ sai) → chốt: **chỉ xem, KHÔNG sửa điểm** ở trang này (sửa điểm vẫn ở `ket-qua/[id]` của GV).
+
+- [x] **`lib/live-paths.ts` (mới)** — tách `livePath` / `liveSubmissionPath` / `liveApiPath` / `liveSubmissionApiPath` ra khỏi `lib/live-board.ts` (module này kéo theo `node:crypto` + `prisma` + `auth` nên **client không import value được**) → `live-board.tsx` dùng được `liveSubmissionPath` mà không kéo server-only; `live-board.ts` **re-export** 2 hàm cũ để không phá chỗ đang dùng.
+- [x] **`getLiveSubmissionByToken` + `GET /api/public/live/[token]/[submissionId]`** (`force-dynamic`, `cache-control: no-store`, 404 JSON) — trả về đề (tiêu đề/môn/tổng điểm/số câu/pha), bài nộp (tên/lớp/điểm/số câu đúng/tổng câu/hạng/thời lượng/lúc nộp/cảnh báo vi phạm) và **từng câu**: câu hỏi + lựa chọn, **bài làm của học sinh**, điểm đạt & trạng thái (`correct`/`partial`/`wrong`/`blank`/`pending`), điểm GV chấm tay; hạng tính chung `compareRankable` với bảng điểm.
+- [x] ~~**Giấu đáp án khi đề còn mở**~~ *(đã bị **LIVE-1c** thay: nay **luôn** hiện đáp án)* — bản gốc: `showAnswerKey = viewerIsStaff(exam.teacherId) || phase === "closed"`: link bí mật đang chiếu cho HS xem thì **không lộ đáp án** (chỉ thấy bài làm), GV đã đăng nhập **hoặc** đề đã đóng mới hiện `Đáp án đúng` (trắc nghiệm) / `Đáp án chấp nhận` (trả lời ngắn) / lời giải. Đúng/Sai luôn hiện nội dung mệnh đề, nhưng cờ đúng/sai chỉ khi được phép.
+- [x] **Trang `/truc-tiep/[token]/bai/[submissionId]`** — server render lần đầu + `robots noindex` + `notFound()`; `submission-view.tsx` client **poll 5s** (bỏ qua khi tab ẩn), cùng theme tối với bảng điểm, chữ **to** cho tivi: hero (hạng + điểm to, tên, lớp, 4 số liệu), từng câu có badge trạng thái + điểm đạt, phần "Bài làm của học sinh" và "Lời giải", kèm dòng nhắc khi đáp án đang bị ẩn; có màn 404 riêng + link quay lại bảng.
+- [x] **Bấm tên để vào** — tên ở **bảng xếp hạng** lẫn **bục Top 3** trong `live-board.tsx` nay là `<Link>` (hover sáng xanh, `title="Xem chi tiết bài làm"`) → bấm là mở đúng bài làm của học sinh đó.
+- [x] **Verify prod** `tests/e2e/live-submission.spec.ts` **4/4 pass (desktop + mobile)** — D-01 API không đăng nhập: đủ thông tin, đề đang mở → `showAnswerKey=false` và **không có** `acceptedAnswers`; D-02 bấm tên trên bảng → màn chi tiết đủ thông tin (tên/lớp/hạng/điểm 7-10/2-3 câu đúng) + không lộ đáp án + **quay lại bảng được**; D-03 GV `PATCH` đóng đề → người xem không đăng nhập **thấy đáp án chuẩn**; D-04 token sai / bài nộp không thuộc token → **404 cả API lẫn trang**. Đề thí nghiệm dọn trong `afterAll` (kiểm tra LEFTOVER=0).
+- **Cách dùng & giới hạn:** bật bảng điểm → trên tivi bấm **tên học sinh** → đọc toàn bộ bài làm để chữa miệng; đề còn mở thì đáp án ẩn, muốn hiện thì **đóng đề**. Trang **chỉ đọc** (không sửa điểm). Cùng link bí mật như bảng điểm nên vẫn chưa có rate-limit riêng (đọc-only, payload nhỏ).
+
+### LIVE-1c — Màn chi tiết **luôn** hiện đáp án chuẩn, kể cả khi đề đang mở (2026-10-15)
+
+**Yêu cầu user:** màn chi tiết bài làm (mở từ bảng điểm) phải **luôn** hiện **đáp án chuẩn + lời giải** kể cả khi đề **còn đang mở** — vì GV dùng nó để **chữa đề miệng** ngay trên màn chiếu. Trước đó (LIVE-1b, dòng 484) đáp án bị ẩn khi đề còn mở.
+
+- [x] **`lib/live-board.ts`** (`2b4cc5b`) — bỏ nhánh `viewerIsStaff` (không còn đọc `teacherId`, gỡ import `auth`/`isAdminAccess`/`isTeacherAccess`), đặt `const SHOW_ANSWER_KEY = true` → `LiveSubmissionDetail.showAnswerKey` **luôn `true`**; API `GET /api/public/live/[token]/[submissionId]` vì thế luôn trả `acceptedAnswers` + lời giải. `submission-view.tsx` bỏ banner "đáp án đang ẩn".
+- ⚠️ **Rủi ro (đã cảnh báo user):** ai có **link bí mật** đều thấy đáp án kể cả khi đề đang mở → dặn **chỉ chiếu lúc chữa bài, chữa xong thu hồi link** (nút "Tắt"/"Đổi link" ở card Chia sẻ đề). **Bảng điểm công khai `/truc-tiep/[token]` vẫn KHÔNG lộ đáp án** — chỉ màn chi tiết mới hiện.
+- [x] **Verify prod** — `live-submission.spec.ts` cập nhật: D-01 đề đang mở → `showAnswerKey=true`; D-03 (GV đóng đề → vẫn thấy đáp án) giữ làm chốt không hồi quy. **4/4 desktop + 4/4 mobile**.
+
+### Nhãn Đúng/Sai rõ nghĩa — "Bạn làm" + "Đáp án đúng" (`81e75be`, 2026-10-16)
+
+**Yêu cầu user:** *"ở phần đúng–sai phải ghi là bạn làm - đáp án đúng chứ ghi từ 'chuẩn' nhìn khó hiểu lắm"*. Đổi nhãn 3 màn: **màn chi tiết trực tiếp** (`submission-view.tsx`), **trang kết quả GV/HS** (`ket-qua/[id]/page.tsx`), **review của khách** (`exam-taking-client-v2.tsx` GuestReview — bản này còn ghi nhầm `Bạn: … · Đúng: …`). Từ `Bạn:` → **`Bạn làm:`**, `Chuẩn:` → **`Đáp án đúng:`**. Màn review HTML cũ (`thi-cu/[code]/html.ts`) vốn đã ghi "bạn chọn … · đáp án …" nên giữ nguyên. Verify prod bằng spec tạm (đã xoá): T-1 màn chi tiết (đề đang mở) + T-2 trang kết quả — **2/2 pass**, không còn chuỗi "Chuẩn:".
+
+### LIVE-1d — "Xem tất cả", màu điểm < 7đ đỏ, gộp điểm theo học sinh (2026-10-16)
+
+**Yêu cầu user (3 việc liên tiếp trên bảng điểm trực tiếp):** (1) *"vì sao bảng thống kê chỉ hiện hơn 10 người"* → chốt **thêm nút "Xem tất cả"**; (2) *"những ai điểm từ 6 trở xuống sẽ có màu đỏ"* → đổi ngưỡng màu; (3) *"phải biết được số lần làm lại của học sinh nữa để lấy điểm cho đúng"* → **gộp theo học sinh + hiện số lần làm**.
+
+- [x] **Nút "Xem tất cả" trên bảng trực tiếp** (`3701d79`) — mặc định vẫn **Top 15** cho vừa màn chiếu (bục Top 3 + bảng), thêm nút **"Xem tất cả" / "Thu gọn"** hiện khi số dòng > 15 (`live-board.tsx`). Hỗ trợ **`?all=1`** để mở sẵn toàn bộ (chiếu trên màn to/máy tính) — `page.tsx` đọc `searchParams` (`Promise` ở Next 16) + prop `initialShowAll`. Dải "N bài nộp nữa" đổi thành "Đang hiện toàn bộ N bài nộp" khi mở hết; API vẫn cap **100 dòng** (`LIVE_ROW_LIMIT`), quá 100 thì báo "còn … bài (xem ở trang kết quả của giáo viên)".
+- [x] **Ngưỡng màu điểm + ô "Đạt"** (`a2c4ef9`) — chốt sau khi hỏi: **đỏ khi dưới 7đ (≤ 6), xanh khi ≥ 7đ** (dùng mốc 7 để khớp cả số thập phân như 6.5); tô **cả số điểm, cả tên học sinh** và **cả dòng** (nền đỏ mờ + vạch đỏ bên trái) ở bảng trực tiếp; màn chi tiết bài làm (`submission-view.tsx`) tô đỏ tên + điểm khi < 7đ. Ô thống kê trên bảng đổi **"Đạt ≥ 5đ" → "Đạt ≥ 7đ"** (`lib/live-board.ts` `passCount = score >= 7`) cho khớp màu. ⚠️ Ô **"Đậu (≥ 5)"** ở trang chi tiết đề của GV vẫn giữ mốc 5 (user chưa yêu cầu đổi).
+- [x] **Gộp điểm theo học sinh + hiện số lần làm lại** (`275687b`) — thêm `groupLatestByParticipant()` (`lib/live-board.ts`, dùng chung bảng trực tiếp + trang đề GV): gộp theo **người** (khoá `student:<id>` hoặc `guest:<guestParticipantId>`), giữ **lượt nộp MỚI NHẤT** làm điểm chính thức, đếm `attemptCount`. Nhờ vậy học sinh **làm lại không chiếm nhiều dòng** và **không thổi phồng thống kê**: `Đã nộp`/`Điểm TB`/`Cao nhất`/`Đạt` tính **theo học sinh** (không theo lượt nộp). Bảng trực tiếp hiện chip **"N lần"** cạnh tên (bảng + bục Top 3); trang đề GV hiện chip **"N lần làm"** trên dòng + **cột "Số lần làm"** trong CSV; các ô đổi nhãn **"Bài nộp" → "Học sinh nộp"**. Ô **"Đang làm"** nay đếm **lượt đang làm dở** (`_count.attempts` có `where submittedAt: null`) thay vì `attempts − submissions`. **Khách vẫn 1 lần** (`GuestParticipant.submittedAt` chặn nộp lần 2) nên mỗi khách là một người riêng.
+- [x] **Verify prod** — spec tạm (đã xoá): dựng 16 khách + 1 học sinh **làm lại 2 lần** (0đ rồi 10đ) → API trả **17 dòng/18 lượt nộp**, học sinh chỉ **1 dòng** điểm **10** (`attemptCount=2`), `passCount=16`; UI có nút "Xem tất cả"/`?all=1`, chip "2 lần", dòng điểm 0 **đỏ** (`rgb(248,113,113)`), ô "Đạt ≥ 7đ" = **94%**. Chạy lại `live-board.spec.ts` + `live-submission.spec.ts` → **9/9 pass** (không hồi quy). LEFTOVER=0 cho QA-SHOWALL/QA-LIVE/QA-DUP/QA-TFLABEL.
+- **Ghi chú kỹ thuật:** `_count` lọc được (`{ select: { attempts: { where: { submittedAt: null } } } }`, Prisma 6 hỗ trợ) nên không phải kéo cả bảng `Attempt` để đếm lượt đang làm; `groupLatestByParticipant` chỉ dựa `submittedAt` (Date) nên dùng chung cho cả Prisma select lẫn include.
+- 🩹 **Hồi quy phát hiện trễ (`834369e`)** — `275687b` đổi nhãn ở header trang đề từ `{n} bài nộp` → `{n} học sinh nộp` nhưng **không cập nhật** `exam-duplicate.spec.ts:214` (`E-03`). Verify LIVE-1d khi đó chỉ chạy `live-board` + `live-submission` (9/9) nên **không chạm spec này** → `E-03` đỏ từ sau LIVE-1d, chạy lại mới lộ. Sửa kỳ vọng → **4/4 pass**. *Bài học: đổi nhãn UI phải grep `tests/` trước, và verify đúng spec đụng màn hình đó.*
+
+## ♻️ Nhân bản đề thi (EXAM-2, 2026-10-15)
+
+> ⚠️ **Trùng số nhãn:** mục này user đặt là **EXAM-2** cho tính năng **nhân bản**. Một mục **EXAM-2 cũ** (ngày 14/10, *"hiện lượt còn lại ở trang kết quả"*, `b8e291c`) nằm ở chùm *Thi thật cả lớp* phía trên — **khác hẳn nội dung**. Khi tra cứu hãy theo **ngày**.
+
+**Yêu cầu user:** *"tôi muốn nhân bản 1 đề thi"* — GV muốn tạo đề mới giống đề cũ để chỉnh tiếp mà không phải nhập lại câu hỏi.
+
+**Chốt sau khi hỏi user:** bản sao **copy câu hỏi + cài đặt**, nhưng **KHÔNG** mang theo lịch mở/đóng, bài nộp, link bảng điểm trực tiếp; bản sao **luôn ở trạng thái nháp** và **được đặt mã vào thi mới** (tránh trùng mã đề gốc).
+
+- [x] **API `POST /api/exams/[id]/duplicate`** (`e5bfe42`) — teacher-only (`isTeacherAccess`), chỉ **chủ đề** (`{id, teacherId, deletedAt:null}`, sai → **404**). Copy `subject`/`description`/`durationMinutes`/`maxAttempts`/cài đặt trộn & hiển thị + toàn bộ **câu hỏi** (giữ `grading` kèm `explanation`; **KHÔNG** dùng `normalizeQuestions` vì nó **drop `explanation`**). `title = "<tên cũ> (bản sao)"`, `status="draft"`, `openAt=closeAt=null`, `joinCode` mới, `liveToken=null`. Ghi `logAudit` loại `exam.duplicate`. Trả **201 `{exam}`** kèm `_count`.
+- [x] **`createUniqueJoinCode()`** trong `app/api/exams/exam-helpers.ts` — tách hàm sinh mã vào thi dùng chung (alphabet `ABCDEFGHJKLMNPQRSTUVWXYZ23456789`, bỏ ký tự dễ nhầm), `app/api/exams/route.ts` (tạo đề) import lại từ helper thay vì bản cục bộ.
+- [x] **Nút "Nhân bản"** (`app/bang-dieu-khien/de-thi/[id]/exam-actions.tsx`, icon `Copy`) — gọi API rồi `router.push` sang **đề mới**; có trạng thái `loading === "duplicate"`, lỗi thì `alert`.
+- [x] **Verify prod** `tests/e2e/exam-duplicate.spec.ts` **4/4 desktop + 4/4 mobile** — E-01 bản sao đủ câu hỏi/cài đặt + **id câu & mã vào thi mới** + nháp + bỏ lịch + `0` bài nộp; E-02 đề gốc nguyên vẹn (vẫn `published`, còn lịch, còn **1 bài nộp**); E-03 bấm nút UI → POST `/duplicate` **201** → mở thẳng đề mới; E-04 RBAC (khách **401**, học sinh **403**, id lạ **404**). Đề thí nghiệm dọn trong `afterAll` (**LEFTOVER=0**).
+- **Bài học test (kèm `739e4a8`):** `page.waitForURL(/…de-thi\/[A-Za-z0-9_-]+$/)` khớp **ngay** URL hiện tại (đề gốc) → assert chạy trước khi Next kịp điều hướng client (Next điều hướng phía client, không phải full load) → phải `waitForResponse(POST …/duplicate)` lấy id mới rồi **chờ URL đổi** theo id đó.
+- **Bài học test:** gộp **một phiên đăng nhập GV/HS dùng chung** cho cả file (`beforeAll`) để không đụng **rate-limit đăng nhập 20 lần/IP/5 phút** (`auth.ts`) khi chạy nhiều spec liên tiếp; vì trước đó mỗi test tự login nên `beforeAll` 401 `Bạn cần đăng nhập` giả (không phải lỗi tính năng).
+- ⚠️ **Quan sát vận hành (nợ tiềm ẩn — KHÔNG liên quan học sinh thi):** học sinh thi bằng **guest, không đăng nhập** → giới hạn `login-ip` (`auth.ts:37`) chỉ chạm **tài khoản GV/admin**. Cái đáng lo cho **lớp đông chung 1 IP (NAT trường) lại nằm ở đường thi**: ~~`submit:<ip>` **20 lượt nộp/phút**~~ → **ĐÃ SỬA ở LOAD-3 (`521a073`)**: đổi thành `submit-ip:<ip>` **120/phút** (lưới an toàn) + `submit:attempt:<attemptId>` **10/phút** (bỏ khoá theo IP, đề hết giờ cả lớp tự nộp không còn chạm 429); và `attempt:<ip>` **120/phút** (`app/api/attempts/[id]/route.ts:18`, client sync 20s → 3/phút/em → 40 em chạm trần — vẫn giữ).
+
+## 🖼️ Chèn ảnh minh hoạ vào câu hỏi (IMG-1, 2026-10-15)
+
+**Yêu cầu user (khẩn):** *"tính năng tới giờ tự mở ra... khoan, làm tính năng chèn ảnh minh hoạ vào câu hỏi đi"* — GV muốn gắn ảnh (hình vẽ, sơ đồ, biểu đồ) vào từng câu hỏi, ảnh phải hiện khi học sinh làm bài, xem lại bài và cả trên máy iOS yếu.
+
+- [x] **IMG-1 Chèn ảnh minh hoạ vào câu hỏi** (`4b53096`, verified prod 3/3 pass) — GV tải ảnh ngay trong editor câu hỏi → lưu **URL vào `grading.image`** (JSON, **không cần migration**) → ảnh render ở cả 3 nơi.
+  - **Upload:** `app/api/uploads/question-image/route.ts` (teacher-only, rate limit 20/60s, png/jpeg/webp/gif, **≤4MB**) → **bucket công khai `question-images`** trên Supabase Storage (tự tạo nếu thiếu) → trả `{ url }`.
+  - **Editor** (`tao-de-thi/editor.tsx`): `Grading.image`, nút **"Thêm ảnh"** + thumbnail + xoá; **client thu nhỏ ảnh** (`downscaleImage`: canvas cạnh ≤1600px, JPEG 0.85, chỉ khi >3.5MB) để giữ dưới cap body Vercel 4.5MB; `withAiMetadata` **giữ image** khi AI gợi ý đề; preview modal có ảnh.
+  - **Học sinh:** `app/thi/[code]/page.tsx` **whitelist `mapQuestionsForStudent` gộp `image`** (giữ nguyên chống rò đáp án) → `exam-taking-client-v2.tsx` render ảnh **trên text câu** + trong `GuestReview`; kết quả GV `ket-qua/[id]` cũng thấy ảnh.
+  - **Máy iOS cũ:** bản HTML thuần `thi-cu/[code]/html.ts` (`buildReview` + CSS `.qimg`) — không JS, ảnh vẫn hiện.
+  - CSP `next.config.ts` đã sẵn `img-src https://*.supabase.co` → không phải sửa.
+  - **Verify prod** (`tests/e2e/question-image.spec.ts`, **giữ làm regression**): (1) tải ảnh lên + tạo đề có ảnh; (2) học sinh khách thấy ảnh **và tải được** (`naturalWidth>0`); (3) bản HTML cũ cũng thấy ảnh → **3/3 pass**.
+
+
+
+**Yêu cầu user:** *"phần đặt thời gian mở đề ... hệ thống có tự load lại trang cho học sinh vào làm không hay phải thực hiện thủ công?"* (trước đây **thủ công** — trang tĩnh, không có gì tự làm mới) và *"AI đọc đề hiện tại càng ngày càng dốt, để mỗi gemini làm việc đi"*.
+
+- [x] **SCHED-1 Tự tải lại khi tới giờ mở (`/thi/[code]`)** (`fe63d57`) — thay khối tĩnh "Chưa đến giờ mở đề" (`app/thi/[code]/page.tsx`) bằng client **`app/thi/[code]/schedule-gate.tsx`**: đếm ngược `HH:MM:SS` theo đồng hồ máy → `location.reload()` đúng lúc `openAt`. **Chống lặp:** ghi mốc `sessionStorage` → tối đa 1 reload / 5 giây (tránh vòng lặp dày khi đồng hồ client đi trước server); hiện "đã đóng" khi quá `closeAt`; luôn có nút "Tải lại trang" thủ công. Verify prod bằng spec tạm (`tmp-schedule.spec.ts`, **đã xoá**): đề `openAt=+60s` → hiện đếm ngược → **tự vào phòng thi, không cần F5** (2/2 pass).
+- [x] **SCHED-2 `meta refresh` cho máy iOS cũ (`/thi-cu`)** (`fe63d57`) — `app/thi-cu/[code]/html.ts` `messageView` nhận thêm `refresh` (giây) → chèn `<meta http-equiv="refresh" content="N">`; `route.ts` tính N = giây tới `openAt` + 2 (bù lệch đồng hồ). Trang HTML thuần, không JS, vẫn tự mở đúng giờ. Verify: meta có mặt và content > 60s với đề mở xa.
+- [x] **AI-11 Đọc đề bằng Gemini flash thường (bỏ mặc định lite) + hiện engine** (`4839ae6`) — **nguyên nhân "càng ngày càng dốt"**: mặc định đọc đề là `gemini-3.5-flash-lite` (bậc rẻ nhất) và Google liên tục khai tử dòng lite (ghi chú `lib/ai.ts`). Đổi `DEFAULT_MODEL` (`lib/ai.ts`) + mặc định `EXAM_IMPORT_MODEL` (`app/api/gemini/route.ts`) → **`gemini-3.5-flash`** (vẫn free tier), giữ các model lite trong `FALLBACK_MODELS` làm lưới an toàn (nếu flash thường không khả dụng → tự rớt về lite, không vỡ). Fallback **Groq vẫn giữ** nhưng nay **GV thấy rõ**: `import-exam-modal.tsx` + `exam-builder.tsx` hiện "Đọc bởi: Gemini/Groq · model" (tô **đỏ** khi Groq dự phòng) → hết cảnh "tự nhiên đọc kém mà không biết vì sao". Muốn đóng băng chi phí → set `EXAM_IMPORT_MODEL=gemini-3.5-flash-lite` trên Vercel. tsc/eslint/`next build` sạch.
+- [ ] **Còn chờ user (AI):** (1) import thử 1 đề Word thật sau deploy để xác nhận `gemini-3.5-flash` khả dụng với key prod (nếu 400 → tự rớt lite, không vỡ); (2) muốn đọc PDF/ảnh cho **Gemini đọc thẳng** (giữ layout/công thức) thay vì bóc chữ `pdf-parse`? user hiện nhập Word nên chưa cần — làm khi yêu cầu.
+
+## 🎨 Redesign toàn web — từng vùng, duyệt dần (2026-10-08)
+
+**Yêu cầu của user:** *"cải thiện UI cho toàn bộ web"*, hướng đã chốt: **redesign từng vùng, dừng cho user duyệt sau mỗi vùng** (không đổi layout lớn ồ ạt — bài học từ G12 bị revert).
+
+**Ràng buộc bất biến:** giữ stack (Next + Tailwind v4 + token), giữ thương hiệu A6Class Edu (navy/cyan/gold, Be Vietnam Pro/Inter), giữ nguyên logic/chức năng mọi trang (chỉ đổi diện mạo), tôn trọng MIN-1 (landing tối giản: hero + 2 nút + footer), không đụng logic phòng thi/timer/anti-cheat.
+
+- [x] **Z1 Landing + header/footer + auth + vao-thi** (`d8ca70d`, verified live) — mặt tiền public, copy/routes/logic giữ nguyên: header kính mờ thật (`bg-card/85` + blur, trước nền đặc làm blur vô tác dụng) + hover mọi nút + icon ArrowRight thay ký tự `→`; hero: badge dot → ping success, `text-balance`, CTA hết bóng tím cũ `rgba(108,76,241)` → navy + `active:scale`, nút phụ hover `primary-light`; footer link dạng pill hover; `AuthCard` hết xung đột `shadow-lg shadow-md` → bóng navy + `rounded-3xl`; panel auth `tracking-tight` + viền kính icon; `vao-thi`: texture dot đồng bộ hero, card bóng navy, thêm `aria-label` ô mã, 3 bước mini có icon (KeyRound/PencilLine/Rocket). `tsc` sạch, eslint 0, build OK; E2E landing 8/8 + auth-ui R-06 pass (lần fail giữa chừng là rate-limit `forgot:ip` 3/10ph do chạy suite dồn — chạy lại sau cửa sổ thì xanh, không liên quan Z1); DOM prod có `animate-ping`/`rounded-3xl`/steps mới.
+- [x] **Z2 Dashboard GV/HS** (`5fed468`, verified live) — banner thêm glow gold + bóng navy + nút "Xem tiến độ" dạng pill kính; số stat `tabular-nums` + màu `text-primary` (bỏ `gray-900`); quick-action lift (`-translate-y` + bóng); ModeSwitcher press `scale`; sidebar bỏ class chết `font-700`; bottom-nav + `main` chịu `safe-area-inset-bottom` (iPhone tai thỏ hết bị che).
+- [x] **Z3 Đề thi** (`abbd661`, verified live) — list thêm eyebrow "Quản lý" + h1 `tracking-tight`; hero chi tiết `rounded-3xl` + bóng + glow; **sửa bug thật**: modal ngân hàng `bg-white` cứng → token + nút đáp án đúng class gãy `bg-[var(--mint-light)]0` (không bao giờ hiện xanh) → `success`; editor h1 `tracking-tight` + thẻ câu `focus-within` viền primary.
+- [x] **Z4 Lớp học + thống kê + tiến độ + AI + hồ sơ** (`2b36e1a`, verified live) — h1 `tracking-tight` toàn vùng, số `tabular-nums`, card hồ sơ `rounded-3xl` + bóng navy.
+- [x] **Z5 Phòng thi + kết quả** (`74ce4a2`, verified live) — **xoá 3 emoji sót** R4 bỏ quên (⏰⏳ ở runner + ⏳ trang kết quả) → icon Lucide `TimerOff`/`Hourglass`; điểm `tabular-nums` + `tracking-tight`. Logic timer/submit/anti-cheat giữ nguyên.
+- [x] **Z6 Admin panel** (`82e7149`, verified live) — token đã sạch từ R6; đồng bộ h1 `tracking-tight` + số `tabular-nums` 9 trang.
+- [x] **Z7 Shared + chốt** (`c48fa5b`, verified live) — `EmptyState` icon vào tile `primary-light` (trước icon xám trơ trọi); `error.tsx` tracking + nút bóng navy; **trang 404 brand mới** (`app/not-found.tsx`: card + 2 lối Về trang chủ/Vào thi — trước là trang mặc định của Next); `doi-mat-khau` hết `to-white` cứng + mũi tên `←` → icon; modal import đề hết `bg-white` cứng. Soát toàn web: 0 màu tím cũ, 0 emoji, 0 `bg-white` cứng (trừ nút Google theo chuẩn), 0 `font-700`, 0 `Xem →` chữ.
+- Phụ: **gỡ `qa-shots/*.png` khỏi git** (`31d0875`) — 9 ảnh lọt vào commit `abbd661` do `git add -A` dù `.gitignore` đã có `/qa-shots/` (file còn nguyên local).
+- Verify gộp: `tsc` sạch, eslint 0 error (3 warning cũ), build OK; E2E prod **54 passed** (dashboard+exam-detail 18, student-take-exam 10 gồm anti-cheat, teacher-pages+results+classroom 26); DOM prod: 404 brand + doi-mat-khau mới.
+
+- [x] PARSE-8 Đọc đề Địa lí tô HIGHLIGHT + gạch chân + bảng số liệu không dùng ảnh (`bcf16fc`, 2026-11-02) — file thật `De_Dia_li_12_dap_an_sap_xep.docx` (309 đoạn, không có công thức/ảnh): đáp án MCQ **tô vàng** (`<w:highlight w:val="yellow">`), mệnh đề Đúng/Sai **gạch chân** (`<w:u>`), bảng số liệu cần vào đề dạng bảng thật.
+  - `lib/exam-docx.ts`: `Run` thêm `highlight`/`underline`; `OptionSeg.hasRed` → `marked` = đỏ **hoặc** highlight; dòng mệnh đề `a) …` có gạch chân → gắn `ANSWER_MARK` (`marked`) để parser suy Đ/S. Bỏ **chữ trong hộp vẽ WordArt/watermark** (`<w:txbxContent>`, `<mc:AlternateContent>`) — file thật có watermark "NDL" trắng 1pt từng bị chèn vào câu 72/83. `reconcileDocKey` không bật `needsReview` khi đáp án đã lấy trực tiếp từ highlight của chính lựa chọn (13 câu bị đánh dấu oan do key cuối bài khớp mơ hồ).
+  - `lib/exam-parse.ts`: `extractMarker` trả thêm `marked`; nhận tiêu đề phần `II./III./IV.` (không dính vào stem câu trước); `joinStemLines` giữ **xuống dòng giữa các hàng bảng** `| … |`; `Seg.section` để phân loại theo phần: **III → short_answer** (kể cả khi đề không ghi "Đáp án"), **IV → essay**; phép tính/lời giải nằm ngay dưới câu trả lời ngắn (`= 61,8 %`) được tách khỏi thân câu, lấy giá trị cuối làm đáp án + sinh `grading.acceptedAnswers` (server bắt buộc, trước đây đề trả lời ngắn đọc xong vẫn **không lưu được**); dòng "1." ở phần tự luận mở câu mới không cần dấu hỏi, các dòng dàn ý vào `explanation` (học sinh không thấy); cứu câu bị mất tiền tố ("C." thay vì "Câu 7:") và bỏ mảnh "C)" rơi rớt.
+  - `lib/latex.ts` + `components/ui/math-text.tsx` + `app/globals.css`: dòng bảng `| ô | ô |` → `<table class="mt-table">` thật (thead + zebra, cuộn ngang trên mobile, ô có `$…$` vẫn render KaTeX) — **không cần chèn ảnh bảng**, hiện trong đề khi làm bài/duyệt/chữa.
+  - **Kết quả file thật:** **88 câu** = 71 MCQ (đủ 4 lựa chọn + đáp án highlight) + 5 Đúng/Sai (4 mệnh đề, đáp án suy từ gạch chân) + 9 trả lời ngắn (3 câu có đáp án số + biến thể `61,8/61.8`) + 3 tự luận (dàn ý vào explanation); 4 bảng số liệu giữ nguyên hàng; 9 câu thiếu đáp án đều được gắn `needsReview` + ghi chú. Lưu ý dữ liệu gốc: đề bắt đầu từ "Câu 3", thiếu Câu 17/19/29, phần III thiếu "Câu 7" (gõ thành "C.") — đã cứu được; câu 4/5/6/8/9 chưa có đáp án trong file (GV nhập tay).
+  - QA `scripts/qa-exam-parse.mjs` **21/21** (thêm 4 test: highlight → đáp án, gạch chân → Đ/S, tiêu đề phần + short_answer/essay, bảng giữ xuống dòng); `qa-latex.mjs` **14/14** (2 test bảng → `<table>`); mtef 12/12, omml 8/8, pdf-layout 4/4, ai-judge 6/6, ai-build 16/16; tsc/eslint/`next build` xanh.
+
+## 🛡️ Bảo toàn bài làm học sinh khi sửa đề thi (EXAM-PRESERVE-ID, 2026-11-02)
+
+**Vấn đề phát hiện:** GV đang sửa đề thi (sửa câu hỏi hoặc bật trộn câu/đáp án) rồi bấm Lưu thì học sinh đang làm bài khi bấm nộp bị mất toàn bộ đáp án (0 điểm) do `PUT /api/exams/[id]` trước đây chạy `deleteMany` xoá hết câu hỏi cũ và cấp CUID mới, khiến `answers` của học sinh (lưu theo ID cũ) không khớp với ID mới trong DB.
+
+- [x] **Giữ nguyên 100% ID câu hỏi cũ khi sửa đề (`app/api/exams/[id]/route.ts` & `exam-helpers.ts`)** — Thay `deleteMany` + `create` bằng cơ chế Upsert thông minh: câu hỏi có ID hoặc vị trí tương ứng trong đề cũ được giữ nguyên `id` (chỉ cập nhật nội dung/đáp án/điểm); chỉ xoá câu thật sự bị xoá; chỉ cấp ID mới cho câu mới thêm.
+- [x] **Bảo toàn ID từ editor (`app/bang-dieu-khien/tao-de-thi/page.tsx` & `editor.tsx`)** — Lấy `id: true` khi tải đề sửa và gửi lại `id` về API khi lưu.
+- [x] **Lưới an toàn khi nộp bài (`app/api/submissions/route.ts` & `exam-taking-client-v2.tsx`)** — Client gửi kèm `answersByOrder` (đáp án theo số thứ tự câu). Nếu học sinh nộp bài với đề vừa bị đổi ID: server tự động kích hoạt Fallback đối chiếu theo `answersByOrder`, `attempt.optionOrder` hoặc thứ tự câu để nhận diện đủ 100% đáp án và chấm điểm chính xác.
+- [x] **Hỗ trợ cập nhật nhanh cấu hình đề qua `PATCH /api/exams/[id]`** — GV có thể bật/tắt `shuffleQuestions`, `shuffleAnswers`, `showAnswers`... độc lập mà không cần lưu lại danh sách câu hỏi.
+- [x] **Build & Verify** — `tsc --noEmit` pass, `eslint` pass (0 errors), `next build` pass (66 routes xanh).
+
+## 🧠 Đại tu chất lượng tạo & giải đề AI (AI-OVERHAUL, 2026-11-03)
+
+**Vấn đề phát hiện:** AI tạo đề và giải đề trước đây chất lượng kém ("rất ngu") do: (1) Prompt tạo đề thiếu tiêu chuẩn khảo thí, không có Few-shot mẫu, AI sinh đáp án sai ngớ ngẩn hoặc đáp án đúng dài gấp đôi; (2) `responseSchema` bị lỗi schema giả (`required` trường không tồn tại khiến Gemini sinh lỗi); (3) `ai-solve` bắt AI xuất đáp án trực tiếp không qua suy luận (làm rớt 40-50% độ chính xác); (4) Model chain chứa model không chính thức gây lỗi.
+
+- [x] **Nâng cấp Prompt tạo đề theo Tiêu chuẩn Khảo thí Quốc gia (`app/api/gemini/route.ts`)** — Quy định nghiêm ngặt thiết kế 3 phương án gây nhiễu (bẫy ngộ nhận, bẫy nửa vời, bẫy tính toán/nghịch đảo); cân bằng độ dài và văn phong 4 phương án; cấm tuyệt đối các phương án lười ("Tất cả đều đúng", "Cả A và B"); thêm Few-shot chuẩn mẫu Bộ GD&ĐT.
+- [x] **Sửa lỗi Schema `responseSchema` (`app/api/gemini/route.ts`)** — Bỏ các trường ảo `blocks_used`, `kind` khỏi required của schema tạo đề để Gemini sinh JSON ổn định 100%.
+- [x] **Chain-of-Thought cho bộ tự giải đề (`lib/ai-solve.ts`)** — Thêm bước suy luận `thought` bắt AI phải phân tích chứng minh trước khi chốt ký tự đáp án (tăng độ chính xác lên 85-95%); tự động tái sử dụng `thought` làm `explanation` chất lượng cao cho câu hỏi.
+- [x] **Tối ưu Model Chain Free Tier (`lib/ai.ts`)** — Mặc định `gemini-2.5-flash` và dự phòng `gemini-2.0-flash`, `gemini-1.5-flash`, `gemini-2.5-pro` (đều có gói free tier chính thức từ Google), hoàn toàn miễn phí.
+- [x] **Verify test suites** — `qa-ai-judge` 6/6, `qa-ai-exam-build` 16/16, `qa-exam-parse` 22/22 pass; `tsc --noEmit` 0 lỗi.

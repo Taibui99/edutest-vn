@@ -74,13 +74,13 @@ export function normalizeMcqAnswer(value: unknown, optionCount: number): string 
   return null;
 }
 
-// Chi kiem tra dang "so truoc, chu cai sau" (1.B, "Cau 3: B"). KHONG lay dang
-// nguoc ("A. 1") vi se nham san phan liet chon A. 1  B. 2 cua chinh cau hoi.
-const PAIR_RE = /(\d{1,3})\s*[\.\)]?\s*[:\.]?\s*([A-Fa-f])\b/g;
+// Kiểm tra dạng "số trước, chữ cái sau" (1.B, 1-B, 1/B, 1: B, 1B, "Câu 3: B", "Question 4: C").
+// KHÔNG lấy dạng ngược ("A. 1") vì sẽ nhầm sang phần liệt chọn A. 1  B. 2 của chính câu hỏi.
+const PAIR_RE = /(?:câu\s*(?:hỏi\s*)?|q\s*\.?\s*|question\s*)?(\d{1,3})\s*[\.\)\:\/\-–—]?\s*[:.\-–—]?\s*([A-Fa-f])\b/gi;
 
 function collectPairs(line: string, into: Record<string, string>) {
   for (const m of line.matchAll(PAIR_RE)) {
-    if (m[1]) into[String(Number(m[1]))] = m[2].toUpperCase();
+    if (m[1] && m[2]) into[String(Number(m[1]))] = m[2].toUpperCase();
   }
 }
 
@@ -89,32 +89,91 @@ function countPairs(line: string) {
 }
 
 /**
- * Dò bảng đáp án trong tài liệu. Ưu tiên dòng có nhãn rõ ràng
- * ("ĐÁP ÂN: 1.B 2.C"), sau đó dòng dạng "Câu 1: A" / "1.A", cuối cùng
- * mới tới dòng gộp nhiều cặp (bảng, danh sách dọc). Bỏ qua dòng có dấu
- * hỏi để không nhầm phần đặt câu hỏi.
+ * Trích xuất các cặp (câu, đáp án) từ các bảng Markdown (| ô | ô |).
+ * Hỗ trợ cả bảng ngang (hàng 1: câu 1..10, hàng 2: đáp án A..D)
+ * lẫn bảng dọc (| Câu | Đáp án | Câu | Đáp án |).
+ */
+export function extractTablePairs(text: string): Record<string, string> {
+  const map: Record<string, string> = {};
+  if (!text || !text.includes("|")) return map;
+  const lines = text
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter((l) => /^\|.*\|$/.test(l));
+  if (lines.length === 0) return map;
+
+  // 1. Dò bảng ngang: hàng 1 là số câu, hàng 2 liền kề là đáp án
+  for (let r = 0; r + 1 < lines.length; r++) {
+    const rowA = lines[r].replace(/^\|/, "").replace(/\|$/, "").split("|").map((c) => c.trim());
+    const rowB = lines[r + 1].replace(/^\|/, "").replace(/\|$/, "").split("|").map((c) => c.trim());
+    if (rowA.length !== rowB.length || rowA.length < 2) continue;
+
+    let qCount = 0;
+    for (let c = 0; c < rowA.length; c++) {
+      const cleanNum = rowA[c].replace(/^(?:câu\s*(?:hỏi\s*)?|q\s*\.?\s*|question\s*)/i, "").trim();
+      if (/^\d{1,3}$/.test(cleanNum)) qCount++;
+    }
+
+    if (qCount >= 2 && qCount >= rowA.length - 2) {
+      for (let c = 0; c < rowA.length; c++) {
+        const qNum = rowA[c].replace(/^(?:câu\s*(?:hỏi\s*)?|q\s*\.?\s*|question\s*)/i, "").trim();
+        const ans = rowB[c].replace(/\[ĐÁP ÁN ĐÚNG THEO TÀI LIỆU\]/g, "").trim();
+        if (/^\d{1,3}$/.test(qNum) && ans && !/^(?:đáp\s*án|đ\/a|đa|answer|key)$/i.test(ans)) {
+          map[qNum] = ans;
+        }
+      }
+      r++; // Đã xử lý cặp hàng này
+    }
+  }
+
+  // 2. Dò bảng dọc: | 1 | A | 2 | B | hoặc | Câu | Đáp án |
+  for (const line of lines) {
+    const cells = line.replace(/^\|/, "").replace(/\|$/, "").split("|").map((c) => c.trim());
+    if (cells.some((c) => /^(?:câu|question|q)$/i.test(c) && /^(?:đáp\s*án|đ\/a|answer|key)$/i.test(cells[1] ?? ""))) continue;
+    for (let i = 0; i + 1 < cells.length; i += 2) {
+      const qNum = cells[i].replace(/^(?:câu\s*(?:hỏi\s*)?|q\s*\.?\s*|question\s*)/i, "").trim();
+      const ans = cells[i + 1].replace(/\[ĐÁP ÁN ĐÚNG THEO TÀI LIỆU\]/g, "").trim();
+      if (/^\d{1,3}$/.test(qNum) && ans && !/^(?:đáp\s*án|đ\/a|answer|key)$/i.test(ans)) {
+        map[qNum] = ans;
+      }
+    }
+  }
+
+  return map;
+}
+
+/**
+ * Dò bảng đáp án trong tài liệu. Ưu tiên bảng dữ liệu (Word/Markdown table),
+ * sau đó dòng có nhãn rõ ràng ("ĐÁP ÁN: 1.B 2.C"), dòng dạng "Câu 1: A" / "1.A",
+ * cuối cùng mới tới dòng gộp nhiều cặp. Bỏ qua dòng có dấu hỏi để không nhầm stem.
  */
 export function detectAnswerKey(text: string): Record<string, string> | null {
   if (!text) return null;
+
+  // Dò trước từ bảng dữ liệu (table)
+  const tablePairs = extractTablePairs(text);
+
   const lines = text.split(/\r?\n/);
   const hasQuestionMark = (l: string) => /[?？]/.test(l);
 
-  const labeled = lines.filter((l) => /(đáp\s*án|dap\s*an|answer\s*key)/i.test(l) && !hasQuestionMark(l));
-  let map: Record<string, string> = {};
+  const labeled = lines.filter(
+    (l) => /(đáp\s*án|dap\s*an|answer\s*key|key|hướng\s*dẫn\s*chấm)/i.test(l) && !hasQuestionMark(l),
+  );
+  let map: Record<string, string> = { ...tablePairs };
   for (const line of labeled) collectPairs(line, map);
 
   if (Object.keys(map).length < 2) {
-    map = {};
+    map = { ...tablePairs };
     const numbered = lines.filter((l) => {
       const s = l.trim();
       if (!s || s.length > 120 || hasQuestionMark(s)) return false;
-      return /^(câu\s*(hỏi\s*)?)?[\(\[]?\d{1,3}[\.\)]?\s*[:\.]?\s*[A-Fa-f]\b/i.test(s);
+      return /^(?:câu\s*(?:hỏi\s*)?|q\s*\.?\s*|question\s*)?[\(\[]?\d{1,3}[\.\)\:\/\-–—]?\s*[:.\-–—]?\s*[A-Fa-f]\b/i.test(s);
     });
     for (const line of numbered) collectPairs(line, map);
   }
 
   if (Object.keys(map).length < 2) {
-    map = {};
+    map = { ...tablePairs };
     const compact = lines.filter((l) => {
       const s = l.trim();
       if (!s || s.length > 300 || hasQuestionMark(s)) return false;
@@ -123,8 +182,8 @@ export function detectAnswerKey(text: string): Record<string, string> | null {
     for (const line of compact) collectPairs(line, map);
   }
 
-  // Bang dap an luon bat dau tu cau 1: dung moc nay de loai nhieu khoi dong
-  // liet chon nham ve nhung chuc nang nham nhay nhu phan "A. 1  B. 2".
+  // Bảng đáp án luôn bắt đầu từ câu 1: dùng mốc này để loại các khối
+  // đáp án dính nhầm vào số liệu trong bài
   const keys = Object.keys(map).map(Number);
   if (keys.length < 2 || Math.min(...keys) > 2) return null;
   return map;

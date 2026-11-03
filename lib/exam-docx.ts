@@ -22,21 +22,45 @@ import { mtefToLatex } from "./mtef-latex.ts";
 
 const ANSWER_MARK = "[ĐÁP ÁN ĐÚNG THEO TÀI LIỆU]";
 
-/** Đáp án đúng thường được tô ĐỎ (giáo viên Việt Nam). Danh sách đóng để
- *  tránh tô bừa khi giáo viên tô màu trang trí. */
-const ANSWER_RED = /^(FF0000|C00000|E53935|D32F2F|B71C1C|FF5252|FF1744|F44336)$/i;
+/** Các mã màu thường được dùng để đánh dấu đáp án đúng:
+ *  - Đỏ / Đỏ thẫm / Đỏ gạch / Đỏ cam (phổ biến nhất)
+ *  - Xanh dương / Xanh lam (nhiều GV dùng để phân biệt với bút đỏ chấm bài)
+ *  - Xanh lá cây (nhiều phần mềm trắc nghiệm xuất ra)
+ *  - Tím / Hồng đậm / Cam
+ */
+const ANSWER_COLOR_RE = /^(?:FF0000|C00000|E53935|D32F2F|B71C1C|FF5252|FF1744|F44336|ED1C24|800000|990000|DC3545|CC0000|0000FF|0070C0|1E88E5|0D6EFD|002060|418AB3|2F5597|1F497D|008000|00B050|28A745|198754|388E3C|2E7D32|375623|548235|7030A0|6F42C1|800080|FF6600|ED7D31)$/i;
+
+function isAnswerColor(color: string | null): boolean {
+  if (!color) return false;
+  const c = color.trim().toUpperCase();
+  if (ANSWER_COLOR_RE.test(c)) return true;
+  // Bỏ qua màu đen/xám/auto mặc định
+  if (/^(AUTO|000000|0A0A0A|1A1A1A|222222|262626|333333|444444|555555|595959|7F7F7F|808080)$/i.test(c)) return false;
+  // Các màu có sắc tố rõ rệt (có R/G/B lệch hẳn nhau)
+  if (/^[0-9A-F]{6}$/i.test(c)) {
+    const r = parseInt(c.slice(0, 2), 16);
+    const g = parseInt(c.slice(2, 4), 16);
+    const b = parseInt(c.slice(4, 6), 16);
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    if (max - min >= 50 && (max > 100 || min < 150)) return true;
+  }
+  return false;
+}
 
 interface Run {
   text: string;
   color: string | null;
-  /** Nền highlight (yellow/green/…) — giáo viên thứ hai dùng highlight tô đáp
+  /** Nền highlight (yellow/green/…) — giáo viên dùng highlight tô đáp
    *  án đúng thay vì đổi màu chữ. `null` = không highlight. */
   highlight: string | null;
-  /** Gạch chân — đề Đúng/Sai dùng gạch chân các mệnh đề ĐÚNG. */
+  /** Gạch chân — đề Đúng/Sai hoặc MCQ dùng gạch chân đáp án ĐÚNG. */
   underline: boolean;
+  /** In đậm — nhiều GV in đậm chữ cái hoặc toàn bộ phương án đúng. */
+  bold: boolean;
 }
 
-/** Tách các run trong 1 đoạn, kèm màu chữ (null = mặc định/đen). */
+/** Tách các run trong 1 đoạn, kèm màu chữ, highlight, gạch chân, in đậm. */
 function parseRuns(paraXml: string): Run[] {
   const runs: Run[] = [];
   const runRe = /<w:r(?:\s[^>]*)?>([\s\S]*?)<\/w:r>/g;
@@ -52,8 +76,12 @@ function parseRuns(paraXml: string): Run[] {
     const hl = hlMatch ? hlMatch[1].toLowerCase() : null;
     const highlight = hl && hl !== "none" ? hl : null;
     // w:u w:val="single|double|thick|…"; val="none" = tắt gạch chân.
-    const uMatch = /<w:u\s+w:val="([^"]+)"/.exec(head);
-    const underline = !!uMatch && uMatch[1].toLowerCase() !== "none";
+    const uMatch = /<w:u(?:\s+w:val="([^"]+)")?\s*\/>/.exec(head);
+    const underline = !!uMatch && (!uMatch[1] || uMatch[1].toLowerCase() !== "none");
+    // w:b hoặc w:bCs (bold cho complex scripts)
+    const bMatch = /<w:b(?:\s+w:val="([^"]+)")?\s*\/>|<w:bCs(?:\s+w:val="([^"]+)")?\s*\/>/.exec(head);
+    const bVal = bMatch ? (bMatch[1] ?? bMatch[2]) : null;
+    const bold = !!bMatch && (!bVal || !/^(0|false|off|none)$/i.test(bVal));
     const vAlignMatch = /<w:vertAlign\s+w:val="([^"]+)"/.exec(head);
     const vAlign = vAlignMatch ? vAlignMatch[1] : null;
     let text = "";
@@ -72,7 +100,7 @@ function parseRuns(paraXml: string): Run[] {
     text = parts.join("");
     if (vAlign === "superscript" && text.trim()) text = `^{${text}}`;
     else if (vAlign === "subscript" && text.trim()) text = `_{${text}}`;
-    if (text) runs.push({ text, color, highlight, underline });
+    if (text) runs.push({ text, color, highlight, underline, bold });
   }
   return runs;
 }
@@ -81,33 +109,90 @@ interface OptionSeg {
   letter: string;
   text: string;
   marked: boolean;
+  hasColor: boolean;
+  hasHighlight: boolean;
+  hasUnderline: boolean;
+  hasBold: boolean;
 }
 
-/** Cắt 1 đoạn văn thành các lựa chọn A/B/C/D (nhiều đáp án hay nằm chung
- *  1 đoạn, cách nhau bằng tab). Giữ màu từng run để phát hiện đáp án tô đỏ
- *  ở chữ cái HOẶC ở nội dung (file thật có cả 2 kiểu). */
-function splitOptions(runs: Run[]): OptionSeg[] {
+/** Chia nhỏ các run nếu trong 1 run có chứa nhiều lựa chọn dính liền
+ *  (vd run chứa "A. Hà Nội    B. Đà Nẵng") để mỗi lựa chọn có run riêng
+ *  giữ nguyên định dạng (màu, đậm, gạch chân). */
+function subdivideRuns(runs: Run[]): Run[] {
+  const result: Run[] = [];
+  const optSplitRe = /(?<=[\s\t.,;:()"'$]|^)([A-F])[\.\)\:](?=[\sA-Za-zÀ-ỹ0-9$\\\(\[{]|$)/g;
+  for (const r of runs) {
+    const text = r.text;
+    const marks: number[] = [];
+    let m: RegExpExecArray | null;
+    while ((m = optSplitRe.exec(text)) !== null) {
+      if (m.index > 0) marks.push(m.index);
+    }
+    if (!marks.length) {
+      result.push(r);
+      continue;
+    }
+    let last = 0;
+    for (const pos of marks) {
+      if (pos > last) {
+        result.push({ ...r, text: text.slice(last, pos) });
+        last = pos;
+      }
+    }
+    if (last < text.length) {
+      result.push({ ...r, text: text.slice(last) });
+    }
+  }
+  return result;
+}
+
+/** Cắt 1 đoạn văn thành các lựa chọn A/B/C/D/E/F (nhiều đáp án hay nằm chung
+ *  1 đoạn, cách nhau bằng tab). Giữ màu từng run để phát hiện đáp án tô màu,
+ *  highlight, gạch chân hoặc in đậm ở chữ cái HOẶC ở nội dung. */
+function splitOptions(rawRuns: Run[]): OptionSeg[] {
+  const runs = subdivideRuns(rawRuns);
   const segs: OptionSeg[] = [];
   let cur: Run[] = [];
   const flush = () => {
     if (!cur.length) return;
     const text = cur.map((r) => r.text).join("").replace(/[ \t]+/g, " ").trim();
-    const lm = /^([A-D])[\.\)\:]/.exec(text);
+    const lm = /^([A-F])[\.\)\:]/.exec(text);
     if (lm) {
+      const hasColor = cur.some((r) => isAnswerColor(r.color));
+      const hasHighlight = cur.some((r) => r.highlight !== null);
+      const hasUnderline = cur.some((r) => r.underline && r.text.trim().length > 0);
+      const hasBold = cur.some((r) => r.bold && r.text.trim().length > 0);
       segs.push({
         letter: lm[1],
         text,
-        marked: cur.some((r) => (r.color !== null && ANSWER_RED.test(r.color)) || r.highlight !== null),
+        marked: hasColor || hasHighlight,
+        hasColor,
+        hasHighlight,
+        hasUnderline,
+        hasBold,
       });
     }
     cur = [];
   };
   for (const r of runs) {
-    // Run mới bắt đầu bằng "B." / "C)"... → đáp án mới (kể cả run chỉ có chữ cái).
-    if (/^[A-D][\.\)\:]/.test(r.text.trim()) && cur.length > 0) flush();
+    if (/^[A-F][\.\)\:]/.test(r.text.trim()) && cur.length > 0) flush();
     cur.push(r);
   }
   flush();
+
+  // Phát hiện gạch chân hoặc in đậm đặc trưng: nếu trong nhóm lựa chọn (>=2),
+  // chỉ duy nhất 1 phương án có gạch chân hoặc in đậm (trong khi các phương án khác không có)
+  if (segs.length >= 2) {
+    const underlined = segs.filter((s) => s.hasUnderline);
+    if (underlined.length === 1 && !segs.some((s) => s.marked)) {
+      underlined[0].marked = true;
+    }
+    const bolded = segs.filter((s) => s.hasBold);
+    if (bolded.length === 1 && !segs.some((s) => s.marked)) {
+      bolded[0].marked = true;
+    }
+  }
+
   return segs;
 }
 
@@ -167,9 +252,9 @@ export function reconcileDocKey<
     .map((k) => ({
       letter: k.letter.toUpperCase(),
       full: normKey(k.text),
-      bare: normKey(k.text.replace(/^[A-D][\.\)\:]\s*/i, "")),
+      bare: normKey(k.text.replace(/^[A-F][\.\)\:]\s*/i, "")),
     }))
-    .filter((k) => /^[A-D]$/.test(k.letter) && (k.full.length >= 8 || k.bare.length >= 4));
+    .filter((k) => /^[A-F]$/.test(k.letter) && (k.full.length >= 4 || k.bare.length >= 1));
   if (!usable.length) return { questions, overridden };
 
   // Tần suất text đáp án trên TOÀN đề: text trùng ở nhiều câu (số "2", "Đúng")
@@ -180,7 +265,7 @@ export function reconcileDocKey<
     const seen = new Set<string>();
     for (const opt of q.options) {
       const n = normKey(String(opt ?? ""));
-      if (n.length >= 4 && !seen.has(n)) {
+      if (n.length >= 1 && !seen.has(n)) {
         seen.add(n);
         freq.set(n, (freq.get(n) ?? 0) + 1);
       }
@@ -191,13 +276,17 @@ export function reconcileDocKey<
     if (q.type !== "mcq" || !Array.isArray(q.options)) continue;
     const letters = new Set<string>();
     for (const k of usable) {
+      const optIdx = k.letter.charCodeAt(0) - 65;
+      const directOpt = optIdx >= 0 && optIdx < q.options.length ? normKey(String(q.options[optIdx] ?? "")) : "";
+      if (directOpt && directOpt === k.bare) {
+        letters.add(k.letter);
+        continue;
+      }
       for (const opt of q.options) {
         const no = normKey(String(opt ?? ""));
-        // Khớp tuyệt đối + duy nhất toàn đề (kể cả đáp án số ngắn) HOẶC bao
-        // hàm với text đủ dài (chống trùng ngẫu nhiên).
-        const exact = no.length >= 4 && no === k.bare && freq.get(no) === 1;
+        const exact = no.length >= 2 && no === k.bare && freq.get(no) === 1;
         const contains =
-          no.length >= 8 && k.full.length >= 8 && (no.includes(k.full) || k.full.includes(no));
+          no.length >= 6 && k.full.length >= 6 && (no.includes(k.full) || k.full.includes(no));
         if (exact || contains) {
           letters.add(k.letter);
           break;
@@ -247,7 +336,9 @@ function serializeTable(tblXml: string): string[] {
       while ((pm = pRe.exec(cm[1])) !== null) {
         const runs = parseRuns(pm[1]);
         paras.push(runs.map((r) => r.text).join("").replace(/[ \t]+/g, " ").trim());
-        paraRed.push(runs.some((r) => r.color !== null && ANSWER_RED.test(r.color as string)));
+        paraRed.push(
+          runs.some((r) => isAnswerColor(r.color) || r.highlight !== null || (r.underline && r.text.trim().length > 0)),
+        );
       }
       const text = paras.filter(Boolean).join(" ; ").trim() || " ";
       const red = paraRed.some(Boolean);
@@ -419,24 +510,31 @@ export function extractDocxText(docxBuffer: Buffer): DocxExtract {
       }
       if (!text) continue;
       paraCount++;
-      // Đề Đúng/Sai: giáo viên gạch chân các mệnh đề ĐÚNG (không highlight) —
+      // Đề Đúng/Sai: giáo viên gạch chân, in đậm hoặc tô màu các mệnh đề ĐÚNG (không highlight) —
       // gắn marker vào dòng mệnh đề để parser suy ra đáp án Đ/S.
-      const underlined = runs.some((r) => r.underline && r.text.trim().length > 0);
+      const markedTf = runs.some(
+        (r) =>
+          ((r.underline || r.bold) && r.text.trim().length > 0) ||
+          isAnswerColor(r.color) ||
+          r.highlight !== null,
+      );
       const segs = splitOptions(runs);
       if (segs.length > 0) {
         allSegs.push(...segs);
         lines.push({ text: segs.map((s) => s.text).join("  "), marked: segs.some((s) => s.marked), segs });
-      } else if (underlined && /^[a-d]\s*[.)]/.test(text)) {
+      } else if (markedTf && /^[a-d]\s*[.)]/.test(text)) {
         lines.push({ text: `${text} ${ANSWER_MARK}`, marked: true, segs: [] });
       } else {
         lines.push({ text, marked: false, segs: [] });
       }
     }
 
-    // Chỉ đánh dấu khi đáp án đỏ là thiểu số rõ rệt (tránh tài liệu tô đỏ
-    // toàn bộ): cần ít nhất 4 lựa chọn và số dòng đỏ < 50%.
+    // Chỉ đánh dấu khi đáp án tô màu/đánh dấu là thiểu số rõ rệt (tránh tài liệu tô màu toàn bộ):
     const markedSegs = allSegs.filter((s) => s.marked).length;
-    const useMarks = allSegs.length >= 4 && markedSegs > 0 && markedSegs < allSegs.length / 2;
+    const useMarks =
+      allSegs.length >= 2 &&
+      markedSegs > 0 &&
+      (allSegs.length <= 4 ? markedSegs === 1 : markedSegs <= Math.ceil(allSegs.length * 0.5));
 
     let marked = 0;
     // Key độc lập cho đối chiếu: chữ cái + nội dung đáp án đỏ.

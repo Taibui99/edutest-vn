@@ -448,4 +448,106 @@ Explanation: Simple past tense of go is went.`;
   assert.match(q2.explanation, /Simple past tense/);
 });
 
+t("bảng đáp án ngang dạng lưới | Câu 1 2 3 4 | | Đ/A A B C D |", () => {
+  const text = `Câu 1: Thủ đô của Pháp là gì?
+A. London
+B. Paris
+C. Rome
+D. Berlin
+
+Câu 2: Số nguyên tố chẵn duy nhất là?
+A. 0
+B. 1
+C. 2
+D. 4
+
+BẢNG ĐÁP ÁN:
+| Câu | 1 | 2 |
+| Đáp án | B | C |`;
+  const { payload } = parseExamText(text);
+  assert.equal(payload.questions.length, 2);
+  assert.equal(payload.questions[0].answer, "B");
+  assert.equal(payload.questions[0].answerSource, "document");
+  assert.equal(payload.questions[1].answer, "C");
+  assert.equal(payload.questions[1].answerSource, "document");
+});
+
+t("DOCX in đậm phương án đúng (w:b) được phát hiện chính xác", () => {
+  const documentXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>
+<w:p><w:r><w:t>Câu 1: Kim loại nào dẫn điện tốt nhất?</w:t></w:r></w:p>
+<w:p>
+  <w:r><w:t>A. Đồng  </w:t></w:r>
+  <w:r><w:rPr><w:b/></w:rPr><w:t>B. Bạc  </w:t></w:r>
+  <w:r><w:t>C. Nhôm  </w:t></w:r>
+  <w:r><w:t>D. Vàng</w:t></w:r>
+</w:p>
+</w:body></w:document>`;
+  const zip = new AdmZip();
+  zip.addFile("word/document.xml", Buffer.from(documentXml, "utf8"));
+  const rich = extractDocxText(zip.toBuffer());
+  assert.ok(rich.marked > 0);
+  assert.match(rich.text, /B\. Bạc.*\[ĐÁP ÁN ĐÚNG/);
+  const { payload } = parseExamText(rich.text, { docKey: rich.key });
+  assert.equal(payload.questions[0].answer, "B");
+  assert.equal(payload.questions[0].answerSource, "document");
+});
+
+t("DOCX tô màu xanh dương/xanh lá (w:color) được nhận diện đáp án", () => {
+  const documentXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>
+<w:p><w:r><w:t>Câu 1: Công thức hóa học của nước là gì?</w:t></w:r></w:p>
+<w:p>
+  <w:r><w:rPr><w:color w:val="0070C0"/></w:rPr><w:t>A. H2O  </w:t></w:r>
+  <w:r><w:t>B. CO2  </w:t></w:r>
+  <w:r><w:t>C. O2  </w:t></w:r>
+  <w:r><w:t>D. N2</w:t></w:r>
+</w:p>
+</w:body></w:document>`;
+  const zip = new AdmZip();
+  zip.addFile("word/document.xml", Buffer.from(documentXml, "utf8"));
+  const rich = extractDocxText(zip.toBuffer());
+  assert.ok(rich.marked > 0);
+  assert.match(rich.text, /A\. H2O.*\[ĐÁP ÁN ĐÚNG/);
+  const { payload } = parseExamText(rich.text, { docKey: rich.key });
+  assert.equal(payload.questions[0].answer, "A");
+});
+
+t("đề Tiếng Anh dạng phát âm/trọng âm không có stem vẫn giữ nguyên", () => {
+  const text = `Mark the letter A, B, C, or D to indicate the word whose underlined part differs:
+Question 1: A. watched   B. stopped   C. pushed   D. wanted
+Answer: D
+
+Question 2: A. survive   B. provide   C. promise   D. decline
+Answer: C`;
+  const { payload } = parseExamText(text);
+  assert.equal(payload.questions.length, 2);
+  assert.equal(payload.questions[0].question, "Question 1");
+  assert.equal(payload.questions[0].answer, "D");
+  assert.equal(payload.questions[1].question, "Question 2");
+  assert.equal(payload.questions[1].answer, "C");
+});
+
+t("bảng đáp án Đúng/Sai dạng 1: a-Đ, b-S, c-Đ, d-S", () => {
+  const text = `Phần 2. Câu trắc nghiệm đúng sai
+Câu 1: Cho hàm số y = f(x).
+a) Hàm số đồng biến trên R.
+b) Đồ thị hàm số đi qua gốc tọa độ.
+c) Hàm số có cực trị.
+d) Giá trị nhỏ nhất là 0.
+
+ĐÁP ÁN:
+| Câu | Đáp án |
+| 1 | a - Đ, b - S, c - Đ, d - S |`;
+  const { payload } = parseExamText(text);
+  assert.equal(payload.questions.length, 1);
+  const q = payload.questions[0];
+  assert.equal(q.type, "true_false");
+  assert.equal(q.answer, "Đ – S – Đ – S");
+  assert.deepEqual(
+    q.grading.statements.map((s) => s.answer),
+    [true, false, true, false],
+  );
+});
+
 console.log(`\n${passed} test pass`);

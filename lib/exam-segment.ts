@@ -22,19 +22,19 @@ export interface TextBlock {
   note: string;
 }
 
-const OPT_START = /^[A-D][\.\)\:]/;
+const OPT_START = /^[A-F][\.\)\:]/;
 
 /**
  * Cắt 1 dòng thành nhiều đáp án nếu chúng nằm chung dòng ("A. x B. y",
  * "A. 1.B. 2" — đề gõ dính hay gặp). Ranh giới: trước chữ cái là đầu dòng /
- * khoảng trắng / dấu câu, sau dấu chấm là khoảng trắng / chữ / hết dòng
+ * khoảng trắng / dấu câu, sau dấu chấm là khoảng trắng / chữ / ký hiệu công thức / hết dòng
  * (chặn "B.52" dính trong số liệu).
  */
 export function splitOptionLine(line: string): string[] {
   const marks: number[] = [];
   // `$` trong lookbehind: đề chèn công thức LaTeX dính liền lựa chọn
   // ("$T(K)=…$B. $t(…)=…$") — không có khoảng trắng trước "B.".
-  const re = /(?<=[\s.,;:()"'$]|^)([A-D])[\.\)\:](?=[\sA-Za-zÀ-ỹ]|$)/g;
+  const re = /(?<=[\s.,;:()"'$]|^)([A-F])[\.\)\:](?=[\sA-Za-zÀ-ỹ$\\\(\[{]|$)/g;
   let m: RegExpExecArray | null;
   while ((m = re.exec(line)) !== null) marks.push(m.index);
   if (!marks.length || marks[0] !== 0) return [line];

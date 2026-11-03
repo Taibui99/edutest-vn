@@ -22,7 +22,7 @@
 /* Dùng import tương đối kèm đuôi .ts (không phải "@/lib") để
  * `node scripts/qa-exam-parse.mjs` chạy thẳng file TS này không cần loader. */
 import { isOptionLine, segmentQuestions, splitOptionLine } from "./exam-segment.ts";
-import { detectAnswerKey, normalizeMcqAnswer, type SmartPayload, type SmartQuestion } from "./ai-exam-build.ts";
+import { detectAnswerKey, extractTablePairs, normalizeMcqAnswer, type SmartPayload, type SmartQuestion } from "./ai-exam-build.ts";
 import { reconcileDocKey, type DocxKey } from "./exam-docx.ts";
 
 export const ANSWER_MARK = "[ĐÁP ÁN ĐÚNG THEO TÀI LIỆU]";
@@ -31,24 +31,28 @@ export type ParseIssue = { question: number | null; message: string };
 
 export type ParseExamResult = { payload: SmartPayload; issues: ParseIssue[] };
 
-const QNUM_RE = /^(?:câu\s*(?:hỏi\s*|đề\s*câu\s*)?|question\s*|q\s*\.?\s*)(\d{1,3})\s*(?:\(\s*(\d+(?:[.,]\d+)?)\s*(?:đ|điểm|pts?|points?|marks?)\s*\)|\([^)]*\))?\s*[:.\-–—)]\s*(.*)$/i;
+const QNUM_RE =
+  /^(?:câu\s*(?:hỏi\s*(?:số\s*)?|số\s*|đề\s*câu\s*)?|bài\s*(?:tập\s*)?|question\s*|q\s*\.?\s*|problem\s*|exercise\s*|task\s*)(\d{1,3})\s*(?:\(\s*(\d+(?:[.,]\d+)?)\s*(?:đ|điểm|pts?|points?|marks?)\s*\)|\([^)]*\))?\s*[:.\-–—)/]\s*(.*)$/i;
 const BARENUM_RE = /^(\d{1,3})\s*[.)]\s+(\S.*)$/;
-const ANSWER_RE = /^(?:đáp\s*án(?:\s*đúng)?|dap\s*an|correct\s*answers?|answers?|key)\s*[:\-–—]\s*(.*)$/i;
+const ANSWER_RE =
+  /^(?:đáp\s*án(?:\s*(?:đúng|chuẩn|chi\s*tiết))?|dap\s*an|đ\/a|đa|kq|kết\s*quả|correct\s*answers?|answers?|ans\.?|key)\s*[:\-–—]\s*(.*)$/i;
 /** Đáp án MCQ kiểu đề 2025: dòng riêng "Chọn D" / "Chọn B". */
-const CHOSEN_RE = /^(?:chọn|lựa\s*chọn|chon|choose)\s*[:.\-–—]?\s*([A-Da-d])\s*[.)]?\s*$/i;
+const CHOSEN_RE =
+  /^(?:chọn(?:\s*(?:đáp\s*án|câu))?|lựa\s*chọn|chon|choose)\s*[:.\-–—]?\s*([A-Fa-f])\s*[.)]?\s*$/i;
 /** Mệnh đề Đúng/Sai 2025: "a) …", "b) …", "c) …", "d) …" (chữ thường để KHÔNG
  *  đụng lựa chọn MCQ "A. …" viết hoa). */
 const STATEMENT_RE = /^\s*([a-d])\s*[.)]\s*(\S.*)$/;
-const EXPL_RE = /^(?:giải\s*thích|lời\s*giải|explanations?)\s*[:\-–—]?\s*(.*)$/i;
+const EXPL_RE =
+  /^(?:giải\s*thích|lời\s*giải|hướng\s*dẫn\s*giải|hd\s*giải|hd|explanations?|expl\.?|solutions?)\s*[:\-–—]?\s*(.*)$/i;
 const POINTS_LINE_RE = /^(?:điểm|diem|points?|pts?|marks?)\s*[:\-–—]\s*(\d+(?:[.,]\d+)?)\s*$/i;
 const POINTS_TAIL_RE = /[\s([{]*(\d+(?:[.,]\d+)?)\s*(?:đ|điểm|pts?|points?|marks?)\s*[\])]?\s*$/i;
 const SINGLE_TOKEN_RE = /^\s*([A-Fa-f]|[1-9])\s*[.,]?\s*$/;
 /** Tham chiếu hình/biểu đồ — chế độ đọc theo quy tắc KHÔNG thấy hình nên
  *  đáp án có thể phụ thuộc hình. BỎ "hình học"/"hình tam giác" (từ vựng
  *  hình học thuần túy, không cần hình vẽ): chỉ flag "hình N", "hình vẽ",
- *  "hình dưới đây", "dựa vào hình", "biểu đồ", "sơ đồ", "đồ thị". */
+ *  "hình dưới đây", "dựa vào hình", "biểu đồ", "sơ đồ", "đồ thị", "diagram", "figure", "picture". */
 const FIGURE_REF_RE =
-  /\bhình\s*(?:\d{1,2}|[IVXLC]{1,4}|vẽ|minh\s*họa|(?:dưới|trên|sau|bên|này)\s*(?:đây|là|làm|phía)?|trong\s*(?:bài|đề))\b|\bdựa\s*vào\s*(?:hình|biểu\s*đồ)\b|\bbiểu\s*đồ\b|\bsơ\s*đồ\b|\bđồ\s*thị\b/iu;
+  /\bhình\s*(?:\d{1,2}|[IVXLC]{1,4}|vẽ|minh\s*họa|(?:dưới|trên|sau|bên|này)\s*(?:đây|là|làm|phía)?|trong\s*(?:bài|đề))\b|\bdựa\s*vào\s*(?:hình|biểu\s*đồ)\b|\bbiểu\s*đồ\b|\bsơ\s*đồ\b|\bđồ\s*thị\b|\b(?:figures?|diagrams?|charts?|graphs?|illustrations?|pictures?)\s*(?:\d{1,2}|[IVXLC]{1,4}|below|above)?\b|\b(?:refer\s*to\s*the\s*(?:figure|picture|diagram|chart|graph))\b/iu;
 
 function toPoints(raw: string): number | null {
   const n = Number(String(raw).replace(",", "."));
@@ -139,12 +143,15 @@ type Seg = {
   statements: string[];
   /** Đáp án từng mệnh đề suy ra từ gạch chân (đề chỉ gạch chân mệnh đề ĐÚNG). */
   statementAnswers: boolean[];
+  /** Tiền tố nhãn của câu ("Câu", "Question", "Bài"). */
+  labelPrefix?: string;
   /** Phần của đề (1 = trắc nghiệm, 2 = đúng/sai, 3 = trả lời ngắn, 4 = tự luận). */
   section: number;
 };
 
-const newSeg = (number: number | null, section = 1): Seg => ({
+const newSeg = (number: number | null, section = 1, labelPrefix = "Câu"): Seg => ({
   number,
+  labelPrefix,
   stem: [],
   options: [],
   markerLetter: null,
@@ -169,11 +176,14 @@ function pushOptionLine(seg: Seg, line: string) {
 }
 
 function finalize(seg: Seg, issues: ParseIssue[]): SmartQuestion | null {
-  const stem = clean(joinStemLines(seg.stem));
-  if (!stem && seg.options.length === 0) return null;
+  const rawStem = clean(joinStemLines(seg.stem));
+  if (!rawStem && seg.options.length === 0) return null;
 
-  const label = seg.number != null ? `Câu ${seg.number}` : "Một khối";
-  if (!stem && seg.options.length) {
+  const label = seg.number != null ? `${seg.labelPrefix ?? "Câu"} ${seg.number}` : "Một khối";
+  // Nếu câu không có stem nhưng có options (thường gặp ở đề tiếng Anh phát âm/trọng âm):
+  // gán tiêu đề tự động để không bị rỗng
+  const stem = rawStem || (seg.options.length ? (seg.number != null ? label : "Chọn đáp án đúng") : "");
+  if (!rawStem && seg.options.length) {
     issues.push({ question: seg.number, message: `${label}: có các lựa chọn nhưng thiếu nội dung câu hỏi` });
   }
 
@@ -187,10 +197,10 @@ function finalize(seg: Seg, issues: ParseIssue[]): SmartQuestion | null {
   else if (numStatements >= 2) type = "true_false";
   else type = "essay";
 
-  if (seg.options.length > 4) {
-    issues.push({ question: seg.number, message: `${label}: có ${seg.options.length} lựa chọn, giữ 4 đầu tiên` });
+  if (seg.options.length > 6) {
+    issues.push({ question: seg.number, message: `${label}: có ${seg.options.length} lựa chọn, giữ 6 đầu tiên` });
   }
-  const options = seg.options.slice(0, 4).map((o) => clean(o.text).replace(/^[A-Fa-f][.)]\s*/, "").trim());
+  const options = seg.options.slice(0, 6).map((o) => clean(o.text).replace(/^[A-Fa-f][.)]\s*/, "").trim());
 
   let answer = "";
   let answerSource: string | undefined;
@@ -279,22 +289,42 @@ function finalize(seg: Seg, issues: ParseIssue[]): SmartQuestion | null {
 }
 
 /**
- * Đọc "Bảng đáp án" cuối bài dạng lưới "| Câu | Đáp án | Câu | Đáp án |" (đề
- * 2025). Trả về map số-câu → đáp án. Bỏ qua ô không phải số câu.
+ * Phân tích chuỗi đáp án Đúng/Sai dạng "a-Đ, b-S, c-Đ, d-S" hoặc "Đ – S – Đ – S"
+ */
+function parseTfAnswerString(raw: string): (boolean | null)[] {
+  const subMatches = [...raw.matchAll(/[a-d]\s*[:\-–—]\s*([đdstf]|đúng|sai|true|false)/gi)];
+  if (subMatches.length >= 2) {
+    return subMatches.map((m) => {
+      const val = m[1].toLowerCase();
+      if (val === "đ" || val === "đúng" || val === "d" || val === "dung" || val === "t" || val === "true") return true;
+      if (val === "s" || val === "sai" || val === "f" || val === "false") return false;
+      return null;
+    });
+  }
+  return tfTokenList(raw);
+}
+
+/**
+ * Đọc "Bảng đáp án" cuối bài: hỗ trợ cả bảng ngang (| 1 | 2 | 3 |) lẫn bảng dọc (| Câu | Đáp án |).
+ * Trả về map số-câu → đáp án. Bỏ qua ô không phải số câu.
  */
 function parseAnswerTable(lines: string[]): Record<string, string> | null {
-  const start = lines.findIndex((l) => /^bảng\s*đáp\s*án\b/i.test(l));
-  if (start < 0) return null;
+  const startIdx = lines.findIndex((l) =>
+    /^(?:bảng\s*đáp\s*án|đáp\s*án|hướng\s*dẫn\s*chấm|answer\s*key|key)\b/i.test(l),
+  );
+  const relevantLines = startIdx >= 0 ? lines.slice(startIdx) : lines;
+  const tableText = relevantLines.join("\n");
+  const extracted = extractTablePairs(tableText);
+  if (Object.keys(extracted).length > 0) return extracted;
+
   const out: Record<string, string> = {};
-  const rows = lines.slice(start).filter((l) => /^\|.*\|$/.test(l.trim()));
+  const rows = relevantLines.filter((l) => /^\|.*\|$/.test(l.trim()));
   for (const row of rows) {
     const cells = row.replace(/^\|/, "").replace(/\|$/, "").split("|").map((c) => c.trim());
-    // header "Câu | Đáp án | Câu | Đáp án" → bỏ.
-    if (cells.some((c) => /^câu$/i.test(c) || /^đáp\s*án$/i.test(c))) continue;
-    // Ghép cặp (số câu, đáp án): cột 0↔1, cột 2↔3…
+    if (cells.some((c) => /^(?:câu|question|q)$/i.test(c) || /^(?:đáp\s*án|đ\/a|answer|key)$/i.test(c))) continue;
     for (let i = 0; i + 1 < cells.length; i += 2) {
-      const n = cells[i];
-      const a = cells[i + 1];
+      const n = cells[i].replace(/^(?:câu|question|q)\s*/i, "").trim();
+      const a = cells[i + 1]?.trim() ?? "";
       if (/^\d{1,3}$/.test(n) && a) out[n] = a;
     }
   }
@@ -388,7 +418,8 @@ export function parseExamText(
     const qm = QNUM_RE.exec(lineText);
     if (qm) {
       push();
-      cur = newSeg(Number(qm[1]), section);
+      const prefix = /^(?:question|q\b)/i.test(lineText) ? "Question" : /^bài/i.test(lineText) ? "Bài" : "Câu";
+      cur = newSeg(Number(qm[1]), section, prefix);
       if (qm[2]) cur.points = toPoints(qm[2]);
       rest = qm[3];
       opened = true;
@@ -627,34 +658,62 @@ export function parseExamText(
 
   let questions = parsed.map((p, i) => ({ ...p.q, index: i }));
 
-  // "Bảng đáp án" cuối bài (đề 2025): { "1": "34", "2": "170", … } cho Phần 3
-  // (trả lời ngắn). Áp theo THỨ TỰ cho các câu trả lời ngắn còn thiếu đáp án.
-  const p3Table = parseAnswerTable(sectionRaw);
-  if (p3Table) {
-    const ordered = Object.keys(p3Table)
-      .sort((a, b) => Number(a) - Number(b))
-      .map((k) => p3Table[k]);
-    let t = 0;
-    for (const q of questions) {
-      if (q.answer || (q.type !== "short_answer" && q.type !== "essay")) continue;
-      if (t >= ordered.length) break;
-      q.answer = ordered[t++];
-      q.type = "short_answer";
-      q.answerSource = "document";
-      q.needsReview = false;
+  // Bảng đáp án cuối bài (dạng lưới table hoặc danh sách) — điền cho các câu còn thiếu
+  const fullTable = parseAnswerTable(lines) ?? parseAnswerTable(sectionRaw);
+  const keyMap = detectAnswerKey(raw);
+
+  // 1. Áp dụng cho Đúng/Sai
+  for (let i = 0; i < questions.length; i++) {
+    const q = questions[i];
+    if (q.type !== "true_false" || q.answer) continue;
+    const n = parsed[i].number;
+    const rawTf = (n != null && fullTable ? fullTable[String(n)] : undefined) ?? (n != null && keyMap ? keyMap[String(n)] : undefined);
+    if (rawTf) {
+      const tokens = parseTfAnswerString(rawTf).filter((x): x is boolean => x !== null);
+      const curGrading = (q.grading ?? {}) as { statements?: { text: string; answer?: boolean }[] };
+      const statements = Array.isArray(curGrading.statements)
+        ? curGrading.statements
+        : segs[i]?.statements.map((t) => ({ text: t })) ?? [];
+      if (tokens.length === statements.length && statements.length >= 2) {
+        q.grading = { statements: statements.map((st, si) => ({ text: st.text, answer: tokens[si] })) };
+        q.answer = tokens.map((v) => (v ? "Đ" : "S")).join(" – ");
+        q.answerSource = "document";
+        q.needsReview = false;
+      }
     }
   }
 
-  // Bảng đáp án cuối bài — điền cho câu còn trống (theo số câu; nếu số câu
-  // khớp đúng số dòng key thì áp dụng theo thứ tự cho câu không đánh số).
-  const keyMap = detectAnswerKey(raw);
-  if (keyMap) {
-    const keyCount = Object.keys(keyMap).length;
+  // 2. Áp dụng cho Trả lời ngắn / Tự luận
+  if (fullTable) {
+    const ordered = Object.keys(fullTable)
+      .sort((a, b) => Number(a) - Number(b))
+      .map((k) => fullTable[k]);
+    let t = 0;
+    for (let i = 0; i < questions.length; i++) {
+      const q = questions[i];
+      if (q.answer || (q.type !== "short_answer" && q.type !== "essay")) continue;
+      const n = parsed[i].number;
+      const ansByNum = n != null ? fullTable[String(n)] : undefined;
+      const val = ansByNum || (t < ordered.length ? ordered[t++] : undefined);
+      if (val && !/^[A-F]$/i.test(val)) {
+        q.answer = val;
+        q.type = "short_answer";
+        q.answerSource = "document";
+        q.needsReview = false;
+      }
+    }
+  }
+
+  // 3. Áp dụng cho Trắc nghiệm (MCQ)
+  if (keyMap || fullTable) {
+    const combinedKey: Record<string, string> = { ...(fullTable ?? {}), ...(keyMap ?? {}) };
+    const keyCount = Object.keys(combinedKey).length;
     for (let i = 0; i < questions.length; i++) {
       const q = questions[i];
       if (q.type !== "mcq" || q.answer) continue;
       const n = parsed[i].number;
-      const letter = n != null ? keyMap[String(n)] : keyCount === questions.length ? keyMap[String(i + 1)] : undefined;
+      const letter =
+        n != null ? combinedKey[String(n)] : keyCount === questions.length ? combinedKey[String(i + 1)] : undefined;
       const norm = normalizeMcqAnswer(letter, q.options.length);
       if (norm) {
         q.answer = norm;

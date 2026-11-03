@@ -87,14 +87,20 @@ function itemsToLines(items: PdfItem[]): string[] {
  */
 function layoutPage(items: PdfItem[], pageWidth: number): string {
   if (!items.length) return "";
-  const spanW = pageWidth * SPAN_RATIO;
-  const spanning = items.filter((it) => it.w > spanW);
-  const normal = items.filter((it) => it.w <= spanW);
-  const left = normal.filter((it) => it.x + it.w / 2 < pageWidth / 2);
-  const right = normal.filter((it) => it.x + it.w / 2 >= pageWidth / 2);
+  const midX = pageWidth / 2;
+  // Dòng trải ngang thực sự: băng qua giữa trang hoặc rộng hơn 55% trang (tiêu đề, bài đọc trải 2 cột)
+  const isSpanning = (it: PdfItem) => it.w > pageWidth * 0.55 || (it.x < midX - 25 && it.x + it.w > midX + 25);
+
+  const spanning = items.filter(isSpanning);
+  const normal = items.filter((it) => !isSpanning(it));
+  const left = normal.filter((it) => it.x + it.w <= midX + 10 || (it.x < midX && it.x + it.w / 2 < midX));
+  const right = normal.filter((it) => !left.includes(it));
   const chars = (arr: PdfItem[]) => arr.reduce((n, it) => n + it.str.length, 0);
-  const twoCol = left.length >= 3 && right.length >= 3
-    && chars(left) >= MIN_COLUMN_CHARS && chars(right) >= MIN_COLUMN_CHARS;
+  const twoCol =
+    left.length >= 3 &&
+    right.length >= 3 &&
+    chars(left) >= MIN_COLUMN_CHARS &&
+    chars(right) >= MIN_COLUMN_CHARS;
 
   const parts: string[] = [];
   if (spanning.length) parts.push(...itemsToLines(spanning));
