@@ -111,6 +111,45 @@ function isTfTokens(raw: string): boolean {
   return parts.length >= 2 && parts.every((p) => p !== null);
 }
 
+/**
+ * Trích xuất đáp án Đúng/Sai nếu được ghi trực tiếp trên dòng mệnh đề:
+ *  - Cuối câu: "... (đúng)", "... (sai)", "... [Đúng]", "... - Đúng", "... : Đúng"
+ *  - Đầu câu: "[Đ] ...", "(Đúng) ..."
+ * Trả về nội dung sạch (đã gỡ nhãn đáp án) và boolean đáp án (hoặc null nếu không có).
+ */
+function extractStatementAnswer(rawText: string): { text: string; answer: boolean | null } {
+  let text = rawText.trim();
+  let answer: boolean | null = null;
+
+  // 1. Dò ở cuối câu: "(đúng)", "(sai)", "[Đúng]", " - Đúng", ": Đúng", "(đ)", "(s)"
+  const tailRe = /(?:[\s([{–—\-:]|\b)(đúng|dung|sai|true|false|đ|s)[\s)\]}]*$/i;
+  const tm = tailRe.exec(text);
+  if (tm) {
+    const val = tm[1].toLowerCase();
+    if (val === "đúng" || val === "dung" || val === "đ" || val === "t" || val === "true") answer = true;
+    else if (val === "sai" || val === "s" || val === "f" || val === "false") answer = false;
+    if (answer !== null) {
+      text = text.slice(0, tm.index).trim().replace(/[\s([{–—\-:]+$/, "").trim();
+    }
+  }
+
+  // 2. Dò ở đầu câu: "[Đ] Nội dung", "(Đúng) Nội dung"
+  if (answer === null) {
+    const headRe = /^[\[(](đúng|dung|sai|true|false|đ|s)[\])]\s*[:.\-–—]?\s*(.*)$/i;
+    const hm = headRe.exec(text);
+    if (hm) {
+      const val = hm[1].toLowerCase();
+      if (val === "đúng" || val === "dung" || val === "đ" || val === "t" || val === "true") answer = true;
+      else if (val === "sai" || val === "s" || val === "f" || val === "false") answer = false;
+      if (answer !== null) {
+        text = hm[2].trim();
+      }
+    }
+  }
+
+  return { text, answer };
+}
+
 /** Các biến thể đáp án trả lời ngắn được chấp nhận (số có/không đơn vị, dấu
  *  thập phân kiểu Việt Nam và quốc tế). Server bắt buộc short_answer phải có
  *  `grading.acceptedAnswers` thì mới lưu đề được. */
@@ -235,18 +274,28 @@ function finalize(seg: Seg, issues: ParseIssue[]): SmartQuestion | null {
             .filter((l) => BARENUM_RE.test(l))
             .map((l) => clean(l.replace(BARENUM_RE, "$2")));
       const tokens = tfTokenList(seg.answerRaw ?? "").filter((x): x is boolean => x !== null);
-      // Đề chỉ GẠCH CHÂN mệnh đề đúng (không ghi dòng "Đáp án") → suy ra Đ/S
-      // từ vị trí gạch chân của từng mệnh đề.
+      // 1. Đề ghi trực tiếp "(đúng)" / "(sai)" ở tất cả mệnh đề
+      const allDirect =
+        seg.statements.length >= 2 &&
+        seg.statementAnswers.length === seg.statements.length &&
+        seg.statementAnswers.every((x) => x !== null && x !== undefined);
+      // 2. Đề chỉ gạch chân / tô màu mệnh đề ĐÚNG
       const fromUnderline =
         seg.statements.length >= 2 &&
         seg.statementAnswers.length === seg.statements.length &&
         seg.statementAnswers.some(Boolean);
       if (tokens.length === statements.length && statements.length >= 2) {
         grading = { statements: statements.map((text, i) => ({ text, answer: tokens[i] })) };
-      } else if (fromUnderline) {
-        grading = { statements: statements.map((text, i) => ({ text, answer: seg.statementAnswers[i] })) };
+      } else if (allDirect) {
+        grading = { statements: statements.map((text, i) => ({ text, answer: !!seg.statementAnswers[i] })) };
         answer = seg.statementAnswers.map((v) => (v ? "Đ" : "S")).join(" – ");
         answerSource = "document";
+        needsReview = false;
+      } else if (fromUnderline) {
+        grading = { statements: statements.map((text, i) => ({ text, answer: !!seg.statementAnswers[i] })) };
+        answer = seg.statementAnswers.map((v) => (v ? "Đ" : "S")).join(" – ");
+        answerSource = "document";
+        needsReview = false;
       } else if (statements.length >= 2) {
         issues.push({ question: seg.number, message: `${label}: số mệnh đề không khớp danh sách Đúng/Sai — kiểm tra tay` });
       }
@@ -399,16 +448,28 @@ export function parseExamText(
     const { line: lineText, letter: rawLetter, marked: markedLine } = extractMarker(lines[i]);
     let letter = rawLetter;
 
-    // Chuyển phần thi: "Phần 2." / "Phần 3." / "II. TRẮC NGHIỆM ĐÚNG - SAI" / "Part 1" / "Section A" —
+    // Chuyển phần thi: "Phần 2." / "Phần 3." / "II. TRẮC NGHIỆM ĐÚNG - SAI" / "Part 1" / "Section A" / "2. Trắc nghiệm đúng sai" —
     // chốt câu đang dở (dòng tiêu đề KHÔNG được dính vào câu trước).
     const pm = /^(?:phần|part|section)\s*([1234])\b/i.exec(lineText);
-    const rm = pm ? null : /^([IVX]+)\s*[.)]\s*(?:phần|part|section|trắc\s*nghiệm|tự\s*luận|trả\s*lời\s*ngắn|multiple\s*choice|reading|writing|listening)\b/i.exec(lineText);
-    if (pm || rm) {
+    const rm =
+      pm
+        ? null
+        : /^([IVX]+)\s*[.)]\s*(?:phần|part|section|trắc\s*nghiệm|tự\s*luận|trả\s*lời\s*ngắn|đúng\s*[-–—/]?\s*sai|multiple\s*choice|reading|writing|listening)\b/i.exec(
+            lineText,
+          );
+    const sm =
+      pm || rm
+        ? null
+        : /^([1234])\s*[.)]\s*(?:phần|part|section|trắc\s*nghiệm|tự\s*luận|trả\s*lời\s*ngắn|đúng\s*[-–—/]?\s*sai)\b/i.exec(
+            lineText,
+          );
+    if (pm || rm || sm) {
       push();
       if (pm) section = Number(pm[1]);
       else if (rm?.[1] === "II") section = 2;
       else if (rm?.[1] === "III") section = 3;
       else if (rm?.[1] === "IV") section = 4;
+      else if (sm) section = Number(sm[1]);
       continue;
     }
     if (section >= 2) sectionRaw.push(lineText);
@@ -510,8 +571,10 @@ export function parseExamText(
     // câu (trước Lời giải / đáp án) — lời giải cũng có a) b) nhưng là diễn giải.
     const st = STATEMENT_RE.exec(rest);
     if (st && cur.options.length === 0 && !cur.answerSeen && cur.explanation.length === 0) {
-      cur.statements.push(st[2].trim());
-      cur.statementAnswers.push(markedLine);
+      const parsedSt = extractStatementAnswer(st[2]);
+      cur.statements.push(parsedSt.text);
+      const stAns = parsedSt.answer !== null ? parsedSt.answer : markedLine ? true : null;
+      cur.statementAnswers.push(stAns as unknown as boolean);
       continue;
     }
     const expl = EXPL_RE.exec(rest);

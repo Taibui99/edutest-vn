@@ -170,7 +170,7 @@ Giáo viên soạn đề (tay, AI, hoặc đọc từ file Word/PDF), giao cho l
 ## 9. Thư viện lõi
 
 - `lib/access.ts` (45 dòng) — defaultModeByRole, effectiveMode, isTeacherAccess, isStudentAccess, isAdminAccess, sessionUser
-- `lib/ai-exam-build.ts` (261 dòng) — DIFFICULTY_LEVELS, Difficulty, SmartQuestion, SmartPayload, SmartStats, normalizeDifficulty, normalizeMcqAnswer, extractTablePairs, detectAnswerKey, normalizeQuestion, reconcileAnswers, computeStats
+- `lib/ai-exam-build.ts` (279 dòng) — DIFFICULTY_LEVELS, Difficulty, SmartQuestion, SmartPayload, SmartStats, normalizeDifficulty, normalizeMcqAnswer, extractTablePairs, detectAnswerKey, normalizeQuestion, reconcileAnswers, computeStats
 - `lib/ai-judge.ts` (193 dòng) — JUDGE_MAX_QUESTIONS, JudgeFinding, buildJudgePrompt, parseJudgeFindings, applyJudgeFindings, judgeParsedExam
 - `lib/ai-solve.ts` (200 dòng) — solveMissingAnswers
 - `lib/ai.ts` (60 dòng) — DEFAULT_MODEL, FALLBACK_MODELS, modelChain, withTimeout, generateWithRetry
@@ -183,7 +183,7 @@ Giáo viên soạn đề (tay, AI, hoặc đọc từ file Word/PDF), giao cho l
 - `lib/email.ts` (66 dòng) — SendEmailResult, sendEmail, passwordResetEmail
 - `lib/exam-docx.ts` (572 dòng) — DocxExtract, DocxKey, reconcileDocKey, NumberingDef, parseNumbering, extractDocxText, ANSWER_MARK_SUFFIX
 - `lib/exam-images.ts` (87 dòng) — DocImage, extractDocxImages, extractPdfJpegs, extractDocImages
-- `lib/exam-parse.ts` (813 dòng) — ANSWER_MARK, ParseIssue, ParseExamResult, parseExamText
+- `lib/exam-parse.ts` (876 dòng) — ANSWER_MARK, ParseIssue, ParseExamResult, parseExamText
 - `lib/exam-segment.ts` (133 dòng) — TextBlock, splitOptionLine, isOptionLine, segmentQuestions, formatBlocks
 - `lib/grading.ts` (146 dòng) — GradingPayload, AnswerValue, normalizeText, earnedPointsOf, isQuestionCorrect, isAutoGraded, pointsOf, scoreSubmission
 - `lib/groq-import.ts` (64 dòng) — groqChatJson
@@ -265,6 +265,7 @@ Playwright E2E (`tests/e2e`):
 
 ## 13. Commit gần đây
 
+- `5e043e2` 2026-11-03 — feat(exam-parse): major upgrade for docx, pdf and answer key table parsing
 - `b61c7d7` 2026-11-03 — feat(ai): dai tu chat luong tao va giai de AI theo chuan khao thi quoc gia (AI-OVERHAUL)
 - `7207be0` 2026-11-03 — feat(parse): ho tro doc de tieng Anh Question/Answer/Explanation/Points
 - `0540ee1` 2026-11-02 — fix(exam): dung batch transaction tranh timeout P2028 khi cap nhat de
@@ -294,7 +295,6 @@ Playwright E2E (`tests/e2e`):
 - `5e3f782` 2026-10-16 — docs(roadmap): ghi loi hoi quy E-03 tu LIVE-1d + cap nhat LOAD-3 da sua
 - `834369e` 2026-10-16 — test(exam): sua ky vong E-03 cho nhan moi hoc sinh nop (LOI hoi quy tu 275687b)
 - `169a4e5` 2026-10-16 — test(proctor): cap nhat regex toast S-05 theo nhan vi pham quy che thi
-- `280b7ca` 2026-10-16 — docs(roadmap): ghi nhan PROCTOR-1b sua 2 loi chong gian lan
 
 ## 14. ROADMAP đầy đủ (lịch sử chi tiết từng hạng mục + commit hash)
 

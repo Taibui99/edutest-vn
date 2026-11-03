@@ -785,10 +785,10 @@ html.a6-perf-low ::view-transition-new(*) {
 .mt-table th,
 .mt-table td {
   border: 1px solid var(--surface-border, #E2E8F0);
-  padding: 0.3rem 0.55rem;
-  text-align: center;
-  vertical-align: middle;
-  white-space: nowrap;
+  padding: 0.4rem 0.65rem;
+  text-align: left;
+  vertical-align: top;
+  word-break: break-word;
 }
 .mt-table thead th {
   background: var(--primary-light, #E6EFF7);

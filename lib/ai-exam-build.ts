@@ -88,6 +88,24 @@ function countPairs(line: string) {
   return line.match(PAIR_RE)?.length ?? 0;
 }
 
+/** Kiểm tra chuỗi có phải dạng đáp án hợp lệ trong bảng key không
+ *  (để tránh nhầm lẫn bảng dữ liệu trong câu hỏi). */
+function isLikelyAnswerText(ans: string): boolean {
+  if (!ans || ans.length > 35 || /[?？]/.test(ans)) return false;
+  if (/^(?:đáp\s*án|đ\/a|đa|answer|key|câu|question|thời\s*gian|sự\s*kiện|nội\s*dung|ý\s*nghĩa)$/i.test(ans)) return false;
+  // Chữ cái đơn A-F
+  if (/^[A-Fa-f][\.\)]?$/.test(ans)) return true;
+  // Đúng/Sai token hoặc danh sách a-Đ, b-S
+  if (/^(?:đúng|dung|sai|true|false|[đdstf])$/i.test(ans)) return true;
+  if (/^[a-d]\s*[:\-–—]\s*[đdstf]/i.test(ans)) return true;
+  if (/^[đdstf](\s*[-–—,/]\s*[đdstf])+$/i.test(ans)) return true;
+  // Số hoặc số kèm đơn vị ngắn
+  if (/^[−-]?\d+(?:[.,]\d+)?(?:\s*(?:%|m|s|kg|j|kj|n|mol|l|ml|cm|km|h|w|v|a))?$/i.test(ans)) return true;
+  // Cặp số-chữ cái kiểu "1A"
+  if (/^\d{1,3}[A-Fa-f]$/.test(ans)) return true;
+  return false;
+}
+
 /**
  * Trích xuất các cặp (câu, đáp án) từ các bảng Markdown (| ô | ô |).
  * Hỗ trợ cả bảng ngang (hàng 1: câu 1..10, hàng 2: đáp án A..D)
@@ -118,7 +136,7 @@ export function extractTablePairs(text: string): Record<string, string> {
       for (let c = 0; c < rowA.length; c++) {
         const qNum = rowA[c].replace(/^(?:câu\s*(?:hỏi\s*)?|q\s*\.?\s*|question\s*)/i, "").trim();
         const ans = rowB[c].replace(/\[ĐÁP ÁN ĐÚNG THEO TÀI LIỆU\]/g, "").trim();
-        if (/^\d{1,3}$/.test(qNum) && ans && !/^(?:đáp\s*án|đ\/a|đa|answer|key)$/i.test(ans)) {
+        if (/^\d{1,3}$/.test(qNum) && isLikelyAnswerText(ans)) {
           map[qNum] = ans;
         }
       }
@@ -132,8 +150,8 @@ export function extractTablePairs(text: string): Record<string, string> {
     if (cells.some((c) => /^(?:câu|question|q)$/i.test(c) && /^(?:đáp\s*án|đ\/a|answer|key)$/i.test(cells[1] ?? ""))) continue;
     for (let i = 0; i + 1 < cells.length; i += 2) {
       const qNum = cells[i].replace(/^(?:câu\s*(?:hỏi\s*)?|q\s*\.?\s*|question\s*)/i, "").trim();
-      const ans = cells[i + 1].replace(/\[ĐÁP ÁN ĐÚNG THEO TÀI LIỆU\]/g, "").trim();
-      if (/^\d{1,3}$/.test(qNum) && ans && !/^(?:đáp\s*án|đ\/a|answer|key)$/i.test(ans)) {
+      const ans = cells[i + 1]?.replace(/\[ĐÁP ÁN ĐÚNG THEO TÀI LIỆU\]/g, "").trim() ?? "";
+      if (/^\d{1,3}$/.test(qNum) && isLikelyAnswerText(ans)) {
         map[qNum] = ans;
       }
     }

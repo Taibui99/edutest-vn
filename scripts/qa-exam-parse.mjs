@@ -550,4 +550,36 @@ d) Giá trị nhỏ nhất là 0.
   );
 });
 
+t("đề Đúng/Sai có bảng dữ liệu lớn + đáp án ghi (đúng)/(sai) ở cuối mệnh đề", () => {
+  const text = `2. Trắc nghiệm đúng sai. Trong mỗi ý a), b), c), d) ở mỗi câu, thí sinh chọn đúng hoặc sai
+Câu 1. Cho bảng dữ kiện về quá trình phát triển của ASEAN:
+| Thời gian | Sự kiện - Ý nghĩa |
+| 1967 | Thông qua Tuyên bố ASEAN - Hiệp hội các quốc gia Đông Nam Á (ASEAN) chính thức được thành lập. |
+| 2007 | Hiến chương ASEAN được thông qua - Tạo ra khuôn khổ pháp lý và thể chế cho hợp tác ASEAN. |
+| 2015 | Cộng đồng ASEAN được thành lập - Đánh dấu bước phát triển mới của hợp tác khu vực ở Đông Nam Á. |
+| 2020 | Tuyên bố Hà Nội về Tầm nhìn Cộng đồng ASEAN sau năm 2025 - Hướng tới thúc đẩy hợp tác và hội nhập ngày càng chặt chẽ hơn trên các trụ cột AEC, APSC, ASCC. |
+a) Ngày 22-11-2015, các nhà lãnh đạo ASEAN đã nhóm họp tại Ma-lai-xi-a, kí Tuyên bố Cua-la Lăm-pơ, chính thức thành lập Cộng đồng ASEAN. (đúng)
+b) Năm 2007, Hiến chương ASEAN chưa có hiệu lực pháp lý ràng buộc các quốc gia thành viên. (sai)
+c) ASEAN được thành lập vào năm 1967 tại Băng Cốc (Thái Lan). (đúng)
+d) Tuyên bố Hà Nội diễn ra vào năm 2015. (sai)`;
+
+  const { payload } = parseExamText(text);
+  assert.equal(payload.questions.length, 1);
+  const q = payload.questions[0];
+  assert.equal(q.type, "true_false");
+  assert.match(q.question, /Cho bảng dữ kiện về quá trình phát triển của ASEAN:/);
+  assert.match(q.question, /\| Thời gian \| Sự kiện - Ý nghĩa \|/);
+  assert.match(q.question, /\| 1967 \| Thông qua Tuyên bố ASEAN/);
+  assert.equal(q.answer, "Đ – S – Đ – S");
+  assert.equal(q.needsReview, false);
+  assert.equal(q.answerSource, "document");
+  assert.equal(q.grading.statements.length, 4);
+  assert.deepEqual(
+    q.grading.statements.map((s) => s.answer),
+    [true, false, true, false],
+  );
+  assert.doesNotMatch(q.grading.statements[0].text, /\(đúng\)/i);
+  assert.doesNotMatch(q.grading.statements[1].text, /\(sai\)/i);
+});
+
 console.log(`\n${passed} test pass`);
