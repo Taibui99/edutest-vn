@@ -31,17 +31,17 @@ export type ParseIssue = { question: number | null; message: string };
 
 export type ParseExamResult = { payload: SmartPayload; issues: ParseIssue[] };
 
-const QNUM_RE = /^câu\s*(?:hỏi\s*|đề\s*câu\s*)?(\d{1,3})\s*(?:\(\s*(\d+(?:[.,]\d+)?)\s*(?:đ|điểm)\s*\)|\([^)]*\))?\s*[:.\-–—)]\s*(.*)$/i;
+const QNUM_RE = /^(?:câu\s*(?:hỏi\s*|đề\s*câu\s*)?|question\s*|q\s*\.?\s*)(\d{1,3})\s*(?:\(\s*(\d+(?:[.,]\d+)?)\s*(?:đ|điểm|pts?|points?|marks?)\s*\)|\([^)]*\))?\s*[:.\-–—)]\s*(.*)$/i;
 const BARENUM_RE = /^(\d{1,3})\s*[.)]\s+(\S.*)$/;
-const ANSWER_RE = /^(?:đáp\s*án(?:\s*đúng)?|dap\s*an)\s*[:\-–—]\s*(.*)$/i;
+const ANSWER_RE = /^(?:đáp\s*án(?:\s*đúng)?|dap\s*an|correct\s*answers?|answers?|key)\s*[:\-–—]\s*(.*)$/i;
 /** Đáp án MCQ kiểu đề 2025: dòng riêng "Chọn D" / "Chọn B". */
-const CHOSEN_RE = /^(?:chọn|lựa\s*chọn|chon)\s*[:.\-–—]?\s*([A-Da-d])\s*[.)]?\s*$/i;
+const CHOSEN_RE = /^(?:chọn|lựa\s*chọn|chon|choose)\s*[:.\-–—]?\s*([A-Da-d])\s*[.)]?\s*$/i;
 /** Mệnh đề Đúng/Sai 2025: "a) …", "b) …", "c) …", "d) …" (chữ thường để KHÔNG
  *  đụng lựa chọn MCQ "A. …" viết hoa). */
 const STATEMENT_RE = /^\s*([a-d])\s*[.)]\s*(\S.*)$/;
-const EXPL_RE = /^(?:giải\s*thích|lời\s*giải)\s*[:\-–—]?\s*(.*)$/i;
-const POINTS_LINE_RE = /^(?:điểm|diem)\s*[:\-–—]\s*(\d+(?:[.,]\d+)?)\s*$/i;
-const POINTS_TAIL_RE = /[\s([{]*(\d+(?:[.,]\d+)?)\s*(?:đ|điểm)\s*[\])]?\s*$/i;
+const EXPL_RE = /^(?:giải\s*thích|lời\s*giải|explanations?)\s*[:\-–—]?\s*(.*)$/i;
+const POINTS_LINE_RE = /^(?:điểm|diem|points?|pts?|marks?)\s*[:\-–—]\s*(\d+(?:[.,]\d+)?)\s*$/i;
+const POINTS_TAIL_RE = /[\s([{]*(\d+(?:[.,]\d+)?)\s*(?:đ|điểm|pts?|points?|marks?)\s*[\])]?\s*$/i;
 const SINGLE_TOKEN_RE = /^\s*([A-Fa-f]|[1-9])\s*[.,]?\s*$/;
 /** Tham chiếu hình/biểu đồ — chế độ đọc theo quy tắc KHÔNG thấy hình nên
  *  đáp án có thể phụ thuộc hình. BỎ "hình học"/"hình tam giác" (từ vựng
@@ -369,10 +369,10 @@ export function parseExamText(
     const { line: lineText, letter: rawLetter, marked: markedLine } = extractMarker(lines[i]);
     let letter = rawLetter;
 
-    // Chuyển phần thi: "Phần 2." / "Phần 3." / "II. TRẮC NGHIỆM ĐÚNG - SAI" —
+    // Chuyển phần thi: "Phần 2." / "Phần 3." / "II. TRẮC NGHIỆM ĐÚNG - SAI" / "Part 1" / "Section A" —
     // chốt câu đang dở (dòng tiêu đề KHÔNG được dính vào câu trước).
-    const pm = /^phần\s*([123])\b/i.exec(lineText);
-    const rm = pm ? null : /^([IVX]+)\s*[.)]\s*(?:phần|trắc\s*nghiệm|tự\s*luận|trả\s*lời\s*ngắn)\b/i.exec(lineText);
+    const pm = /^(?:phần|part|section)\s*([1234])\b/i.exec(lineText);
+    const rm = pm ? null : /^([IVX]+)\s*[.)]\s*(?:phần|part|section|trắc\s*nghiệm|tự\s*luận|trả\s*lời\s*ngắn|multiple\s*choice|reading|writing|listening)\b/i.exec(lineText);
     if (pm || rm) {
       push();
       if (pm) section = Number(pm[1]);

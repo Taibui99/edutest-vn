@@ -416,4 +416,36 @@ Căn cứ vào bảng, tháng nào mưa nhiều hơn?`;
   assert.match(q.question, /\| Tháng \| 1 \| 2 \|\n\| Lượng mưa \| 10,5 \| 20,1 \|/);
 });
 
+t("đề Tiếng Anh: Question 1/Q2, Answer:, Explanation:, points", () => {
+  const text = `ENGLISH MIDTERM TEST
+Part 1. Multiple Choice
+Question 1 (2 points): What is the synonym of "commence"?
+A. stop
+B. begin
+C. finish
+D. pause
+Answer: B
+Explanation: "Commence" means to start or begin.
+
+Q2: She _______ to school yesterday.
+A. goes
+B. went
+C. gone
+D. going
+Answer: B
+Explanation: Simple past tense of go is went.`;
+  const { payload } = parseExamText(text);
+  assert.equal(payload.questions.length, 2);
+  const [q1, q2] = payload.questions;
+  assert.equal(q1.question, 'What is the synonym of "commence"?');
+  assert.equal(q1.answer, "B");
+  assert.equal(q1.points, 2);
+  assert.equal(q1.options.length, 4);
+  assert.match(q1.explanation, /means to start/);
+
+  assert.equal(q2.answer, "B");
+  assert.equal(q2.options.length, 4);
+  assert.match(q2.explanation, /Simple past tense/);
+});
+
 console.log(`\n${passed} test pass`);
