@@ -447,7 +447,7 @@ export function parseExamText(
   const splitEmbeddedQuestions = (items: string[]): string[] => {
     const result: string[] = [];
     const re =
-      /(?<!^)(?<=\S\s+)(?=(?:\d+\/\s*[A-Z]|(?:question\s*|q\s*\.?\s*|câu\s*(?:hỏi\s*)?|bài\s*)\d{1,3}\s*[:.\-–—)/]))/gi;
+      /(?<!^)(?<=\S\s+)(?=(?:\d+\/\s*[A-Z]|(?:question\s*|q\s*\.?\s*|câu\s*(?:hỏi\s*)?|bài\s*)\d{1,3}\s*[:.\-–—)/]))/i;
     for (const item of items) {
       if (re.test(item)) {
         const parts = item.split(re).map((p) => p.trim()).filter(Boolean);

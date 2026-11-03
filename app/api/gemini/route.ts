@@ -731,7 +731,6 @@ export async function POST(request: NextRequest) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Bạn cần đăng nhập" }, { status: 401 });
   if (!isTeacherAccess(session.user)) return NextResponse.json({ error: "Chỉ giáo viên mới được import đề" }, { status: 403 });
-  if (!process.env.GEMINI_API_KEY) return NextResponse.json({ error: "Thiếu GEMINI_API_KEY" }, { status: 500 });
   if ((await getSetting("enableAiImport", "true")) !== "true") {
     return NextResponse.json({ error: "Tính năng AI import đang tắt bởi quản trị viên" }, { status: 403 });
   }
@@ -785,6 +784,7 @@ export async function POST(request: NextRequest) {
   }
 
   const mode: "smart" | "generate" | "extract" | "parse" = rawMode === "parse" ? "parse" : rawMode === "generate" ? "generate" : rawMode === "extract" ? "extract" : "smart";
+  if (mode !== "parse" && !process.env.GEMINI_API_KEY) return NextResponse.json({ error: "Thiếu GEMINI_API_KEY" }, { status: 500 });
   if (!file && !prompt) return NextResponse.json({ error: "Thiếu file hoặc nội dung cần xử lý" }, { status: 400 });
   if (mode === "generate" && !file && !prompt) {
     return NextResponse.json({ error: "Thiếu nội dung để soạn câu hỏi" }, { status: 400 });
@@ -963,21 +963,24 @@ export async function POST(request: NextRequest) {
           if (!parsed.payload.questions?.length) {
             return send({ type: "error", error: 'Không nhận diện được câu hỏi nào trong tài liệu. Hãy kiểm tra lại hoặc dùng nút "Đọc bằng AI".' });
           }
-          // PARSE-2 — AI giám khảo đối chiếu JSON với nguyên văn. Lỗi thì bỏ
-          // qua + ghi chú (KHÔNG chặn import, KHÔNG sửa đáp án — chỉ thêm cờ).
-          send({ type: "stage", stage: "check" });
-          try {
-            const judged = await judgeParsedExam(content.slice(0, MAX_TEXT_CHARS), parsed.payload, forceGroq);
-            const applied = applyJudgeFindings(parsed.payload, parsed.issues, judged.findings);
-            judgeProvider = judged.provider;
-            judgeFindings = judged.findings.length;
-            console.info(`[exam-parse] judge provider=${judged.provider}; findings=${judged.findings.length}; flagged=${applied.flagged}`);
-          } catch (error) {
-            console.warn("[exam-parse] judge failed", error);
-            parsed.issues.push({
-              question: null,
-              message: "Đối chiếu AI chưa chạy được lần này — kết quả đọc rule vẫn giữ, giáo viên nên soát kỹ",
-            });
+          // PARSE-2 — AI giám khảo đối chiếu JSON với nguyên văn.
+          // Để chế độ đọc rule đạt tốc độ tức thì (<1s) và không bao giờ bị nghẽn timeout Vercel (10-15s),
+          // chỉ chạy AI judge khi có GEMINI_API_KEY, đề ngắn (≤ 25 câu) và có timeout bảo vệ 4s.
+          if (process.env.GEMINI_API_KEY && (parsed.payload.questions?.length ?? 0) <= 25) {
+            send({ type: "stage", stage: "check" });
+            try {
+              const judged = await withTimeout(
+                judgeParsedExam(content.slice(0, MAX_TEXT_CHARS), parsed.payload, forceGroq),
+                4000,
+                "Judge timeout",
+              );
+              const applied = applyJudgeFindings(parsed.payload, parsed.issues, judged.findings);
+              judgeProvider = judged.provider;
+              judgeFindings = judged.findings.length;
+              console.info(`[exam-parse] judge provider=${judged.provider}; findings=${judged.findings.length}; flagged=${applied.flagged}`);
+            } catch (error) {
+              console.warn("[exam-parse] judge skipped/failed", error);
+            }
           }
           resultText = JSON.stringify(parsed.payload);
           source = "parse";

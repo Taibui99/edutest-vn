@@ -82,10 +82,12 @@ function withAiMetadata(q: Question, source: { grading?: Grading | null; difficu
   const difficulty = normalizeDifficulty(source.difficulty) ?? normalizeDifficulty(fromGrading.difficulty);
   // IMG-1 — giữ ảnh minh hoạ khi mở lại đề đã lưu hoặc khi import.
   const image = typeof fromGrading.image === "string" && fromGrading.image ? fromGrading.image : undefined;
-  if (!image && !difficulty && rubric.length === 0) return q;
+  const passage = fromGrading.passage;
+  if (!image && !difficulty && rubric.length === 0 && !passage) return q;
   q.grading = {
     ...(q.grading ?? {}),
     ...(image ? { image } : {}),
+    ...(passage ? { passage } : {}),
     ...(difficulty ? { difficulty } : {}),
     ...(rubric.length ? { rubricPoints: rubric } : {}),
   };
