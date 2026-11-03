@@ -20,7 +20,7 @@ type Question = {
   text: string;
   options: string[];
   answer?: string;
-  grading?: { statements?: Array<{ text: string; answer?: boolean; points?: number }>; acceptedAnswers?: string[]; image?: string } | null;
+  grading?: { statements?: Array<{ text: string; answer?: boolean; points?: number }>; acceptedAnswers?: string[]; image?: string; passage?: { title: string; content: string } } | null;
   order: number;
 };
 
@@ -62,7 +62,7 @@ type ReviewItem = {
   text: string;
   options: string[];
   answer: string;
-  grading: { statements: { text: string; answer: boolean; points?: number }[]; acceptedAnswers: string[]; image?: string };
+  grading: { statements: { text: string; answer: boolean; points?: number }[]; acceptedAnswers: string[]; image?: string; passage?: { title: string; content: string } };
   explanation?: string | null;
   userAnswer: AnswerValue | null;
   correct: boolean | null;
@@ -145,8 +145,30 @@ function GuestReview({ items }: { items: ReviewItem[] }) {
 
       {open && (
         <div className="mt-3 flex flex-col gap-3">
-          {items.map((q) => (
-            <div key={q.id} className="rounded-xl border border-[var(--surface-border)] bg-[var(--surface-card)] p-4">
+          {items.map((q, i) => {
+            const prevPassage = i > 0 ? (items[i - 1].grading as any)?.passage : undefined;
+            const curPassage = (q.grading as any)?.passage;
+            const isNewPassage =
+              curPassage &&
+              curPassage.content &&
+              (!prevPassage ||
+                prevPassage.content !== curPassage.content ||
+                prevPassage.title !== curPassage.title);
+
+            return (
+              <div key={q.id} className="flex flex-col gap-3">
+                {isNewPassage && (
+                  <div className="rounded-2xl border-2 border-indigo-200 bg-gradient-to-br from-indigo-50/90 to-blue-50/50 p-4 shadow-sm">
+                    <div className="mb-1.5 flex items-center gap-2 font-bold text-indigo-900 text-sm">
+                      <BookOpen size={17} className="text-indigo-600 shrink-0" />
+                      <span>{curPassage.title || "Bài đọc / Ngữ liệu chung"}</span>
+                    </div>
+                    <div className="rounded-xl border border-indigo-100/80 bg-white/90 p-3 text-xs sm:text-sm leading-relaxed text-indigo-950 whitespace-pre-line shadow-inner max-h-60 overflow-y-auto">
+                      <MathText text={curPassage.content} />
+                    </div>
+                  </div>
+                )}
+                <div className="rounded-xl border border-[var(--surface-border)] bg-[var(--surface-card)] p-4">
               {q.grading.image && (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={q.grading.image} alt="Hình minh hoạ câu hỏi" className="mb-2 max-h-64 w-auto rounded-lg border border-[var(--surface-border)] bg-white" />
@@ -217,7 +239,9 @@ function GuestReview({ items }: { items: ReviewItem[] }) {
                   <p className="mt-2 pl-7 text-xs text-[var(--text-muted)]">Giải thích: <MathText text={q.explanation} /></p>
               )}
             </div>
-          ))}
+          </div>
+        );
+      })}
         </div>
       )}
     </div>
@@ -848,6 +872,20 @@ export function ExamTakingClientV2({ exam, attempt, preview = false, backHref }:
 
       <div className="flex-1 w-full max-w-5xl mx-auto flex flex-col lg:flex-row gap-5 p-4 pt-6">
         <main className="flex-1 min-w-0">
+          {question?.grading?.passage && (
+            <div className="mb-4 rounded-2xl border-2 border-indigo-200 bg-gradient-to-br from-indigo-50/90 to-blue-50/50 p-5 shadow-sm">
+              <div className="mb-2 flex items-center gap-2 font-bold text-indigo-900 text-sm sm:text-base">
+                <BookOpen size={19} className="text-indigo-600 shrink-0" />
+                <span>{question.grading.passage.title || "Bài đọc / Ngữ liệu chung"}</span>
+              </div>
+              <div className="rounded-xl border border-indigo-100/80 bg-white/90 p-4 text-sm leading-relaxed text-indigo-950 whitespace-pre-line shadow-inner max-h-72 sm:max-h-96 overflow-y-auto">
+                <MathText text={question.grading.passage.content} />
+              </div>
+              <p className="mt-2 text-xs font-semibold text-indigo-600">
+                ↓ Dưới đây là câu hỏi thuộc bài đọc này:
+              </p>
+            </div>
+          )}
           <div className="bg-[var(--surface-card)] border border-[var(--surface-border)] rounded-2xl p-5 sm:p-6 mb-4">
             <div className="flex items-center justify-between gap-2 mb-4">
             <div className="flex items-center gap-2 min-w-0"><span className="text-xs font-bold text-white bg-[var(--primary)] rounded-md px-2.5 py-1">Câu {current + 1}/{totalQuestions}</span><span className="text-xs font-semibold text-[var(--text-secondary)]">{question?.type === "mcq" ? "Trắc nghiệm" : question?.type === "true_false" ? "Đúng / Sai" : question?.type === "short_answer" ? "Trả lời ngắn" : "Tự luận"}</span></div>

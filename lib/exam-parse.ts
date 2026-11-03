@@ -239,12 +239,6 @@ function finalize(seg: Seg, issues: ParseIssue[]): SmartQuestion | null {
     issues.push({ question: seg.number, message: `${label}: có các lựa chọn nhưng thiếu nội dung câu hỏi` });
   }
 
-  // Gắn bài đọc / đoạn văn vào đầu câu hỏi nếu có
-  if (seg.passage && seg.passage.content) {
-    const pTitle = seg.passage.title ? `[${seg.passage.title}]\n` : "";
-    stem = `${pTitle}${seg.passage.content}\n\n${stem}`;
-  }
-
   const numStatements = seg.statements.length || seg.stem.filter((l) => BARENUM_RE.test(l)).length;
   let type: string;
   if (seg.options.length >= 2) type = "mcq";
@@ -452,7 +446,8 @@ export function parseExamText(
 
   const splitEmbeddedQuestions = (items: string[]): string[] => {
     const result: string[] = [];
-    const re = /(?<!^)(?<=\S\s+)(?=(?:question\s*|q\s*\.?\s*|câu\s*(?:hỏi\s*)?|bài\s*)\d{1,3}\s*[:.\-–—)/])/gi;
+    const re =
+      /(?<!^)(?<=\S\s+)(?=(?:\d+\/\s*[A-Z]|(?:question\s*|q\s*\.?\s*|câu\s*(?:hỏi\s*)?|bài\s*)\d{1,3}\s*[:.\-–—)/]))/gi;
     for (const item of items) {
       if (re.test(item)) {
         const parts = item.split(re).map((p) => p.trim()).filter(Boolean);
@@ -540,7 +535,7 @@ export function parseExamText(
 
     // Dò tiêu đề bài đọc / đoạn văn / tờ rơi / quảng cáo:
     // "1/ JAPANESE CUISINE: A JOURNEY..." hoặc "ADVERTISEMENTS" / "LEAFLETS" / "READING COMPREHENSION"
-    if (/^\d+\/\s*[A-Z0-9\s–—\-:’']{4,80}$/.test(lineText)) {
+    if (/^\d+\/\s*[A-Z0-9\s–—\-:’'!,]{4,100}$/.test(lineText)) {
       push();
       currentPassage = { title: lineText, lines: [] };
       continue;

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
+  BookOpen,
   Check,
   Clock3,
   FileUp,
@@ -27,6 +28,7 @@ type Grading = {
   acceptedAnswers?: string[];
   difficulty?: string;
   rubricPoints?: string[];
+  passage?: { title: string; content: string };
 };
 
 /* AI-6a — export để panel soạn đề trong chat tái dùng đúng logic parse của modal. */
@@ -774,157 +776,183 @@ D. 4
                 ) : null}
 
                 <div className="space-y-3">
-                  {reviewed.map((q, i) => (
-                    <div
-                      key={i}
-                      className={`rounded-2xl border p-4 ${q.needsReview ? "border-[var(--warning)] bg-[var(--warning-light)]/40" : "border-[var(--surface-border)] bg-[var(--surface-bg)]"}`}
-                    >
-                      <div className="mb-2 flex items-start justify-between gap-3">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-[var(--primary-light)] text-xs font-black text-[var(--primary)]">{i + 1}</span>
-                          <span className="rounded-lg bg-[var(--gray-100)] px-2 py-1 text-xs font-semibold text-[var(--text-secondary)]">
-                            {TYPE_NAMES[q.type] ?? TYPE_NAMES.unknown}
-                          </span>
-                          {q.type === "mcq" ? (
-                            <span
-                              className={`rounded-lg px-2 py-1 text-xs font-semibold ${q.answerSource === "document" ? "bg-[var(--mint-light)] text-[var(--mint)]" : q.answerSource === "ai" ? "bg-[var(--blue-light)] text-[var(--blue)]" : "bg-[var(--gray-100)] text-[var(--text-muted)]"}`}
-                            >
-                              {q.answerSource === "document" ? "Đáp án có trong tài liệu" : q.answerSource === "ai" ? "AI tự làm" : "Chưa có đáp án"}
-                            </span>
-                          ) : null}
-                          {q.needsReview ? (
-                            <span className="flex items-center gap-1 rounded-lg bg-[var(--warning-light)] px-2 py-1 text-xs font-semibold text-[var(--warning)]">
-                              <AlertTriangle size={12} /> Cần kiểm tra
-                            </span>
-                          ) : null}
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => setReviewed((list) => list.filter((_, x) => x !== i))}
-                          aria-label={`Bỏ câu ${i + 1}`}
-                          className="grid h-10 w-10 shrink-0 place-items-center rounded-lg text-[var(--text-muted)] hover:bg-[var(--danger-light)] hover:text-[var(--danger)] sm:h-8 sm:w-8"
-                        >
-                          <Trash2 size={15} />
-                        </button>
-                      </div>
+                  {reviewed.map((q, i) => {
+                    const prevPassage = i > 0 ? (reviewed[i - 1].grading as { passage?: { title?: string; content?: string } })?.passage : null;
+                    const curPassage = (q.grading as { passage?: { title?: string; content?: string } })?.passage;
+                    const isNewPassage =
+                      curPassage &&
+                      curPassage.content &&
+                      (!prevPassage ||
+                        prevPassage.content !== curPassage.content ||
+                        prevPassage.title !== curPassage.title);
 
-                      {/* IMPORT-1: cho sửa luôn NỘI DUNG CÂU HỎI ngay tại bước
-                          duyệt (trước chỉ sửa được đáp án/phương án) — user cần
-                          chỉnh lại đề và đáp án đọc từ file trước khi áp dụng. */}
-                      <label className="mt-1 block">
-                        <span className="text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">Nội dung câu hỏi</span>
-                        <textarea
-                          value={q.question}
-                          onChange={(e) => patchQuestion(i, { question: e.target.value })}
-                          rows={2}
-                          placeholder="Nhập nội dung câu hỏi"
-                          className={`mt-1 w-full resize-y rounded-xl border bg-[var(--surface-card)] p-2.5 text-sm leading-relaxed outline-none focus:border-[var(--primary)] ${q.question ? "border-[var(--surface-border)] text-[var(--text-primary)]" : "border-[var(--danger)] text-[var(--danger)]"}`}
-                        />
-                        {hasMath(q.question) && (
-                          <div className="mt-1 rounded-lg border border-dashed border-[var(--surface-border)] bg-[var(--surface-bg)] px-2.5 py-2 text-sm text-[var(--text-primary)]">
-                            <span className="mr-1 text-[10px] font-bold uppercase text-[var(--text-muted)]">Xem trước</span>
-                            <MathText text={q.question} />
+                    return (
+                      <div key={i} className="space-y-3">
+                        {isNewPassage && (
+                          <div className="rounded-2xl border-2 border-indigo-200 bg-gradient-to-br from-indigo-50/90 to-blue-50/50 p-5 shadow-sm">
+                            <div className="mb-2.5 flex items-center gap-2 font-bold text-indigo-900 text-base">
+                              <BookOpen size={19} className="text-indigo-600 shrink-0" />
+                              <span>{curPassage.title || "Bài đọc / Ngữ liệu chung"}</span>
+                            </div>
+                            <div className="rounded-xl border border-indigo-100/80 bg-white/90 p-4 text-sm leading-relaxed text-indigo-950 whitespace-pre-line shadow-inner max-h-80 overflow-y-auto">
+                              <MathText text={curPassage.content} />
+                            </div>
+                            <div className="mt-2.5 flex items-center gap-1.5 text-xs font-semibold text-indigo-600">
+                              <span>↓ Các câu hỏi dưới đây thuộc bài đọc trên:</span>
+                            </div>
                           </div>
                         )}
-                      </label>
-
-                      {q.type === "mcq" ? (
-                        <div className="mt-2.5 grid gap-2 sm:grid-cols-2">
-                          {q.options.map((opt, oi) => {
-                            const letter = LETTERS[oi];
-                            const selected = q.answer === letter;
-                            return (
-                              <div key={letter}>
-                                <label
-                                  className={`flex cursor-pointer items-center gap-2 rounded-xl border p-2.5 ${selected ? "border-[var(--success)] bg-[var(--success-light)]" : "border-[var(--surface-border)] bg-[var(--surface-card)]"}`}
+                        <div
+                          className={`rounded-2xl border p-4 ${q.needsReview ? "border-[var(--warning)] bg-[var(--warning-light)]/40" : "border-[var(--surface-border)] bg-[var(--surface-bg)]"}`}
+                        >
+                          <div className="mb-2 flex items-start justify-between gap-3">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-[var(--primary-light)] text-xs font-black text-[var(--primary)]">{i + 1}</span>
+                              <span className="rounded-lg bg-[var(--gray-100)] px-2 py-1 text-xs font-semibold text-[var(--text-secondary)]">
+                                {TYPE_NAMES[q.type] ?? TYPE_NAMES.unknown}
+                              </span>
+                              {q.type === "mcq" ? (
+                                <span
+                                  className={`rounded-lg px-2 py-1 text-xs font-semibold ${q.answerSource === "document" ? "bg-[var(--mint-light)] text-[var(--mint)]" : q.answerSource === "ai" ? "bg-[var(--blue-light)] text-[var(--blue)]" : "bg-[var(--gray-100)] text-[var(--text-muted)]"}`}
                                 >
-                                  <input
-                                    type="radio"
-                                    name={`answer-${i}`}
-                                    checked={selected}
-                                    onChange={() => patchQuestion(i, { answer: letter, needsReview: false })}
-                                    className="sr-only"
-                                  />
-                                  <span
-                                    className={`grid h-7 w-7 shrink-0 place-items-center rounded-full text-xs font-black ${selected ? "bg-[var(--success)] text-white" : "bg-[var(--gray-100)] text-[var(--text-secondary)]"}`}
-                                  >
-                                    {letter}
-                                  </span>
-                                  <input
-                                    value={opt}
-                                    onChange={(e) => setOption(i, oi, e.target.value)}
-                                    placeholder={`Nội dung đáp án ${letter}`}
-                                    className="min-w-0 flex-1 bg-transparent text-sm outline-none"
-                                  />
-                                </label>
-                                {hasMath(opt) && (
-                                  <div className="mt-1 rounded-lg border border-dashed border-[var(--surface-border)] bg-[var(--surface-bg)] px-2.5 py-1.5 text-sm text-[var(--text-primary)]">
-                                    <MathText text={opt} />
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      ) : null}
-
-                      {q.type === "mcq" && !q.answer ? (
-                        <div className="mt-2.5 flex flex-wrap items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => void aiSolve(i)}
-                            disabled={solveBusy !== null}
-                            className="flex items-center gap-1.5 rounded-xl bg-[var(--secondary-dark)] px-3.5 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
-                          >
-                            {solveBusy === i ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />} AI giải giúp
-                          </button>
-                          <span className="text-xs text-[var(--text-muted)]">AI tự giải và đối chiếu 2 lượt — bạn vẫn nên kiểm tra lại.</span>
-                        </div>
-                      ) : null}
-
-                      {q.rubricPoints?.length ? (
-                        <div className="mt-2.5 rounded-xl bg-[var(--surface-card)] p-3 ring-1 ring-[var(--surface-border)]">
-                          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">Ý chấm AI gợi ý</p>
-                          <ul className="mt-1 list-disc space-y-0.5 pl-5 text-sm text-[var(--text-secondary)]">
-                            {q.rubricPoints.map((r, ri) => (
-                              <li key={ri}>{r}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      ) : null}
-
-                      {q.type !== "mcq" ? (
-                        <label className="mt-2.5 block rounded-xl bg-[var(--surface-card)] p-3 ring-1 ring-[var(--surface-border)]">
-                          <span className="text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">Đáp án tham khảo</span>
-                          <textarea
-                            value={q.answer}
-                            onChange={(e) => patchQuestion(i, { answer: e.target.value })}
-                            rows={2}
-                            placeholder="Nhập đáp án hoặc ý chính để chấm"
-                            className="mt-1 w-full resize-y bg-transparent text-sm outline-none"
-                          />
-                        </label>
-                      ) : null}
-
-                      <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-[var(--surface-border)] pt-2.5">
-                        <span className="text-xs font-semibold text-[var(--text-secondary)]">Độ khó</span>
-                        <div className="flex flex-wrap gap-1.5">
-                          {DIFFICULTIES.map((d) => (
+                                  {q.answerSource === "document" ? "Đáp án có trong tài liệu" : q.answerSource === "ai" ? "AI tự làm" : "Chưa có đáp án"}
+                                </span>
+                              ) : null}
+                              {q.needsReview ? (
+                                <span className="flex items-center gap-1 rounded-lg bg-[var(--warning-light)] px-2 py-1 text-xs font-semibold text-[var(--warning)]">
+                                  <AlertTriangle size={12} /> Cần kiểm tra
+                                </span>
+                              ) : null}
+                            </div>
                             <button
-                              key={d}
                               type="button"
-                              onClick={() => setDifficulty(i, d)}
-                              aria-pressed={q.difficulty === d}
-                              className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${q.difficulty === d ? "bg-[var(--primary)] text-white" : "border border-[var(--surface-border)] bg-[var(--surface-card)] text-[var(--text-secondary)]"}`}
+                              onClick={() => setReviewed((list) => list.filter((_, x) => x !== i))}
+                              aria-label={`Bỏ câu ${i + 1}`}
+                              className="grid h-10 w-10 shrink-0 place-items-center rounded-lg text-[var(--text-muted)] hover:bg-[var(--danger-light)] hover:text-[var(--danger)] sm:h-8 sm:w-8"
                             >
-                              {d}
+                              <Trash2 size={15} />
                             </button>
-                          ))}
+                          </div>
+
+                          {/* IMPORT-1: cho sửa luôn NỘI DUNG CÂU HỎI ngay tại bước
+                              duyệt (trước chỉ sửa được đáp án/phương án) — user cần
+                              chỉnh lại đề và đáp án đọc từ file trước khi áp dụng. */}
+                          <label className="mt-1 block">
+                            <span className="text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">Nội dung câu hỏi</span>
+                            <textarea
+                              value={q.question}
+                              onChange={(e) => patchQuestion(i, { question: e.target.value })}
+                              rows={2}
+                              placeholder="Nhập nội dung câu hỏi"
+                              className={`mt-1 w-full resize-y rounded-xl border bg-[var(--surface-card)] p-2.5 text-sm leading-relaxed outline-none focus:border-[var(--primary)] ${q.question ? "border-[var(--surface-border)] text-[var(--text-primary)]" : "border-[var(--danger)] text-[var(--danger)]"}`}
+                            />
+                            {hasMath(q.question) && (
+                              <div className="mt-1 rounded-lg border border-dashed border-[var(--surface-border)] bg-[var(--surface-bg)] px-2.5 py-2 text-sm text-[var(--text-primary)]">
+                                <span className="mr-1 text-[10px] font-bold uppercase text-[var(--text-muted)]">Xem trước</span>
+                                <MathText text={q.question} />
+                              </div>
+                            )}
+                          </label>
+
+                          {q.type === "mcq" ? (
+                            <div className="mt-2.5 grid gap-2 sm:grid-cols-2">
+                              {q.options.map((opt, oi) => {
+                                const letter = LETTERS[oi];
+                                const selected = q.answer === letter;
+                                return (
+                                  <div key={letter}>
+                                    <label
+                                      className={`flex cursor-pointer items-center gap-2 rounded-xl border p-2.5 ${selected ? "border-[var(--success)] bg-[var(--success-light)]" : "border-[var(--surface-border)] bg-[var(--surface-card)]"}`}
+                                    >
+                                      <input
+                                        type="radio"
+                                        name={`answer-${i}`}
+                                        checked={selected}
+                                        onChange={() => patchQuestion(i, { answer: letter, needsReview: false })}
+                                        className="sr-only"
+                                      />
+                                      <span
+                                        className={`grid h-7 w-7 shrink-0 place-items-center rounded-full text-xs font-black ${selected ? "bg-[var(--success)] text-white" : "bg-[var(--gray-100)] text-[var(--text-secondary)]"}`}
+                                      >
+                                        {letter}
+                                      </span>
+                                      <input
+                                        value={opt}
+                                        onChange={(e) => setOption(i, oi, e.target.value)}
+                                        placeholder={`Nội dung đáp án ${letter}`}
+                                        className="min-w-0 flex-1 bg-transparent text-sm outline-none"
+                                      />
+                                    </label>
+                                    {hasMath(opt) && (
+                                      <div className="mt-1 rounded-lg border border-dashed border-[var(--surface-border)] bg-[var(--surface-bg)] px-2.5 py-1.5 text-sm text-[var(--text-primary)]">
+                                        <MathText text={opt} />
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          ) : null}
+
+                          {q.type === "mcq" && !q.answer ? (
+                            <div className="mt-2.5 flex flex-wrap items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => void aiSolve(i)}
+                                disabled={solveBusy !== null}
+                                className="flex items-center gap-1.5 rounded-xl bg-[var(--secondary-dark)] px-3.5 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
+                              >
+                                {solveBusy === i ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />} AI giải giúp
+                              </button>
+                              <span className="text-xs text-[var(--text-muted)]">AI tự giải và đối chiếu 2 lượt — bạn vẫn nên kiểm tra lại.</span>
+                            </div>
+                          ) : null}
+
+                          {q.rubricPoints?.length ? (
+                            <div className="mt-2.5 rounded-xl bg-[var(--surface-card)] p-3 ring-1 ring-[var(--surface-border)]">
+                              <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">Ý chấm AI gợi ý</p>
+                              <ul className="mt-1 list-disc space-y-0.5 pl-5 text-sm text-[var(--text-secondary)]">
+                                {q.rubricPoints.map((r, ri) => (
+                                  <li key={ri}>{r}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          ) : null}
+
+                          {q.type !== "mcq" ? (
+                            <label className="mt-2.5 block rounded-xl bg-[var(--surface-card)] p-3 ring-1 ring-[var(--surface-border)]">
+                              <span className="text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">Đáp án tham khảo</span>
+                              <textarea
+                                value={q.answer}
+                                onChange={(e) => patchQuestion(i, { answer: e.target.value })}
+                                rows={2}
+                                placeholder="Nhập đáp án hoặc ý chính để chấm"
+                                className="mt-1 w-full resize-y bg-transparent text-sm outline-none"
+                              />
+                            </label>
+                          ) : null}
+
+                          <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-[var(--surface-border)] pt-2.5">
+                            <span className="text-xs font-semibold text-[var(--text-secondary)]">Độ khó</span>
+                            <div className="flex flex-wrap gap-1.5">
+                              {DIFFICULTIES.map((d) => (
+                                <button
+                                  key={d}
+                                  type="button"
+                                  onClick={() => setDifficulty(i, d)}
+                                  aria-pressed={q.difficulty === d}
+                                  className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${q.difficulty === d ? "bg-[var(--primary)] text-white" : "border border-[var(--surface-border)] bg-[var(--surface-card)] text-[var(--text-secondary)]"}`}
+                                >
+                                  {d}
+                                </button>
+                              ))}
+                            </div>
+                            {q.solveNote ? <span className="ml-auto text-xs text-[var(--text-muted)]">{q.solveNote}</span> : null}
+                          </div>
                         </div>
-                        {q.solveNote ? <span className="ml-auto text-xs text-[var(--text-muted)]">{q.solveNote}</span> : null}
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
 
                 {reviewed.length === 0 ? (
