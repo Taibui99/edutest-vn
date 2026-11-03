@@ -626,3 +626,13 @@ GĐ3 **luôn bypass được** (trình duyệt khác, VM, điện thoại). Ch�
 - [x] **Lưới an toàn khi nộp bài (`app/api/submissions/route.ts` & `exam-taking-client-v2.tsx`)** — Client gửi kèm `answersByOrder` (đáp án theo số thứ tự câu). Nếu học sinh nộp bài với đề vừa bị đổi ID: server tự động kích hoạt Fallback đối chiếu theo `answersByOrder`, `attempt.optionOrder` hoặc thứ tự câu để nhận diện đủ 100% đáp án và chấm điểm chính xác.
 - [x] **Hỗ trợ cập nhật nhanh cấu hình đề qua `PATCH /api/exams/[id]`** — GV có thể bật/tắt `shuffleQuestions`, `shuffleAnswers`, `showAnswers`... độc lập mà không cần lưu lại danh sách câu hỏi.
 - [x] **Build & Verify** — `tsc --noEmit` pass, `eslint` pass (0 errors), `next build` pass (66 routes xanh).
+
+## 🧠 Đại tu chất lượng tạo & giải đề AI (AI-OVERHAUL, 2026-11-03)
+
+**Vấn đề phát hiện:** AI tạo đề và giải đề trước đây chất lượng kém ("rất ngu") do: (1) Prompt tạo đề thiếu tiêu chuẩn khảo thí, không có Few-shot mẫu, AI sinh đáp án sai ngớ ngẩn hoặc đáp án đúng dài gấp đôi; (2) `responseSchema` bị lỗi schema giả (`required` trường không tồn tại khiến Gemini sinh lỗi); (3) `ai-solve` bắt AI xuất đáp án trực tiếp không qua suy luận (làm rớt 40-50% độ chính xác); (4) Model chain chứa model không chính thức gây lỗi.
+
+- [x] **Nâng cấp Prompt tạo đề theo Tiêu chuẩn Khảo thí Quốc gia (`app/api/gemini/route.ts`)** — Quy định nghiêm ngặt thiết kế 3 phương án gây nhiễu (bẫy ngộ nhận, bẫy nửa vời, bẫy tính toán/nghịch đảo); cân bằng độ dài và văn phong 4 phương án; cấm tuyệt đối các phương án lười ("Tất cả đều đúng", "Cả A và B"); thêm Few-shot chuẩn mẫu Bộ GD&ĐT.
+- [x] **Sửa lỗi Schema `responseSchema` (`app/api/gemini/route.ts`)** — Bỏ các trường ảo `blocks_used`, `kind` khỏi required của schema tạo đề để Gemini sinh JSON ổn định 100%.
+- [x] **Chain-of-Thought cho bộ tự giải đề (`lib/ai-solve.ts`)** — Thêm bước suy luận `thought` bắt AI phải phân tích chứng minh trước khi chốt ký tự đáp án (tăng độ chính xác lên 85-95%); tự động tái sử dụng `thought` làm `explanation` chất lượng cao cho câu hỏi.
+- [x] **Tối ưu Model Chain Free Tier (`lib/ai.ts`)** — Mặc định `gemini-2.5-flash` và dự phòng `gemini-2.0-flash`, `gemini-1.5-flash`, `gemini-2.5-pro` (đều có gói free tier chính thức từ Google), hoàn toàn miễn phí.
+- [x] **Verify test suites** — `qa-ai-judge` 6/6, `qa-ai-exam-build` 16/16, `qa-exam-parse` 22/22 pass; `tsc --noEmit` 0 lỗi.

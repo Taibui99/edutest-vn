@@ -14,23 +14,34 @@ const SOLVE_BATCH = 8;
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
-const solvePrompt = (items: { n: number; question: string; options: string[] }[], run: string) => `Bạn là chuyên gia giải trắc nghiệm Việt Nam. Lượt ${run}.
+const solvePrompt = (items: { n: number; question: string; options: string[] }[], run: string) => `Bạn là chuyên gia giải đề trắc nghiệm Việt Nam. Lượt giải độc lập ${run}.
 
-DANH SÁCH CÂU HỎI CẦN GIẢI (giữ nguyên số thứ tự "n"):
+DANH SÁCH CÂU HỎI CẦN GIẢI:
 ${items
   .map(
-    (it) => `[n=${it.n}]
+    (it) => `[Câu ${it.n}]
 ${it.question}
 ${it.options.map((o, i) => `${String.fromCharCode(65 + i)}. ${o}`).join("\n")}`,
   )
   .join("\n\n")}
 
-Với MỖI câu trên, hãy TỰ GIẢI và chọn đáp án đúng duy nhất.
-- Suy luận từ kiến thức trong chính câu hỏi và các lựa chọn; nếu cần dùng kiến thức phổ thông của môn học đó.
-- Không đoán theo thói quen, không chọn đáp án ngẫu nhiên.
-- PHẢI trả lời đủ cho mọi câu, giữ đúng trường "n" đã cho.
+QUY TRÌNH SUY LUẬN BẮT BUỘC (CHAIN-OF-THOUGHT):
+Với MỖI câu hỏi:
+1. Viết 1-2 câu suy luận/chứng minh (thought) phân tích bản chất, công thức hoặc loại trừ đáp án sai.
+2. Từ suy luận trên, chốt đáp án đúng duy nhất ("A", "B", "C" hoặc "D").
+3. Tự tin (confidence) từ 0.8 đến 1.0.
 
-Trả về JSON: { "answers": [ { "n": <số thứ tự câu>, "answer": "A|B|C|D", "confidence": 0..1 } ] }`;
+Trả về JSON:
+{
+  "answers": [
+    {
+      "n": <số thứ tự câu>,
+      "thought": "<suy luận ngắn gọn>",
+      "answer": "A|B|C|D",
+      "confidence": 0.95
+    }
+  ]
+}`;
 
 const tieBreakPrompt = (q: { n: number; question: string; options: string[] }, cands: string[]) => `Hai lượt giải độc lập cho câu hỏi dưới đây đã cho hai đáp án khác nhau: ${cands.join(" và ")}.
 
@@ -40,8 +51,10 @@ B. ${q.options[1] ?? ""}
 C. ${q.options[2] ?? ""}
 D. ${q.options[3] ?? ""}
 
-Hãy tự giải lại từ đầu, phân tích kỹ từng lựa chọn rồi chốt đáp án đúng.
-Trả về JSON: { "answer": "A|B|C|D", "confidence": 0..1 }`;
+Hãy đóng vai trò Giám khảo phúc khảo tối cao:
+1. Phân tích cặn kẽ từng lựa chọn, chỉ ra bẫy hoặc lỗi sai ở phương án sai.
+2. Chứng minh vì sao phương án được chọn là đúng đắn và chuẩn xác nhất.
+Trả về JSON: { "thought": "<lập luận chi tiết>", "answer": "A|B|C|D", "confidence": 0..1 }`;
 
 const solveSchema = {
   type: "object",
@@ -50,8 +63,13 @@ const solveSchema = {
       type: "array",
       items: {
         type: "object",
-        properties: { n: { type: "number" }, answer: { type: "string" }, confidence: { type: "number" } },
-        required: ["n", "answer"],
+        properties: {
+          n: { type: "number" },
+          thought: { type: "string" },
+          answer: { type: "string" },
+          confidence: { type: "number" },
+        },
+        required: ["n", "thought", "answer"],
       },
     },
   },
@@ -60,8 +78,12 @@ const solveSchema = {
 
 const oneSchema = {
   type: "object",
-  properties: { answer: { type: "string" }, confidence: { type: "number" } },
-  required: ["answer"],
+  properties: {
+    thought: { type: "string" },
+    answer: { type: "string" },
+    confidence: { type: "number" },
+  },
+  required: ["thought", "answer"],
 };
 
 function parseJson<U>(raw: string | null | undefined): U {
@@ -116,26 +138,26 @@ export async function solveMissingAnswers(
   if (todo.length === 0) return { questions, agreed: 0, provider: "gemini" };
   let provider: "gemini" | "groq" = "gemini";
 
-  const votes = new Map<number, { a?: string; b?: string; tie?: string }>();
+  const votes = new Map<number, { a?: string; b?: string; tie?: string; thought?: string }>();
   const totalSteps = todo.length * 2;
   let step = 0;
 
   for (let i = 0; i < todo.length; i += SOLVE_BATCH) {
     const batch = todo.slice(i, i + SOLVE_BATCH).map((q, j) => ({ n: i + j + 1, question: q.question, options: q.options }));
     const [runA, runB] = await Promise.all([
-      solveCallJson<{ answers: { n: number; answer: string }[] }>(solvePrompt(batch, "1"), solveSchema, 70_000, forceGroq, 0.2),
-      solveCallJson<{ answers: { n: number; answer: string }[] }>(solvePrompt(batch, "2"), solveSchema, 70_000, forceGroq, 0.2),
+      solveCallJson<{ answers: { n: number; thought?: string; answer: string }[] }>(solvePrompt(batch, "1"), solveSchema, 70_000, forceGroq, 0.2),
+      solveCallJson<{ answers: { n: number; thought?: string; answer: string }[] }>(solvePrompt(batch, "2"), solveSchema, 70_000, forceGroq, 0.2),
     ]);
     if (runA.provider === "groq" || runB.provider === "groq") provider = "groq";
-    const pick = (res: { answers?: { n: number; answer: string }[] }, n: number) => {
+    const pick = (res: { answers?: { n: number; thought?: string; answer: string }[] }, n: number) => {
       const hit = res.answers?.find((x) => Number(x.n) === n);
-      return hit ? normalizeMcqAnswer(hit.answer, 4) ?? undefined : undefined;
+      return hit ? { answer: normalizeMcqAnswer(hit.answer, 4) ?? undefined, thought: hit.thought } : undefined;
     };
     for (const item of batch) {
       const src = todo[item.n - 1];
       const a = pick(runA.data, item.n);
       const b = pick(runB.data, item.n);
-      votes.set(src.index, { a, b });
+      votes.set(src.index, { a: a?.answer, b: b?.answer, thought: a?.thought || b?.thought });
       step += 2;
       onProgress?.(Math.min(step, totalSteps), totalSteps);
     }
@@ -150,7 +172,7 @@ export async function solveMissingAnswers(
     step = todo.length * 2;
     for (const q of conflicts) {
       try {
-        const res = await solveCallJson<{ answer: string }>(
+        const res = await solveCallJson<{ thought?: string; answer: string }>(
           tieBreakPrompt({ n: q.index + 1, question: q.question, options: q.options }, [votes.get(q.index)!.a!, votes.get(q.index)!.b!]),
           oneSchema,
           70_000,
@@ -159,6 +181,7 @@ export async function solveMissingAnswers(
         );
         if (res.provider === "groq") provider = "groq";
         votes.get(q.index)!.tie = normalizeMcqAnswer(res.data.answer, q.options.length) ?? undefined;
+        if (res.data.thought) votes.get(q.index)!.thought = res.data.thought;
       } catch (error) {
         console.warn(`[ai-solve] phá thế hoản thất bại câu ${q.index + 1}`, error);
       }

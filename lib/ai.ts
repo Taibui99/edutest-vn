@@ -3,12 +3,21 @@
  * tier) làm mặc định; lite chỉ còn là LƯỚI AN TOÀN trong chuỗi nếu flash thường
  * không khả dụng với key này. Muốn đóng băng chi phí thì set EXAM_IMPORT_MODEL
  * = "gemini-3.5-flash-lite" trên Vercel. */
-export const DEFAULT_MODEL = "gemini-3.5-flash";
-/* Google đang khai tử dần dòng lite cũ: 2.0-flash-lite chết hẳn, 2.5-flash-lite
- * báo "no longer available to new users" với key này (log prod 2026-10-11).
- * Chỉ giữ model Google còn khuyến nghị; khi cả chuỗi fail sẽ lọt lỗi THẬT
- * (quota/quá tải) ra mapError thay vì 404 đánh lạc hướng. */
-export const FALLBACK_MODELS: string[] = ["gemini-3.5-flash-lite", "gemini-3.1-flash-lite"];
+export const DEFAULT_MODEL = process.env.EXAM_IMPORT_MODEL?.trim() || "gemini-2.5-flash";
+/* Chuỗi fallback các model mạnh và ổn định nhất của Google (đều có free tier):
+ * - gemini-2.5-flash: Mô hình tư duy nhanh và cân bằng nhất hiện nay.
+ * - gemini-2.0-flash / gemini-1.5-flash: Dự phòng chuẩn production.
+ * - gemini-2.5-pro: Dòng suy luận cao cấp khi cần độ sâu tối đa.
+ * - Nếu người dùng cấu hình EXAM_IMPORT_MODEL trên Vercel thì model đó sẽ ưu tiên số 1. */
+export const FALLBACK_MODELS: string[] = [
+  "gemini-2.5-flash",
+  "gemini-2.0-flash",
+  "gemini-1.5-flash",
+  "gemini-2.5-pro",
+  "gemini-3.5-flash",
+  "gemini-3.5-flash-lite",
+  "gemini-3.1-flash-lite",
+];
 
 export function modelChain(): string[] {
   const configured = process.env.EXAM_IMPORT_MODEL?.trim();

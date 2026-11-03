@@ -65,31 +65,61 @@ function difficultyPlan(count: number) {
 function buildGeneratePrompt(content: string, opts: GenerateOptions) {
   const count = Math.min(Math.max(Number(opts.count) || 10, 1), 60);
   const types = (opts.types?.length ? opts.types : ["mcq"]).map((t) => {
-    if (t === "true_false") return "true_false (Đúng/Sai, mỗi câu gồm 3-5 mệnh đề kèm đáp án)";
-    if (t === "short_answer") return "short_answer (trả lời ngắn, nêu grading.acceptedAnswers đầy đủ biến thể đáp án)";
+    if (t === "true_false") return "true_false (Đúng/Sai, mỗi câu gồm 3-5 mệnh đề kèm đáp án boolean)";
+    if (t === "short_answer") return "short_answer (trả lời ngắn, nêu grading.acceptedAnswers đầy đủ biến thể)";
     return "mcq (trắc nghiệm 4 đáp án A/B/C/D)";
   }).join(", ");
   const focus = opts.focus?.trim();
   const note = opts.customNote?.trim();
 
-  return `Bạn là chuyên gia soạn đề thi Việt Nam theo chương trình THPT.
-NHIỆM VỤ: Từ TÀI LIỆU bên dưới, TỰ SOẠN câu hỏi mới. KHÔNG được chép lại câu hỏi có sẵn nếu tài liệu không có.
+  return `Bạn là Chuyên gia Khảo thí và Đo lường Giáo dục hàng đầu Việt Nam.
+NHIỆM VỤ: Dựa vào TÀI LIỆU bên dưới, hãy TỰ SOẠN bộ câu hỏi trắc nghiệm/tự luận CHUẨN MỰC, SẮC SẢO, ĐẠT TIÊU CHUẨN ĐỀ THI QUỐC GIA.
 
-YÊU CẦU BẮT BUỘC:
-- Số câu: đúng ${count} câu. Không được ít hơn hoặc nhiều hơn.
-- Loại câu hỗ trợ (chỉ dùng các loại này): ${types}.
+CÁC NGUYÊN TẮC VÀNG BẮT BUỘC (QUYẾT ĐỊNH CHẤT LƯỢNG ĐỀ):
+
+1. NGUYÊN TẮC THIẾT KẾ 3 ĐÁP ÁN NHIỄU (DISTRACTORS) — TUYỆT ĐỐI KHÔNG BỊA TÙY TIỆN:
+   - Cả 4 phương án A, B, C, D phải có ĐỘ DÀI, VĂN PHONG VÀ CẤU TRÚC NGỮ PHÁP TƯƠNG ĐỒNG NHAU (tuyệt đối không để đáp án đúng dài gấp đôi, giải thích chi tiết còn 3 đáp án sai ngắn củn).
+   - 3 đáp án sai phải là các BẪY TƯ DUY TINH VI xuất phát từ:
+     + Lỗi ngộ nhận khái niệm tương tự hoặc nhầm lẫn giữa nguyên nhân và kết quả.
+     + Lỗi suy luận nửa vời (đúng tiền đề nhưng sai kết luận).
+     + Lỗi tính toán kinh điển (nhầm dấu, quên chia 2, quên đổi đơn vị, tính nghịch đảo).
+   - TUYỆT ĐỐI CẤM các lựa chọn lười biếng như: "Cả A và B đều đúng", "Tất cả các ý trên", "Không có đáp án nào đúng".
+
+2. NGUYÊN TẮC ĐẶT CÂU HỎI:
+   - Câu hỏi phải rõ ràng, tự đủ nghĩa, diễn đạt mạch lạc, không cụt ngủn ("... là gì?"), không viết "Theo tài liệu trên".
+   - Ưu tiên câu hỏi tình huống, gắn với bối cảnh thực tiễn hoặc vận dụng giải quyết vấn đề.
+   - Phân bố đáp án đúng đều: A, B, C, D cân bằng, không dồn cục (không để 3 câu liên tiếp cùng 1 chữ cái).
+   - Trường "answer" CHỈ LÀ ĐÚNG 1 KÝ TỰ chữ cái (vd "A", "B", "C", "D"), không ghi lại nội dung.
+
+3. GIẢI THÍCH (EXPLANATION):
+   - Nêu rõ tại sao đáp án đó đúng VÀ chỉ ra bẫy/sai sót ở các phương án còn lại để học sinh học được từ đề.
+
+VÍ DỤ MẪU CHUẨN (FEW-SHOT):
+{
+  "type": "mcq",
+  "question": "Một người tiêu dùng có thu nhập cố định, khi giá của hàng hóa X giảm trong điều kiện các yếu tố khác không đổi, lượng cầu hàng hóa X tăng lên là do tác động của:",
+  "options": [
+    "Hiệu ứng thay thế và hiệu ứng thu nhập cùng chiều làm tăng sức mua thực tế",
+    "Hiệu ứng thay thế làm hàng hóa X trở nên tương đối đắt hơn so với hàng hóa khác",
+    "Thu nhập danh nghĩa của người tiêu dùng tăng lên tương ứng với mức giảm giá",
+    "Sở thích và thị hiếu của người tiêu dùng đối với hàng hóa X đột ngột thay đổi"
+  ],
+  "answer": "A",
+  "points": 1,
+  "explanation": "Khi giá X giảm, hiệu ứng thay thế khiến người mua thay thế hàng khác bằng X, đồng thời hiệu ứng thu nhập làm tăng thu nhập thực tế, cả hai hiệu ứng cùng chiều thúc đẩy lượng cầu tăng."
+}
+
+YÊU CẦU CỤ THỂ CHO BỘ ĐỀ NÀY:
+- Số câu: đúng ${count} câu.
+- Loại câu hỗ trợ: ${types}.
 - Phân bố độ khó: ${difficultyPlan(count)}.
 ${opts.subject ? `- Môn học: ${opts.subject}.` : ""}
 ${opts.grade ? `- Khối lớp: ${opts.grade}.` : ""}
-- mcq: đúng 4 đáp án A, B, C, D, chỉ có đúng 1 đáp án đúng; đáp án đúng phân bố cân bằng, không dồn cục; trường answer CHỈ là đúng 1 ký tự A/B/C/D, không kèm nội dung đáp án.
-- 3 đáp án sai phải là những đáp án hợp lý gây nhầm lẫn, KHÔNG được vô lý hoặc quá dễ loại.
-${opts.withExplanation ? "- Kèm giải thích ngắn cho mỗi câu (trường explanation)." : ""}
-${focus ? `- Tập trung vào: ${focus}.` : ""}
-${note ? `- Yêu cầu riêng của giáo viên (phải tuân thủ): ${note}` : ""}
+${focus ? `- Trọng tâm kiến thức: ${focus}.` : ""}
+${note ? `- Yêu cầu riêng của giáo viên: ${note}` : ""}
 
-CHỈ DÙNG KIẾN THỨC CÓ TRONG TÀI LIỆU. Không bịa sự kiện, công thức, số liệu hoặc định nghĩa không có trong tài liệu. Câu hỏi phải tự đủ nghĩa, không viết "theo tài liệu trên".
-Tiêu đề đề lấy từ chủ đề chính của tài liệu.
-Trả về JSON đúng response schema.
+CHỈ DÙNG KIẾN THỨC CÓ TRONG TÀI LIỆU. Tiêu đề đề lấy từ chủ đề chính của tài liệu.
+Trả về DUY NHẤT JSON đúng response schema.
 
 TÀI LIỆU:
 ${content}`;
@@ -204,11 +234,11 @@ const responseSchema = {
             },
           },
         },
-        required: ["type", "question", "options", "answer", "blocks_used"],
+        required: ["type", "question", "options", "answer"],
       },
     },
   },
-  required: ["title", "kind", "questions"],
+  required: ["title", "questions"],
 };
 
 const analyzePrompt = `Bạn là chuyên gia phân tích đề thi Việt Nam. NHIỆM VỤ: đọc TÀI LIỆU và DỰNG LẠI ĐỀ THI đang có trong tài liệu (đây là đề sẵn có, KHÔNG tự soạn câu hỏi mới).

@@ -160,7 +160,7 @@ export function normalizeQuestion(raw: Partial<SmartQuestion>, index: number): S
 /** Ghép kết quả 2 lượt giải (self-consistency) + phá thế hoản. */
 export function reconcileAnswers(
   questions: SmartQuestion[],
-  votes: Map<number, { a?: string; b?: string; tie?: string }>,
+  votes: Map<number, { a?: string; b?: string; tie?: string; thought?: string }>,
 ): { questions: SmartQuestion[]; agreed: number } {
   const out = questions.map((q) => {
     const v = votes.get(q.index);
@@ -170,6 +170,7 @@ export function reconcileAnswers(
     return {
       ...q,
       answer: final,
+      explanation: q.explanation || v.thought || undefined,
       answerSource: "ai",
       confidence: agreed ? 0.95 : v.tie ? 0.75 : 0.5,
       needsReview: !final || (!agreed && !v.tie),
