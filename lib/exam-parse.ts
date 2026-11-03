@@ -182,6 +182,8 @@ type Seg = {
   statements: string[];
   /** Đáp án từng mệnh đề suy ra từ gạch chân (đề chỉ gạch chân mệnh đề ĐÚNG). */
   statementAnswers: boolean[];
+  /** Đoạn văn / bài đọc / tờ rơi liên kết với câu hỏi (reading passage/cloze test/advertisement). */
+  passage?: { title: string; content: string } | null;
   /** Tiền tố nhãn của câu ("Câu", "Question", "Bài"). */
   labelPrefix?: string;
   /** Phần của đề (1 = trắc nghiệm, 2 = đúng/sai, 3 = trả lời ngắn, 4 = tự luận). */
@@ -201,6 +203,7 @@ const newSeg = (number: number | null, section = 1, labelPrefix = "Câu"): Seg =
   points: null,
   statements: [],
   statementAnswers: [],
+  passage: null,
   section,
 });
 
@@ -215,15 +218,31 @@ function pushOptionLine(seg: Seg, line: string) {
 }
 
 function finalize(seg: Seg, issues: ParseIssue[]): SmartQuestion | null {
+  // Tự động đánh nhãn a. b. c. d. e. cho câu hoán vị (Sentence Arrangement) nếu đề chưa đánh
+  const isPermutation = seg.options.some((o) => /^[a-f]\s*[-–—]\s*[a-f]/i.test(o.text));
+  if (isPermutation && seg.stem.length >= 2) {
+    const hasLabels = seg.stem.some((s) => /^[a-f][\.\)]/i.test(s.trim()));
+    if (!hasLabels) {
+      const letters = ["a", "b", "c", "d", "e", "f", "g", "h"];
+      seg.stem = seg.stem.map((s, idx) => (idx < letters.length ? `${letters[idx]}. ${s}` : s));
+    }
+  }
+
   const rawStem = clean(joinStemLines(seg.stem));
   if (!rawStem && seg.options.length === 0) return null;
 
   const label = seg.number != null ? `${seg.labelPrefix ?? "Câu"} ${seg.number}` : "Một khối";
   // Nếu câu không có stem nhưng có options (thường gặp ở đề tiếng Anh phát âm/trọng âm):
   // gán tiêu đề tự động để không bị rỗng
-  const stem = rawStem || (seg.options.length ? (seg.number != null ? label : "Chọn đáp án đúng") : "");
+  let stem = rawStem || (seg.options.length ? (seg.number != null ? label : "Chọn đáp án đúng") : "");
   if (!rawStem && seg.options.length) {
     issues.push({ question: seg.number, message: `${label}: có các lựa chọn nhưng thiếu nội dung câu hỏi` });
+  }
+
+  // Gắn bài đọc / đoạn văn vào đầu câu hỏi nếu có
+  if (seg.passage && seg.passage.content) {
+    const pTitle = seg.passage.title ? `[${seg.passage.title}]\n` : "";
+    stem = `${pTitle}${seg.passage.content}\n\n${stem}`;
   }
 
   const numStatements = seg.statements.length || seg.stem.filter((l) => BARENUM_RE.test(l)).length;
@@ -310,6 +329,10 @@ function finalize(seg: Seg, issues: ParseIssue[]): SmartQuestion | null {
         });
       }
     }
+  }
+
+  if (seg.passage) {
+    grading = { ...(grading ?? {}), passage: seg.passage };
   }
 
   // Câu tham chiếu hình/biểu đồ — parser không thấy hình → GV phải kiểm
@@ -399,14 +422,48 @@ export function parseExamText(
     if (/^\|.*\|$/.test(t) && t.includes("|")) {
       const cells = t.replace(/^\|/, "").replace(/\|$/, "").split("|").map((c) => c.trim());
       const nonEmpty = cells.filter(Boolean);
-      const hasOption = nonEmpty.some((c) => /(?<=[\s.,;:()"'$]|^)[A-D][\.\)\:](?=[\sA-Za-zÀ-ỹ]|$)/.test(c));
-      if (hasOption) return nonEmpty;
+      const hasOptionOrQ = nonEmpty.some(
+        (c) =>
+          /(?<=[\s.,;:()"'$]|^)[A-F][\.\)\:](?=[\sA-Za-zÀ-ỹ]|$)/i.test(c) ||
+          /(?:question|câu|bài|q\s*\.?)\s*\d+/i.test(c),
+      );
+      if (hasOptionOrQ) {
+        // Cặp ô bảng đặc thù: ô 1 kết thúc bằng câu hỏi mới ("C. ... Question 12:"), ô 2 là "D. ..."
+        if (
+          cells.length === 2 &&
+          /^[A-F][\.\)\:]/i.test(cells[1]) &&
+          /(?:question|câu|q\s*\.?)\s*\d+/i.test(cells[0])
+        ) {
+          const qMatch = /(?:question|câu|q\s*\.?)\s*\d+\s*[:.\-–—)/]/i.exec(cells[0]);
+          if (qMatch) {
+            const beforeQ = cells[0].slice(0, qMatch.index).trim();
+            const fromQ = cells[0].slice(qMatch.index).trim();
+            return [`${beforeQ}  ${cells[1]}`, fromQ];
+          }
+        }
+        return nonEmpty;
+      }
       // Ô đơn chứa đầu câu hỏi ("Câu 2: …") → bỏ dấu "|" để nhận diện câu.
-      if (nonEmpty.length === 1 && /^\s*(?:câu|bài)\s*\d/i.test(nonEmpty[0])) return nonEmpty;
+      if (nonEmpty.length === 1 && /^\s*(?:câu|bài|question|q\s*\.?)\s*\d/i.test(nonEmpty[0])) return nonEmpty;
       return [t];
     }
     return [t];
   };
+
+  const splitEmbeddedQuestions = (items: string[]): string[] => {
+    const result: string[] = [];
+    const re = /(?<!^)(?<=\S\s+)(?=(?:question\s*|q\s*\.?\s*|câu\s*(?:hỏi\s*)?|bài\s*)\d{1,3}\s*[:.\-–—)/])/gi;
+    for (const item of items) {
+      if (re.test(item)) {
+        const parts = item.split(re).map((p) => p.trim()).filter(Boolean);
+        result.push(...parts);
+      } else {
+        result.push(item);
+      }
+    }
+    return result;
+  };
+
   // Giữ thông tin "dòng này có dòng trống ngay trước không" — dùng để phân
   // biệt câu mới (đánh số trần, cách bởi dòng trống) với mệnh đề / lời giải
   // nằm liền trong cùng khối (tránh tách dư câu).
@@ -420,17 +477,24 @@ export function parseExamText(
       continue;
     }
     for (const e of expand(rl)) {
-      const v = e.trim();
-      if (!v) continue;
-      lines.push(v);
-      blankBefore.push(pendingBlank);
-      pendingBlank = false;
+      for (const sub of splitEmbeddedQuestions([e])) {
+        const v = sub.trim();
+        if (!v) continue;
+        lines.push(v);
+        blankBefore.push(pendingBlank);
+        pendingBlank = false;
+      }
     }
   }
 
   const segs: Seg[] = [];
   const preamble: string[] = [];
   let cur: Seg | null = null;
+  type PassageInfo = {
+    title: string;
+    lines: string[];
+  };
+  let currentPassage: PassageInfo | null = null;
   // Đề Thông tư 2025: Phần 1/2/3. Phần 1 đánh số "Câu N." trong text; Phần 2/3
   // đánh số bằng numbering tự động — exam-docx đã sinh tiền tố "Câu N." nên vẫn
   // chảy qua vòng lặp chính. `sectionRaw` giữ nguyên văn Phần 2/3 để đọc "Bảng
@@ -474,6 +538,25 @@ export function parseExamText(
     }
     if (section >= 2) sectionRaw.push(lineText);
 
+    // Dò tiêu đề bài đọc / đoạn văn / tờ rơi / quảng cáo:
+    // "1/ JAPANESE CUISINE: A JOURNEY..." hoặc "ADVERTISEMENTS" / "LEAFLETS" / "READING COMPREHENSION"
+    if (/^\d+\/\s*[A-Z0-9\s–—\-:’']{4,80}$/.test(lineText)) {
+      push();
+      currentPassage = { title: lineText, lines: [] };
+      continue;
+    }
+
+    if (
+      /^(?:advertisements?|leaflets?|reading\s+comprehension|sentence\s+arrangement)/i.test(lineText) ||
+      /^(?:read\s+the\s+following|mark\s+the\s+letter|đọc\s+đoạn\s+văn\s+sau)/i.test(lineText)
+    ) {
+      push();
+      if (!/^(?:read\s+the\s+following|mark\s+the\s+letter|đọc\s+đoạn\s+văn\s+sau)/i.test(lineText)) {
+        currentPassage = null;
+      }
+      continue;
+    }
+
     let rest = lineText;
     let opened = false;
     const qm = QNUM_RE.exec(lineText);
@@ -481,6 +564,12 @@ export function parseExamText(
       push();
       const prefix = /^(?:question|q\b)/i.test(lineText) ? "Question" : /^bài/i.test(lineText) ? "Bài" : "Câu";
       cur = newSeg(Number(qm[1]), section, prefix);
+      if (currentPassage && currentPassage.lines.length > 0) {
+        cur.passage = {
+          title: currentPassage.title,
+          content: currentPassage.lines.join("\n\n").trim(),
+        };
+      }
       if (qm[2]) cur.points = toPoints(qm[2]);
       rest = qm[3];
       opened = true;
@@ -521,7 +610,11 @@ export function parseExamText(
       }
     }
     if (!cur) {
-      preamble.push(lineText);
+      if (currentPassage) {
+        currentPassage.lines.push(lineText);
+      } else {
+        preamble.push(lineText);
+      }
       continue;
     }
     if (letter) cur.markerLetter = letter;
@@ -567,9 +660,9 @@ export function parseExamText(
       cur.answerRaw = chosen[1].toUpperCase();
       continue;
     }
-    // Mệnh đề Đúng/Sai 2025: "a) …" "b) …" "c) …" "d) …". CHỈ nhận ở phần thân
-    // câu (trước Lời giải / đáp án) — lời giải cũng có a) b) nhưng là diễn giải.
-    const st = STATEMENT_RE.exec(rest);
+    // Mệnh đề Đúng/Sai 2025: "a) …" "b) …" "c) …" "d) …". CHỈ nhận ở các dòng RIÊNG LẺ
+    // sau câu hỏi (không nhận trên chính dòng Question/Câu hỏi dẫn, vì đề tiếng Anh hay có "Question 5: a. Lan... b. Minh...")
+    const st = !opened ? STATEMENT_RE.exec(rest) : null;
     if (st && cur.options.length === 0 && !cur.answerSeen && cur.explanation.length === 0) {
       const parsedSt = extractStatementAnswer(st[2]);
       cur.statements.push(parsedSt.text);
@@ -589,8 +682,15 @@ export function parseExamText(
     }
     // Mệnh đề Đúng/Sai có công thức nằm ở đoạn riêng ngay sau câu dẫn
     // ("c) Công thức … là:" rồi đoạn "$T_F=…$") — nối vào mệnh đề cuối thay vì
-    // đẩy vào thân câu (trước đây công thức bị dính vào câu hỏi).
-    if (cur.statements.length && cur.options.length === 0 && !cur.answerSeen && rest) {
+    // đẩy vào thân câu (tránh nuốt dòng lựa chọn A. B. C. D.).
+    if (
+      cur.statements.length &&
+      cur.options.length === 0 &&
+      !cur.answerSeen &&
+      rest &&
+      !isOptionLine(rest) &&
+      splitOptionLine(rest).length <= 1
+    ) {
       cur.statements[cur.statements.length - 1] = `${cur.statements[cur.statements.length - 1]} ${rest}`.trim();
       continue;
     }
@@ -599,10 +699,63 @@ export function parseExamText(
       cur.points = toPoints(pl[1]);
       continue;
     }
-    if (rest && isOptionLine(rest)) {
-      pushOptionLine(cur, rest);
+    const optCandidates = splitOptionLine(rest);
+    if (optCandidates.length > 1 || (optCandidates.length === 1 && isOptionLine(optCandidates[0]))) {
+      for (const opt of optCandidates) {
+        pushOptionLine(cur, opt);
+      }
       continue;
     }
+
+    // Nếu câu đang gom đáp án (đã có >= 1 lựa chọn, chưa đủ 4) và dòng tiếp theo là text ngắn,
+    // không phải tiêu đề hay câu hỏi mới -> bổ sung làm đáp án tiếp theo
+    if (
+      cur.options.length >= 1 &&
+      cur.options.length < 4 &&
+      !/[?？]/.test(rest) &&
+      rest.length < 150 &&
+      !cur.answerSeen &&
+      !cur.inExplanation &&
+      !/^\|.*\|$/.test(rest) &&
+      !BARENUM_RE.test(rest) &&
+      !ANSWER_RE.test(rest) &&
+      !EXPL_RE.test(rest)
+    ) {
+      cur.options.push({ text: rest.trim() });
+      continue;
+    }
+
+    // 4 dòng ngắn liên tiếp không có nhãn sau thân câu kết thúc bằng ? hoặc ______
+    // CHỈ áp dụng khi phía trước KHÔNG có lựa chọn A-D nào phía sau (không đụng bảng số liệu / mệnh đề Đ/S)
+    if (cur.options.length === 0 && cur.stem.length > 0) {
+      const lastStem = cur.stem[cur.stem.length - 1];
+      const hasExplicitAhead = lines.slice(i, i + 6).some((l) => isOptionLine(l) || splitOptionLine(l).length > 1);
+      if (/[?？]|______/.test(lastStem) && !hasExplicitAhead) {
+        let futureLines: string[] = [rest];
+        for (let j = 1; j <= 3; j++) {
+          const fl = lines[i + j];
+          if (
+            fl &&
+            !QNUM_RE.test(fl) &&
+            fl.length < 120 &&
+            !/^\|.*\|$/.test(fl) &&
+            !BARENUM_RE.test(fl) &&
+            !ANSWER_RE.test(fl) &&
+            !EXPL_RE.test(fl)
+          ) {
+            futureLines.push(fl);
+          }
+        }
+        if (futureLines.length === 4) {
+          for (const fl of futureLines) {
+            cur.options.push({ text: fl.trim() });
+          }
+          i += 3;
+          continue;
+        }
+      }
+    }
+
     // Dòng gộp "câu hỏi ... A. .. B. .. C. .. D. .." (GV hay dùng tab trong
     // Word): cắt phần lựa chọn ra khỏi câu hỏi để không nuốt hết vào stem.
     if (rest) {
@@ -616,6 +769,17 @@ export function parseExamText(
         if (stemPart) cur.stem.push(stemPart);
         pushOptionLine(cur, rest.slice(marks[0]));
         continue;
+      }
+      // Trường hợp 1 lựa chọn A. kèm 4 câu ngắn kế tiếp
+      if (marks.length === 1 && marks[0] > 0 && /^A[\.\)\:]/i.test(rest.slice(marks[0]))) {
+        const stemPart = rest.slice(0, marks[0]).trim();
+        if (stemPart) cur.stem.push(stemPart);
+        const afterA = rest.slice(marks[0]).replace(/^[A-F][\.\)\:]\s*/i, "").trim();
+        const sents = afterA.split(/(?<=\.)\s+(?=[A-Z])/).map((s) => s.trim()).filter(Boolean);
+        if (sents.length === 4) {
+          for (const s of sents) cur.options.push({ text: s });
+          continue;
+        }
       }
     }
     let s = rest;

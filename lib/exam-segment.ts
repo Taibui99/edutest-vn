@@ -37,8 +37,21 @@ export function splitOptionLine(line: string): string[] {
   const re = /(?<=[\s.,;:()"'$]|^)([A-F])[\.\)\:](?=[\sA-Za-zÀ-ỹ$\\\(\[{]|$)/g;
   let m: RegExpExecArray | null;
   while ((m = re.exec(line)) !== null) marks.push(m.index);
-  if (!marks.length || marks[0] !== 0) return [line];
-  return marks.map((start, i) => line.slice(start, marks[i + 1] ?? line.length).trim()).filter(Boolean);
+  if (!marks.length) return [line];
+
+  const leading = line.slice(0, marks[0]).trim();
+  if (!leading) {
+    return marks.map((start, i) => line.slice(start, marks[i + 1] ?? line.length).trim()).filter(Boolean);
+  }
+
+  // Đề tiếng Anh hoặc trắc nghiệm bị mất chữ cái "A.": "essential B. unneeded C. valuable D. convenient"
+  const firstLetter = line.slice(marks[0]).match(/^[A-F]/i)?.[0]?.toUpperCase();
+  if (firstLetter === "B" && marks.length >= 2 && !/[?？]/.test(leading) && leading.length < 150) {
+    const rest = marks.map((start, i) => line.slice(start, marks[i + 1] ?? line.length).trim()).filter(Boolean);
+    return [`A. ${leading}`, ...rest];
+  }
+
+  return [line];
 }
 
 export function isOptionLine(line: string): boolean {

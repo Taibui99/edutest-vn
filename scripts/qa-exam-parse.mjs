@@ -582,4 +582,75 @@ d) Tuyên bố Hà Nội diễn ra vào năm 2015. (sai)`;
   assert.doesNotMatch(q.grading.statements[1].text, /\(sai\)/i);
 });
 
+t("đề Tiếng Anh: bài đọc/quảng cáo liên kết câu hỏi + options mất chữ A.", () => {
+  const text = `ADVERTISEMENTS (BÀI QUẢNG CÁO)
+Read the following advertisement and mark the letter A, B, C or D on your answer sheet to indicate the correct option that best fits each of the numbered blanks 9 to 10.
+1/ JAPANESE CUISINE: A JOURNEY THROUGH CULTURE AND TRADITION
+Japanese cuisine is famous around the world for its healthy ingredients and rich cultural heritage. These (9) ________ meals are prepared with care and tradition. For example, traditional sushi, (10) ________ requires fresh fish, shows dedication to quality.
+
+Question 9:
+essential B. unneeded C. valuable D. convenient
+Answer: A
+
+Question 10:
+A. which B. that C. whom D. who
+Answer: A`;
+
+  const { payload } = parseExamText(text);
+  assert.equal(payload.questions.length, 2);
+  const q9 = payload.questions[0];
+  assert.match(q9.question, /JAPANESE CUISINE/);
+  assert.match(q9.question, /Question 9/);
+  assert.equal(q9.options.length, 4);
+  assert.equal(q9.options[0], "essential");
+  assert.equal(q9.options[1], "unneeded");
+  assert.equal(q9.options[2], "valuable");
+  assert.equal(q9.options[3], "convenient");
+  assert.equal(q9.answer, "A");
+  assert.ok(q9.grading.passage);
+
+  const q10 = payload.questions[1];
+  assert.match(q10.question, /JAPANESE CUISINE/);
+  assert.match(q10.question, /Question 10/);
+  assert.equal(q10.options.length, 4);
+  assert.equal(q10.options[0], "which");
+  assert.equal(q10.answer, "A");
+});
+
+t("đề Tiếng Anh: sắp xếp câu (Sentence Arrangement) tự động đánh nhãn a. b. c.", () => {
+  const text = `SENTENCE ARRANGEMENT (SẮP XẾP CÂU / ĐOẠN HỘI THOẠI)
+Question 1:
+Firstly, I enjoyed exploring the different themed areas, where I could see amazing castles.
+Secondly, the exciting rides made the whole experience enjoyable.
+Finally, the parade in the evening was breathtaking with colourful floats.
+A. b – c – a
+B. a – b – c
+C. c – a – b
+D. c – b – a
+Answer: B
+
+Question 2: a. Lan: Great! Let’s meet at eight. b. Minh: Yes, I am. c. Lan: Are you joining on Sunday?
+A. c – b – a
+B. a – b – c
+C. b – c – a
+D. c – a – b
+Answer: A`;
+
+  const { payload } = parseExamText(text);
+  assert.equal(payload.questions.length, 2);
+  const q1 = payload.questions[0];
+  assert.match(q1.question, /^a\. Firstly/);
+  assert.match(q1.question, /b\. Secondly/);
+  assert.match(q1.question, /c\. Finally/);
+  assert.equal(q1.options.length, 4);
+  assert.equal(q1.answer, "B");
+
+  const q2 = payload.questions[1];
+  assert.match(q2.question, /a\. Lan:/);
+  assert.match(q2.question, /b\. Minh:/);
+  assert.match(q2.question, /c\. Lan:/);
+  assert.equal(q2.options.length, 4);
+  assert.equal(q2.answer, "A");
+});
+
 console.log(`\n${passed} test pass`);
