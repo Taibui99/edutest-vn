@@ -317,7 +317,7 @@ export function resultView(opts: {
 }): string {
   const scoreBlock = opts.showScore
     ? `<div class="score" style="color:${opts.score >= 5 ? "#15803d" : "#b91c1c"}">${opts.score}/10</div>
-       <p class="muted">${opts.correctCount}/${opts.totalQuestions} câu được chấm</p>`
+       <p class="muted">Đúng ${opts.correctCount}/${opts.totalQuestions} câu</p>`
     : `<p class="pill warn">Giáo viên sẽ công bố điểm sau khi chấm</p>`;
 
   let reviewBlock = "";

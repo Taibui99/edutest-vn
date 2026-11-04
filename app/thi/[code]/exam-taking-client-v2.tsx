@@ -787,7 +787,7 @@ export function ExamTakingClientV2({ exam, attempt, preview = false, backHref }:
               <>
                 <div className="w-20 h-20 rounded-full mx-auto mb-5 flex items-center justify-center" style={{ background: `color-mix(in srgb, ${col} 15%, transparent)` }}><Trophy size={36} style={{ color: col }} /></div>
                 <h1 className="text-3xl font-black tracking-tight tabular-nums mb-1" style={{ color: col }}>{result.score}/10</h1>
-                <p className="text-[var(--text-secondary)] text-sm mb-5">{result.correctCount}/{result.totalQuestions} câu được chấm · {formatTime(result.durationSeconds)}</p>
+                <p className="text-[var(--text-secondary)] text-sm mb-5">Đúng {result.correctCount}/{result.totalQuestions} câu · {formatTime(result.durationSeconds)}</p>
               </>
             )}
             {exam.isGuest && <p className="text-xs text-[var(--text-muted)]">Kết quả đã được ghi nhận cho bài thi này.</p>}
